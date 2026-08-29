@@ -1,3 +1,4 @@
+# NHSS Alumni Platform FastAPI Backend Main Module
 import os
 import logging
 from contextlib import asynccontextmanager
