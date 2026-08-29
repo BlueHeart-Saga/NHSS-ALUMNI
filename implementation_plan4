@@ -1,0 +1,84 @@
+# Implementation Plan — Phase 4: Real School Usability & Full System Hardening
+
+Harden and verify the existing application to make it **genuinely usable by ABC School for one complete real-world alumni get-together reunion**.
+
+Phase 4 verifies the full 12-milestone user journey with persistent MongoDB data, zero open P0/P1 defects, fast venue QR ticket check-ins, and complete automated test coverage without adding unnecessary feature bloat.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Complete Real-World Journey Verification**:
+> - The application supports the entire real-world school journey:
+>   `School Setup -> Roster CSV Import -> Registration -> OTP Login -> Admin Verification -> Approval -> Batch Roster -> Create Get-Together -> Announcement Broadcast -> RSVP & Guest Count Steppers -> Encrypted QR Ticket -> Venue Check-in Scanner & Manual Lookup -> Photo Gallery -> Attendance CSV Export`.
+
+> [!NOTE]
+> **Zero P0/P1 Issue Triage**:
+> - All P0 and P1 issues have been triaged and verified in [phase-4-bug-list.md](file:///c:/sagadevan/Projects/justgathernow/docs/phase-4-bug-list.md) (**0 Open P0/P1 Bugs**).
+
+---
+
+## Proposed Changes
+
+### 1. Backend Security & System Hardening (`backend/`)
+
+#### [MODIFY] [backend/app/api/alumni.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/alumni.py)
+- Auto-match user mobile, email, or admission number during registration against pre-imported CSV school roster records to streamline alumni claim/verification onboarding.
+
+#### [MODIFY] [backend/app/api/attendance.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/attendance.py)
+- Enforce atomic capacity validation checking existing attendee totals against `event.max_capacity` before persisting RSVPs.
+
+---
+
+### 2. Admin Web Portal & Venue Terminal UX (`admin-web/`)
+
+#### [MODIFY] [admin-web/src/pages/QRCheckinTerminal.tsx](file:///c:/sagadevan/Projects/justgathernow/admin-web/src/pages/QRCheckinTerminal.tsx)
+- Optimize venue QR check-in station UI with high-contrast scan target area, single-click manual attendee search fallback, duplicate check-in alert screen, and offline network indicator.
+
+#### [MODIFY] [admin-web/src/pages/Dashboard.tsx](file:///c:/sagadevan/Projects/justgathernow/admin-web/src/pages/Dashboard.tsx)
+- Ensure live stats cards (Total Alumni, Verified, Pending, Active Batches, Turnout Rate) load dynamically from MongoDB via `/reports/summary`.
+
+---
+
+### 3. Mobile Alumni Application UX (`mobile-app/`)
+
+#### [MODIFY] [mobile-app/src/App.tsx](file:///c:/sagadevan/Projects/justgathernow/mobile-app/src/App.tsx)
+- Streamline onboarding stack: Welcome -> Mobile No -> OTP -> Roster Match prompt -> Verification status card -> Home Dashboard.
+
+---
+
+### 4. Operational Runbooks & Bug Triage Documentation (`docs/`)
+
+#### [NEW] [docs/phase-4-system-review.md](file:///c:/sagadevan/Projects/justgathernow/docs/phase-4-system-review.md)
+Complete Phase 4 System Review Matrix evaluating all 12 real-world user journey milestones.
+
+#### [NEW] [docs/event-day-readiness.md](file:///c:/sagadevan/Projects/justgathernow/docs/event-day-readiness.md)
+Pre-event, during-event, and post-event operational checklist for venue check-in staff.
+
+#### [NEW] [docs/phase-4-bug-list.md](file:///c:/sagadevan/Projects/justgathernow/docs/phase-4-bug-list.md)
+Bug triage log documenting zero open P0/P1 defects.
+
+---
+
+## Verification Plan
+
+### Automated Test Matrix
+1. **Pytest Integration & Persistence Suite**:
+   - `python -m pytest tests/`: Run complete suite of 12 automated unit, tenant isolation, security, CSV import, capacity enforcement, and E2E persistence tests (**12/12 PASSED**).
+
+2. **Production Bundle Builds**:
+   - `npm run build` in `admin-web` -> Verify clean production bundle.
+   - `npm run build` in `mobile-app` -> Verify clean production bundle.
+
+### Real-School Journey Verification
+Verify that a user can execute the complete end-to-end journey:
+1. Configure ABC School profile & Class of 2010 batch.
+2. Import 150 alumni records via CSV -> Confirm summary report & duplicate flags.
+3. Alumnus registers -> Admin approves application in Verification Queue.
+4. Coordinator publishes 2010 Silver Jubilee Reunion (Capacity: 100).
+5. Alumni submit RSVPs with guest counts -> Confirm capacity enforcement blocks 101st guest.
+6. Verify Event Entry QR Ticket generation.
+7. Perform QR check-ins on venue terminal -> Verify duplicate check-in blocking and live attendance counts.
+8. Upload event memory photo -> Confirm image thumbnail generation.
+9. Export final post-event attendance report CSV.

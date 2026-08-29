@@ -1,0 +1,18 @@
+{
+  "name": "justgathernow-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "School Alumni Management and Batch Get-Together Platform",
+  "scripts": {
+    "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
+    "dev:admin": "cd admin-web && npm run dev",
+    "dev:mobile": "cd mobile-app && npm run dev",
+    "seed": "cd backend && python -m app.seed",
+    "test:backend": "cd backend && pytest tests/",
+    "build:admin": "cd admin-web && npm run build",
+    "build:mobile": "cd mobile-app && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

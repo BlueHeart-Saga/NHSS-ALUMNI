@@ -1,0 +1,85 @@
+# Implementation Plan — Phase 3: Real Data Integration & Complete DB Connection
+
+Establish **MongoDB as the single source of truth for 100% of persistent business data** across the FastAPI backend, React Admin Web Portal, and React Native / Expo Mobile Alumni Application.
+
+Phase 3 guarantees that every displayed business value (alumni, batches, events, attendance counts, announcements, memories, and dashboard metrics) is dynamically queried from MongoDB, and every user/admin action persists to MongoDB with zero mock business data in production paths.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Single Source of Truth Architecture**:
+> - All persistent business data originates from MongoDB collections (`schools`, `users`, `alumni`, `batches`, `events`, `event_attendance`, `checkins`, `announcements`, `memories`, `notifications`, `audit_logs`).
+> - Frontend state in React and React Native is strictly scoped to transient UI state (loading spinners, selected filters, active modal forms, and temporary cached server responses).
+
+> [!NOTE]
+> **Data Reload & Restart Persistence**:
+> - Any alumnus registration, batch coordinator assignment, RSVP submission, venue check-in, or memory upload persists across backend restarts, browser refreshes, and app reboots.
+
+---
+
+## Proposed Changes
+
+### 1. Backend Service Layer & MongoDB Persistence (`backend/`)
+
+#### [MODIFY] [backend/app/api/auth.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/auth.py)
+- Ensure `/auth/me` resolves real user roles, alumni profile status, batch ID, email visibility (`email_visible`), and handles optional null fields safely.
+
+#### [MODIFY] [backend/app/api/reports.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/reports.py)
+- Ensure `/reports/summary` calculates real-time MongoDB aggregations for total alumni, verified count, pending count, active batches, published events, total check-ins, and turnout percentage.
+
+#### [MODIFY] [backend/app/api/alumni.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/alumni.py)
+- Ensure `/alumni/directory` uses indexed MongoDB regex queries for server-side search (`name`, `mobile`, `admission_number`) and batch filtering with limit/skip pagination.
+
+#### [MODIFY] [backend/app/api/events.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/events.py) & [backend/app/api/attendance.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/attendance.py)
+- Ensure event RSVP calculates live attendee guest totals against `event.max_capacity` directly from `event_attendance` records in MongoDB.
+
+---
+
+### 2. Admin Web Portal Data Wiring (`admin-web/`)
+
+#### [MODIFY] [admin-web/src/pages/Dashboard.tsx](file:///c:/sagadevan/Projects/justgathernow/admin-web/src/pages/Dashboard.tsx)
+- Ensure all 5 metric cards, featured reunion hero banner, and pending verification quick review list render directly from backend API endpoints (`/reports/summary`, `/alumni/pending`, `/events`).
+
+#### [MODIFY] [admin-web/src/pages/SchoolSettings.tsx](file:///c:/sagadevan/Projects/justgathernow/admin-web/src/pages/SchoolSettings.tsx)
+- Ensure school profile settings form fetches real metadata from `GET /school` and saves updates to `PUT /school`.
+
+---
+
+### 3. Mobile Alumni App Data Wiring (`mobile-app/`)
+
+#### [MODIFY] [mobile-app/src/App.tsx](file:///c:/sagadevan/Projects/justgathernow/mobile-app/src/App.tsx)
+- Ensure session boot calls `GET /auth/me`, dynamically populates batchmates directory, events feed, announcements, and photo memories from MongoDB without fallback hardcoded data.
+
+---
+
+### 4. Integration Test Suite & Audit Documentation (`docs/`)
+
+#### [NEW] [backend/tests/test_persistence_e2e.py](file:///c:/sagadevan/Projects/justgathernow/backend/tests/test_persistence_e2e.py)
+Automated end-to-end integration test verifying complete database persistence workflow: School setup -> Batch creation -> Alumni registration -> Admin verification -> Event publishing -> RSVP submission -> QR ticket check-in -> Photo memory upload -> CSV export verification.
+
+#### [NEW] [docs/real-data-audit.md](file:///c:/sagadevan/Projects/justgathernow/docs/real-data-audit.md)
+15-module Data Integration Audit Matrix verifying 100% database persistence.
+
+#### [NEW] [docs/data-flow.md](file:///c:/sagadevan/Projects/justgathernow/docs/data-flow.md)
+Data flow architecture and sequence diagrams across Admin Web, Mobile App, FastAPI, and MongoDB.
+
+---
+
+## Verification Plan
+
+### Automated Integration Tests
+1. **Pytest End-to-End Persistence Suite**:
+   - `python -m pytest tests/test_persistence_e2e.py`: Complete E2E integration test creating school, batch, alumni, event, RSVP, check-in, and memory records, validating that every mutation is written to and read back from MongoDB.
+   - `python -m pytest tests/`: Run complete test suite (all 12+ tests passing).
+
+2. **Frontend & Mobile Build Verification**:
+   - `npm run build` in `admin-web` -> Verify clean production bundle build.
+   - `npm run build` in `mobile-app` -> Verify clean production bundle build.
+
+### Data Reload & Restart Verification
+1. Create a batch get-together event and RSVP via Mobile App.
+2. Restart backend server (`python -m uvicorn app.main:app`).
+3. Reload Admin Web Portal (`http://localhost:5173`) and Mobile App (`http://localhost:5174`).
+4. Confirm event, attendee counts, check-in terminal state, and memories remain 100% intact from MongoDB.

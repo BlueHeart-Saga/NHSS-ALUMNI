@@ -1,0 +1,131 @@
+# Implementation Plan — Phase 2: Production Readiness & Real School Pilot
+
+Transition the existing School Alumni Management and Batch Get-Together Platform ("JustGatherNow") from **developer-complete MVP** to a **hardened, production-ready system for ABC School** capable of supporting 500 alumni initially and scaling to 5,000+ alumni.
+
+Phase 2 focuses strictly on **reliability, security, real data processing, production environment hardening, and pilot execution** without adding unnecessary new feature bloat.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Environment Fail-Fast & Secret Enforcement**:
+> - In `production` environment (`APP_ENV=production`), the application will **NEVER** silently fall back to an in-memory database or default JWT secret. If MongoDB or required secrets are missing, startup will fail immediately with clear system logs.
+> - Production CORS will restrict origins strictly to configured domains (e.g. `https://alumni.abcschool.edu`).
+
+> [!NOTE]
+> **Real Alumni Data Import & Duplicate Handling**:
+> - Enhanced CSV Import provides a validation summary (Total, Valid, Duplicates, Invalid) and exports an Error CSV for rows failing validation.
+> - Ambiguous duplicates (matching mobile, email, or admission number) are flagged for admin review rather than merged automatically.
+
+> [!IMPORTANT]
+> **Event Capacity & Overbooking Prevention**:
+> - RSVP submission will check event `max_capacity`. If `current_expected + new_guests > max_capacity`, the API blocks the request with `409 Conflict` (Prevent Overbooking) unless overridden by a School Admin.
+
+---
+
+## Proposed Changes
+
+### 1. Environment & Database Hardening (`backend/`)
+
+#### [MODIFY] [backend/app/core/config.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/core/config.py)
+- Add startup secret validator checking required production secrets when `APP_ENV=production`.
+- Add environment profile helpers (`is_production`, `is_dev`).
+
+#### [MODIFY] [backend/app/core/database.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/core/database.py)
+- Enforce strict environment-specific behavior: In production, failure to connect to MongoDB raises `RuntimeError` at startup rather than using `mongomock_motor`. In-memory mock engine is scoped exclusively to `development` and `test` environments.
+
+#### [MODIFY] [backend/app/main.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/main.py)
+- Configure environment-restricted CORS origins based on `settings.CORS_ORIGINS`.
+- Add global exception handler sanitizing unhandled internal 500 stack traces from public responses.
+- Add `/ready` readiness probe checking MongoDB ping and storage connection.
+
+#### [NEW] [.env.development](file:///c:/sagadevan/Projects/justgathernow/.env.development)
+Development environment configuration template.
+
+#### [NEW] [.env.production](file:///c:/sagadevan/Projects/justgathernow/.env.production)
+Production environment configuration template (secrets managed via environment/Azure Key Vault).
+
+---
+
+### 2. Business Logic, Data Import & Security Hardening (`backend/`)
+
+#### [MODIFY] [backend/app/api/alumni.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/alumni.py)
+- Enhance `/alumni/import-csv` endpoint to validate row columns, detect duplicate mobile/email/admission numbers, produce detailed preview statistics, and support downloading an Error CSV.
+- Add pagination support (`skip`, `limit`) to directory search.
+
+#### [MODIFY] [backend/app/api/attendance.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/attendance.py)
+- Implement event capacity check: block RSVP if total guests exceed `event.max_capacity`.
+
+#### [MODIFY] [backend/app/api/memories.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/api/memories.py) & [backend/app/services/azure_blob.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/services/azure_blob.py)
+- Implement image thumbnail generation and structured Blob Storage paths: `school_id/event_id/uuid.webp`.
+
+#### [MODIFY] [backend/app/middleware/auth.py](file:///c:/sagadevan/Projects/justgathernow/backend/app/middleware/auth.py)
+- Add rate limiting headers and explicit batch coordinator scope validation helper (`validate_batch_access`).
+
+---
+
+### 3. Automated Test Expansion (`backend/tests/`)
+
+#### [NEW] [backend/tests/test_tenant_isolation.py](file:///c:/sagadevan/Projects/justgathernow/backend/tests/test_tenant_isolation.py)
+Automated tests verifying that a user from School A / Batch 2010 cannot access or mutate School B / Batch 2011 restricted resources.
+
+#### [NEW] [backend/tests/test_csv_import.py](file:///c:/sagadevan/Projects/justgathernow/backend/tests/test_csv_import.py)
+Automated tests for CSV parsing, duplicate detection, invalid row reporting, and error output.
+
+#### [NEW] [backend/tests/test_event_capacity.py](file:///c:/sagadevan/Projects/justgathernow/backend/tests/test_event_capacity.py)
+Automated tests verifying overbooking rejection when max capacity is reached.
+
+---
+
+### 4. Admin Web & Mobile UI Polish
+
+#### [MODIFY] [admin-web/src/pages/AlumniManagement.tsx](file:///c:/sagadevan/Projects/justgathernow/admin-web/src/pages/AlumniManagement.tsx)
+- Upgrade CSV import modal with detailed report summary (Total, Valid, Duplicates, Errors) and download error CSV button.
+
+#### [MODIFY] [mobile-app/src/App.tsx](file:///c:/sagadevan/Projects/justgathernow/mobile-app/src/App.tsx)
+- Enhance offline ticket display state and add capacity full indicator on RSVP modal.
+
+---
+
+### 5. Production Operations & Runbooks (`docs/`)
+
+#### [NEW] [docs/production-deployment.md](file:///c:/sagadevan/Projects/justgathernow/docs/production-deployment.md)
+Azure Resource Group, App Service, Cosmos DB / MongoDB Atlas, SSL, and secrets configuration guide.
+
+#### [NEW] [docs/database-backup.md](file:///c:/sagadevan/Projects/justgathernow/docs/database-backup.md)
+MongoDB automated backup, retention, and disaster recovery restoration runbook.
+
+#### [NEW] [docs/security.md](file:///c:/sagadevan/Projects/justgathernow/docs/security.md)
+Security test matrix, data minimization, and secret management policies.
+
+#### [NEW] [docs/event-day-guide.md](file:///c:/sagadevan/Projects/justgathernow/docs/event-day-guide.md)
+On-site check-in terminal checklist, scanner setup, network contingency, and post-event reporting.
+
+#### [NEW] [docs/pilot-guide.md](file:///c:/sagadevan/Projects/justgathernow/docs/pilot-guide.md)
+Guide for executing the real-school pilot with ABC School (Class of 2010).
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **Pytest Security & Isolation Suite**:
+   - `python -m pytest tests/test_tenant_isolation.py`: Negative tests verifying cross-tenant and cross-batch 403 blocks.
+   - `python -m pytest tests/test_csv_import.py`: Verify CSV import duplicate detection and error summary formatting.
+   - `python -m pytest tests/test_event_capacity.py`: Verify RSVP overbooking rejection when capacity limit is reached.
+2. **Production Build Checks**:
+   - `npm run build` in `admin-web` -> Verify clean bundle build.
+   - `npm run build` in `mobile-app` -> Verify clean bundle build.
+
+### Real School Pilot Verification
+Execute the real-school pilot scenario:
+1. Configure ABC School profile & Class of 2010 batch.
+2. Import 150 alumni records via CSV -> Confirm summary report & duplicate flags.
+3. Alumnus registers -> Admin approves application in Verification Queue.
+4. Coordinator publishes 2010 Silver Jubilee Reunion (Capacity: 100).
+5. Alumni submit RSVPs with guest counts -> Confirm capacity enforcement blocks 101st guest.
+6. Verify Event Entry QR Ticket generation.
+7. Perform QR check-ins on venue terminal -> Verify duplicate check-in blocking and live attendance counts.
+8. Upload event memory photo -> Confirm image thumbnail generation.
+9. Export final post-event attendance report CSV.
