@@ -1,4 +1,4 @@
-# Rerun trigger: 2026-08-29 11:00 AM
+# Production deployment trigger: 2026-08-29 12:08 PM
 name: Company Frontend Azure Deployment (NHSS-ALUMNI)
 
 on:
