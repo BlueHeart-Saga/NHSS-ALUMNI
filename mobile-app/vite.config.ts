@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     port: 5174,
     host: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -16,11 +17,6 @@ export default defineConfig({
   preview: {
     port: 8080,
     host: true,
-    allowedHosts: [
-      'nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net',
-      '.azurewebsites.net',
-      'localhost',
-      '127.0.0.1'
-    ]
+    allowedHosts: true
   }
 });
