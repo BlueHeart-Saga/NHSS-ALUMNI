@@ -39,6 +39,7 @@ jobs:
 
       - name: Install dependencies & Build Admin Web
         run: |
+          cd admin-web
           npm install
           npm run build
 
