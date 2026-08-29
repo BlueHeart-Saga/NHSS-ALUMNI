@@ -62,6 +62,7 @@ jobs:
         with:
           name: python-app
           path: backend/
+          retention-days: 1
 
   deploy-backend:
     name: Release to Azure (NHSS-ALUMNI-BACKEND)
