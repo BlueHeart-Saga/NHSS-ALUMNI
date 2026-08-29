@@ -39,9 +39,10 @@ jobs:
           MONGODB_URI: mongodb://localhost:27017
           MONGODB_DATABASE: school_alumni_db_test
           JWT_SECRET: test-super-secret-key-32-chars-minimum-length
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           cd backend
-          pytest -v
+          pytest -v --import-mode=importlib
 
   personal-frontend-ci:
     name: Personal Frontend CI & Build
