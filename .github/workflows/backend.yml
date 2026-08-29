@@ -26,6 +26,31 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Inject Secure Backend .env File from GitHub Secrets
+        run: |
+          cat << 'EOF' > backend/.env
+          APP_NAME="${{ secrets.APP_NAME }}"
+          APP_ENV="production"
+          PORT=8000
+          MONGODB_URI="${{ secrets.MONGODB_URI }}"
+          MONGODB_DATABASE="${{ secrets.MONGODB_DATABASE }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          JWT_ALGORITHM="HS256"
+          ACCESS_TOKEN_EXPIRE_MINUTES=1440
+          REFRESH_TOKEN_EXPIRE_DAYS=30
+          DEFAULT_DEV_OTP="${{ secrets.DEFAULT_DEV_OTP }}"
+          GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GOOGLE_REDIRECT_URI="${{ secrets.GOOGLE_REDIRECT_URI }}"
+          FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+          SMTP_SERVER="${{ secrets.SMTP_SERVER }}"
+          SMTP_PORT=587
+          SMTP_USER="${{ secrets.SMTP_USER }}"
+          SMTP_PASS="${{ secrets.SMTP_PASS }}"
+          EMAILS_FROM_NAME="${{ secrets.EMAILS_FROM_NAME }}"
+          EMAILS_FROM_EMAIL="${{ secrets.EMAILS_FROM_EMAIL }}"
+          EOF
+
       - name: Install dependencies
         run: |
           cd backend
