@@ -1,0 +1,37 @@
+name: Build and deploy Python app to Azure Web App - NHSS-ALUMNI-BACKEND
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy_backend_nhss_alumni.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create Backend Deployment Package
+        run: |
+          cd backend
+          zip -r ../backend-deploy.zip . -x "*.pyc" "__pycache__/*" "tests/*"
+
+      - name: Deploy to Azure Web App (NHSS-ALUMNI-BACKEND)
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'NHSS-ALUMNI-BACKEND'
+          slot-name: 'Production'
+          package: './backend-deploy.zip'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BACKEND || secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1FB60DDBFE624590A62E15E2E558AA7F }}

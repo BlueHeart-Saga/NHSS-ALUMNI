@@ -7,6 +7,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'admin-web/**'
+      - 'package.json'
+      - '.github/workflows/main_nhss-alumni.yml'
   workflow_dispatch:
 
 jobs:
