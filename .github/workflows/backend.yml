@@ -80,4 +80,4 @@ jobs:
         with:
           app-name: 'NHSS-ALUMNI-BACKEND'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F9ABA5BFE5AF4C56B5A5E9DCC96455D3 }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND || secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F9ABA5BFE5AF4C56B5A5E9DCC96455D3 }}
