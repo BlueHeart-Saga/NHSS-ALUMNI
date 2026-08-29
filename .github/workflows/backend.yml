@@ -1,0 +1,58 @@
+name: Company Backend Azure Deployment (NHSS-ALUMNI-BACKEND)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+jobs:
+  build-backend:
+    name: Build FastAPI Backend Package
+    if: github.repository == 'Devopstrio/NHSS-ALUMNI'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: backend/
+
+  deploy-backend:
+    name: Release to Azure (NHSS-ALUMNI-BACKEND)
+    needs: build-backend
+    if: github.repository == 'Devopstrio/NHSS-ALUMNI'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      - name: Deploy to Azure Web App (NHSS-ALUMNI-BACKEND)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'NHSS-ALUMNI-BACKEND'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F9ABA5BFE5AF4C56B5A5E9DCC96455D3 }}

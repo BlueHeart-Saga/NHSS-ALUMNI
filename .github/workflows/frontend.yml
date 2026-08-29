@@ -1,0 +1,41 @@
+name: Company Frontend Azure Deployment (NHSS-ALUMNI)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'admin-web/**'
+      - 'package.json'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-frontend:
+    name: Deploy Admin Web to Azure (NHSS-ALUMNI)
+    if: github.repository == 'Devopstrio/NHSS-ALUMNI'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies & Build Admin Web
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to Azure Web App (NHSS-ALUMNI)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'NHSS-ALUMNI'
+          slot-name: 'Production'
+          package: '.'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1FB60DDBFE624590A62E15E2E558AA7F }}
