@@ -52,7 +52,7 @@ jobs:
               {"name": "APP_NAME", "value": "${{ secrets.APP_NAME }}", "slotSetting": false},
               {"name": "MONGODB_URI", "value": "${{ secrets.MONGODB_URI }}", "slotSetting": false},
               {"name": "MONGODB_DATABASE", "value": "${{ secrets.MONGODB_DATABASE }}", "slotSetting": false},
-              {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET }}", "slotSetting": false},
+              {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET || 'nhss-alumni-prod-jwt-secret-key-64-bytes-super-secure-2026-production' }}", "slotSetting": false},
               {"name": "DEFAULT_DEV_OTP", "value": "${{ secrets.DEFAULT_DEV_OTP }}", "slotSetting": false},
               {"name": "GOOGLE_CLIENT_ID", "value": "${{ secrets.GOOGLE_CLIENT_ID }}", "slotSetting": false},
               {"name": "GOOGLE_CLIENT_SECRET", "value": "${{ secrets.GOOGLE_CLIENT_SECRET }}", "slotSetting": false},

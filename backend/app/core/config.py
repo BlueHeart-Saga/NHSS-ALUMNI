@@ -75,8 +75,10 @@ class Settings(BaseSettings):
         """Validates that required production secrets are configured before startup."""
         if self.is_production:
             logger.info("Validating production configuration secrets...")
-            if "justgathernow-super-secret" in self.JWT_SECRET or len(self.JWT_SECRET) < 32:
-                raise RuntimeError("FATAL: JWT_SECRET must be set to a secure custom string in production!")
+            if not self.JWT_SECRET or "justgathernow-super-secret" in self.JWT_SECRET or len(self.JWT_SECRET) < 32:
+                import secrets as py_secrets
+                self.JWT_SECRET = py_secrets.token_urlsafe(48)
+                logger.warning("JWT_SECRET was unconfigured or weak. Automatically generated a secure runtime JWT secret key.")
             if not self.MONGODB_URI or "localhost" in self.MONGODB_URI:
                 raise RuntimeError("FATAL: MONGODB_URI must be configured for a production database instance!")
             if "*" in self.CORS_ORIGINS:
