@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 interface NewsItem {
   id: string;
@@ -14,19 +15,15 @@ interface SchoolNewsProps {
 }
 
 export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, onSelectNews }) => {
+  const { t, language } = useLanguage();
+
   return (
-    <section id="school-news" className="py-20 bg-white border-b border-[#E5E7EB]">
+    <section id="school-news" className="py-16 sm:py-20 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14 space-y-3">
-          {/* <span className="text-sm font-semibold text-[#854D0E] bg-[#FFF7D6] border-2 border-[#F4C542] px-5 py-2 rounded-full uppercase tracking-wider">
-            FROM OUR SCHOOL
-          </span> */}
-          <h2 className="text-4xl sm:text-5xl font-semibold text-[#111111] tracking-tight pt-2">
-            School News &amp; Official Updates
+        <div className="text-center mb-12 space-y-3">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+            {language === 'ta' ? 'பள்ளிச் செய்திகள் மற்றும் புதிய அறிவிப்புகள்' : 'School News & Official Updates'}
           </h2>
-          {/* <p className="text-lg text-gray-600 font-normal mt-2">
-            Keep up with official campus announcements, achievements, and notices
-          </p> */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -40,27 +37,26 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, onSelectN
 
               <div className="relative z-10 flex-1 flex flex-col justify-between space-y-5">
                 <div>
-                  <div className="flex items-center space-x-2 text-sm font-semibold text-[#854D0E] bg-[#FFF7D6] px-3.5 py-1.5 rounded-full w-fit mb-4 border border-[#F4C542]/60">
+                  <div className="flex items-center space-x-2 text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] px-3.5 py-1.5 rounded-full w-fit mb-4 border border-[#F4C542]/60">
                     <Calendar className="w-4 h-4 text-[#854D0E]" />
                     <span>{new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
-                  <h3 className="text-2xl font-semibold text-[#111111] group-hover:text-[#854D0E] transition-colors leading-snug">
+                  <h3 className="text-xl font-semibold text-[#111111] group-hover:text-[#854D0E] transition-colors leading-snug">
                     {item.title}
                   </h3>
-                  <p className="text-base text-gray-600 font-normal mt-2.5 line-clamp-3 leading-relaxed">
+                  <p className="text-sm text-gray-600 font-normal mt-2.5 line-clamp-3 leading-relaxed">
                     {item.content}
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 mt-5 flex items-center justify-between">
-                  <button
-                    onClick={() => onSelectNews(item)}
-                    className="text-base font-semibold text-[#111111] group-hover:text-[#854D0E] flex items-center space-x-2 hover:underline"
-                  >
-                    <span>Read Full Notice</span>
-                    <ArrowRight className="w-5 h-5 text-[#F4C542]" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectNews(item)}
+                  className="inline-flex items-center space-x-2 text-xs font-bold text-[#111111] hover:text-[#854D0E] uppercase tracking-wider cursor-pointer"
+                >
+                  <span>{language === 'ta' ? 'மேலும் படிக்க' : 'Read Full Announcement'}</span>
+                  <ArrowRight className="w-4 h-4 text-[#854D0E]" />
+                </button>
               </div>
             </div>
           ))}
