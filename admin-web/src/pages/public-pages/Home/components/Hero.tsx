@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import defaultSchoolImg from '../../../../assets/tamil_school_campus.png';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 interface HeroProps {
   schoolName: string;
@@ -16,6 +17,7 @@ export const Hero: React.FC<HeroProps> = ({
   coverUrl,
   onJoinClick
 }) => {
+  const { t, language } = useLanguage();
   const campusImg = (coverUrl && coverUrl.trim() !== '') ? coverUrl : defaultSchoolImg;
   const badgeText = schoolCode || (schoolName.length <= 8 ? schoolName : schoolName.split(' ').map(w => w[0]).join('').slice(0, 6).toUpperCase()) || "SDMCET";
 
@@ -64,25 +66,25 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="lg:col-span-5 space-y-7">
             <div>
               <div className="text-3xl sm:text-4xl text-[#111111] font-semibold tracking-tight">
-                Welcome to
+                {language === 'ta' ? 'அன்புடன் வரவேற்கிறது' : 'Welcome to'}
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-2">
-                The Alumni Portal
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-2">
+                {language === 'ta' ? 'பழைய மாணவர்கள் சங்கம்' : 'The Alumni Portal'}
               </h1>
             </div>
 
             {/* Description Text */}
             <p className="text-lg sm:text-xl text-gray-600 font-normal leading-relaxed max-w-xl">
-              Connect with your Classmates, Share Memories, Mentor Students and Seek Help from your own &amp; Powerful Alumni Network
+              {t('hero_subtitle')}
             </p>
 
             {/* Primary Action Button */}
             <div className="pt-3">
               <button
                 onClick={onJoinClick}
-                className="px-10 py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center space-x-3 border border-[#E0B238]"
+                className="px-8 sm:px-10 py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center space-x-3 border border-[#E0B238] cursor-pointer"
               >
-                <span>Register Now</span>
+                <span>{t('join_network_btn')}</span>
                 <ArrowRight className="w-6 h-6" />
               </button>
             </div>

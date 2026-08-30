@@ -2,17 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { Building2, MapPin, Phone, Mail, Globe, Calendar, GraduationCap, ShieldCheck } from 'lucide-react';
 import { api } from '../../services/api';
 import bannerImg from '../../assets/tamil_school_banner.png';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PublicSchool: React.FC = () => {
+  const { t, language } = useLanguage();
   const [profile, setProfile] = useState<any>({
     name: 'Our School',
     code: 'SCHOOL',
     logo_url: '',
     cover_url: '',
-    description: 'Providing holistic education, academic excellence, and character building.',
-    address: 'School Campus Address',
+    description: 'Providing holistic education, academic excellence, and character building for future leaders.',
+    address: 'School Campus, Educational Hub',
     website: '',
-    contact_phone: '+919876543210',
+    contact_phone: '+91 98765 43210',
     contact_email: 'info@school.edu',
     established_year: 2005
   });
@@ -52,8 +54,8 @@ export const PublicSchool: React.FC = () => {
               className="h-20 sm:h-24 w-auto object-contain flex-shrink-0"
             />
             <div className="space-y-1">
-              <span className="text-sm font-semibold text-[#F4C542] bg-[#111111] px-4 py-1.5 rounded-full uppercase tracking-wider">
-                ESTABLISHED {profile.established_year}
+              <span className="text-sm font-semibold text-[#F4C542] bg-[#111111] px-4 py-1.5 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
+                {t('established')} {profile.established_year}
               </span>
               <h1 className="text-4xl sm:text-5xl font-semibold text-white mt-1">{profile.name}</h1>
             </div>
@@ -61,84 +63,78 @@ export const PublicSchool: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Profile Info */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-20">
-        {/* Overview Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-7">
-            <h2 className="text-4xl font-semibold text-[#111111]">Campus Overview</h2>
-            <p className="text-lg text-gray-600 font-normal leading-relaxed">
-              {profile.description}
-            </p>
-            <p className="text-lg text-gray-600 font-normal leading-relaxed">
-              Our institution has nurtured thousands of successful professionals, researchers, entrepreneurs, and public servants who contribute meaningfully across the globe.
-            </p>
+      {/* Profile Details & Overview */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* Main Info */}
+          <div className="lg:col-span-8 space-y-10">
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <h2 className="text-3xl font-semibold text-[#111111]">
+                {t('school_profile_title')}
+              </h2>
+              <p className="text-gray-600 text-lg leading-relaxed font-normal">
+                {profile.description}
+              </p>
+            </div>
 
-            <div className="pt-8 border-t border-[#E5E7EB] space-y-6">
-              <h3 className="text-2xl font-semibold text-[#111111]">Key Campus Highlights</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-base font-semibold text-[#111111]">
-                <div className="p-5 bg-gray-50 border border-[#E5E7EB] rounded-2xl flex items-center space-x-3.5">
-                  <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                  <span>State-of-the-Art Laboratories</span>
-                </div>
-                <div className="p-5 bg-gray-50 border border-[#E5E7EB] rounded-2xl flex items-center space-x-3.5">
-                  <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                  <span>Comprehensive Central Library</span>
-                </div>
-                <div className="p-5 bg-gray-50 border border-[#E5E7EB] rounded-2xl flex items-center space-x-3.5">
-                  <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                  <span>Modern Auditorium &amp; Sports Complex</span>
-                </div>
-                <div className="p-5 bg-gray-50 border border-[#E5E7EB] rounded-2xl flex items-center space-x-3.5">
-                  <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                  <span>Active Alumni Mentorship Cell</span>
-                </div>
+            {/* Principal's Welcome Card */}
+            <div className="bg-[#FFF7D6]/50 p-8 rounded-3xl border-2 border-[#F4C542]/50 space-y-4">
+              <div className="flex items-center space-x-3 text-[#854D0E]">
+                <ShieldCheck className="w-7 h-7" />
+                <h3 className="text-2xl font-bold">{t('principal_message')}</h3>
               </div>
+              <p className="text-gray-800 text-base leading-relaxed italic font-medium">
+                {language === 'ta'
+                  ? '"நமது பழைய மாணவர்கள் நமது பள்ளியின் மிகப்பெரிய பலம். உங்கள் சாதனைகள் நமது பள்ளிக்கு பெருமை சேர்க்கின்றன. எப்போதும் இணைந்து இருங்கள், தாய் பள்ளிக்கு ஆதரவளியுங்கள்."'
+                  : '"Our alumni network is the cornerstone of our school\'s pride and legacy. We welcome all former students to stay connected, mentor the upcoming generations, and support our institution\'s growth."'}
+              </p>
             </div>
           </div>
 
-          {/* Contact Details Card */}
-          <div className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-9 shadow-sm space-y-7 h-fit">
-            <h3 className="text-2xl font-semibold text-[#111111] pb-4 border-b border-[#E5E7EB]">School Information</h3>
+          {/* Sidebar Stats & Contact Info */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-6">
+              <h3 className="text-xl font-bold text-[#111111] pb-4 border-b border-gray-100">
+                {t('contact_info')}
+              </h3>
 
-            <div className="space-y-5 text-base text-[#111111] font-normal">
-              <div className="flex items-start space-x-4">
-                <MapPin className="w-6 h-6 text-[#854D0E] flex-shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</strong>
-                  <span className="text-base font-semibold">{profile.address}</span>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <Phone className="w-6 h-6 text-[#854D0E] flex-shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Phone</strong>
-                  <span className="text-base font-semibold">{profile.contact_phone}</span>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <Mail className="w-6 h-6 text-[#854D0E] flex-shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Email</strong>
-                  <span className="text-base font-semibold">{profile.contact_email}</span>
-                </div>
-              </div>
-
-              {profile.website && (
-                <div className="flex items-start space-x-4">
-                  <Globe className="w-6 h-6 text-[#854D0E] flex-shrink-0 mt-0.5" />
+              <div className="space-y-4 text-sm font-medium text-gray-700">
+                <div className="flex items-start space-x-3">
+                  <Building2 className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Official Website</strong>
-                    <a href={profile.website} target="_blank" rel="noreferrer" className="text-[#854D0E] text-base font-semibold underline">
-                      {profile.website}
-                    </a>
+                    <div className="text-xs text-gray-400 font-bold uppercase">{t('school_code')}</div>
+                    <div className="font-semibold text-gray-900">{profile.code}</div>
                   </div>
                 </div>
-              )}
+
+                <div className="flex items-start space-x-3">
+                  <MapPin className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-gray-400 font-bold uppercase">{t('location')}</div>
+                    <div className="text-gray-800">{profile.address}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Phone className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-gray-400 font-bold uppercase">Phone</div>
+                    <div className="text-gray-800">{profile.contact_phone}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Mail className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-gray-400 font-bold uppercase">Email</div>
+                    <div className="text-gray-800">{profile.contact_email}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

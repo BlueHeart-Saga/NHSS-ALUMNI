@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, GraduationCap, Calendar, Award } from 'lucide-react';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 interface StatsProps {
   totalAlumni: number;
@@ -14,46 +15,42 @@ export const CommunityStats: React.FC<StatsProps> = ({
   totalEvents,
   yearsConnected
 }) => {
+  const { t, language } = useLanguage();
+
   const statsList = [
     {
-      label: 'Alumni',
+      label: language === 'ta' ? 'பழைய மாணவர்கள்' : 'Alumni',
       value: `${totalAlumni.toLocaleString()}+`,
-      subtitle: 'Registered School Alumni',
+      subtitle: t('stat_alumni'),
       icon: Users
     },
     {
-      label: 'Batches',
+      label: language === 'ta' ? 'வகுப்புகள்' : 'Batches',
       value: `${totalBatches}+`,
-      subtitle: 'Passing Year Cohorts',
+      subtitle: t('stat_batches'),
       icon: GraduationCap
     },
     {
-      label: 'Get-Togethers',
+      label: language === 'ta' ? 'நிகழ்வுகள்' : 'Get-Togethers',
       value: `${totalEvents}+`,
-      subtitle: 'Reunions & Gatherings',
+      subtitle: t('stat_events'),
       icon: Calendar
     },
     {
-      label: 'Years Connected',
+      label: language === 'ta' ? 'இணைந்த ஆண்டுகள்' : 'Years Connected',
       value: `${yearsConnected}+`,
-      subtitle: 'Legacy of Excellence',
+      subtitle: language === 'ta' ? 'சிறந்த பாரம்பரியம்' : 'Legacy of Excellence',
       icon: Award
     }
   ];
 
   return (
-    <section id="community-stats" className="py-20 bg-white border-b border-[#E5E7EB]">
+    <section id="community-stats" className="py-16 sm:py-20 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14 space-y-3">
-          {/* <span className="text-sm font-semibold text-[#854D0E] bg-[#FFF7D6] border-2 border-[#F4C542] px-5 py-2 rounded-full uppercase tracking-wider">
-            OUR COMMUNITY
-          </span> */}
-          <h2 className="text-4xl sm:text-5xl font-semibold text-[#111111] tracking-tight pt-2">
-            Real-Time Network Impact
+        <div className="text-center mb-12 space-y-3">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+            {t('community_stats_title')}
           </h2>
-          {/* <p className="text-lg text-gray-600 font-normal mt-2">
-            Live data powered directly by our central MongoDB database
-          </p> */}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -62,21 +59,19 @@ export const CommunityStats: React.FC<StatsProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-6 text-center shadow-md hover:border-[#F4C542] hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 relative overflow-hidden group"
+                className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
               >
-                {/* Bottom-to-Top Glass Fill Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#FFF7D6]/90 via-[#FFF7D6]/30 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out pointer-events-none -z-0" />
-
-                <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-[#FFF7D6] border-2 border-[#F4C542] text-[#111111] flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform shadow-xs">
-                    <Icon className="w-8 h-8 text-[#111111]" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#F4C542]/20 flex items-center justify-center text-[#854D0E] group-hover:bg-[#F4C542] group-hover:text-[#111111] transition-colors">
+                    <Icon className="w-6 h-6" />
                   </div>
-                  <div className="text-5xl sm:text-6xl font-semibold text-[#111111] tracking-tight">
-                    {stat.value}
-                  </div>
-                  <div className="text-xl font-semibold text-[#111111] mt-3">{stat.label}</div>
-                  <div className="text-base font-normal text-gray-500 mt-1">{stat.subtitle}</div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">LIVE</span>
                 </div>
+                <div className="text-3xl sm:text-4xl font-bold text-[#111111] tracking-tight mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-base font-semibold text-gray-900 mb-0.5">{stat.label}</div>
+                <div className="text-xs text-gray-500 font-medium">{stat.subtitle}</div>
               </div>
             );
           })}
