@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserCheck, GraduationCap, Calendar, 
-  CheckCircle, Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Shield
+  Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { SchoolProfile } from '../types';
 import { api } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SidebarProps {
   onLogout: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
+  const { t } = useLanguage();
   const [school, setSchool] = useState<SchoolProfile | null>(null);
 
   useEffect(() => {
@@ -20,15 +21,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   }, []);
 
   const navItems = [
-    { label: 'Dashboard', path: '/school-admin', icon: LayoutDashboard },
-    { label: 'Verification Queue', path: '/school-admin/verification', icon: UserCheck },
-    { label: 'Alumni Directory', path: '/school-admin/alumni', icon: Users },
-    { label: 'Batches Cohorts', path: '/school-admin/batches', icon: GraduationCap },
-    { label: 'Events & Reunion', path: '/school-admin/events', icon: Calendar },
-    { label: 'Announcements', path: '/school-admin/announcements', icon: Megaphone },
-    { label: 'Memories Moderation', path: '/school-admin/memories', icon: ImageIcon },
-    { label: 'Reports & Export', path: '/school-admin/reports', icon: BarChart3 },
-    { label: 'School Settings', path: '/school-admin/settings', icon: Settings },
+    { label: t('admin_dashboard'), path: '/school-admin', icon: LayoutDashboard },
+    { label: t('admin_verification'), path: '/school-admin/verification', icon: UserCheck },
+    { label: t('admin_alumni_directory'), path: '/school-admin/alumni', icon: Users },
+    { label: t('admin_batches'), path: '/school-admin/batches', icon: GraduationCap },
+    { label: t('admin_events'), path: '/school-admin/events', icon: Calendar },
+    { label: t('admin_announcements'), path: '/school-admin/announcements', icon: Megaphone },
+    { label: t('admin_memories'), path: '/school-admin/memories', icon: ImageIcon },
+    { label: t('admin_reports'), path: '/school-admin/reports', icon: BarChart3 },
+    { label: t('admin_settings'), path: '/school-admin/settings', icon: Settings },
   ];
 
   return (
@@ -40,8 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
             {school?.code || 'SCH'}
           </div>
           <div>
-            <h1 className="font-bold text-[#111111] text-base leading-tight">{school?.name || 'School Portal'}</h1>
-            <span className="text-xs text-[#6B7280]">Alumni Admin Portal</span>
+            <h1 className="font-bold text-[#111111] text-base leading-tight">{school?.name || t('app_title')}</h1>
+            <span className="text-xs text-[#6B7280]">{t('admin_portal_name')}</span>
           </div>
         </div>
 
@@ -69,17 +70,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
         </nav>
       </div>
 
-      {/* Logout Action */}
+      {/* Logout Button */}
       <div className="pt-4 border-t border-[#E5E7EB]">
         <button
-          onClick={() => {
-            api.clearToken();
-            onLogout();
-          }}
-          className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          onClick={onLogout}
+          className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
         >
-          <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
+          <LogOut className="w-4 h-4 text-red-600" />
+          <span>{t('nav_logout')}</span>
         </button>
       </div>
     </aside>

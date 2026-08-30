@@ -1,7 +1,7 @@
 import React from 'react';
-import { Smartphone, Download, QrCode, ShieldCheck, Sparkles, X, ExternalLink } from 'lucide-react';
-import { alertService } from '../services/alertService';
+import { Smartphone, Download, QrCode, ShieldCheck } from 'lucide-react';
 import { Modal } from './Modal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MobileAppModalProps {
   isOpen: boolean;
@@ -9,8 +9,14 @@ interface MobileAppModalProps {
 }
 
 export const MobileAppModal: React.FC<MobileAppModalProps> = ({ isOpen, onClose }) => {
+  const { t, language } = useLanguage();
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Download Alumni Mobile App">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={language === 'ta' ? 'பழைய மாணவர்கள் மொபைல் செயலியைப் பதிவிறக்குக' : 'Download Alumni Mobile App'}
+    >
       <div className="space-y-6 text-[#111111] animate-fadeIn">
         {/* App Header Banner */}
         <div className="bg-[#FFF7D6] border-2 border-[#F4C542] rounded-3xl p-6 text-center relative overflow-hidden">
@@ -18,10 +24,9 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({ isOpen, onClose 
             <Smartphone className="w-9 h-9 text-[#111111]" />
           </div>
           <span className="text-xs font-bold text-[#854D0E] bg-white px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
-            OFFICIAL MOBILE APP
+            {language === 'ta' ? 'அதிகாரப்பூர்வ மொபைல் செயலி' : 'OFFICIAL MOBILE APP'}
           </span>
           <h3 className="text-2xl font-bold text-[#111111] mt-2">JustGatherNow Alumni App</h3>
-          
         </div>
 
         {/* QR Scanner & PlayStore Download Section */}
@@ -58,88 +63,46 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({ isOpen, onClose 
                 <rect x="82" y="40" width="12" height="12" fill="#111111" />
                 <rect x="67" y="55" width="6" height="24" fill="#111111" />
                 <rect x="78" y="58" width="16" height="6" fill="#111111" />
-                <rect x="40" y="75" width="18" height="6" fill="#111111" />
-                <rect x="40" y="87" width="6" height="8" fill="#111111" />
-                <rect x="52" y="84" width="16" height="10" fill="#111111" />
-                <rect x="75" y="78" width="18" height="16" fill="#111111" />
+                <rect x="40" y="78" width="24" height="6" fill="#111111" />
+                <rect x="52" y="86" width="12" height="6" fill="#111111" />
+                <rect x="78" y="78" width="16" height="14" fill="#111111" />
               </svg>
             </div>
-            <div className="space-y-1">
-              <div className="text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center justify-center space-x-1">
-                <QrCode className="w-3.5 h-3.5 text-[#854D0E]" />
-                <span>Scan Camera QR</span>
-              </div>
-              <p className="text-[11px] text-gray-500 font-medium">Point your camera to scan &amp; download instantly</p>
-            </div>
+            <p className="text-xs font-semibold text-[#854D0E]">
+              {language === 'ta' ? 'பதிவிறக்க உங்கள் கேமராவால் ஸ்கேன் செய்யவும்' : 'Scan with your camera to download app'}
+            </p>
           </div>
 
-          {/* Download App Store Badges */}
+          {/* Download Direct APK */}
           <div className="space-y-4">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Download Store Apps
+            <div className="space-y-2">
+              <h4 className="font-bold text-[#111111] text-lg">
+                {language === 'ta' ? 'மொபைலில் எப்போதும் இணைந்திருங்கள்' : 'Stay Connected On The Go'}
+              </h4>
+              <p className="text-xs text-gray-600 font-normal leading-relaxed">
+                {language === 'ta'
+                  ? 'மறுசந்திப்புகள், புகைப்படங்கள் மற்றும் தகவல்களை நிகழ்நேரத்தில் உங்கள் மொபைலில் பெறலாம்.'
+                  : 'Access real-time reunion events, batch rosters, announcements, and photo memories directly on your mobile device.'}
+              </p>
             </div>
 
-            {/* Google Play Store Badge Button */}
             <a
-              href="https://play.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-[#111111] hover:bg-black text-white p-3.5 rounded-2xl flex items-center space-x-3.5 transition-all shadow-md group border border-gray-800"
+              href="/assets/apk/justgathernow-alumni-app.apk"
+              download
+              className="w-full py-4 px-5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer"
             >
-              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 fill-current text-[#F4C542]" viewBox="0 0 24 24">
-                  <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.96C20.4,13.05 20.4,10.95 18.81,10.04L16.81,8.88L14.81,12L16.81,15.12M4.5,1.22L15.3,12L4.5,22.78C4.5,22.78 4.5,22.78 4.5,1.22Z" />
-                </svg>
-              </div>
-              <div className="text-left leading-tight">
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">GET IT ON</div>
-                <div className="text-base font-bold text-white tracking-wide">Google Play</div>
-              </div>
-            </a>
-
-            {/* Apple App Store Badge Button */}
-            <a
-              href="https://apple.com/app-store"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-[#111111] hover:bg-black text-white p-3.5 rounded-2xl flex items-center space-x-3.5 transition-all shadow-md group border border-gray-800"
-            >
-              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 fill-current text-white" viewBox="0 0 24 24">
-                  <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.09,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z" />
-                </svg>
-              </div>
-              <div className="text-left leading-tight">
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Download on the</div>
-                <div className="text-base font-bold text-white tracking-wide">App Store</div>
-              </div>
-            </a>
-
-            {/* Direct APK Download Link */}
-            <a
-              href="#download-apk"
-              onClick={(e) => {
-                e.preventDefault();
-                alertService.showInfo('APK Download Initiated', 'Direct Android APK build download initiated (JustGatherNow-v1.2.0.apk).');
-              }}
-              className="w-full py-2.5 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#111111] text-xs font-bold rounded-xl border border-[#F4C542] flex items-center justify-center space-x-2 transition-all"
-            >
-              <Download className="w-4 h-4 text-[#111111]" />
-              <span>Direct Android APK (v1.2.0)</span>
+              <Download className="w-4 h-4 text-[#F4C542]" />
+              <span>{language === 'ta' ? 'APK செயலியைப் பதிவிறக்குக' : 'Download Android APK (Direct)'}</span>
             </a>
           </div>
         </div>
 
-        {/* Feature Highlights */}
-        <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-2 gap-3 text-left">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-gray-700">
-            <ShieldCheck className="w-4 h-4 text-[#854D0E] flex-shrink-0" />
-            <span>Verified Alumni Roster</span>
-          </div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-gray-700">
-            <Sparkles className="w-4 h-4 text-[#854D0E] flex-shrink-0" />
-            <span>QR Event Check-in</span>
-          </div>
+        {/* Security Badge */}
+        <div className="flex items-center justify-center space-x-2 text-xs text-emerald-700 bg-emerald-50 py-2.5 px-4 rounded-xl border border-emerald-200">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span className="font-semibold">
+            {language === 'ta' ? 'பாதுகாப்பான மற்றும் சரிபார்க்கப்பட்ட செயலி' : '100% Safe & Verified Official Android Release'}
+          </span>
         </div>
       </div>
     </Modal>

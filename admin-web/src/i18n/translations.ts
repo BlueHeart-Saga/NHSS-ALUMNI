@@ -102,6 +102,18 @@ export const translations: Record<Language, Record<string, string>> = {
     batch_year_label: "Passing Year",
     submit_registration: "Submit Registration",
 
+    // School Admin Navigation
+    admin_dashboard: "Dashboard",
+    admin_verification: "Verification Queue",
+    admin_alumni_directory: "Alumni Directory",
+    admin_batches: "Batches Cohorts",
+    admin_events: "Events & Reunion",
+    admin_announcements: "Announcements",
+    admin_memories: "Memories Moderation",
+    admin_reports: "Reports & Export",
+    admin_settings: "School Settings",
+    admin_portal_name: "Alumni Admin Portal",
+
     // Footer
     footer_tagline: "Building Lifelong Connections for Schools & Alumni.",
     copyright: "Copyright © 2026. All rights reserved. Powered by JustGatherNow.",
@@ -208,6 +220,18 @@ export const translations: Record<Language, Record<string, string>> = {
     register_title: "பழைய மாணவர்கள் பதிவு",
     batch_year_label: "தேர்ச்சி பெற்ற ஆண்டு",
     submit_registration: "பதிவைச் சமர்ப்பிக்கவும்",
+
+    // School Admin Navigation
+    admin_dashboard: "டாஷ்போர்டு",
+    admin_verification: "சரிபார்ப்பு வரிசை",
+    admin_alumni_directory: "பழைய மாணவர்கள் முகவரி",
+    admin_batches: "வகுப்புகள்",
+    admin_events: "நிகழ்வுகள் & மறுசந்திப்புகள்",
+    admin_announcements: "அறிவிப்புகள்",
+    admin_memories: "நினைவுகள் நிர்வகிப்பு",
+    admin_reports: "அறிக்கைகள் & ஏற்றுமதி",
+    admin_settings: "பள்ளி அமைப்புகள்",
+    admin_portal_name: "பள்ளி நிர்வாக போர்டல்",
 
     // Footer
     footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
