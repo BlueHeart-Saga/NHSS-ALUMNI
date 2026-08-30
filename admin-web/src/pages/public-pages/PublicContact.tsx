@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PublicContact: React.FC = () => {
+  const { t, language } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -19,14 +21,14 @@ export const PublicContact: React.FC = () => {
       {/* Header Banner */}
       <div className="py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-          <span className="text-sm font-semibold text-[#854D0E] bg-[#FFF7D6] border-2 border-[#F4C542] px-5 py-2 rounded-full uppercase tracking-wider">
-            GET IN TOUCH
+          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
+            {t('nav_contact')}
           </span>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight">
-            Contact School Alumni Office
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+            {t('contact_title')}
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 font-normal max-w-2xl mx-auto">
-            Have questions about reunions, batch registration, or alumni verification? Reach out to our association desk.
+          <p className="text-base sm:text-lg text-gray-600 font-normal max-w-2xl mx-auto">
+            {t('contact_subtitle')}
           </p>
         </div>
       </div>
@@ -35,23 +37,24 @@ export const PublicContact: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           {/* Contact Details Column */}
           <div className="space-y-8 bg-gray-50/90 border-2 border-[#E5E7EB] rounded-3xl p-8 shadow-md relative overflow-hidden group">
-            {/* Bottom-to-Top Glass Fill Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#FFF7D6]/80 via-[#FFF7D6]/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out pointer-events-none -z-0" />
-
-            <div className="relative z-10 space-y-8">
-              <h2 className="text-3xl font-semibold text-[#111111]">Alumni Secretariat Desk</h2>
-              <p className="text-lg text-gray-600 font-normal leading-relaxed">
-                Our alumni relationship officers are available Monday to Saturday to assist graduates with batch verification, get-together organizing, and credential updates.
+            <div className="relative z-10 space-y-6">
+              <h2 className="text-2xl sm:text-3xl font-semibold text-[#111111]">
+                {language === 'ta' ? 'பழைய மாணவர்கள் செயலகம்' : 'Alumni Secretariat Desk'}
+              </h2>
+              <p className="text-base text-gray-600 font-normal leading-relaxed">
+                {language === 'ta'
+                  ? 'வகுப்புச் சரிபார்ப்பு, மறுசந்திப்புகளைத் திட்டமிடுதல் மற்றும் பிற தகவல்களுக்கு எங்கள் சங்கப் பிரதிநிதிகள் உதவி புரிவர்.'
+                  : 'Our alumni relationship officers are available Monday to Saturday to assist graduates with batch verification, get-together organizing, and credential updates.'}
               </p>
 
-              <div className="space-y-6 text-base text-[#111111]">
+              <div className="space-y-5 text-base text-[#111111]">
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 rounded-2xl bg-[#FFF7D6] border-2 border-[#F4C542] text-[#854D0E] flex items-center justify-center flex-shrink-0 shadow-xs">
                     <MapPin className="w-6 h-6 text-[#854D0E]" />
                   </div>
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Campus Location</strong>
-                    <span className="font-semibold text-lg">Main Campus, School Alumni Building, Chennai, Tamil Nadu</span>
+                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('location')}</strong>
+                    <span className="font-semibold text-base">{language === 'ta' ? 'முதன்மை வளாகம், பள்ளி பழைய மாணவர்கள் கட்டிடம், தமிழ்நாடு' : 'Main Campus, School Alumni Building, Tamil Nadu'}</span>
                   </div>
                 </div>
 
@@ -60,8 +63,8 @@ export const PublicContact: React.FC = () => {
                     <Phone className="w-6 h-6 text-[#854D0E]" />
                   </div>
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone Helpline</strong>
-                    <span className="font-semibold text-lg">+91 9876543210</span>
+                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</strong>
+                    <span className="font-semibold text-base">+91 98765 43210</span>
                   </div>
                 </div>
 
@@ -70,100 +73,82 @@ export const PublicContact: React.FC = () => {
                     <Mail className="w-6 h-6 text-[#854D0E]" />
                   </div>
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Official Email</strong>
-                    <span className="font-semibold text-lg">alumni@justgathernow.com</span>
+                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</strong>
+                    <span className="font-semibold text-base">alumni@school.edu</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Contact Inquiry Form */}
-          <div className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-8 shadow-xl space-y-6">
-            <h2 className="text-3xl font-semibold text-[#111111]">Send an Inquiry Message</h2>
-
+          {/* Form Column */}
+          <div className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-8 shadow-xl">
             {submitted ? (
-              <div className="p-8 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl text-center space-y-4">
-                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-                <h3 className="text-2xl font-semibold text-[#111111]">Inquiry Received!</h3>
-                <p className="text-base text-[#854D0E] font-normal">
-                  Thank you <strong>{name}</strong>. Our school alumni desk will get back to you shortly.
+              <div className="text-center py-12 space-y-4">
+                <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto" />
+                <h3 className="text-2xl font-bold text-[#111111]">
+                  {language === 'ta' ? 'செய்தி வெற்றிகரமாக அனுப்பப்பட்டது!' : 'Message Sent Successfully!'}
+                </h3>
+                <p className="text-gray-600 font-medium max-w-md mx-auto">
+                  {language === 'ta' ? 'எங்கள் குழு விரைவில் உங்களை தொடர்பு கொள்ளும்.' : 'Thank you for reaching out. Our team will review your query and get back to you shortly.'}
                 </p>
-                <button
-                  onClick={() => setSubmitted(false)}
-                  className="px-6 py-3 bg-[#111111] text-white font-semibold text-sm rounded-xl"
-                >
-                  Send Another Message
-                </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-2 uppercase tracking-wider">Full Name *</label>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <h3 className="text-xl font-bold text-[#111111] pb-2 border-b border-gray-100">
+                  {language === 'ta' ? 'செய்தி படிவம்' : 'Send Us a Message'}
+                </h3>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 uppercase">{t('name_label')} *</label>
                   <input
                     type="text"
+                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. S. Ramanathan"
-                    required
-                    className="w-full px-5 py-3.5 bg-white border-2 border-[#E5E7EB] rounded-xl text-base font-semibold focus:outline-none focus:border-[#F4C542] shadow-xs"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#111111] mb-2 uppercase tracking-wider">Mobile Number *</label>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">{t('email_label')} *</label>
                     <input
-                      type="text"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">{t('mobile_label')}</label>
+                    <input
+                      type="tel"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
-                      placeholder="+919876543210"
-                      required
-                      className="w-full px-5 py-3.5 bg-white border-2 border-[#E5E7EB] rounded-xl text-base font-semibold focus:outline-none focus:border-[#F4C542] shadow-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#111111] mb-2 uppercase tracking-wider">Passing Year</label>
-                    <input
-                      type="number"
-                      value={passingYear}
-                      onChange={(e) => setPassingYear(e.target.value)}
-                      placeholder="2010"
-                      className="w-full px-5 py-3.5 bg-white border-2 border-[#E5E7EB] rounded-xl text-base font-semibold focus:outline-none focus:border-[#F4C542] shadow-xs"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-2 uppercase tracking-wider">Email Address *</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="alumnus@example.com"
-                    required
-                    className="w-full px-5 py-3.5 bg-white border-2 border-[#E5E7EB] rounded-xl text-base font-semibold focus:outline-none focus:border-[#F4C542] shadow-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-2 uppercase tracking-wider">Message / Inquiry *</label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 uppercase">{t('message_label')} *</label>
                   <textarea
                     rows={4}
+                    required
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Enter your inquiry details..."
-                    required
-                    className="w-full px-5 py-3.5 bg-white border-2 border-[#E5E7EB] rounded-xl text-base font-normal focus:outline-none focus:border-[#F4C542] shadow-xs"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-4 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-base rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 border border-[#E0B030]"
+                  className="w-full py-4 px-6 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer"
                 >
-                  <Send className="w-5 h-5 text-[#111111]" />
-                  <span>Submit Inquiry</span>
+                  <Send className="w-4 h-4 text-[#F4C542]" />
+                  <span>{t('send_message_btn')}</span>
                 </button>
               </form>
             )}

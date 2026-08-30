@@ -39,6 +39,8 @@ export const translations: Record<Language, Record<string, string>> = {
     school_admin_request_title: "Are You a School Administrator?",
     school_admin_request_desc: "Register your school to manage alumni records, organize batch reunions, publish announcements, and track community engagement.",
     register_school_btn: "REGISTER YOUR SCHOOL",
+    find_batch_title: "FIND YOUR BATCH COHORT",
+    find_batch_desc: "Search and connect with your classmates by graduation year and section.",
 
     // School Profile
     school_profile_title: "SCHOOL PROFILE & HISTORY",
@@ -49,6 +51,12 @@ export const translations: Record<Language, Record<string, string>> = {
     total_alumni: "Total Alumni",
     active_batches: "Batches Registered",
     contact_info: "Contact Information",
+
+    // Batches Page
+    batches_title: "ALUMNI BATCHES & COHORTS",
+    search_batches_placeholder: "Search batch year or stream...",
+    view_batch_members: "View Members",
+    no_batches_found: "No batches found matching your search.",
 
     // Events Page
     events_page_title: "REUNIONS & ALUMNI EVENTS",
@@ -64,6 +72,35 @@ export const translations: Record<Language, Record<string, string>> = {
     share_memory_btn: "Share a Memory",
     batch_year: "Batch Year",
     uploaded_by: "Uploaded by",
+    upload_photo: "Upload Photo",
+    caption_placeholder: "Write a short memory caption...",
+
+    // About Page
+    about_title: "ABOUT OUR ALUMNI ASSOCIATION",
+    about_subtitle: "Fostering lifelong relationships, celebrating school legacy, and empowering future generations.",
+    our_mission_title: "Our Mission",
+    our_mission_desc: "To unite alumni across generations, preserve school history, and create impactful opportunities for past and present students.",
+    our_vision_title: "Our Vision",
+    our_vision_desc: "To be a vibrant global community empowering every alumnus and nurturing educational excellence.",
+
+    // Contact Page
+    contact_title: "GET IN TOUCH WITH US",
+    contact_subtitle: "Have questions or want to host a reunion? We're here to help.",
+    name_label: "Your Full Name",
+    email_label: "Email Address",
+    subject_label: "Subject",
+    message_label: "Message",
+    send_message_btn: "Send Message",
+
+    // Auth Pages (Login & Register)
+    auth_alumni_login: "ALUMNI LOGIN",
+    mobile_label: "Mobile Number",
+    otp_label: "Enter 6-Digit OTP",
+    send_otp_btn: "Send OTP",
+    verify_otp_btn: "Verify & Login",
+    register_title: "ALUMNI REGISTRATION",
+    batch_year_label: "Passing Year",
+    submit_registration: "Submit Registration",
 
     // Footer
     footer_tagline: "Building Lifelong Connections for Schools & Alumni.",
@@ -109,6 +146,8 @@ export const translations: Record<Language, Record<string, string>> = {
     school_admin_request_title: "நீங்கள் பள்ளி நிர்வாகியா?",
     school_admin_request_desc: "பழைய மாணவர்களை நிர்வகிக்க, வகுப்புகளை உருவாக்க, மறுசந்திப்புகளை ஏற்பாடு செய்ய உங்கள் பள்ளியைப் பதிவு செய்யுங்கள்.",
     register_school_btn: "உங்கள் பள்ளியைப் பதிவு செய்க",
+    find_batch_title: "உங்கள் வகுப்பைக் கண்டறியவும்",
+    find_batch_desc: "தேர்ச்சி பெற்ற ஆண்டு மற்றும் பிரிவு மூலம் உங்கள் வகுப்பு தோழர்களைத் தேடி இணையுங்கள்.",
 
     // School Profile
     school_profile_title: "பள்ளி விவரம் மற்றும் வரலாறு",
@@ -119,6 +158,12 @@ export const translations: Record<Language, Record<string, string>> = {
     total_alumni: "மொத்த பழைய மாணவர்கள்",
     active_batches: "பதிவு செய்யப்பட்ட வகுப்புகள்",
     contact_info: "தொடர்பு விவரங்கள்",
+
+    // Batches Page
+    batches_title: "பழைய மாணவர்கள் வகுப்புகள்",
+    search_batches_placeholder: "வகுப்பு ஆண்டு அல்லது பிரிவை தேடுக...",
+    view_batch_members: "உறுப்பினர்களைப் பார்க்க",
+    no_batches_found: "உங்கள் தேடலுக்கு ஏற்ற வகுப்புகள் எதுவும் கிடைக்கவில்லை.",
 
     // Events Page
     events_page_title: "மறுசந்திப்புகள் மற்றும் நிகழ்வுகள்",
@@ -134,6 +179,35 @@ export const translations: Record<Language, Record<string, string>> = {
     share_memory_btn: "நினைவைப் பகிரவும்",
     batch_year: "வகுப்பு ஆண்டு",
     uploaded_by: "பகிர்ந்தவர்",
+    upload_photo: "புகைப்படத்தைப் பதிவேற்றவும்",
+    caption_placeholder: "நினைவு பற்றிய சிறு குறிப்பை எழுதுங்கள்...",
+
+    // About Page
+    about_title: "நமது பழைய மாணவர்கள் சங்கத்தைப் பற்றி",
+    about_subtitle: "வாழ்நாள் தொடர்புகளை வளர்ப்பது, பள்ளி வரலாற்றைக் கொண்டாடுவது மற்றும் எதிர்கால தலைமுறையினரை ஊக்குவிப்பது.",
+    our_mission_title: "நமது நோக்கம்",
+    our_mission_desc: "தலைமுறை தலைமுறையாக பழைய மாணவர்களை ஒன்றுபடுத்துதல், பள்ளி வரலாற்றைப் பாதுகாத்தல் மற்றும் புதிய மாணவர்களுக்கு வாய்ப்புகளை உருவாக்குதல்.",
+    our_vision_title: "நமது தொலைநோக்கு",
+    our_vision_desc: "உலகளாவிய துடிப்பான பழைய மாணவர்கள் சமூகமாக விளங்கி, கல்விச் சிறப்பை மேம்படுத்துவது.",
+
+    // Contact Page
+    contact_title: "எங்களைத் தொடர்பு கொள்ளவும்",
+    contact_subtitle: "கேள்விகள் உள்ளதா அல்லது மறுசந்திப்பை ஏற்பாடு செய்ய வேண்டுமா? நாங்கள் உதவ இருக்கிறோம்.",
+    name_label: "உங்கள் முழு பெயர்",
+    email_label: "மின்னஞ்சல் முகவரி",
+    subject_label: "பொருள்",
+    message_label: "செய்தி",
+    send_message_btn: "செய்தி அனுப்பவும்",
+
+    // Auth Pages (Login & Register)
+    auth_alumni_login: "பழைய மாணவர்கள் உள்நுழைவு",
+    mobile_label: "மொபைல் எண்",
+    otp_label: "6 இலக்க OTP ஐ உள்ளிடவும்",
+    send_otp_btn: "OTP அனுப்புக",
+    verify_otp_btn: "சரிபார்த்து உள்நுழைக",
+    register_title: "பழைய மாணவர்கள் பதிவு",
+    batch_year_label: "தேர்ச்சி பெற்ற ஆண்டு",
+    submit_registration: "பதிவைச் சமர்ப்பிக்கவும்",
 
     // Footer
     footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PublicEvents: React.FC = () => {
+  const { t, language } = useLanguage();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,13 +18,12 @@ export const PublicEvents: React.FC = () => {
       {/* Header Banner */}
       <div className="py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-         
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight">
-            Upcoming Alumni Get-Togethers
+          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
+            {t('nav_events')}
+          </span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+            {t('events_page_title')}
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 font-normal max-w-2xl mx-auto">
-            Browse published reunions and school-wide alumni events. Sign in to RSVP and get your digital QR ticket.
-          </p>
         </div>
       </div>
 
@@ -59,10 +60,10 @@ export const PublicEvents: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="space-y-2.5 text-base text-gray-700 font-normal pt-3 border-t border-gray-200">
+                <div className="space-y-3 pt-4 border-t border-gray-100 text-sm text-gray-700">
                   <div className="flex items-center space-x-3">
                     <Calendar className="w-5 h-5 text-[#854D0E] flex-shrink-0" />
-                    <span className="font-semibold text-[#111111]">{event.event_date} ({event.start_time})</span>
+                    <span className="font-semibold">{event.event_date} {event.start_time && `• ${event.start_time}`}</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <MapPin className="w-5 h-5 text-[#854D0E] flex-shrink-0" />
@@ -70,20 +71,13 @@ export const PublicEvents: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
-                  <div className="inline-flex items-center space-x-2 bg-[#FFF7D6] border-2 border-[#F4C542] px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-[#854D0E]">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>{event.attending_count} Alumni Confirmed</span>
-                  </div>
-
-                  <Link
-                    to="/login"
-                    className="px-4.5 py-2 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center space-x-2 border border-[#E0B030]"
-                  >
-                    <span>RSVP Now</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
+                <Link
+                  to="/login"
+                  className="w-full py-3.5 px-6 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <span>{t('event_register_btn')}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
           ))}

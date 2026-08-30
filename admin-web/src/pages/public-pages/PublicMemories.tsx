@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PublicMemories: React.FC = () => {
+  const { t, language } = useLanguage();
   const [memories, setMemories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState<any | null>(null);
@@ -17,11 +19,12 @@ export const PublicMemories: React.FC = () => {
       {/* Header Banner */}
       <div className="py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-       
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight">
-            Alumni Memory Gallery
+          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
+            {t('nav_memories')}
+          </span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+            {t('memories_page_title')}
           </h1>
-         
         </div>
       </div>
 
@@ -44,7 +47,7 @@ export const PublicMemories: React.FC = () => {
                 {/* Bottom-to-Top Glass Fill Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent opacity-85 group-hover:opacity-100 transition-opacity p-5 flex flex-col justify-end z-10">
                   <h3 className="text-base font-semibold text-[#F4C542] truncate">{memory.title}</h3>
-                  <span className="text-sm text-gray-300 font-normal">Uploaded by {memory.uploader_name}</span>
+                  <span className="text-sm text-gray-300 font-normal">{t('uploaded_by')} {memory.uploader_name}</span>
                 </div>
               </div>
             </div>
@@ -53,22 +56,20 @@ export const PublicMemories: React.FC = () => {
 
         {/* Upload Memory Callout */}
         <div className="bg-white border-2 border-[#F4C542] rounded-3xl p-8 text-center space-y-4 shadow-xl max-w-2xl mx-auto relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#FFF7D6]/80 via-[#FFF7D6]/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out pointer-events-none -z-0" />
-          
           <div className="relative z-10 space-y-4">
-            <h3 className="text-3xl font-semibold text-[#111111]">Have photos from your school days?</h3>
-            <p className="text-base sm:text-lg text-gray-600 font-normal">
-              Sign in to your alumni account to upload your batch photos to the permanent school memory archive.
+            <h3 className="text-2xl sm:text-3xl font-semibold text-[#111111]">
+              {language === 'ta' ? 'பள்ளி பருவ புகைப்படங்கள் உள்ளதா?' : 'Have photos from your school days?'}
+            </h3>
+            <p className="text-base text-gray-600 font-normal">
+              {language === 'ta' ? 'உள்நுழைந்து உங்கள் நினைவுகளை பழைய வகுப்புத் தோழர்களுடன் பகிரவும்.' : 'Log in to your alumni account and share cherished memories with your batch cohort.'}
             </p>
-            <div className="flex justify-center pt-2">
-              <Link
-                to="/login"
-                className="px-8 py-3.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-base rounded-2xl shadow-xs border border-[#E0B030] inline-flex items-center space-x-2"
-              >
-                <span>Upload Photo Memories</span>
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
+            <Link
+              to="/login"
+              className="inline-flex items-center space-x-2 px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40"
+            >
+              <span>{t('share_memory_btn')}</span>
+              <ArrowRight className="w-4 h-4 text-[#F4C542]" />
+            </Link>
           </div>
         </div>
       </div>

@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AlumniLogin: React.FC = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -240,10 +242,10 @@ export const AlumniLogin: React.FC = () => {
             {/* Welcome Heading */}
             <div className="space-y-2">
               <h2 className="text-3xl sm:text-4xl font-normal text-[#111111] tracking-tight">
-                Welcome Back!
+                {language === 'ta' ? 'மீண்டும் வருக!' : 'Welcome Back!'}
               </h2>
               <p className="text-base text-gray-600 font-normal leading-relaxed">
-                Login to your account and continue your journey with your alumni community.
+                {language === 'ta' ? 'உங்கள் கணக்கில் உள்நுழைந்து பழைய மாணவர்கள் சமூகத்துடன் உங்கள் பயணத்தைத் தொடரவும்.' : 'Login to your account and continue your journey with your alumni community.'}
               </p>
             </div>
 
