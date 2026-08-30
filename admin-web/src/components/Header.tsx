@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search, Bell, ShieldCheck } from 'lucide-react';
+import { Search, ShieldCheck } from 'lucide-react';
 import { AlumniProfile } from '../types';
+import { LanguageSelector } from './LanguageSelector';
 
 interface HeaderProps {
   user: AlumniProfile | null;
@@ -9,15 +10,15 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ user, title }) => {
   return (
-    <header className="bg-white border-b border-[#E5E7EB] px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+    <header className="bg-white border-b border-[#E5E7EB] px-6 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-20">
       <div>
-        <h2 className="text-xl font-bold text-[#111111]">{title}</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-[#111111]">{title}</h2>
         <p className="text-xs text-[#6B7280]">School Alumni Management System</p>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3 sm:space-x-4">
         {/* Search Input */}
-        <div className="relative hidden md:block w-64">
+        <div className="relative hidden md:block w-56 lg:w-64">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
           <input
             type="text"
@@ -25,6 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ user, title }) => {
             className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-9 pr-4 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542] focus:bg-white transition-all"
           />
         </div>
+
+        {/* Language Selector */}
+        <LanguageSelector />
 
         {/* Status Chip */}
         <div className="hidden sm:flex items-center space-x-1.5 bg-[#FFF7D6] border border-[#F4C542]/50 text-[#854D0E] px-3 py-1.5 rounded-full text-xs font-semibold">
