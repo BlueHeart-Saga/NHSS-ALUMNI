@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     await close_mongo_connection()
 
 app = FastAPI(
-    title=settings.APP_NAME,
+    title=settings.APP_NAME if (settings.APP_NAME and settings.APP_NAME.strip()) else "School Alumni & Batch Get-Together Platform",
     version="1.0.0",
     description="Production-Ready B2B SaaS Architected School Alumni Platform",
     lifespan=lifespan
