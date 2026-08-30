@@ -19,6 +19,11 @@ logger = logging.getLogger("app.main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_to_mongo()
+    try:
+        from app.seed_developer import seed_developer_account
+        await seed_developer_account(settings.INITIAL_ADMIN_MOBILE, "developer@justgathernow.com")
+    except Exception as e:
+        logger.warning(f"Developer auto-seed check skipped: {e}")
     yield
     await close_mongo_connection()
 
