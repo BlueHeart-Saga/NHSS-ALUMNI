@@ -42,6 +42,7 @@ jobs:
           cd admin-web
           npm install
           npm run build
+          rm -f .env
 
       - name: Deploy to Azure Web App (NHSS-ALUMNI)
         uses: azure/webapps-deploy@v3

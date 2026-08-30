@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     EMAILS_FROM_EMAIL: str = "devopstrioglobal@gmail.com"
 
     class Config:
-        env_file = (ENV_FILE_PATH, ".env")
+        env_file = ENV_FILE_PATH if os.path.exists(ENV_FILE_PATH) else None
         env_file_encoding = "utf-8"
         extra = "ignore"
 

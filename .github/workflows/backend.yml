@@ -27,30 +27,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Inject Secure Backend .env File from GitHub Secrets
-        run: |
-          cat << 'EOF' > backend/.env
-          APP_ENV="production"
-          PORT=8000
-          JWT_ALGORITHM="HS256"
-          ACCESS_TOKEN_EXPIRE_MINUTES=1440
-          REFRESH_TOKEN_EXPIRE_DAYS=30
-          EOF
-          [ -n "${{ secrets.APP_NAME }}" ] && echo 'APP_NAME="${{ secrets.APP_NAME }}"' >> backend/.env
-          [ -n "${{ secrets.MONGODB_URI }}" ] && echo 'MONGODB_URI="${{ secrets.MONGODB_URI }}"' >> backend/.env
-          [ -n "${{ secrets.MONGODB_DATABASE }}" ] && echo 'MONGODB_DATABASE="${{ secrets.MONGODB_DATABASE }}"' >> backend/.env
-          [ -n "${{ secrets.JWT_SECRET }}" ] && echo 'JWT_SECRET="${{ secrets.JWT_SECRET }}"' >> backend/.env
-          [ -n "${{ secrets.DEFAULT_DEV_OTP }}" ] && echo 'DEFAULT_DEV_OTP="${{ secrets.DEFAULT_DEV_OTP }}"' >> backend/.env
-          [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ] && echo 'GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"' >> backend/.env
-          [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ] && echo 'GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"' >> backend/.env
-          [ -n "${{ secrets.GOOGLE_REDIRECT_URI }}" ] && echo 'GOOGLE_REDIRECT_URI="${{ secrets.GOOGLE_REDIRECT_URI }}"' >> backend/.env
-          [ -n "${{ secrets.FRONTEND_URL }}" ] && echo 'FRONTEND_URL="${{ secrets.FRONTEND_URL }}"' >> backend/.env
-          [ -n "${{ secrets.SMTP_SERVER }}" ] && echo 'SMTP_SERVER="${{ secrets.SMTP_SERVER }}"' >> backend/.env
-          [ -n "${{ secrets.SMTP_USER }}" ] && echo 'SMTP_USER="${{ secrets.SMTP_USER }}"' >> backend/.env
-          [ -n "${{ secrets.SMTP_PASS }}" ] && echo 'SMTP_PASS="${{ secrets.SMTP_PASS }}"' >> backend/.env
-          [ -n "${{ secrets.EMAILS_FROM_NAME }}" ] && echo 'EMAILS_FROM_NAME="${{ secrets.EMAILS_FROM_NAME }}"' >> backend/.env
-          [ -n "${{ secrets.EMAILS_FROM_EMAIL }}" ] && echo 'EMAILS_FROM_EMAIL="${{ secrets.EMAILS_FROM_EMAIL }}"' >> backend/.env
-
       - name: Install dependencies into Azure virtual environment (antenv)
         run: |
           cd backend
@@ -66,3 +42,26 @@ jobs:
           slot-name: 'Production'
           package: './backend'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND || secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F9ABA5BFE5AF4C56B5A5E9DCC96455D3 }}
+          app-settings-json: |
+            [
+              {"name": "APP_ENV", "value": "production", "slotSetting": false},
+              {"name": "PORT", "value": "8000", "slotSetting": false},
+              {"name": "JWT_ALGORITHM", "value": "HS256", "slotSetting": false},
+              {"name": "ACCESS_TOKEN_EXPIRE_MINUTES", "value": "1440", "slotSetting": false},
+              {"name": "REFRESH_TOKEN_EXPIRE_DAYS", "value": "30", "slotSetting": false},
+              {"name": "APP_NAME", "value": "${{ secrets.APP_NAME }}", "slotSetting": false},
+              {"name": "MONGODB_URI", "value": "${{ secrets.MONGODB_URI }}", "slotSetting": false},
+              {"name": "MONGODB_DATABASE", "value": "${{ secrets.MONGODB_DATABASE }}", "slotSetting": false},
+              {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET }}", "slotSetting": false},
+              {"name": "DEFAULT_DEV_OTP", "value": "${{ secrets.DEFAULT_DEV_OTP }}", "slotSetting": false},
+              {"name": "GOOGLE_CLIENT_ID", "value": "${{ secrets.GOOGLE_CLIENT_ID }}", "slotSetting": false},
+              {"name": "GOOGLE_CLIENT_SECRET", "value": "${{ secrets.GOOGLE_CLIENT_SECRET }}", "slotSetting": false},
+              {"name": "GOOGLE_REDIRECT_URI", "value": "${{ secrets.GOOGLE_REDIRECT_URI }}", "slotSetting": false},
+              {"name": "FRONTEND_URL", "value": "${{ secrets.FRONTEND_URL }}", "slotSetting": false},
+              {"name": "SMTP_SERVER", "value": "${{ secrets.SMTP_SERVER }}", "slotSetting": false},
+              {"name": "SMTP_PORT", "value": "587", "slotSetting": false},
+              {"name": "SMTP_USER", "value": "${{ secrets.SMTP_USER }}", "slotSetting": false},
+              {"name": "SMTP_PASS", "value": "${{ secrets.SMTP_PASS }}", "slotSetting": false},
+              {"name": "EMAILS_FROM_NAME", "value": "${{ secrets.EMAILS_FROM_NAME }}", "slotSetting": false},
+              {"name": "EMAILS_FROM_EMAIL", "value": "${{ secrets.EMAILS_FROM_EMAIL }}", "slotSetting": false}
+            ]
