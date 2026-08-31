@@ -1,19 +1,36 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { api } from '../../services/api';
 
 export const PublicContact: React.FC = () => {
   const { t, language } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [passingYear, setPassingYear] = useState('');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await api.submitContactEnquiry({
+        full_name: name,
+        email: email,
+        mobile: mobile || undefined,
+        message: message
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -74,7 +91,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</strong>
-                    <span className="font-semibold text-base">alumni@school.edu</span>
+                    <span className="font-semibold text-base">devopstrioglobal@gmail.com</span>
                   </div>
                 </div>
               </div>
@@ -84,20 +101,40 @@ export const PublicContact: React.FC = () => {
           {/* Form Column */}
           <div className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-8 shadow-xl">
             {submitted ? (
-              <div className="text-center py-12 space-y-4">
+              <div className="text-center py-12 space-y-4 animate-fadeIn">
                 <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto" />
                 <h3 className="text-2xl font-bold text-[#111111]">
                   {language === 'ta' ? 'செய்தி வெற்றிகரமாக அனுப்பப்பட்டது!' : 'Message Sent Successfully!'}
                 </h3>
-                <p className="text-gray-600 font-medium max-w-md mx-auto">
-                  {language === 'ta' ? 'எங்கள் குழு விரைவில் உங்களை தொடர்பு கொள்ளும்.' : 'Thank you for reaching out. Our team will review your query and get back to you shortly.'}
+                <p className="text-gray-600 font-medium max-w-md mx-auto leading-relaxed">
+                  {language === 'ta'
+                    ? `நன்றி ${name}! உங்கள் மின்னஞ்சலுக்கு (${email}) உறுதிப்படுத்தல் செய்தி அனுப்பப்பட்டுள்ளது. எங்கள் குழு விரைவில் உங்களை தொடர்பு கொள்ளும்.`
+                    : `Thank you ${name}! An automated confirmation email was sent to ${email}. Our admin team will review your inquiry and get back to you shortly.`}
                 </p>
+                <button
+                  onClick={() => {
+                    setSubmitted(false);
+                    setName('');
+                    setEmail('');
+                    setMobile('');
+                    setMessage('');
+                  }}
+                  className="mt-4 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#111111] font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-gray-300 cursor-pointer"
+                >
+                  {language === 'ta' ? 'மற்றொரு செய்தி அனுப்ப' : 'Send Another Message'}
+                </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 <h3 className="text-xl font-bold text-[#111111] pb-2 border-b border-gray-100">
                   {language === 'ta' ? 'செய்தி படிவம்' : 'Send Us a Message'}
                 </h3>
+
+                {error && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-semibold">
+                    {error}
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-gray-700 uppercase">{t('name_label')} *</label>
@@ -106,6 +143,7 @@ export const PublicContact: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Ramesh Kumar"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
@@ -118,6 +156,7 @@ export const PublicContact: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your.email@example.com"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                     />
                   </div>
@@ -127,6 +166,7 @@ export const PublicContact: React.FC = () => {
                       type="tel"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
+                      placeholder="+91 9876543210"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                     />
                   </div>
@@ -139,16 +179,27 @@ export const PublicContact: React.FC = () => {
                     required
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Enter your message or inquiry here..."
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-4 px-6 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer"
+                  disabled={submitting}
+                  className="w-full py-4 px-6 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer disabled:opacity-50"
                 >
-                  <Send className="w-4 h-4 text-[#F4C542]" />
-                  <span>{t('send_message_btn')}</span>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-[#F4C542] animate-spin" />
+                      <span>{language === 'ta' ? 'அனுப்பப்படுகிறது...' : 'Sending Email...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 text-[#F4C542]" />
+                      <span>{t('send_message_btn')}</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}

@@ -417,6 +417,13 @@ class ApiClient {
       created_at: string;
     }>>('/public/announcements');
   }
+
+  async submitContactEnquiry(data: { full_name: string; email: string; mobile?: string; message: string }) {
+    return this.request<{ success: boolean; message: string }>('/public/contact-enquiry', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiClient();

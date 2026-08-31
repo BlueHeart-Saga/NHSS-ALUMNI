@@ -152,3 +152,124 @@ def send_school_admin_invite_email(to_email: str, admin_name: str, school_name: 
     text_content = f"Welcome {admin_name}! You have been provisioned as School Administrator for {school_name}. Complete your account setup here: {setup_link}"
 
     return send_email_smtp(to_email, subject, html_content, text_content)
+
+def send_contact_thank_you_email(to_email: str, sender_name: str, message_text: str) -> bool:
+    """
+    Sends an automated Thank-You email to visitors submitting the Contact Us form.
+    """
+    subject = f"Thank you for contacting {settings.EMAILS_FROM_NAME}!"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAFAFA; margin: 0; padding: 20px; color: #111111; }}
+            .container {{ max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
+            .header {{ text-align: center; border-bottom: 1px solid #E5E7EB; padding-bottom: 20px; margin-bottom: 24px; }}
+            .badge {{ display: inline-block; background-color: #FFF7D6; border: 1px solid #F4C542; color: #854D0E; font-weight: bold; font-size: 12px; padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            .title {{ font-size: 22px; font-weight: 700; color: #111111; margin-top: 16px; margin-bottom: 6px; text-align: center; }}
+            .subtitle {{ font-size: 14px; color: #6B7280; text-align: center; margin-bottom: 24px; }}
+            .msg-box {{ background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; font-size: 13px; color: #374151; line-height: 1.6; margin: 20px 0; }}
+            .info {{ font-size: 13px; color: #4B5563; line-height: 1.6; text-align: center; }}
+            .footer {{ border-top: 1px solid #E5E7EB; margin-top: 32px; padding-top: 20px; font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.5; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <span class="badge">{settings.EMAILS_FROM_NAME}</span>
+                <h1 class="title">Thank You, {sender_name}!</h1>
+                <p class="subtitle">We have received your message and our team will get back to you shortly.</p>
+            </div>
+            
+            <p class="info">
+                Here is a copy of your submitted message:
+            </p>
+
+            <div class="msg-box">
+                <em>"{message_text}"</em>
+            </div>
+
+            <p class="info">
+                If you have urgent queries regarding alumni reunions or verification, you can also reach us directly at <strong>{settings.EMAILS_FROM_EMAIL}</strong>.
+            </p>
+
+            <div class="footer">
+                <p>This automated reply was sent by <strong>{settings.EMAILS_FROM_NAME}</strong>.</p>
+                <p>© 2026 JustGatherNow Alumni Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_content = f"Thank you for contacting {settings.EMAILS_FROM_NAME}, {sender_name}! We have received your inquiry and will respond shortly."
+
+    return send_email_smtp(to_email, subject, html_content, text_content)
+
+def send_contact_admin_notification_email(sender_name: str, sender_email: str, sender_mobile: str, message_text: str) -> bool:
+    """
+    Sends an immediate admin email notification to EMAILS_FROM_EMAIL when a contact form is submitted.
+    """
+    admin_email = settings.EMAILS_FROM_EMAIL
+    if not admin_email:
+        admin_email = "devopstrioglobal@gmail.com"
+
+    subject = f"NEW CONTACT INQUIRY: {sender_name} ({sender_email})"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAFAFA; margin: 0; padding: 20px; color: #111111; }}
+            .container {{ max-width: 580px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
+            .header {{ text-align: center; border-bottom: 1px solid #E5E7EB; padding-bottom: 20px; margin-bottom: 24px; }}
+            .badge {{ display: inline-block; background-color: #DC2626; color: #FFFFFF; font-weight: bold; font-size: 11px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            .title {{ font-size: 20px; font-weight: 700; color: #111111; margin-top: 14px; text-align: center; }}
+            .meta-table {{ width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }}
+            .meta-table td {{ padding: 10px; border-bottom: 1px solid #F3F4F6; }}
+            .meta-label {{ font-weight: bold; color: #4B5563; width: 30%; uppercase: true; }}
+            .msg-box {{ background-color: #FFF7D6; border: 1px solid #F4C542; border-radius: 12px; padding: 18px; font-size: 14px; color: #111111; line-height: 1.6; margin: 20px 0; white-space: pre-wrap; }}
+            .footer {{ border-top: 1px solid #E5E7EB; margin-top: 28px; padding-top: 18px; font-size: 11px; color: #9CA3AF; text-align: center; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <span class="badge">NEW INQUIRY</span>
+                <h1 class="title">New Website Contact Form Submission</h1>
+            </div>
+            
+            <table class="meta-table">
+                <tr>
+                    <td class="meta-label">SENDER NAME</td>
+                    <td><strong>{sender_name}</strong></td>
+                </tr>
+                <tr>
+                    <td class="meta-label">EMAIL ADDRESS</td>
+                    <td><a href="mailto:{sender_email}" style="color: #2563EB;">{sender_email}</a></td>
+                </tr>
+                <tr>
+                    <td class="meta-label">MOBILE PHONE</td>
+                    <td><strong>{sender_mobile or 'N/A'}</strong></td>
+                </tr>
+            </table>
+
+            <div style="font-weight: bold; font-size: 12px; color: #854D0E; text-transform: uppercase; letter-spacing: 1px;">MESSAGE CONTENT:</div>
+            <div class="msg-box">{message_text}</div>
+
+            <div class="footer">
+                <p>This admin alert was generated by <strong>{settings.EMAILS_FROM_NAME}</strong> platform backend.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_content = f"New Contact Inquiry from {sender_name} ({sender_email}, {sender_mobile}):\n\n{message_text}"
+
+    return send_email_smtp(admin_email, subject, html_content, text_content)

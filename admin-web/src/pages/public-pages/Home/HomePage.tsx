@@ -173,69 +173,7 @@ export const HomePage: React.FC = () => {
       /> */}
 
       {/* Modal 1: Alumni Web Login / Register */}
-      <Modal
-        isOpen={isLoginModalOpen || isRegisterModalOpen}
-        onClose={() => {
-          setIsLoginModalOpen(false);
-          setIsRegisterModalOpen(false);
-        }}
-        title={isRegisterModalOpen ? "Join Alumni Network" : "Alumni Student Portal Login"}
-      >
-        <div className="space-y-4">
-          {authError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700">
-              {authError}
-            </div>
-          )}
-
-          {!otpSent ? (
-            <form onSubmit={handleSendOTP} className="space-y-4">
-              <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E]">
-                Enter your mobile number to sign in or register your alumni profile.
-              </div>
-
-              <Input
-                label="Registered Mobile Number"
-                placeholder="+919876543210"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                required
-              />
-
-              <Button type="submit" className="w-full py-3 bg-[#111111] text-white hover:bg-black font-bold" isLoading={submittingAuth}>
-                Send Verification Code
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E]">
-                Verification OTP sent to <strong>{mobile}</strong>.
-              </div>
-
-              <Input
-                label="6-Digit OTP Code"
-                placeholder="123456"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                required
-              />
-
-              <Button type="submit" className="w-full py-3 bg-[#111111] text-white hover:bg-black font-bold" isLoading={submittingAuth}>
-                Verify & Enter Web Portal
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => setOtpSent(false)}
-                className="w-full text-xs font-semibold text-[#6B7280] hover:text-[#111111] text-center"
-              >
-                Change Mobile Number
-              </button>
-            </form>
-          )}
-        </div>
-      </Modal>
+     in
 
       {/* Modal 2: Event Details Preview */}
       <Modal

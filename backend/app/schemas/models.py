@@ -347,3 +347,9 @@ class DashboardReportResponse(BaseModel):
     upcoming_events: int
     recent_checkins_count: int
     attendance_turnout_percentage: float
+
+class ContactEnquiryRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+    mobile: Optional[str] = None
+    message: str

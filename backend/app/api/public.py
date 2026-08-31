@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from datetime import datetime, timezone
-from app.schemas.models import SchoolAdminEnquiryRequest
+from app.schemas.models import SchoolAdminEnquiryRequest, ContactEnquiryRequest
 from app.core.database import get_db
+from app.services.email import send_contact_thank_you_email, send_contact_admin_notification_email
 
 router = APIRouter(prefix="/public", tags=["Public Portal"])
 
@@ -151,4 +152,42 @@ async def submit_school_admin_enquiry(request: SchoolAdminEnquiryRequest):
         "success": True,
         "message": "Your School Admin access request has been submitted successfully! Our platform team will review your details and contact you shortly.",
         "enquiry_id": str(res.inserted_id)
+    }
+
+@router.post("/contact-enquiry")
+async def submit_contact_enquiry(request: ContactEnquiryRequest):
+    """Public endpoint to submit general contact us inquiry with SMTP emails."""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+
+    enquiry_doc = {
+        "full_name": request.full_name.strip(),
+        "email": request.email.strip().lower(),
+        "mobile": request.mobile.strip() if request.mobile else None,
+        "message": request.message.strip(),
+        "status": "UNREAD",
+        "created_at": now
+    }
+
+    res = await db.contact_enquiries.insert_one(enquiry_doc)
+
+    # 1. Dispatch Auto Thank-You email via SMTP to visitor
+    send_contact_thank_you_email(
+        to_email=request.email.strip().lower(),
+        sender_name=request.full_name.strip(),
+        message_text=request.message.strip()
+    )
+
+    # 2. Dispatch Admin Notification email via SMTP to admin
+    send_contact_admin_notification_email(
+        sender_name=request.full_name.strip(),
+        sender_email=request.email.strip().lower(),
+        sender_mobile=request.mobile.strip() if request.mobile else "N/A",
+        message_text=request.message.strip()
+    )
+
+    return {
+        "success": True,
+        "message": "Thank you for reaching out! Your message has been received and a confirmation email was sent to your inbox.",
+        "inquiry_id": str(res.inserted_id)
     }
