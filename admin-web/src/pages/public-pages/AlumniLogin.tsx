@@ -223,7 +223,7 @@ export const AlumniLogin: React.FC = () => {
             {/* Header Branding */}
             <div className="flex items-center space-x-4">
               <img
-                src={getAssetUrl(schoolLogo || logoUrl)}
+                src={logoUrl}
                 alt="School Crest"
                 className="h-16 w-auto object-contain shrink-0"
               />

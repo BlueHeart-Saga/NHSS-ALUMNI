@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-22 flex items-center justify-between">
         {/* Brand Logo & Title */}
         <a href="/" className="flex items-center space-x-3.5 group">
-          <img src={activeLogoUrl} alt={schoolName} className="w-12 h-12 rounded-2xl border border-[#E5E7EB] object-contain shadow-xs group-hover:scale-105 transition-transform" />
+          <img src={contextLogoUrl} alt={schoolName} className="w-12 h-12 rounded-2xl border border-[#E5E7EB] object-contain shadow-xs group-hover:scale-105 transition-transform" />
           <div>
             <div className="font-semibold text-lg text-[#111111] tracking-tight group-hover:text-[#854D0E] transition-colors leading-snug">
               {schoolName}

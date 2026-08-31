@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
       <div>
         {/* School Branding Header */}
         <div className="flex items-center space-x-3 px-3 py-4 border-b border-[#E5E7EB] mb-6">
-          <img src={school?.logo_url || logoUrl} alt="School Logo" className="w-10 h-10 object-contain rounded-xl" />
+          <img src={logoUrl} alt="School Logo" className="w-10 h-10 object-contain rounded-xl" />
           <div>
             <h1 className="font-bold text-[#111111] text-base leading-tight">{school?.name || t('app_title')}</h1>
             <span className="text-xs text-[#6B7280]">{t('admin_portal_name')}</span>

@@ -19,13 +19,15 @@ async def get_public_stats():
     years_connected = max(1, 2026 - est_year)
 
     return {
-        "school_name": school.get("name", "Our School"),
-        "school_code": school.get("code", "SCHOOL"),
+        "school_name": school.get("name") or "Our School",
+        "school_code": school.get("code") or "SCHOOL",
         "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",
         "cover_url": school.get("cover_url") or "/school-images/school-door.png",
-        "description": school.get("description", "Stay Connected. Stay Part of the Story."),
-        "email": school.get("email") or "info@nhssalumni.com",
-        "contact_email": school.get("contact_email") or "info@nhssalumni.com",
+        "description": school.get("description") or "Stay Connected. Stay Part of the Story.",
+        "address": school.get("address") or "Main Campus, School Alumni Building, Tamil Nadu",
+        "contact_phone": school.get("contact_phone") or school.get("phone") or "+91 98765 43210",
+        "contact_email": school.get("contact_email") or school.get("email") or "info@nhssalumni.com",
+        "email": school.get("contact_email") or school.get("email") or "info@nhssalumni.com",
         "total_alumni": total_alumni,
         "total_batches": total_batches,
         "total_events": total_events,

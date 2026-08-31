@@ -37,7 +37,7 @@ export const AlumniLayout: React.FC = () => {
       <header className="bg-white border-b border-[#E5E7EB] px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">
           <img
-            src={school?.logo_url || logoUrl}
+            src={logoUrl}
             alt="School Logo"
             className="w-10 h-10 object-contain rounded-xl"
           />

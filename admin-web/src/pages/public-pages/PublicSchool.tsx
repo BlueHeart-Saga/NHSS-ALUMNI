@@ -92,7 +92,7 @@ export const PublicSchool: React.FC = () => {
         <div className="absolute bottom-10 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white flex items-end justify-between">
           <div className="flex items-center space-x-5">
             <img
-              src={profile.logo_url || logoUrl}
+              src={logoUrl}
               alt={profile.name}
               className="h-20 sm:h-24 w-auto object-contain flex-shrink-0"
             />
