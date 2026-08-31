@@ -20,7 +20,7 @@ export const Hero: React.FC<HeroProps> = ({
   onJoinClick
 }) => {
   const { t, language } = useLanguage();
-  const campusImg = (coverUrl && coverUrl.trim() !== '') ? getAssetUrl(coverUrl) : defaultSchoolImg;
+  const campusImg = getAssetUrl('/school-images/school-door.png');
   const badgeText = schoolCode || (schoolName.length <= 8 ? schoolName : schoolName.split(' ').map(w => w[0]).join('').slice(0, 6).toUpperCase()) || "ALUMNI";
 
   return (
