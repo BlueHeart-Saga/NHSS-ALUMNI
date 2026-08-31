@@ -119,11 +119,6 @@ export const PublicAbout: React.FC = () => {
               >
                 <div className="h-48 overflow-hidden bg-gray-100 relative">
                   <img src={getAssetUrl(photo.src)} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 backdrop-blur-xs text-[#111111] text-xs font-bold px-3 py-1.5 rounded-full border border-white shadow-md">
-                      {language === 'ta' ? 'பெரிதாக்குக' : 'Click to View'}
-                    </span>
-                  </div>
                 </div>
                 <div className="p-4 bg-white">
                   <span className="text-[11px] font-bold text-[#854D0E] uppercase tracking-wider">{photo.cat}</span>

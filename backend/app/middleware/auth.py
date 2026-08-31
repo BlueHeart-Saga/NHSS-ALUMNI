@@ -32,10 +32,20 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         # Find associated alumni record if any
         alumni = await db.alumni.find_one({"user_id": str(user["_id"])})
 
+        user_roles = user.get("roles")
+        if not user_roles:
+            legacy_role = user.get("role")
+            if legacy_role:
+                user_roles = [legacy_role.upper()]
+            else:
+                user_roles = roles or ["ALUMNI"]
+        if isinstance(user_roles, list):
+            user_roles = [str(r).upper() for r in user_roles]
+
         return {
             "user_id": str(user["_id"]),
             "school_id": str(user.get("school_id", school_id)),
-            "roles": user.get("roles", roles),
+            "roles": user_roles,
             "mobile": user.get("mobile"),
             "email": user.get("email"),
             "alumni": alumni,

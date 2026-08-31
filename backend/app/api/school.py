@@ -92,10 +92,14 @@ async def list_school_admins(current_user: dict = Depends(require_roles(["SCHOOL
         "roles": {"$in": ["SCHOOL_ADMIN", "SUPER_ADMIN"]}
     }).to_list(length=100)
 
+    user_ids = [str(u["_id"]) for u in admin_users]
+    alumni_list = await db.alumni.find({"user_id": {"$in": user_ids}}).to_list(length=len(user_ids))
+    alumni_map = {str(a["user_id"]): a for a in alumni_list if a.get("user_id")}
+
     res = []
     for u in admin_users:
         u_id = str(u["_id"])
-        alumni = await db.alumni.find_one({"user_id": u_id})
+        alumni = alumni_map.get(u_id)
         res.append({
             "id": str(alumni["_id"]) if alumni else u_id,
             "user_id": u_id,
@@ -124,20 +128,25 @@ async def create_school_admin(
         mobile = f"+91{mobile.lstrip('0')}"
 
     now = datetime.now(timezone.utc)
+    assigned_roles = request.roles if request.roles else ([request.role.upper()] if request.role else ["SCHOOL_ADMIN"])
+    assigned_roles = list(dict.fromkeys([r.upper() for r in assigned_roles if r]))
+
     # 1. Find or create user
     user = await db.users.find_one({"mobile": mobile})
     if user:
         user_id = str(user["_id"])
+        existing_roles = user.get("roles", [])
+        combined_roles = list(dict.fromkeys(existing_roles + assigned_roles))
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"roles": [request.role or "SCHOOL_ADMIN"], "school_id": school_id}}
+            {"$set": {"roles": combined_roles, "school_id": school_id}}
         )
     else:
         new_u = {
             "school_id": school_id,
             "mobile": mobile,
             "email": str(request.email) if request.email else None,
-            "roles": [request.role or "SCHOOL_ADMIN"],
+            "roles": assigned_roles,
             "is_active": True,
             "created_at": now
         }

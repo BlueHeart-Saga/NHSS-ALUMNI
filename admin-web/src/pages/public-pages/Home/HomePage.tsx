@@ -131,42 +131,42 @@ export const HomePage: React.FC = () => {
         onExploreClick={scrollToExplore}
       />
 
-      {/* 3. COMMUNITY STATISTICS (MongoDB Powered) */}
-      <CommunityStats
-        totalAlumni={stats.total_alumni}
-        totalBatches={stats.total_batches}
-        totalEvents={stats.total_events}
-        yearsConnected={stats.years_connected}
-      />
-
-      {/* 4. UPCOMING GET-TOGETHERS */}
+      {/* 2. UPCOMING GET-TOGETHERS */}
       <UpcomingEvents
         events={events}
         onSelectEvent={(event) => setSelectedEvent(event)}
       />
 
-      {/* 5. FIND YOUR BATCH */}
+      {/* 3. FIND YOUR BATCH */}
       <FindYourBatch
         batches={batches}
         onSelectBatch={(year) => setIsRegisterModalOpen(true)}
       />
 
-      {/* 6. ALUMNI HIGHLIGHTS */}
+      {/* 4. ALUMNI HIGHLIGHTS */}
       <AlumniHighlights
         highlights={highlights}
       />
 
-      {/* 7. MEMORIES GALLERY */}
+      {/* 5. MEMORIES GALLERY */}
       <MemoriesPreview
         memories={memories}
         onViewAllClick={() => navigate('/login')}
         onSelectMemory={(memory) => setSelectedMemory(memory)}
       />
 
-      {/* 8. FROM OUR SCHOOL (News & Announcements) */}
+      {/* 6. FROM OUR SCHOOL (News & Announcements) */}
       <SchoolNews
         announcements={announcements}
         onSelectNews={(news) => setSelectedNews(news)}
+      />
+
+      {/* 7. COMMUNITY STATISTICS (MongoDB Powered - Moved to Last) */}
+      <CommunityStats
+        totalAlumni={stats.total_alumni}
+        totalBatches={stats.total_batches}
+        totalEvents={stats.total_events}
+        yearsConnected={stats.years_connected}
       />
 
       {/* Modal 2: Event Details Preview */}

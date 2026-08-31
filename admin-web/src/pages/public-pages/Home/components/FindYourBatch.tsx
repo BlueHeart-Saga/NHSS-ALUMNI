@@ -9,6 +9,12 @@ interface BatchItem {
   total_members: number;
   cities_count: number;
   upcoming_events_count: number;
+  coordinator_profiles?: {
+    id: string;
+    full_name: string;
+    profile_photo_url?: string;
+    profession?: string;
+  }[];
 }
 
 interface FindYourBatchProps {
@@ -23,6 +29,14 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
     batches.find(b => b.passing_year === 2010) || batches[0] || null
   );
 
+  // Sync activeResult when batches load
+  React.useEffect(() => {
+    if (batches.length > 0 && !activeResult) {
+      const found = batches.find(b => b.passing_year === Number(selectedYear)) || batches[0];
+      setActiveResult(found);
+    }
+  }, [batches]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedYear) return;
@@ -34,14 +48,16 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
         id: `batch-${selectedYear}`,
         name: `${selectedYear} ${language === 'ta' ? 'ஆம் ஆண்டு வகுப்பு' : 'Class of'}`,
         passing_year: Number(selectedYear),
-        total_members: 110,
-        cities_count: 16,
-        upcoming_events_count: 1
+        total_members: 0,
+        cities_count: 0,
+        upcoming_events_count: 0
       });
     }
   };
 
-  const yearOptions = Array.from({ length: 21 }, (_, i) => 2025 - i);
+  const yearOptions = batches.length > 0
+    ? batches.map(b => b.passing_year).sort((a, b) => b - a)
+    : Array.from({ length: 30 }, (_, i) => 2025 - i);
 
   return (
     <section id="find-your-batch" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
@@ -59,7 +75,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
         <form onSubmit={handleSearch} className="bg-white border-2 border-[#E5E7EB] rounded-3xl p-8 sm:p-10 shadow-xl max-w-2xl mx-auto space-y-6 transition-all hover:shadow-2xl">
           <div className="text-left space-y-2">
             <label className="block text-sm font-semibold text-[#111111] uppercase tracking-wider">
-              {language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Graduation Year'}
+              {language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Graduation Batch Year'}
             </label>
             <div className="relative">
               <select
@@ -69,7 +85,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
               >
                 {yearOptions.map(y => (
                   <option key={y} value={y}>
-                    {language === 'ta' ? `${y} ஆம் ஆண்டு` : `Class of ${y}`}
+                    {language === 'ta' ? `${y} ஆம் ஆண்டு (Batch of ${y})` : `Class of ${y}`}
                   </option>
                 ))}
               </select>
@@ -115,6 +131,34 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                 <div className="text-xs text-gray-600 font-medium">{language === 'ta' ? 'நிகழ்வுகள்' : 'Events'}</div>
               </div>
             </div>
+
+            {/* Coordinator Profile Avatars */}
+            {activeResult.coordinator_profiles && activeResult.coordinator_profiles.length > 0 && (
+              <div className="pt-4 border-t border-[#F4C542]/30 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#854D0E]">
+                  {language === 'ta' ? 'ஒருங்கிணைப்பாளர்கள்' : 'Coordinators'}:
+                </span>
+                <div className="flex items-center space-x-2">
+                  <div className="flex -space-x-2 overflow-hidden">
+                    {activeResult.coordinator_profiles.slice(0, 3).map((c, i) => (
+                      <img
+                        key={c.id || i}
+                        src={
+                          c.profile_photo_url ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(c.full_name)}&background=F4C542&color=111111`
+                        }
+                        alt={c.full_name}
+                        title={c.full_name}
+                        className="w-7 h-7 rounded-full ring-2 ring-white object-cover border border-amber-300"
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-bold text-[#111111]">
+                    {activeResult.coordinator_profiles.map(c => c.full_name.split(' ')[0]).join(', ')}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <button
               type="button"

@@ -14,12 +14,22 @@ async def get_dashboard_summary(
     db = get_db()
     school_id = current_user["school_id"]
 
-    total_alumni = await db.alumni.count_documents({"school_id": school_id})
-    verified_alumni = await db.alumni.count_documents({"school_id": school_id, "verification_status": "APPROVED"})
-    pending_alumni = await db.alumni.count_documents({"school_id": school_id, "verification_status": "PENDING"})
-    active_batches = await db.batches.count_documents({"school_id": school_id, "status": "ACTIVE"})
-    upcoming_events = await db.events.count_documents({"school_id": school_id, "status": "PUBLISHED"})
-    recent_checkins = await db.checkins.count_documents({"school_id": school_id})
+    import asyncio
+    (
+        total_alumni,
+        verified_alumni,
+        pending_alumni,
+        active_batches,
+        upcoming_events,
+        recent_checkins
+    ) = await asyncio.gather(
+        db.alumni.count_documents({"school_id": school_id}),
+        db.alumni.count_documents({"school_id": school_id, "verification_status": "APPROVED"}),
+        db.alumni.count_documents({"school_id": school_id, "verification_status": "PENDING"}),
+        db.batches.count_documents({"school_id": school_id, "status": "ACTIVE"}),
+        db.events.count_documents({"school_id": school_id, "status": "PUBLISHED"}),
+        db.checkins.count_documents({"school_id": school_id})
+    )
 
     turnout_pct = (recent_checkins / verified_alumni * 100) if verified_alumni > 0 else 0.0
 

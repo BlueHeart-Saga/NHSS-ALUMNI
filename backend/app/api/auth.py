@@ -635,9 +635,51 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
     user_id = current_user["user_id"]
     school_id = current_user["school_id"]
 
-    # Check if batch exists
-    batch = await db.batches.find_one({"school_id": school_id, "passing_year": request.passing_year})
-    batch_id = str(batch["_id"]) if batch else None
+    # Validate School Timeline
+    if request.joining_year and request.passing_year and request.joining_year > request.passing_year:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid School Timeline: Admission/Joining year ({request.joining_year}) cannot be greater than Leaving/Passing year ({request.passing_year})."
+        )
+
+    # Validate College Timeline
+    if not request.no_higher_education and request.college_joining_year and request.college_passing_year and request.college_joining_year > request.college_passing_year:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid College Timeline: College Admission/Joining year ({request.college_joining_year}) cannot be greater than College Passing/Graduation year ({request.college_passing_year})."
+        )
+
+    # Calculate 12th equivalent batch year (e.g. 10th in 2025 -> Batch of 2027)
+    raw_passing_yr = request.passing_year or 2010
+    leaving_cls = request.leaving_class or "12th"
+    cls_num = None
+    if leaving_cls:
+        import re
+        matches = re.findall(r'\d+', str(leaving_cls))
+        if matches:
+            cls_num = int(matches[0])
+
+    if cls_num and 1 <= cls_num < 12:
+        effective_batch_year = raw_passing_yr + (12 - cls_num)
+    else:
+        effective_batch_year = raw_passing_yr
+
+    # Check if batch exists; auto-create if missing for passing year
+    batch = await db.batches.find_one({"school_id": school_id, "passing_year": effective_batch_year})
+    if not batch and 1960 <= effective_batch_year <= 2030:
+        new_batch_doc = {
+            "school_id": school_id,
+            "name": f"Batch of {effective_batch_year}",
+            "passing_year": effective_batch_year,
+            "description": f"Academic Batch for passing year {effective_batch_year}",
+            "coordinators": [],
+            "status": "ACTIVE",
+            "created_at": datetime.now(timezone.utc)
+        }
+        res_batch = await db.batches.insert_one(new_batch_doc)
+        batch_id = str(res_batch.inserted_id)
+    else:
+        batch_id = str(batch["_id"]) if batch else None
 
     # Check if a pre-imported CSV roster record exists with user_id: None matching mobile/email/admission_number
     dup_query = []
@@ -679,19 +721,30 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
     extra_fields = {
         "gender": request.gender,
         "dob": request.dob,
-        "degree": request.degree,
-        "stream": request.stream,
+        "country_code": request.country_code or "+91",
+        "school_name": request.school_name,
         "joining_year": request.joining_year,
+        "leaving_class": request.leaving_class or "12th",
+        "no_higher_education": request.no_higher_education or False,
+        "college_name": request.college_name,
+        "degree": request.degree,
+        "other_degree": request.other_degree,
+        "stream": request.stream,
+        "register_number": request.register_number,
+        "college_joining_year": request.college_joining_year,
+        "college_passing_year": request.college_passing_year,
+        "employment_status": request.employment_status,
         "chapter": request.chapter,
         "company": request.company,
         "position": request.position,
+        "profession": request.profession or request.position or request.employment_status,
+        "industry": request.industry,
         "total_experience": request.total_experience,
-        "industries": request.industries,
+        "industries": request.industries or request.industry,
         "skills": request.skills,
-        "other_college": request.other_college,
-        "other_degree": request.other_degree,
-        "other_stream": request.other_stream,
-        "other_passing_year": request.other_passing_year,
+        "other_college": request.other_college or request.college_name,
+        "other_stream": request.other_stream or request.stream,
+        "other_passing_year": request.other_passing_year or request.college_passing_year,
         "address": request.address,
         "city": request.city or request.current_city,
         "state": request.state,
@@ -709,7 +762,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "mobile": request.mobile or pre_imported.get("mobile"),
             "email": str(request.email) if request.email else pre_imported.get("email"),
             "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
-            "passing_year": request.passing_year or pre_imported.get("passing_year", 2010),
+            "passing_year": effective_batch_year or pre_imported.get("passing_year", 2010),
             "batch_id": batch_id or pre_imported.get("batch_id"),
             "admission_number": request.admission_number or pre_imported.get("admission_number"),
             "section": request.section or pre_imported.get("section", "A"),
@@ -730,7 +783,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "mobile": request.mobile,
             "email": str(request.email) if request.email else None,
             "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
-            "passing_year": request.passing_year,
+            "passing_year": effective_batch_year,
             "batch_id": batch_id,
             "admission_number": request.admission_number,
             "section": request.section,

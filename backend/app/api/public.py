@@ -19,8 +19,8 @@ async def get_public_stats():
     years_connected = max(1, 2026 - est_year)
 
     return {
-        "school_name": school.get("name") or "Our School",
-        "school_code": school.get("code") or "SCHOOL",
+        "school_name": school.get("name") or "NHSS SCHOOL",
+        "school_code": school.get("code") or "NHSS",
         "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",
         "cover_url": school.get("cover_url") or "/school-images/school-door.png",
         "description": school.get("description") or "Stay Connected. Stay Part of the Story.",
@@ -60,25 +60,89 @@ async def get_public_events():
             "start_time": ev.get("start_time"),
             "venue": ev.get("venue"),
             "attending_count": att_count,
-            "cover_image_url": ev.get("cover_image_url") or "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80"
+            "cover_image_url": ev.get("cover_image_url") or "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80",
+            "registration_url": ev.get("registration_url")
         })
     return res
 
 @router.get("/batches")
 async def get_public_batches():
     db = get_db()
-    batches = await db.batches.find({}).sort("passing_year", -1).to_list(length=30)
+    from bson import ObjectId
+    batches = await db.batches.find({}).sort("passing_year", -1).to_list(length=100)
+
+    # 1. Aggregate member counts and distinct cities per passing_year
+    pipeline = [
+        {"$match": {"verification_status": "APPROVED"}},
+        {"$group": {
+            "_id": "$passing_year",
+            "count": {"$sum": 1},
+            "cities": {"$addToSet": "$current_city"}
+        }}
+    ]
+    counts_cursor = db.alumni.aggregate(pipeline)
+    counts_list = await counts_cursor.to_list(length=1000)
+    counts_map = {}
+    for c in counts_list:
+        if c.get("_id"):
+            cities = [ct for ct in c.get("cities", []) if ct]
+            counts_map[c["_id"]] = {
+                "count": c.get("count", 0),
+                "cities_count": len(cities)
+            }
+
+    # 2. Aggregate upcoming events per batch_id
+    events_pipeline = [
+        {"$match": {"status": {"$in": ["PUBLISHED", "UPCOMING"]}}},
+        {"$group": {"_id": "$batch_id", "count": {"$sum": 1}}}
+    ]
+    events_cursor = db.events.aggregate(events_pipeline)
+    events_list = await events_cursor.to_list(length=1000)
+    events_map = {str(e["_id"]): e.get("count", 0) for e in events_list if e.get("_id")}
+
+    # 3. Collect all coordinator alumni IDs
+    all_coord_ids = []
+    for b in batches:
+        for c in b.get("coordinators", []):
+            if isinstance(c, str):
+                try:
+                    all_coord_ids.append(ObjectId(c))
+                except Exception:
+                    all_coord_ids.append(c)
+
+    coords_map = {}
+    if all_coord_ids:
+        coord_alumni = await db.alumni.find({"_id": {"$in": all_coord_ids}}).to_list(length=len(all_coord_ids))
+        for ca in coord_alumni:
+            coords_map[str(ca["_id"])] = {
+                "id": str(ca["_id"]),
+                "full_name": ca.get("full_name", "Coordinator"),
+                "profile_photo_url": ca.get("profile_photo_url"),
+                "profession": ca.get("profession"),
+                "current_city": ca.get("current_city")
+            }
 
     res = []
     for b in batches:
-        cnt = await db.alumni.count_documents({"passing_year": b.get("passing_year"), "verification_status": "APPROVED"})
+        b_id = str(b["_id"])
+        yr = b.get("passing_year")
+        stats = counts_map.get(yr, {"count": 0, "cities_count": 0})
+
+        c_profiles = []
+        for c in b.get("coordinators", []):
+            cid = str(c)
+            if cid in coords_map:
+                c_profiles.append(coords_map[cid])
+
         res.append({
-            "id": str(b["_id"]),
+            "id": b_id,
             "name": b.get("name"),
-            "passing_year": b.get("passing_year"),
-            "total_members": cnt,
-            "cities_count": 0,
-            "upcoming_events_count": 0
+            "passing_year": yr,
+            "description": b.get("description"),
+            "total_members": stats["count"],
+            "cities_count": stats["cities_count"],
+            "upcoming_events_count": events_map.get(b_id, 0),
+            "coordinator_profiles": c_profiles
         })
     return res
 

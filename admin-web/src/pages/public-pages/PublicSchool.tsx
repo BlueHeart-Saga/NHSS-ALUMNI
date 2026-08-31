@@ -26,8 +26,8 @@ export const PublicSchool: React.FC = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<{ src: string; title: string; category: string } | null>(null);
   const realCampusBanner = getAssetUrl('/school-images/banner.png');
   const [profile, setProfile] = useState<PublicSchoolProfile>({
-    name: 'Tamil Nadu Government Higher Secondary School',
-    code: 'TNGHSS',
+    name: language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHSS SCHOOL',
+    code: 'NHSS',
     established_year: 1965,
     total_alumni: 1250,
     active_batches: 48,
@@ -43,8 +43,8 @@ export const PublicSchool: React.FC = () => {
   useEffect(() => {
     api.getPublicStats()
       .then((s: any) => setProfile({
-        name: s.school_name,
-        code: s.school_code,
+        name: s.school_name || (language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHSS SCHOOL'),
+        code: s.school_code || 'NHSS',
         established_year: s.established_year || 1965,
         total_alumni: s.total_alumni || 1250,
         active_batches: s.total_batches || 48,
@@ -203,11 +203,6 @@ export const PublicSchool: React.FC = () => {
               >
                 <div className="h-48 overflow-hidden bg-gray-100 relative">
                   <img src={photo.src} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 backdrop-blur-xs text-[#111111] text-xs font-bold px-3 py-1.5 rounded-full border border-white shadow-md">
-                      {language === 'ta' ? 'பெரிதாக்குக' : 'Click to View'}
-                    </span>
-                  </div>
                 </div>
                 <div className="p-4">
                   <span className="text-[11px] font-bold text-[#854D0E] uppercase">{photo.category}</span>

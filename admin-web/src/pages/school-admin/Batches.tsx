@@ -52,48 +52,127 @@ export const Batches: React.FC = () => {
     }
   };
 
+  const [search, setSearch] = useState('');
+
+  const displayedBatches = batches.filter((b) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      b.name.toLowerCase().includes(q) ||
+      String(b.passing_year).includes(q) ||
+      (b.description && b.description.toLowerCase().includes(q))
+    );
+  });
+
   if (loading) return <LoadingState />;
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111111]">Batches & Cohorts</h2>
+          <h2 className="text-2xl font-bold text-[#111111]">Batches &amp; Cohorts</h2>
           <p className="text-xs text-[#6B7280]">School passing year cohorts and assigned batch coordinators</p>
         </div>
 
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Create New Batch
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Input
+            placeholder="🔍 Search batch year or name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64"
+          />
+          <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+            <Plus className="w-4 h-4 mr-1.5" />
+            Create New Batch
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {batches.map((batch) => (
-          <div
-            key={batch.id}
-            onClick={() => navigate(`/school-admin/batches/${batch.id}`)}
-            className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs hover:border-[#F4C542] transition-all cursor-pointer group flex flex-col justify-between"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] border border-[#F4C542]/60 flex items-center justify-center mb-4 text-[#111111] group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-[#111111] text-lg">{batch.name}</h3>
-              <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{batch.description || `Class of ${batch.passing_year}`}</p>
-            </div>
+        {displayedBatches.map((batch) => {
+          const coords = batch.coordinator_profiles || [];
+          return (
+            <div
+              key={batch.id}
+              onClick={() => navigate(`/school-admin/batches/${batch.id}`)}
+              className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#F4C542] transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+            >
+              <div>
+                {/* Header Badge Row */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFF7D6] to-[#FFEAA7] border border-[#F4C542]/70 flex items-center justify-center text-[#111111] group-hover:scale-110 transition-transform shadow-xs">
+                    <GraduationCap className="w-5 h-5 text-[#854D0E]" />
+                  </div>
+                  <span className="text-[#854D0E] font-bold bg-[#FFF7D6] border border-[#F4C542]/40 px-2.5 py-1 rounded-full text-[11px] shadow-2xs">
+                    Batch {batch.passing_year}
+                  </span>
+                </div>
 
-            <div className="pt-6 border-t border-[#E5E7EB] mt-6 flex items-center justify-between text-xs">
-              <span className="font-semibold text-[#111111] flex items-center">
-                <Users className="w-3.5 h-3.5 mr-1 text-[#6B7280]" />
-                {batch.total_members} Members
-              </span>
-              <span className="text-[#854D0E] font-semibold bg-[#FFF7D6] px-2 py-0.5 rounded-full text-[11px]">
-                Year {batch.passing_year}
-              </span>
+                {/* Batch Name & Motto */}
+                <h3 className="font-bold text-[#111111] text-lg leading-snug group-hover:text-[#854D0E] transition-colors">
+                  {batch.name}
+                </h3>
+                <p className="text-xs text-[#6B7280] mt-1 line-clamp-2">
+                  {batch.description || `Class of ${batch.passing_year} Alumni Cohort`}
+                </p>
+
+                {/* Batch Coordinators Profile Photos Section */}
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Batch Coordinators</span>
+                    {coords.length > 0 && (
+                      <span className="text-[10px] text-[#854D0E] font-bold bg-[#FFF7D6] px-1.5 py-0.5 rounded">
+                        {coords.length} Assigned
+                      </span>
+                    )}
+                  </div>
+
+                  {coords.length > 0 ? (
+                    <div className="flex items-center space-x-3">
+                      {/* Avatar Stack */}
+                      <div className="flex -space-x-2.5 overflow-hidden">
+                        {coords.slice(0, 3).map((coord, idx) => (
+                          <img
+                            key={coord.id || idx}
+                            src={
+                              coord.profile_photo_url ||
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(coord.full_name)}&background=F4C542&color=111111`
+                            }
+                            alt={coord.full_name}
+                            title={coord.full_name}
+                            className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-xs border border-amber-200"
+                          />
+                        ))}
+                      </div>
+
+                      {/* Names text summary */}
+                      <div className="text-xs font-semibold text-[#111111] truncate max-w-[140px]">
+                        {coords.map((c) => c.full_name.split(' ')[0]).join(', ')}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-xs text-[#9CA3AF] bg-gray-50 border border-dashed border-gray-200 rounded-lg p-2 font-medium">
+                      <UserPlus className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                      No Coordinator Assigned
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card Footer */}
+              <div className="pt-4 border-t border-[#E5E7EB] mt-5 flex items-center justify-between text-xs">
+                <span className="font-bold text-[#111111] flex items-center bg-gray-100/80 px-2.5 py-1 rounded-lg">
+                  <Users className="w-3.5 h-3.5 mr-1.5 text-[#854D0E]" />
+                  {batch.total_members} Members
+                </span>
+
+                <span className="text-[11px] font-bold text-[#854D0E] group-hover:translate-x-0.5 transition-transform flex items-center">
+                  View Batch &rarr;
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Create Batch Modal */}

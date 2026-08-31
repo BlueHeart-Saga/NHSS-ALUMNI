@@ -16,14 +16,48 @@ async def list_batches(current_user: dict = Depends(get_current_user)):
     cursor = db.batches.find({"school_id": school_id}).sort("passing_year", -1)
     batches = await cursor.to_list(length=100)
 
+    # Single aggregation query to count approved members per passing_year (Fixes 70x N+1 queries)
+    pipeline = [
+        {"$match": {"school_id": school_id, "verification_status": "APPROVED"}},
+        {"$group": {"_id": "$passing_year", "count": {"$sum": 1}}}
+    ]
+    counts_cursor = db.alumni.aggregate(pipeline)
+    counts_list = await counts_cursor.to_list(length=1000)
+    counts_map = {c["_id"]: c["count"] for c in counts_list if c.get("_id")}
+
+    # Collect all coordinator alumni IDs across all batches to fetch profiles in 1 single query
+    all_coord_ids = []
+    for b in batches:
+        for c in b.get("coordinators", []):
+            if isinstance(c, str):
+                try:
+                    all_coord_ids.append(ObjectId(c))
+                except Exception:
+                    all_coord_ids.append(c)
+
+    coords_map = {}
+    if all_coord_ids:
+        coord_alumni = await db.alumni.find({"_id": {"$in": all_coord_ids}}).to_list(length=len(all_coord_ids))
+        for ca in coord_alumni:
+            coords_map[str(ca["_id"])] = {
+                "id": str(ca["_id"]),
+                "full_name": ca.get("full_name", "Coordinator"),
+                "profile_photo_url": ca.get("profile_photo_url"),
+                "mobile": ca.get("mobile"),
+                "email": ca.get("email")
+            }
+
     result = []
     for b in batches:
         b_id = str(b["_id"])
-        total_members = await db.alumni.count_documents({
-            "school_id": school_id,
-            "passing_year": b["passing_year"],
-            "verification_status": "APPROVED"
-        })
+        total_members = counts_map.get(b["passing_year"], 0)
+
+        c_profiles = []
+        for c in b.get("coordinators", []):
+            cid = str(c)
+            if cid in coords_map:
+                c_profiles.append(coords_map[cid])
+
         result.append(BatchResponse(
             id=b_id,
             school_id=school_id,
@@ -31,6 +65,7 @@ async def list_batches(current_user: dict = Depends(get_current_user)):
             passing_year=b["passing_year"],
             description=b.get("description"),
             coordinators=b.get("coordinators", []),
+            coordinator_profiles=c_profiles,
             total_members=total_members,
             status=b.get("status", "ACTIVE"),
             created_at=b.get("created_at", datetime.now(timezone.utc))
@@ -68,6 +103,7 @@ async def create_batch(
         passing_year=request.passing_year,
         description=request.description,
         coordinators=[],
+        coordinator_profiles=[],
         total_members=0,
         status="ACTIVE",
         created_at=doc["created_at"]
@@ -88,6 +124,26 @@ async def get_batch_details(batch_id: str, current_user: dict = Depends(get_curr
         "verification_status": "APPROVED"
     })
 
+    c_profiles = []
+    coord_ids = []
+    for c in batch.get("coordinators", []):
+        if isinstance(c, str):
+            try:
+                coord_ids.append(ObjectId(c))
+            except Exception:
+                coord_ids.append(c)
+
+    if coord_ids:
+        coord_alumni = await db.alumni.find({"_id": {"$in": coord_ids}}).to_list(length=len(coord_ids))
+        for ca in coord_alumni:
+            c_profiles.append({
+                "id": str(ca["_id"]),
+                "full_name": ca.get("full_name", "Coordinator"),
+                "profile_photo_url": ca.get("profile_photo_url"),
+                "mobile": ca.get("mobile"),
+                "email": ca.get("email")
+            })
+
     return BatchResponse(
         id=str(batch["_id"]),
         school_id=school_id,
@@ -95,6 +151,7 @@ async def get_batch_details(batch_id: str, current_user: dict = Depends(get_curr
         passing_year=batch["passing_year"],
         description=batch.get("description"),
         coordinators=batch.get("coordinators", []),
+        coordinator_profiles=c_profiles,
         total_members=total_members,
         status=batch.get("status", "ACTIVE"),
         created_at=batch.get("created_at", datetime.now(timezone.utc))

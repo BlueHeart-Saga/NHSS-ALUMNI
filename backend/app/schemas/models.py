@@ -48,44 +48,59 @@ class TokenResponse(BaseModel):
 class UserRegistrationRequest(BaseModel):
     full_name: str
     mobile: str
+    country_code: Optional[str] = "+91"
     email: EmailStr
     gender: Optional[str] = None
     dob: Optional[str] = None
+    profile_photo_url: Optional[str] = None
     current_city: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = "India"
+    address: Optional[str] = None
     password: Optional[str] = None
     
-    degree: Optional[str] = None
-    stream: Optional[str] = None
+    # School Education Details
+    school_name: Optional[str] = None
     joining_year: Optional[int] = None
-    passing_year: int
+    passing_year: Optional[int] = 2010
+    leaving_class: Optional[str] = "12th"
     admission_number: Optional[str] = "N/A"
     section: Optional[str] = "A"
     
+    # Higher Education / College Details
+    no_higher_education: Optional[bool] = False
+    college_name: Optional[str] = None
+    degree: Optional[str] = None
+    other_degree: Optional[str] = None
+    stream: Optional[str] = None
+    register_number: Optional[str] = None
+    college_joining_year: Optional[int] = None
+    college_passing_year: Optional[int] = None
+    
+    # Professional & Additional Details
+    employment_status: Optional[str] = None
     chapter: Optional[str] = None
     company: Optional[str] = None
     position: Optional[str] = None
     profession: Optional[str] = None
+    industry: Optional[str] = None
     total_experience: Optional[str] = None
     industries: Optional[str] = None
     skills: Optional[str] = None
-    profile_photo_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
     
+    # Legacy fallbacks
     other_college: Optional[str] = None
-    other_degree: Optional[str] = None
     other_stream: Optional[str] = None
     other_passing_year: Optional[int] = None
-    
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: Optional[str] = "India"
-    linkedin_url: Optional[str] = None
 
 class CreateAdminRequest(BaseModel):
     full_name: str
     mobile: str
     email: Optional[EmailStr] = None
-    role: str = "SCHOOL_ADMIN"
+    role: Optional[str] = None
+    roles: List[str] = ["SCHOOL_ADMIN"]
     passing_year: Optional[int] = 2005
 
 # --- User & Profile Schemas ---
@@ -200,13 +215,21 @@ class CreateBatchRequest(BaseModel):
     passing_year: int = Field(..., example=2010)
     description: Optional[str] = "Cohort batch"
 
+class CoordinatorProfileResponse(BaseModel):
+    id: str
+    full_name: str
+    profile_photo_url: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+
 class BatchResponse(BaseModel):
     id: str
     school_id: str
     name: str
     passing_year: int
     description: Optional[str] = None
-    coordinators: List[str] = []
+    coordinators: List[Any] = []
+    coordinator_profiles: Optional[List[CoordinatorProfileResponse]] = []
     total_members: int = 0
     status: str = "ACTIVE"
     created_at: datetime
@@ -232,6 +255,8 @@ class CreateEventRequest(BaseModel):
     registration_deadline: Optional[str] = None
     guest_allowed: bool = True
     max_capacity: int = 300
+    cover_image_url: Optional[str] = None
+    registration_url: Optional[str] = None
     publish_immediately: bool = True
 
 class EventResponse(BaseModel):
@@ -250,6 +275,8 @@ class EventResponse(BaseModel):
     registration_deadline: Optional[str] = None
     guest_allowed: bool
     max_capacity: int
+    cover_image_url: Optional[str] = None
+    registration_url: Optional[str] = None
     status: str # DRAFT, PUBLISHED, CANCELLED, COMPLETED
     attending_count: int = 0
     maybe_count: int = 0

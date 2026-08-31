@@ -25,22 +25,31 @@ async def list_pending_verifications(
     cursor = db.alumni.find(query).sort("created_at", -1)
     pending = await cursor.to_list(length=200)
 
-    res = []
+    # Batch fetch all matching users in 1 single DB query (Fix N+1 query loop)
+    user_ids = []
     for a in pending:
         u_id = a.get("user_id")
-        user = None
         if u_id:
-            user = await db.users.find_one({"_id": u_id})
-            if not user:
-                try:
-                    user = await db.users.find_one({"_id": ObjectId(u_id)})
-                except Exception:
-                    pass
+            try:
+                user_ids.append(ObjectId(u_id))
+            except Exception:
+                user_ids.append(u_id)
+
+    users_map = {}
+    if user_ids:
+        users_list = await db.users.find({"_id": {"$in": user_ids}}).to_list(length=len(user_ids))
+        for u in users_list:
+            users_map[str(u["_id"])] = u
+
+    res = []
+    for a in pending:
+        u_id = str(a.get("user_id", ""))
+        user = users_map.get(u_id)
 
         roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
         res.append(UserProfileResponse(
             id=str(a["_id"]),
-            user_id=str(u_id) if u_id else "",
+            user_id=u_id,
             school_id=str(a.get("school_id") or current_user.get("school_id") or ""),
             full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
             mobile=a.get("mobile") or (user.get("mobile") if user else ""),

@@ -116,7 +116,7 @@ export const AdminSetupPassword: React.FC = () => {
               required
             />
 
-            <Button type="submit" className="w-full py-3 bg-[#111111] text-white hover:bg-black font-bold cursor-pointer" isLoading={loading}>
+            <Button type="submit" className="w-full py-3 bg-[#111111] text-[#F4C542] hover:bg-black font-bold cursor-pointer border border-[#111111]" isLoading={loading}>
               <span>Send OTP Verification Code to Email</span>
               <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>

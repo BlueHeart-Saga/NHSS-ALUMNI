@@ -114,6 +114,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    # Database connected via MONGODB_URI
     return {"status": "healthy", "environment": settings.APP_ENV}
 
 @app.get("/ready")

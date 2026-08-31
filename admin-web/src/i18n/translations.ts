@@ -33,7 +33,7 @@ export const translations: Record<Language, Record<string, string>> = {
     upcoming_events_title: "UPCOMING ALUMNI EVENTS",
     view_all_events: "View All Events",
     no_events_yet: "No upcoming events scheduled at this moment.",
-    recent_memories_title: "CHERISHED MEMORIES",
+    recent_memories_title: "Cherished School Memories",
     view_all_memories: "View Gallery",
     no_memories_yet: "No memories uploaded yet. Be the first to share!",
     school_admin_request_title: "Are You a School Administrator?",
@@ -152,7 +152,7 @@ export const translations: Record<Language, Record<string, string>> = {
     upcoming_events_title: "வரவிருக்கும் நிகழ்வுகள்",
     view_all_events: "அனைத்து நிகழ்வுகளையும் பார்க்க",
     no_events_yet: "தற்போது புதிய நிகழ்வுகள் எதுவும் திட்டமிடப்படவில்லை.",
-    recent_memories_title: "போற்றத்தக்க நினைவுகள்",
+    recent_memories_title: "இனிய பள்ளி நினைவுகள்",
     view_all_memories: "கேலரியைப் பார்க்க",
     no_memories_yet: "நினைவுகள் எதுவும் இன்னும் பதிவேற்றப்படவில்லை. முதன்முதலில் பகிரவும்!",
     school_admin_request_title: "நீங்கள் பள்ளி நிர்வாகியா?",
@@ -231,12 +231,12 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_memories: "நினைவுகள் நிர்வகிப்பு",
     admin_reports: "அறிக்கைகள் & ஏற்றுமதி",
     admin_settings: "பள்ளி அமைப்புகள்",
-    admin_portal_name: "பள்ளி நிர்வாக போர்டல்",
+    admin_portal_name: "நிர்வாக போர்டல்",
 
     // Footer
     footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
     copyright: "காப்புரிமை © 2026. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. Devopstrio மூலம் வழங்கப்படுகிறது.",
     developer_portal: "டெவலப்பர் போர்டல்",
-    school_admin_login: "பள்ளி நிர்வாக போர்டல்",
+    school_admin_login: "நிர்வாக போர்டல்",
   }
 };

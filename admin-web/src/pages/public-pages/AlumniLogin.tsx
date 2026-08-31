@@ -257,8 +257,12 @@ export const AlumniLogin: React.FC = () => {
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base font-medium text-[#111111]">Reconnect</h4>
-                  <p className="text-sm text-gray-500 font-normal">Find and connect with your batchmates</p>
+                  <h4 className="text-base font-medium text-[#111111]">
+                    {language === 'ta' ? 'மீண்டும் இணையுங்கள்' : 'Reconnect'}
+                  </h4>
+                  <p className="text-sm text-gray-500 font-normal">
+                    {language === 'ta' ? 'உங்கள் வகுப்புத் தோழர்களைக் கண்டறிந்து இணையுங்கள்' : 'Find and connect with your batchmates'}
+                  </p>
                 </div>
               </div>
 
@@ -267,8 +271,12 @@ export const AlumniLogin: React.FC = () => {
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base font-medium text-[#111111]">Get Involved</h4>
-                  <p className="text-sm text-gray-500 font-normal">Stay updated with events and activities</p>
+                  <h4 className="text-base font-medium text-[#111111]">
+                    {language === 'ta' ? 'பங்கேற்கவும்' : 'Get Involved'}
+                  </h4>
+                  <p className="text-sm text-gray-500 font-normal">
+                    {language === 'ta' ? 'நிகழ்வுகள் மற்றும் செயல்பாடுகளைப் பற்றி அறிந்து கொள்ளுங்கள்' : 'Stay updated with events and activities'}
+                  </p>
                 </div>
               </div>
 
@@ -277,8 +285,12 @@ export const AlumniLogin: React.FC = () => {
                   <Image className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base font-medium text-[#111111]">Share Memories</h4>
-                  <p className="text-sm text-gray-500 font-normal">Relive and share your college memories</p>
+                  <h4 className="text-base font-medium text-[#111111]">
+                    {language === 'ta' ? 'நினைவுகளைப் பகிருங்கள்' : 'Share Memories'}
+                  </h4>
+                  <p className="text-sm text-gray-500 font-normal">
+                    {language === 'ta' ? 'உங்கள் பள்ளி நினைவுகளை மீண்டும் வாழ்ந்து பகிருங்கள்' : 'Relive and share your school memories'}
+                  </p>
                 </div>
               </div>
             </div>

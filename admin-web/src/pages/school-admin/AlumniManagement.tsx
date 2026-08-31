@@ -21,14 +21,22 @@ export const AlumniManagement: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // 250ms Debounce to prevent flooding API on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchAlumni();
-  }, [search, batchYear, statusFilter]);
+  }, [debouncedSearch, batchYear, statusFilter]);
 
   const fetchAlumni = async () => {
     try {
       setLoading(true);
-      const data = await api.searchAlumni(search, batchYear, statusFilter);
+      const data = await api.searchAlumni(debouncedSearch, batchYear, statusFilter);
       setAlumniList(data);
     } catch (err) {
       console.error('Failed to fetch alumni:', err);
@@ -36,6 +44,19 @@ export const AlumniManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Instant in-memory filtering for zero-latency UI response
+  const displayedAlumni = alumniList.filter(a => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (a.full_name && a.full_name.toLowerCase().includes(q)) ||
+      (a.email && a.email.toLowerCase().includes(q)) ||
+      (a.mobile && a.mobile.includes(q)) ||
+      (a.current_city && a.current_city.toLowerCase().includes(q)) ||
+      (a.profession && a.profession.toLowerCase().includes(q))
+    );
+  });
 
   const handleSuspend = async (id: string) => {
     const confirmed = await alertService.showConfirm(
@@ -200,7 +221,7 @@ export const AlumniManagement: React.FC = () => {
       {loading ? (
         <LoadingState />
       ) : (
-        <Table columns={columns} data={alumniList} keyExtractor={(item) => item.id} />
+        <Table columns={columns} data={displayedAlumni} keyExtractor={(item) => item.id} />
       )}
 
       {/* CSV Import Modal */}

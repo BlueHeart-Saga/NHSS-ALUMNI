@@ -33,13 +33,22 @@ export interface AlumniProfile {
   created_at: string;
 }
 
+export interface CoordinatorProfile {
+  id: string;
+  full_name: string;
+  profile_photo_url?: string;
+  mobile?: string;
+  email?: string;
+}
+
 export interface Batch {
   id: string;
   school_id: string;
   name: string;
   passing_year: number;
   description?: string;
-  coordinators: string[];
+  coordinators: (string | CoordinatorProfile)[];
+  coordinator_profiles?: CoordinatorProfile[];
   total_members: number;
   status: string;
   created_at: string;
@@ -60,6 +69,8 @@ export interface EventItem {
   registration_deadline?: string;
   guest_allowed: boolean;
   max_capacity: number;
+  cover_image_url?: string;
+  registration_url?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
   attending_count: number;
   maybe_count: number;

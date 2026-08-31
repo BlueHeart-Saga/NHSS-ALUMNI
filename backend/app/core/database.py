@@ -28,9 +28,7 @@ async def connect_to_mongo():
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=10000,
                 maxPoolSize=50,
-                minPoolSize=5,
-                retryWrites=True,
-                retryReads=True
+                minPoolSize=5
             )
             # Verify connection
             await client.admin.command('ping')

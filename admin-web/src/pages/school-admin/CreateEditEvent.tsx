@@ -21,11 +21,24 @@ export const CreateEditEvent: React.FC = () => {
   const [address, setAddress] = useState('');
   const [maxCapacity, setMaxCapacity] = useState(300);
   const [guestAllowed, setGuestAllowed] = useState(true);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [registrationUrl, setRegistrationUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     api.getBatches().then(setBatches).catch(console.error);
   }, []);
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (publishImmediately: boolean) => {
     if (!title || !eventDate || !venue) {
@@ -46,6 +59,8 @@ export const CreateEditEvent: React.FC = () => {
         address,
         max_capacity: maxCapacity,
         guest_allowed: guestAllowed,
+        cover_image_url: coverImageUrl || null,
+        registration_url: registrationUrl || null,
         publish_immediately: publishImmediately
       });
       await alertService.showSuccess(
@@ -94,6 +109,41 @@ export const CreateEditEvent: React.FC = () => {
           options={batchOptions}
           value={batchId}
           onChange={(e) => setBatchId(e.target.value)}
+        />
+
+        {/* Banner Photo Upload */}
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-[#111111]">Event Cover Banner Image</label>
+          <div className="flex items-center space-x-4">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleBannerUpload}
+              className="text-xs text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7D6] file:text-[#854D0E] hover:file:bg-[#F4C542] cursor-pointer"
+            />
+            <span className="text-xs text-gray-400">or paste URL:</span>
+          </div>
+          <Input
+            placeholder="https://images.unsplash.com/... (Image URL)"
+            value={coverImageUrl}
+            onChange={(e) => setCoverImageUrl(e.target.value)}
+          />
+          {coverImageUrl && (
+            <div className="relative h-44 rounded-2xl overflow-hidden border-2 border-[#F4C542] shadow-sm mt-2">
+              <img src={coverImageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+              <span className="absolute top-2 left-2 bg-[#111111] text-[#F4C542] text-[10px] font-bold px-2 py-0.5 rounded-md">
+                Banner Preview
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Apply / Registration Link */}
+        <Input
+          label="Event Apply / External Registration Link (Optional)"
+          placeholder="https://forms.google.com/... or Registration Portal URL"
+          value={registrationUrl}
+          onChange={(e) => setRegistrationUrl(e.target.value)}
         />
 
         <div>

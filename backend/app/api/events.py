@@ -63,6 +63,8 @@ async def list_events(
             registration_deadline=e.get("registration_deadline"),
             guest_allowed=e.get("guest_allowed", True),
             max_capacity=e.get("max_capacity", 300),
+            cover_image_url=e.get("cover_image_url"),
+            registration_url=e.get("registration_url"),
             status=e.get("status", "PUBLISHED"),
             attending_count=attending,
             maybe_count=maybe,
@@ -104,6 +106,8 @@ async def create_event(
         "registration_deadline": request.registration_deadline,
         "guest_allowed": request.guest_allowed,
         "max_capacity": request.max_capacity,
+        "cover_image_url": request.cover_image_url,
+        "registration_url": request.registration_url,
         "status": status_val,
         "created_by": current_user["user_id"],
         "created_at": now
