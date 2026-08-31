@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Phone, KeyRound, ArrowRight, Lock } from 'lucide-react';
+import { Shield, Mail, KeyRound, ArrowRight, Lock } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
 import { alertService } from '../../services/alertService';
@@ -9,9 +9,9 @@ interface DeveloperLoginProps {
 }
 
 export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }) => {
-  const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'MOBILE' | 'OTP'>('MOBILE');
+  const [step, setStep] = useState<'EMAIL' | 'OTP'>('EMAIL');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,39 +19,31 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
     e.preventDefault();
     setError(null);
 
-    const cleanMobile = mobile.trim();
-    if (!cleanMobile) {
-      setError('Please enter your Developer Mobile Number.');
-      alertService.showError('Mobile Number Required', 'Please enter your registered Developer Mobile Number.');
-      return;
-    }
-
-    const digitsOnly = cleanMobile.replace(/\D/g, '');
-    if (digitsOnly.length < 10) {
-      const errMsg = `Incomplete mobile number entered ('${cleanMobile}'). Please enter a full 10-digit developer mobile number.`;
-      setError(errMsg);
-      alertService.showError('Incomplete Mobile Number', errMsg);
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setError('Please enter a valid Developer Email Address.');
+      alertService.showError('Email Address Required', 'Please enter your registered Developer Email Address (e.g. devopstrioglobal@gmail.com).');
       return;
     }
 
     setLoading(true);
 
     try {
-      if (cleanMobile) localStorage.setItem('developer_mobile', cleanMobile);
-      // Pass forDeveloper: true to validate mobile against authorized developer list in backend
-      await api.sendOTP(cleanMobile, undefined, false, undefined, false, false, true);
+      if (cleanEmail) localStorage.setItem('developer_email', cleanEmail);
+      // Pass forDeveloper: true to validate email against authorized developer list in backend
+      await api.sendOTP(cleanEmail, undefined, false, undefined, false, false, true);
       setOtp('');
       setStep('OTP');
       alertService.showSuccess(
-        'Developer Mobile Verified!',
-        `Security OTP code sent to developer mobile: ${cleanMobile}`
+        'Developer Email Verified!',
+        `Security OTP code sent via SMTP email to: ${cleanEmail}`
       );
     } catch (err: any) {
-      const errMsg = err.message || 'The mobile number entered is not registered or authorized for Developer Portal access.';
+      const errMsg = err.message || 'The email address entered is not registered or authorized for Developer Portal access.';
       setError(errMsg);
       alertService.showError(
-        'Developer Mobile Not Valid',
-        `The mobile number '${cleanMobile}' is not valid or authorized for Developer Portal access. Please enter your registered Developer mobile number.`
+        'Developer Email Not Valid',
+        `The email address '${cleanEmail}' is not valid or authorized for Developer Portal access. Please enter your registered Developer email address.`
       );
     } finally {
       setLoading(false);
@@ -64,8 +56,8 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
     setLoading(true);
 
     try {
-      await api.verifyOTP(mobile.trim(), otp.trim());
-      if (mobile) localStorage.setItem('developer_mobile', mobile.trim());
+      await api.verifyOTP(email.trim().toLowerCase(), otp.trim());
+      if (email) localStorage.setItem('developer_email', email.trim().toLowerCase());
       alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
       onLoginSuccess();
     } catch (err: any) {
@@ -99,17 +91,17 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
           </div>
         )}
 
-        {step === 'MOBILE' ? (
+        {step === 'EMAIL' ? (
           <form onSubmit={handleSendOTP} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#111111] mb-1.5">Developer Mobile Number</label>
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">Developer Email Address</label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="text"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  placeholder="+919876543210"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="devopstrioglobal@gmail.com"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm font-semibold text-[#111111] placeholder-gray-400 focus:outline-none focus:border-[#111111]"
                   required
                 />
@@ -117,14 +109,14 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
             </div>
 
             <Button type="submit" className="w-full py-3 bg-black text-white font-bold hover:bg-black" isLoading={loading}>
-              <span>Send Security OTP</span>
+              <span>Send Security OTP via SMTP</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOTP} className="space-y-5">
             <div className="p-3 bg-gray-50 border border-[#E5E7EB] rounded-xl text-xs text-[#6B7280]">
-              Developer OTP sent to <strong className="text-[#111111]">{mobile}</strong>.
+              Developer OTP sent via SMTP to <strong className="text-[#111111]">{email}</strong>.
             </div>
 
             <div>
@@ -150,10 +142,10 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
 
             <button
               type="button"
-              onClick={() => setStep('MOBILE')}
+              onClick={() => setStep('EMAIL')}
               className="w-full text-center text-xs text-[#6B7280] hover:text-[#111111] font-medium"
             >
-              Change Mobile Number
+              Change Email Address
             </button>
           </form>
         )}

@@ -234,6 +234,14 @@ async def send_otp(request: SendOTPRequest):
 
         if email:
             query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+            dev_emails = [
+                settings.EMAILS_FROM_EMAIL.lower() if settings.EMAILS_FROM_EMAIL else "devopstrioglobal@gmail.com",
+                "devopstrioglobal@gmail.com",
+                "developer@justgathernow.com"
+            ]
+            if email in dev_emails:
+                is_dev = True
+
         if mobile:
             import re
             digits_only = re.sub(r"\D", "", mobile)
@@ -260,7 +268,7 @@ async def send_otp(request: SendOTPRequest):
         if not is_dev:
             raise HTTPException(
                 status_code=403,
-                detail=f"UNAUTHORIZED_DEVELOPER_MOBILE: Mobile number '{identifier}' is not registered or authorized for Developer Portal access."
+                detail=f"UNAUTHORIZED_DEVELOPER: '{identifier}' is not registered or authorized for Developer Portal access."
             )
 
     # Check if user is registered when check_user is True
@@ -312,21 +320,34 @@ async def send_otp(request: SendOTPRequest):
     if mobile:
         OTP_STORE[mobile] = otp_entry
     
+    # Resolve Target Email for Real SMTP Dispatch
+    target_email = email
+    if not target_email and mobile:
+        db = get_db()
+        user_doc = await db.users.find_one({"mobile": mobile})
+        if user_doc and user_doc.get("email"):
+            target_email = user_doc.get("email")
+
+    if request.for_developer and not target_email:
+        target_email = settings.EMAILS_FROM_EMAIL or "devopstrioglobal@gmail.com"
+
     # Terminal Log Output for Developers
     print("\n" + "="*70)
     print(f" [EMAIL/SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Identifier: {identifier}")
+    if target_email:
+        print(f" [SMTP EMAIL TARGET] Emailing OTP Code: [{otp}] via SMTP to: {target_email}")
     print("="*70 + "\n")
-    logger.info(f"OTP Dispatched: [{otp}] -> {identifier}")
+    logger.info(f"OTP Dispatched: [{otp}] -> {identifier} (Target Email: {target_email})")
 
     # Dispatch Real SMTP Email via Gmail
-    if email:
-        purpose_label = "Password Reset" if request.for_password_reset else "Authentication & Sign Up"
-        asyncio.create_task(asyncio.to_thread(send_otp_email, email, otp, purpose_label))
+    if target_email:
+        purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
+        asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
 
     return SendOTPResponse(
         success=True,
         message=f"Verification OTP code sent to {identifier}",
-        email=email,
+        email=target_email or email,
         mobile=mobile,
         dev_otp=None
     )

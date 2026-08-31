@@ -125,7 +125,7 @@ export const translations: Record<Language, Record<string, string>> = {
     app_title: "நடராஜன் மேல்நிலைப் பள்ளி",
     tagline: "பள்ளி பழைய மாணவர்கள் சங்கம்",
     nav_home: "முகப்பு",
-    nav_about: "எங்கள் பள்ளி",
+    nav_about: "நமது பள்ளி",
     nav_school_profile: "பள்ளி விவரம்",
     nav_batches: "வகுப்புகள்",
     nav_events: "நிகழ்வுகள்",
