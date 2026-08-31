@@ -6,20 +6,22 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
-  private token: string | null = localStorage.getItem('alumni_access_token');
+  private token: string | null = sessionStorage.getItem('alumni_access_token');
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('alumni_access_token', token);
+    sessionStorage.setItem('alumni_access_token', token);
+    localStorage.removeItem('alumni_access_token');
   }
 
   clearToken() {
     this.token = null;
+    sessionStorage.removeItem('alumni_access_token');
     localStorage.removeItem('alumni_access_token');
   }
 
   getToken(): string | null {
-    return this.token || localStorage.getItem('alumni_access_token');
+    return this.token || sessionStorage.getItem('alumni_access_token');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
