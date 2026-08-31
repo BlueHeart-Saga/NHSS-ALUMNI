@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Menu, X, ArrowRight, GraduationCap } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 interface HeaderProps {
   schoolName: string;
@@ -12,11 +13,13 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   schoolName,
   schoolCode,
-  logoUrl,
+  logoUrl: propLogoUrl,
   onOpenLoginModal,
   onOpenRegisterModal
 }) => {
+  const { logoUrl: contextLogoUrl } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeLogoUrl = propLogoUrl || contextLogoUrl;
 
   const navLinks = [
     { label: 'Alumni', href: '#alumni-highlights' },
@@ -31,13 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-22 flex items-center justify-between">
         {/* Brand Logo & Title */}
         <a href="/" className="flex items-center space-x-3.5 group">
-          {logoUrl ? (
-            <img src={logoUrl} alt={schoolName} className="w-12 h-12 rounded-2xl border border-[#E5E7EB] object-cover shadow-xs group-hover:scale-105 transition-transform" />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-[#FFF7D6] border-2 border-[#F4C542] text-[#111111] font-semibold text-base flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-7 h-7 text-[#111111]" />
-            </div>
-          )}
+          <img src={activeLogoUrl} alt={schoolName} className="w-12 h-12 rounded-2xl border border-[#E5E7EB] object-contain shadow-xs group-hover:scale-105 transition-transform" />
           <div>
             <div className="font-semibold text-lg text-[#111111] tracking-tight group-hover:text-[#854D0E] transition-colors leading-snug">
               {schoolName}

@@ -3,9 +3,12 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { api } from '../services/api';
 import { AlumniProfile, SchoolProfile } from '../types';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 export const AlumniLayout: React.FC = () => {
   const navigate = useNavigate();
+  const { logoUrl } = useLanguage();
   const [user, setUser] = useState<AlumniProfile | null>(null);
   const [school, setSchool] = useState<SchoolProfile | null>(null);
 
@@ -33,16 +36,19 @@ export const AlumniLayout: React.FC = () => {
     <div className="min-h-screen bg-[#FAFAFA] text-[#111111] flex flex-col font-sans">
       <header className="bg-white border-b border-[#E5E7EB] px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] border border-[#F4C542] text-[#111111] font-extrabold text-sm flex items-center justify-center">
-            {school?.code || 'SCH'}
-          </div>
+          <img
+            src={school?.logo_url || logoUrl}
+            alt="School Logo"
+            className="w-10 h-10 object-contain rounded-xl"
+          />
           <div>
             <h1 className="font-bold text-base text-[#111111]">{school?.name || 'Alumni Portal'}</h1>
             <span className="text-xs text-[#6B7280]">Class of {user?.passing_year || 'Alumni'}</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-4 sm:space-x-6">
+          <LanguageSelector />
           <nav className="flex space-x-2 text-xs font-bold">
             <NavLink
               to="/alumni"

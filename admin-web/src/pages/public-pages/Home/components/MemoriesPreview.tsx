@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { getAssetUrl } from '../../../../utils/asset';
 
 interface MemoryItem {
   id: string;
@@ -16,6 +17,17 @@ interface MemoriesPreviewProps {
 
 export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, onViewAllClick }) => {
   const { t, language } = useLanguage();
+
+  const defaultRealMemories = [
+    { id: '1', title: language === 'ta' ? 'பாரம்பரிய நுழைவாயில்' : 'Heritage Entrance', image_url: getAssetUrl('/school-images/school-door.png'), uploader_name: 'School Archives' },
+    { id: '2', title: language === 'ta' ? 'குடியரசு தின விழா' : 'Republic Day Parade', image_url: getAssetUrl('/school-images/Republic-Day.png'), uploader_name: 'Alumni Network' },
+    { id: '3', title: language === 'ta' ? 'இலவச மிதிவண்டி திட்டம்' : 'Free Bicycle Distribution', image_url: getAssetUrl('/school-images/give-cycle.png'), uploader_name: 'Batch of 2012' },
+    { id: '4', title: language === 'ta' ? 'பழைய மாணவர்கள் செல்ஃபி' : 'Alumni Reunion Selfie', image_url: getAssetUrl('/school-images/old-students-selfie.png'), uploader_name: 'Batch of 2005' },
+    { id: '5', title: language === 'ta' ? 'ஆசிரியர்கள் உரை' : 'Staff Speech & Ceremonies', image_url: getAssetUrl('/school-images/staff-speech.png'), uploader_name: 'Alumni Desk' },
+    { id: '6', title: language === 'ta' ? 'பரிசு அளிப்பு விழா' : 'Prize Distribution Day', image_url: getAssetUrl('/school-images/sudentgetprize.png'), uploader_name: 'Batch of 2010' },
+  ];
+
+  const activeMemories = (memories && memories.length > 0) ? memories : defaultRealMemories;
 
   return (
     <section id="memories-gallery" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
@@ -39,7 +51,7 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, onVi
 
         {/* Photo Gallery Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-          {memories.map((memory) => (
+          {activeMemories.map((memory) => (
             <div
               key={memory.id}
               className="bg-white border-2 border-[#E5E7EB] rounded-3xl overflow-hidden shadow-xs hover:shadow-2xl hover:border-[#F4C542] transition-all group relative h-60 cursor-pointer"

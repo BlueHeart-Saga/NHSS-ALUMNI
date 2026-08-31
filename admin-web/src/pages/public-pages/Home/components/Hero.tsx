@@ -1,7 +1,9 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import defaultSchoolImg from '../../../../assets/tamil_school_campus.png';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { getAssetUrl } from '../../../../utils/asset';
+
+const defaultSchoolImg = getAssetUrl('/school-images/school-door.png');
 
 interface HeroProps {
   schoolName: string;
@@ -18,8 +20,8 @@ export const Hero: React.FC<HeroProps> = ({
   onJoinClick
 }) => {
   const { t, language } = useLanguage();
-  const campusImg = (coverUrl && coverUrl.trim() !== '') ? coverUrl : defaultSchoolImg;
-  const badgeText = schoolCode || (schoolName.length <= 8 ? schoolName : schoolName.split(' ').map(w => w[0]).join('').slice(0, 6).toUpperCase()) || "SDMCET";
+  const campusImg = (coverUrl && coverUrl.trim() !== '') ? getAssetUrl(coverUrl) : defaultSchoolImg;
+  const badgeText = schoolCode || (schoolName.length <= 8 ? schoolName : schoolName.split(' ').map(w => w[0]).join('').slice(0, 6).toUpperCase()) || "ALUMNI";
 
   return (
     <section className="bg-white py-14 lg:py-24 border-b border-[#E5E7EB] relative overflow-hidden">
@@ -36,10 +38,10 @@ export const Hero: React.FC<HeroProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
           
-          {/* Left Column: Sharp Framed Tamil School Campus Photo Card */}
+          {/* Left Column: Single School Photo Card */}
           <div className="lg:col-span-7">
-            <div className="p-2 sm:p-2.5 bg-white rounded-lg border-2 border-gray-300 shadow-[0_12px_36px_rgba(0,0,0,0.12)] hover:shadow-2xl transition-all duration-300 relative group">
-              <div className="relative overflow-hidden rounded-md h-[380px] sm:h-[480px] bg-gray-100">
+            <div className="p-2 sm:p-2.5 bg-white rounded-2xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-300 relative group">
+              <div className="relative overflow-hidden rounded-xl h-[380px] sm:h-[480px] bg-gray-100">
                 <img
                   src={campusImg}
                   alt={schoolName}
@@ -47,15 +49,13 @@ export const Hero: React.FC<HeroProps> = ({
                     const target = e.currentTarget;
                     if (target.src !== defaultSchoolImg) {
                       target.src = defaultSchoolImg;
-                    } else {
-                      target.src = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&q=80";
                     }
                   }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 block"
                 />
                 
-                {/* Overlay Text Badge at Bottom Left (e.g. SDMCET) - Sharp Box */}
-                <div className="absolute bottom-6 left-6 bg-black/85 backdrop-blur-md text-white font-bold text-base sm:text-lg px-5 py-2 rounded-sm border border-white/30 tracking-widest uppercase shadow-xl">
+                {/* Overlay Text Badge at Bottom Left */}
+                <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-md text-white font-bold text-base sm:text-lg px-5 py-2 rounded-xl border border-white/20 tracking-widest uppercase shadow-xl">
                   {badgeText}
                 </div>
               </div>

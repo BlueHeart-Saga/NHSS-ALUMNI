@@ -20,8 +20,8 @@ async def get_public_stats():
     return {
         "school_name": school.get("name", "Our School"),
         "school_code": school.get("code", "SCHOOL"),
-        "logo_url": school.get("logo_url") or "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&q=80",
-        "cover_url": school.get("cover_url") or "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&q=80",
+        "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",
+        "cover_url": school.get("cover_url") or "/school-images/school-door.png",
         "description": school.get("description", "Stay Connected. Stay Part of the Story."),
         "total_alumni": total_alumni,
         "total_batches": total_batches,

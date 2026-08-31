@@ -3,6 +3,7 @@ import { ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
+import { getAssetUrl } from '../../utils/asset';
 
 export const PublicAbout: React.FC = () => {
   const { t, language } = useLanguage();
@@ -79,6 +80,46 @@ export const PublicAbout: React.FC = () => {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Real School Life & Campus Photo Showcase */}
+        <div className="space-y-8 pt-6 border-t border-gray-200">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3.5 py-1 rounded-full uppercase tracking-wider">
+              {language === 'ta' ? 'பள்ளி படங்கள்' : 'Campus & School Life'}
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-bold text-[#111111]">
+              {language === 'ta' ? 'எங்கள் பள்ளி வாழ்க்கையின் வரலாற்றுத் தருணங்கள்' : 'Glimpses of Our School History & Alumni Traditions'}
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[
+              { src: '/school-images/school-door.png', title: language === 'ta' ? 'பாரம்பரிய நுழைவாயில்' : 'Heritage School Entrance', cat: 'Heritage' },
+              { src: '/school-images/banner.png', title: language === 'ta' ? 'முதன்மை வளாகக் கட்டிடம்' : 'Main School Campus', cat: 'Infrastructure' },
+              { src: '/school-images/Republic-Day.png', title: language === 'ta' ? 'குடியரசு தின விழா கொண்டாட்டம்' : 'Republic Day Celebrations', cat: 'National Festival' },
+              { src: '/school-images/give-cycle.png', title: language === 'ta' ? 'இலவச மிதிவண்டி வழங்கும் திட்டம்' : 'Student Welfare & Bicycle Distribution', cat: 'Welfare Scheme' },
+              { src: '/school-images/meeting.png', title: language === 'ta' ? 'பழைய மாணவர்கள் நிர்வாகக் கூட்டம்' : 'Alumni Executive Meeting', cat: 'Alumni Network' },
+              { src: '/school-images/old-pricipal.png', title: language === 'ta' ? 'முன்னாள் தலைமையாசிரியர்கள்' : 'Former Principals & School Mentors', cat: 'School Leadership' },
+              { src: '/school-images/old-students-selfie.png', title: language === 'ta' ? 'பழைய மாணவர்கள் சந்திப்பு செல்ஃபி' : 'Alumni Reunion Group Celebration', cat: 'Batch Reunion' },
+              { src: '/school-images/our-students.png', title: language === 'ta' ? 'பள்ளி மாணவர்கள் பேரணி' : 'Student Assemblies & Academics', cat: 'Student Life' },
+              { src: '/school-images/staff-speech.png', title: language === 'ta' ? 'ஆசிரியர்கள் சிறப்புரை' : 'Faculty Address & Annual Ceremonies', cat: 'Faculty' },
+              { src: '/school-images/studentaward.png', title: language === 'ta' ? 'மாணவர் சிறப்பு விருதுகள்' : 'Academic & Excellence Awards', cat: 'Achievements' },
+              { src: '/school-images/students-events.png', title: language === 'ta' ? 'மாணவர்களின் கலை நிகழ்ச்சிகள்' : 'Cultural Programs & Student Events', cat: 'Co-Curricular' },
+              { src: '/school-images/sudentgetprize.png', title: language === 'ta' ? 'வருடாந்திர பரிசு அளிப்பு விழா' : 'Annual Prize Distribution Ceremony', cat: 'Awards' },
+              { src: '/school-images/flag-inaguration.png', title: language === 'ta' ? 'தேசியக் கொடியேற்று விழா' : 'Flag Hoisting Ceremony', cat: 'Celebrations' }
+            ].map((photo, idx) => (
+              <div key={idx} className="group relative overflow-hidden rounded-2xl border border-gray-200 shadow-md bg-white hover:shadow-xl transition-all">
+                <div className="h-48 overflow-hidden bg-gray-100">
+                  <img src={getAssetUrl(photo.src)} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="p-4 bg-white">
+                  <span className="text-[11px] font-bold text-[#854D0E] uppercase tracking-wider">{photo.cat}</span>
+                  <h4 className="font-bold text-sm text-[#111111] mt-0.5 leading-snug">{photo.title}</h4>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

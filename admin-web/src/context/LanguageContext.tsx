@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { translations, Language } from '../i18n/translations';
+import { getAssetUrl } from '../utils/asset';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  logoUrl: string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -12,7 +14,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('app_language');
-    return (saved === 'ta' || saved === 'en') ? saved : 'en';
+    return (saved === 'ta' || saved === 'en') ? saved : 'ta';
   });
 
   const setLanguage = (lang: Language) => {
@@ -25,12 +27,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language]);
 
   const t = (key: string): string => {
-    const dict = translations[language] || translations['en'];
-    return dict[key] || translations['en'][key] || key;
+    const dict = translations[language] || translations['ta'];
+    return dict[key] || translations['en']?.[key] || key;
   };
 
+  const logoUrl = language === 'ta' 
+    ? getAssetUrl('/assets/logo/logo_tamil.png') 
+    : getAssetUrl('/assets/logo/logo_eglish.png');
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, logoUrl }}>
       {children}
     </LanguageContext.Provider>
   );

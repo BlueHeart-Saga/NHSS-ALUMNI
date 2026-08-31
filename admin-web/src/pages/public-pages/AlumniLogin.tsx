@@ -7,10 +7,11 @@ import {
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
+import { getAssetUrl } from '../../utils/asset';
 
 export const AlumniLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { t, language, logoUrl } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -22,7 +23,7 @@ export const AlumniLogin: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [schoolName, setSchoolName] = useState('School Alumni Network');
-  const [schoolLogo, setSchoolLogo] = useState('/assets/logo/image.png');
+  const [schoolLogo, setSchoolLogo] = useState('');
 
   // Forgot Password Module State
   const [mode, setMode] = useState<'LOGIN' | 'FORGOT_PASSWORD'>('LOGIN');
@@ -222,7 +223,7 @@ export const AlumniLogin: React.FC = () => {
             {/* Header Branding */}
             <div className="flex items-center space-x-4">
               <img
-                src={schoolLogo}
+                src={getAssetUrl(schoolLogo || logoUrl)}
                 alt="School Crest"
                 className="h-16 w-auto object-contain shrink-0"
               />

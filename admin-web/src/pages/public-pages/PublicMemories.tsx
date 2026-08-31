@@ -3,6 +3,7 @@ import { ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
+import { getAssetUrl } from '../../utils/asset';
 
 export const PublicMemories: React.FC = () => {
   const { t, language } = useLanguage();
@@ -10,9 +11,34 @@ export const PublicMemories: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState<any | null>(null);
 
+  const defaultRealMemories = [
+    { id: '1', title: language === 'ta' ? 'பாரம்பரிய நுழைவாயில்' : 'Heritage School Door Entrance', image_url: getAssetUrl('/school-images/school-door.png'), uploader_name: 'School Archives' },
+    { id: '2', title: language === 'ta' ? 'முதன்மை வளாகம்' : 'School Campus & Main Block', image_url: getAssetUrl('/school-images/banner.png'), uploader_name: 'School Admin' },
+    { id: '3', title: language === 'ta' ? 'குடியரசு தின விழா' : 'Republic Day Celebrations', image_url: getAssetUrl('/school-images/Republic-Day.png'), uploader_name: 'Alumni Association' },
+    { id: '4', title: language === 'ta' ? 'இலவச மிதிவண்டி திட்டம்' : 'Free Bicycle Distribution Ceremony', image_url: getAssetUrl('/school-images/give-cycle.png'), uploader_name: 'Batch of 2012' },
+    { id: '5', title: language === 'ta' ? 'பழைய மாணவர்கள் கூட்டம்' : 'Alumni Reunion Executive Meeting', image_url: getAssetUrl('/school-images/meeting.png'), uploader_name: 'Batch of 1998' },
+    { id: '6', title: language === 'ta' ? 'முன்னாள் தலைமையாசிரியர்கள்' : 'Former Principals Honors', image_url: getAssetUrl('/school-images/old-pricipal.png'), uploader_name: 'School Management' },
+    { id: '7', title: language === 'ta' ? 'பழைய மாணவர்கள் செல்ஃபி' : 'Alumni Reunion Group Selfie', image_url: getAssetUrl('/school-images/old-students-selfie.png'), uploader_name: 'Batch of 2005' },
+    { id: '8', title: language === 'ta' ? 'பள்ளி மாணவர்கள் பேரணி' : 'School Students Assembly', image_url: getAssetUrl('/school-images/our-students.png'), uploader_name: 'Batch of 2018' },
+    { id: '9', title: language === 'ta' ? 'ஆசிரியர்கள் சிறப்புரை' : 'Staff Speech & Annual Address', image_url: getAssetUrl('/school-images/staff-speech.png'), uploader_name: 'Alumni Desk' },
+    { id: '10', title: language === 'ta' ? 'மாணவர் விருதுகள்' : 'Student Excellence Awards', image_url: getAssetUrl('/school-images/studentaward.png'), uploader_name: 'Sports Club' },
+    { id: '11', title: language === 'ta' ? 'கலை நிகழ்ச்சிகள்' : 'Cultural Programs & Performances', image_url: getAssetUrl('/school-images/students-events.png'), uploader_name: 'Cultural Committee' },
+    { id: '12', title: language === 'ta' ? 'பரிசு அளிப்பு விழா' : 'Annual Prize Distribution Ceremony', image_url: getAssetUrl('/school-images/sudentgetprize.png'), uploader_name: 'Batch of 2010' },
+    { id: '13', title: language === 'ta' ? 'தேசியக் கொடியேற்று விழா' : 'Flag Hoisting Ceremony', image_url: getAssetUrl('/school-images/flag-inaguration.png'), uploader_name: 'School Scouts' },
+  ];
+
   useEffect(() => {
-    api.getPublicMemories().then(setMemories).catch(console.error).finally(() => setLoading(false));
-  }, []);
+    api.getPublicMemories()
+      .then((m) => {
+        if (m && m.length > 0) {
+          setMemories(m);
+        } else {
+          setMemories(defaultRealMemories);
+        }
+      })
+      .catch(() => setMemories(defaultRealMemories))
+      .finally(() => setLoading(false));
+  }, [language]);
 
   return (
     <div className="bg-white text-[#111111] animate-fadeIn">

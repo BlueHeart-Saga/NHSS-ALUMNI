@@ -10,7 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 export const PublicLayout: React.FC = () => {
   const location = useLocation();
-  const { t } = useLanguage();
+  const { t, logoUrl } = useLanguage();
   const [school, setSchool] = useState<SchoolProfile | null>(null);
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
   const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null);
@@ -65,7 +65,7 @@ export const PublicLayout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-3 sm:space-x-4">
             <img
-              src="/assets/logo/image.png"
+              src={school?.logo_url || logoUrl}
               alt={school?.name || "School Logo"}
               className="h-12 sm:h-16 w-auto object-contain flex-shrink-0"
             />
