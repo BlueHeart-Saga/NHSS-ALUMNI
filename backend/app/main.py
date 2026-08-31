@@ -38,7 +38,7 @@ app = FastAPI(
 allowed_origins = settings.CORS_ORIGINS if not settings.is_production else [o for o in settings.CORS_ORIGINS if o != "*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["https://alumni.abcschool.edu"],
+    allow_origins=allowed_origins if allowed_origins else ["https://nhssalumni.com/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

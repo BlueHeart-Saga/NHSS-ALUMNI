@@ -63,5 +63,7 @@ jobs:
               {"name": "SMTP_USER", "value": "${{ secrets.SMTP_USER }}", "slotSetting": false},
               {"name": "SMTP_PASS", "value": "${{ secrets.SMTP_PASS }}", "slotSetting": false},
               {"name": "EMAILS_FROM_NAME", "value": "${{ secrets.EMAILS_FROM_NAME }}", "slotSetting": false},
-              {"name": "EMAILS_FROM_EMAIL", "value": "${{ secrets.EMAILS_FROM_EMAIL }}", "slotSetting": false}
+              {"name": "EMAILS_FROM_EMAIL", "value": "${{ secrets.EMAILS_FROM_EMAIL }}", "slotSetting": false},
+              {"name": "WEBSITE_SWAP_WARMUP_PING_PATH", "value": "/ready", "slotSetting": false},
+              {"name": "WEBSITE_SWAP_WARMUP_PING_STATUSES", "value": "200", "slotSetting": false}
             ]

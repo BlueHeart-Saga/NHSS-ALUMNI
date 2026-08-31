@@ -16,20 +16,42 @@ async def connect_to_mongo():
     # In production, validate configuration secrets first
     settings.validate_production_secrets()
 
-    try:
-        # Try real MongoDB connection with short server selection timeout
-        client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2000)
-        # Verify connection
-        await client.admin.command('ping')
-        db_instance.client = client
-        db_instance.db = client[settings.MONGODB_DATABASE]
-        logger.info(f"Successfully connected to MongoDB database: {settings.MONGODB_DATABASE}")
-    except Exception as e:
+    max_retries = 3
+    connected = False
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"MongoDB connection attempt {attempt}/{max_retries}...")
+            client = AsyncIOMotorClient(
+                settings.MONGODB_URI,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000,
+                maxPoolSize=50,
+                minPoolSize=5,
+                retryWrites=True,
+                retryReads=True
+            )
+            # Verify connection
+            await client.admin.command('ping')
+            db_instance.client = client
+            db_instance.db = client[settings.MONGODB_DATABASE]
+            connected = True
+            logger.info(f"Successfully connected to MongoDB database: {settings.MONGODB_DATABASE}")
+            break
+        except Exception as e:
+            last_error = e
+            logger.warning(f"MongoDB connection attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                import asyncio
+                await asyncio.sleep(1)
+
+    if not connected:
         if settings.is_production:
-            logger.critical(f"FATAL: Production database connection failed: {e}")
-            raise RuntimeError(f"Database connection failed in production environment: {e}")
+            logger.critical(f"FATAL: Production database connection failed after {max_retries} attempts: {last_error}")
+            raise RuntimeError(f"Database connection failed in production environment: {last_error}")
         
-        logger.warning(f"Local MongoDB daemon not reachable ({e}). Falling back to in-memory mongomock engine for dev/test...")
+        logger.warning(f"Local MongoDB daemon not reachable ({last_error}). Falling back to in-memory mongomock engine for dev/test...")
         from mongomock_motor import AsyncMongoMockClient
         client = AsyncMongoMockClient()
         db_instance.client = client
