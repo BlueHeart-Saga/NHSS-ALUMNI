@@ -37,7 +37,7 @@ export const PublicSchool: React.FC = () => {
     description: 'Empowering generations through quality education, holistic development, and strong alumni connections.',
     address: 'Main Campus, School Alumni Building, Tamil Nadu',
     phone: '+91 98765 43210',
-    email: 'alumni@tnghss.edu.in'
+    email: 'info@nhssalumni.com'
   });
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export const PublicSchool: React.FC = () => {
         description: s.description || 'Empowering generations through quality education.',
         address: s.address || 'Main Campus, School Alumni Building, Tamil Nadu',
         phone: s.phone || s.contact_phone || '+91 98765 43210',
-        email: s.email || s.contact_email || 'alumni@school.edu.in'
+        email: s.email || s.contact_email || 'info@nhssalumni.com'
       }))
       .catch(console.error);
   }, []);

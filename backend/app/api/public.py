@@ -24,6 +24,8 @@ async def get_public_stats():
         "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",
         "cover_url": school.get("cover_url") or "/school-images/school-door.png",
         "description": school.get("description", "Stay Connected. Stay Part of the Story."),
+        "email": school.get("email") or "info@nhssalumni.com",
+        "contact_email": school.get("contact_email") or "info@nhssalumni.com",
         "total_alumni": total_alumni,
         "total_batches": total_batches,
         "total_events": total_events,

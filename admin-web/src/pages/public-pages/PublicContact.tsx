@@ -91,7 +91,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</strong>
-                    <span className="font-semibold text-base">devopstrioglobal@gmail.com</span>
+                    <span className="font-semibold text-base">info@nhssalumni.com</span>
                   </div>
                 </div>
               </div>
