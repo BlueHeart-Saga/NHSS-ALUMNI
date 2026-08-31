@@ -34,11 +34,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware (Restricted origins in production)
-allowed_origins = settings.CORS_ORIGINS if not settings.is_production else [o for o in settings.CORS_ORIGINS if o != "*"]
+# CORS Middleware Configuration (Supporting Production & Local Origins)
+cors_origins_set = list(set([
+    o.rstrip('/') for o in settings.CORS_ORIGINS if o and o != "*"
+] + [
+    "https://nhssalumni.com",
+    "https://www.nhssalumni.com",
+    "https://nhss-alumni-backend-b7a8a8dfcrg6abha.southindia-01.azurewebsites.net"
+]))
+
+cors_origin_regex = r"https://.*\.nhssalumni\.com|https://.*\.azurewebsites\.net|http://localhost:.*|http://127\.0\.0\.1:.*"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["https://nhssalumni.com/"],
+    allow_origins=cors_origins_set,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,8 +73,19 @@ MEDIA_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=MEDIA_DIR), name="uploads")
 
-# API v1 Routers
+# API v1 Routers Sub-Application
 api_v1 = FastAPI(title="School Alumni API v1")
+
+# Attach CORSMiddleware directly to api_v1 sub-application as well
+api_v1.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins_set,
+    allow_origin_regex=cors_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 api_v1.include_router(public.router)
 api_v1.include_router(auth.router)
 api_v1.include_router(school.router)

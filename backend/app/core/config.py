@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     APP_ENV: str = "development" # development | qa | production
     PORT: int = 8000
     CORS_ORIGINS: List[str] = [
+        "https://nhssalumni.com",
+        "https://www.nhssalumni.com",
+        "https://nhss-alumni-backend-b7a8a8dfcrg6abha.southindia-01.azurewebsites.net",
         "http://localhost:5173",
         "http://localhost:3000",
         "http://localhost:5174",
