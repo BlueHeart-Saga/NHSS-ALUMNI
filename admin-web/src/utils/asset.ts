@@ -2,7 +2,7 @@
  * Asset helper utility to append cache buster version query parameters
  * to local asset URLs, preventing browser disk/memory cache from serving stale images.
  */
-const ASSET_VERSION = '20260831_1';
+const ASSET_VERSION = '20260831_v2';
 
 export const getAssetUrl = (url: string | undefined): string => {
   if (!url) return '';
