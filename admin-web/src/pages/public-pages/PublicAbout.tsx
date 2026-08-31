@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Sparkles, ArrowRight, X, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
 
 export const PublicAbout: React.FC = () => {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>({
     school_name: 'Our School',
     total_alumni: 0,
     total_batches: 0,
     years_connected: 0
   });
+  const [activePhoto, setActivePhoto] = useState<{ src: string; title: string; cat: string } | null>(null);
 
   useEffect(() => {
     api.getPublicStats().then(setStats).catch(console.error);
@@ -110,9 +112,18 @@ export const PublicAbout: React.FC = () => {
               { src: '/school-images/sudentgetprize.png', title: language === 'ta' ? 'வருடாந்திர பரிசு அளிப்பு விழா' : 'Annual Prize Distribution Ceremony', cat: 'Awards' },
               { src: '/school-images/flag-inaguration.png', title: language === 'ta' ? 'தேசியக் கொடியேற்று விழா' : 'Flag Hoisting Ceremony', cat: 'Celebrations' }
             ].map((photo, idx) => (
-              <div key={idx} className="group relative overflow-hidden rounded-2xl border border-gray-200 shadow-md bg-white hover:shadow-xl transition-all">
-                <div className="h-48 overflow-hidden bg-gray-100">
+              <div
+                key={idx}
+                onClick={() => setActivePhoto(photo)}
+                className="group relative overflow-hidden rounded-2xl border border-gray-200 shadow-md bg-white hover:shadow-2xl hover:border-[#F4C542] transition-all cursor-pointer transform hover:-translate-y-1"
+              >
+                <div className="h-48 overflow-hidden bg-gray-100 relative">
                   <img src={getAssetUrl(photo.src)} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="bg-white/90 backdrop-blur-xs text-[#111111] text-xs font-bold px-3 py-1.5 rounded-full border border-white shadow-md">
+                      {language === 'ta' ? 'பெரிதாக்குக' : 'Click to View'}
+                    </span>
+                  </div>
                 </div>
                 <div className="p-4 bg-white">
                   <span className="text-[11px] font-bold text-[#854D0E] uppercase tracking-wider">{photo.cat}</span>
@@ -121,8 +132,69 @@ export const PublicAbout: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* View More Button leading to Login */}
+          <div className="text-center pt-8">
+            <button
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center space-x-3 px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-2xl shadow-xl hover:shadow-2xl transition-all cursor-pointer border border-[#F4C542]/40"
+            >
+              <span>{language === 'ta' ? 'மேலும் புகைப்படங்கள் பார்க்க உள்நுழைக' : 'Log In to View More Memories'}</span>
+              <ArrowRight className="w-4 h-4 text-[#F4C542]" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Interactive Lightbox Popup Modal */}
+      {activePhoto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
+            {/* Close Button */}
+            <button
+              onClick={() => setActivePhoto(null)}
+              className="absolute top-4 right-4 z-20 bg-black/70 hover:bg-black text-white p-2 rounded-full border border-white/20 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Image Preview */}
+            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
+              <img
+                src={getAssetUrl(activePhoto.src)}
+                alt={activePhoto.title}
+                className="max-h-[60vh] w-full object-contain"
+              />
+            </div>
+
+            {/* Modal Info Bar */}
+            <div className="p-6 bg-white space-y-4">
+              <div>
+                <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
+                  {activePhoto.cat}
+                </span>
+                <h3 className="text-xl font-bold text-[#111111] mt-2">{activePhoto.title}</h3>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'ta' ? 'மேலும் புகைப்படங்கள் மற்றும் நினைவுகளுக்கு உள்நுழைக' : 'Log in to explore the complete school photo archive'}
+                </p>
+                <button
+                  onClick={() => {
+                    setActivePhoto(null);
+                    navigate('/login');
+                  }}
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
+                >
+                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

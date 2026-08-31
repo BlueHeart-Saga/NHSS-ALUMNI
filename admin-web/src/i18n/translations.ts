@@ -122,15 +122,15 @@ export const translations: Record<Language, Record<string, string>> = {
   },
   ta: {
     // Navbar & Common
-    app_title: "பழைய மாணவர்கள் சங்கம்",
-    tagline: "அதிகாரப்பூர்வ பள்ளி பழைய மாணவர்கள் சங்கம்",
+    app_title: "நடராஜன் மேல்நிலைப் பள்ளி",
+    tagline: "பள்ளி பழைய மாணவர்கள் சங்கம்",
     nav_home: "முகப்பு",
-    nav_about: "எங்களைப் பற்றி",
+    nav_about: "எங்கள் பள்ளி",
     nav_school_profile: "பள்ளி விவரம்",
     nav_batches: "வகுப்புகள்",
     nav_events: "நிகழ்வுகள்",
     nav_memories: "நினைவுகள்",
-    nav_contact: "தொடர்புகொள்ள",
+    nav_contact: "தொடர்பு",
     nav_get_mobile_app: "மொபைல் செயலி பெறுக",
     nav_register: "பதிவு செய்ய",
     nav_login: "உள்நுழைக",
@@ -138,7 +138,7 @@ export const translations: Record<Language, Record<string, string>> = {
     language_name: "தமிழ்",
 
     // Hero & Home Page
-    hero_badge: "அதிகாரப்பூர்வ பழைய மாணவர்கள் வலைப்பின்னல்",
+    hero_badge: "பழைய மாணவர்கள் வலைப்பின்னல்",
     hero_title_1: "கடந்த காலத்தையும் நிகழ்காலத்தையும் இணைக்கிறது",
     hero_title_2: "பழைய மாணவர்கள் சங்கம்",
     hero_subtitle: "பழைய வகுப்பு தோழர்களுடன் மீண்டும் இணையுங்கள், நினைவுகளைப் பகிர்ந்து கொள்ளுங்கள், நிகழ்வுகளில் பங்கேற்கவும், தாய் பள்ளிக்கு ஆதரவளிக்கவும்.",
@@ -235,7 +235,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // Footer
     footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
-    copyright: "காப்புரிமை © 2026. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. JustGatherNow மூலம் வழங்கப்படுகிறது.",
+    copyright: "காப்புரிமை © 2026. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. Devopstrio மூலம் வழங்கப்படுகிறது.",
     developer_portal: "டெவலப்பர் போர்டல்",
     school_admin_login: "பள்ளி நிர்வாக போர்டல்",
   }

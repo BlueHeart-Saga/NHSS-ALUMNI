@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, MapPin, Phone, Mail, Globe, Calendar, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Globe, Calendar, GraduationCap, ShieldCheck, X, ExternalLink, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
@@ -19,10 +20,11 @@ interface PublicSchoolProfile {
   email: string;
 }
 
-const realCampusBanner = getAssetUrl('/school-images/banner.png');
-
 export const PublicSchool: React.FC = () => {
   const { t, language, logoUrl } = useLanguage();
+  const navigate = useNavigate();
+  const [selectedPhoto, setSelectedPhoto] = useState<{ src: string; title: string; category: string } | null>(null);
+  const realCampusBanner = getAssetUrl('/school-images/banner.png');
   const [profile, setProfile] = useState<PublicSchoolProfile>({
     name: 'Tamil Nadu Government Higher Secondary School',
     code: 'TNGHSS',
@@ -194,9 +196,18 @@ export const PublicSchool: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {campusPhotos.map((photo, idx) => (
-              <div key={idx} className="group overflow-hidden rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all bg-white">
-                <div className="h-48 overflow-hidden bg-gray-100">
+              <div
+                key={idx}
+                onClick={() => setSelectedPhoto(photo)}
+                className="group overflow-hidden rounded-2xl border border-gray-200 shadow-sm hover:shadow-2xl hover:border-[#F4C542] transition-all bg-white cursor-pointer transform hover:-translate-y-1"
+              >
+                <div className="h-48 overflow-hidden bg-gray-100 relative">
                   <img src={photo.src} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="bg-white/90 backdrop-blur-xs text-[#111111] text-xs font-bold px-3 py-1.5 rounded-full border border-white shadow-md">
+                      {language === 'ta' ? 'பெரிதாக்குக' : 'Click to View'}
+                    </span>
+                  </div>
                 </div>
                 <div className="p-4">
                   <span className="text-[11px] font-bold text-[#854D0E] uppercase">{photo.category}</span>
@@ -205,9 +216,70 @@ export const PublicSchool: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* View More Button leading to Login */}
+          <div className="text-center pt-8">
+            <button
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center space-x-3 px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-2xl shadow-xl hover:shadow-2xl transition-all cursor-pointer border border-[#F4C542]/40"
+            >
+              <span>{language === 'ta' ? 'மேலும் புகைப்படங்கள் பார்க்க உள்நுழைக' : 'Log In to View Full Campus Gallery'}</span>
+              <ArrowRight className="w-4 h-4 text-[#F4C542]" />
+            </button>
+          </div>
         </div>
 
       </div>
+
+      {/* Interactive Lightbox Popup Modal */}
+      {selectedPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedPhoto(null)}
+              className="absolute top-4 right-4 z-20 bg-black/70 hover:bg-black text-white p-2 rounded-full border border-white/20 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Image Preview */}
+            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
+              <img
+                src={selectedPhoto.src}
+                alt={selectedPhoto.title}
+                className="max-h-[60vh] w-full object-contain"
+              />
+            </div>
+
+            {/* Modal Info Bar */}
+            <div className="p-6 bg-white space-y-4">
+              <div>
+                <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
+                  {selectedPhoto.category}
+                </span>
+                <h3 className="text-xl font-bold text-[#111111] mt-2">{selectedPhoto.title}</h3>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'ta' ? 'மேலும் புகைப்படங்கள் மற்றும் நிகழ்வுகளுக்கு உள்நுழைக' : 'Log in to access the full school photo & event gallery'}
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedPhoto(null);
+                    navigate('/login');
+                  }}
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
+                >
+                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

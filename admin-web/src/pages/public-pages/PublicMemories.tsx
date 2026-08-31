@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, X, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
 
 export const PublicMemories: React.FC = () => {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [memories, setMemories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState<any | null>(null);
@@ -89,16 +90,66 @@ export const PublicMemories: React.FC = () => {
             <p className="text-base text-gray-600 font-normal">
               {language === 'ta' ? 'உள்நுழைந்து உங்கள் நினைவுகளை பழைய வகுப்புத் தோழர்களுடன் பகிரவும்.' : 'Log in to your alumni account and share cherished memories with your batch cohort.'}
             </p>
-            <Link
-              to="/login"
-              className="inline-flex items-center space-x-2 px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40"
+            <button
+              onClick={() => navigate('/login')}
+              className="inline-flex items-center space-x-2 px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
             >
               <span>{t('share_memory_btn')}</span>
               <ArrowRight className="w-4 h-4 text-[#F4C542]" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Interactive Lightbox Popup Modal */}
+      {activePhoto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
+            {/* Close Button */}
+            <button
+              onClick={() => setActivePhoto(null)}
+              className="absolute top-4 right-4 z-20 bg-black/70 hover:bg-black text-white p-2 rounded-full border border-white/20 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Image Preview */}
+            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
+              <img
+                src={activePhoto.image_url}
+                alt={activePhoto.title}
+                className="max-h-[60vh] w-full object-contain"
+              />
+            </div>
+
+            {/* Modal Info Bar */}
+            <div className="p-6 bg-white space-y-4">
+              <div>
+                <h3 className="text-xl font-bold text-[#111111]">{activePhoto.title}</h3>
+                <span className="text-sm text-gray-500 font-normal mt-1 block">
+                  {t('uploaded_by')} {activePhoto.uploader_name}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'ta' ? 'அனைத்து நினைவுகளையும் பகிரவும் பார்க்கவும் உள்நுழைக' : 'Log in to view all batch photos and post your memories'}
+                </p>
+                <button
+                  onClick={() => {
+                    setActivePhoto(null);
+                    navigate('/login');
+                  }}
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
+                >
+                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

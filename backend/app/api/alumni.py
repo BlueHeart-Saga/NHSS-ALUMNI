@@ -1,6 +1,7 @@
 import csv
 import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi.responses import Response
 from typing import List, Optional
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -17,7 +18,11 @@ async def list_pending_verifications(
     current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR"]))
 ):
     db = get_db()
-    cursor = db.alumni.find({"verification_status": "PENDING"}).sort("created_at", -1)
+    query = {"verification_status": "PENDING"}
+    if current_user.get("school_id"):
+        query["school_id"] = current_user["school_id"]
+
+    cursor = db.alumni.find(query).sort("created_at", -1)
     pending = await cursor.to_list(length=200)
 
     res = []
@@ -37,10 +42,10 @@ async def list_pending_verifications(
             id=str(a["_id"]),
             user_id=str(u_id) if u_id else "",
             school_id=str(a.get("school_id") or current_user.get("school_id") or ""),
-            full_name=a.get("full_name") or "Alumni Applicant",
+            full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
             mobile=a.get("mobile") or (user.get("mobile") if user else ""),
             email=a.get("email") or (user.get("email") if user else ""),
-            profile_photo_url=a.get("profile_photo_url"),
+            profile_photo_url=a.get("profile_photo_url") or (user.get("profile_photo_url") if user else None),
             passing_year=a.get("passing_year", 2010),
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             admission_number=a.get("admission_number") or "N/A",
@@ -82,7 +87,10 @@ async def verify_alumni(
         "verified_at": now
     }
 
-    await db.alumni.update_one({"_id": ObjectId(alumni_id)}, {"$set": update_data})
+    try:
+        await db.alumni.update_one({"_id": ObjectId(alumni_id)}, {"$set": update_data})
+    except Exception:
+        await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
 
     # Log audit
     await db.audit_logs.insert_one({
@@ -103,10 +111,16 @@ async def suspend_alumni(
     current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id")
+
+    filter_q = {"school_id": school_id} if school_id else {}
+    try:
+        filter_q["_id"] = ObjectId(alumni_id)
+    except Exception:
+        filter_q["_id"] = alumni_id
 
     await db.alumni.update_one(
-        {"_id": ObjectId(alumni_id), "school_id": school_id},
+        filter_q,
         {"$set": {"verification_status": "SUSPENDED"}}
     )
 
@@ -124,7 +138,7 @@ async def import_alumni_csv(
     LAST_CSV_ERRORS = []
 
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id") or "PLATFORM"
 
     content = await file.read()
     decoded = content.decode("utf-8-sig", errors="ignore")
@@ -156,6 +170,19 @@ async def import_alumni_csv(
 
         try:
             year_int = int(batch_year)
+
+            # Auto-resolve or create batch record in db.batches
+            batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
+            if not batch:
+                b_res = await db.batches.insert_one({
+                    "school_id": school_id,
+                    "name": f"Batch of {year_int}",
+                    "passing_year": year_int,
+                    "created_at": datetime.now(timezone.utc)
+                })
+                batch_id = b_res.inserted_id
+            else:
+                batch_id = batch["_id"]
             
             # Check for existing duplicate records by mobile, email, or admission_number
             dup_query = []
@@ -174,6 +201,7 @@ async def import_alumni_csv(
                     await db.alumni.update_one(
                         {"_id": existing["_id"]},
                         {"$set": {
+                            "batch_id": batch_id,
                             "verification_status": "APPROVED",
                             "verification_notes": "Auto-verified via school roster CSV import",
                             "verified_at": datetime.now(timezone.utc)
@@ -186,13 +214,14 @@ async def import_alumni_csv(
                     errors.append(f"Row {total}: Flagged duplicate record for {name} ({mobile or admission})")
                     error_details.append({"row": total, "data": dict(row), "reason": "Duplicate record matched existing verified alumnus"})
             else:
-                # Insert pre-approved alumnus record
+                # Insert pre-approved alumnus record into db.alumni
                 await db.alumni.insert_one({
                     "school_id": school_id,
                     "user_id": None,
+                    "batch_id": batch_id,
                     "full_name": name,
                     "mobile": mobile or f"+9190000{total:05d}",
-                    "email": email or f"alumni_{total}@abcschool.edu",
+                    "email": email or "",
                     "passing_year": year_int,
                     "admission_number": admission or f"CSV-{year_int}-{total:03d}",
                     "section": section,
@@ -255,9 +284,11 @@ async def search_directory(
     current_user: dict = Depends(get_current_user)
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id")
 
-    query = {"school_id": school_id}
+    query = {}
+    if school_id:
+        query["school_id"] = school_id
 
     if status and status != "ALL":
         query["verification_status"] = status
@@ -276,19 +307,19 @@ async def search_directory(
     cursor = db.alumni.find(query).sort("full_name", 1)
     alumni_list = await cursor.to_list(length=300)
 
-    is_admin = "SCHOOL_ADMIN" in current_user["roles"]
+    is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"])
 
     res = []
     for a in alumni_list:
         res.append(UserProfileResponse(
             id=str(a["_id"]),
             user_id=str(a.get("user_id", "")),
-            school_id=school_id,
-            full_name=a["full_name"],
-            mobile=a["mobile"] if a.get("email_visible") or is_admin else "***",
-            email=a["email"] if a.get("email_visible") or is_admin else "***",
+            school_id=str(a.get("school_id") or school_id or ""),
+            full_name=a.get("full_name", "Alumnus"),
+            mobile=a.get("mobile", "") if a.get("email_visible") or is_admin else "***",
+            email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
             profile_photo_url=a.get("profile_photo_url"),
-            passing_year=a["passing_year"],
+            passing_year=a.get("passing_year", 2010),
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             admission_number=a.get("admission_number", ""),
             section=a.get("section"),
@@ -307,32 +338,50 @@ async def update_own_profile(
     current_user: dict = Depends(get_current_user)
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id") or "PLATFORM"
     user_id = current_user["user_id"]
 
     update_fields = {k: v for k, v in request.model_dump().items() if v is not None}
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    await db.alumni.update_one({"user_id": user_id, "school_id": school_id}, {"$set": update_fields})
-    alumni = await db.alumni.find_one({"user_id": user_id})
+    # Upsert alumni record if it doesn't exist yet for this registered user
+    existing = await db.alumni.find_one({"user_id": user_id})
+    if not existing:
+        user_doc = await db.users.find_one({"_id": user_id}) or {}
+        new_doc = {
+            "school_id": school_id,
+            "user_id": user_id,
+            "full_name": current_user.get("full_name") or user_doc.get("full_name") or "Alumnus",
+            "mobile": current_user.get("mobile") or user_doc.get("mobile") or "",
+            "email": current_user.get("email") or user_doc.get("email") or "",
+            "passing_year": 2010,
+            "verification_status": "APPROVED",
+            "created_at": datetime.now(timezone.utc)
+        }
+        new_doc.update(update_fields)
+        res = await db.alumni.insert_one(new_doc)
+        alumni = await db.alumni.find_one({"_id": res.inserted_id})
+    else:
+        await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
+        alumni = await db.alumni.find_one({"user_id": user_id})
 
     return UserProfileResponse(
         id=str(alumni["_id"]),
         user_id=user_id,
-        school_id=school_id,
-        full_name=alumni["full_name"],
-        mobile=alumni["mobile"],
-        email=alumni["email"],
+        school_id=str(alumni.get("school_id") or school_id),
+        full_name=alumni.get("full_name", "Alumnus"),
+        mobile=alumni.get("mobile", ""),
+        email=alumni.get("email", ""),
         profile_photo_url=alumni.get("profile_photo_url"),
-        passing_year=alumni["passing_year"],
+        passing_year=alumni.get("passing_year", 2010),
         batch_id=str(alumni["batch_id"]) if alumni.get("batch_id") else None,
         admission_number=alumni.get("admission_number", ""),
         section=alumni.get("section"),
         current_city=alumni.get("current_city"),
         profession=alumni.get("profession"),
         verification_status=alumni.get("verification_status", "APPROVED"),
-        roles=current_user["roles"],
+        roles=current_user.get("roles", ["ALUMNI"]),
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))
     )

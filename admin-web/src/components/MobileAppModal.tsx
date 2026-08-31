@@ -24,7 +24,7 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({ isOpen, onClose 
             <Smartphone className="w-9 h-9 text-[#111111]" />
           </div>
           <span className="text-xs font-bold text-[#854D0E] bg-white px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
-            {language === 'ta' ? 'அதிகாரப்பூர்வ மொபைல் செயலி' : 'OFFICIAL MOBILE APP'}
+            {language === 'ta' ? 'மொபைல் செயலி' : 'OFFICIAL MOBILE APP'}
           </span>
           <h3 className="text-2xl font-bold text-[#111111] mt-2">JustGatherNow Alumni App</h3>
         </div>
