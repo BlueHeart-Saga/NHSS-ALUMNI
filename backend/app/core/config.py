@@ -17,6 +17,7 @@ class Settings(BaseSettings):
         "https://nhssalumni.com",
         "https://www.nhssalumni.com",
         "https://nhss-alumni-backend-b7a8a8dfcrg6abha.southindia-01.azurewebsites.net",
+        "https://nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net",
         "http://localhost:5173",
         "http://localhost:3000",
         "http://localhost:5174",
