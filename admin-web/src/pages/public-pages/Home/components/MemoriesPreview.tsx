@@ -13,9 +13,10 @@ interface MemoryItem {
 interface MemoriesPreviewProps {
   memories: MemoryItem[];
   onViewAllClick: () => void;
+  onSelectMemory?: (memory: MemoryItem) => void;
 }
 
-export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, onViewAllClick }) => {
+export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, onViewAllClick, onSelectMemory }) => {
   const { t, language } = useLanguage();
 
   const defaultRealMemories = [
@@ -55,7 +56,13 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, onVi
             <div
               key={memory.id}
               className="bg-white border-2 border-[#E5E7EB] rounded-3xl overflow-hidden shadow-xs hover:shadow-2xl hover:border-[#F4C542] transition-all group relative h-60 cursor-pointer"
-              onClick={onViewAllClick}
+              onClick={() => {
+                if (onSelectMemory) {
+                  onSelectMemory(memory);
+                } else {
+                  onViewAllClick();
+                }
+              }}
             >
               <img
                 src={memory.image_url}

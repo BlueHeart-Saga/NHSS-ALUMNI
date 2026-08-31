@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { X, ExternalLink } from 'lucide-react';
 import { Hero } from './components/Hero';
 import { CommunityStats } from './components/CommunityStats';
 import { UpcomingEvents } from './components/UpcomingEvents';
@@ -13,9 +14,11 @@ import { Modal } from '../../../components/Modal';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { api } from '../../../services/api';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   // Public Backend Data State
   const [stats, setStats] = useState<any>({
@@ -42,6 +45,7 @@ export const HomePage: React.FC = () => {
   // Detail Modals
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
 
   // Alumni Web Login OTP Form
   const [mobile, setMobile] = useState('');
@@ -119,8 +123,6 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-[#111111] flex flex-col selection:bg-[#F4C542] selection:text-[#111111]">
       {/* 1. HERO SECTION */}
-
-      {/* 2. HERO SECTION */}
       <Hero
         schoolName={stats.school_name}
         schoolCode={stats.school_code}
@@ -157,7 +159,8 @@ export const HomePage: React.FC = () => {
       {/* 7. MEMORIES GALLERY */}
       <MemoriesPreview
         memories={memories}
-        onViewAllClick={() => setIsRegisterModalOpen(true)}
+        onViewAllClick={() => navigate('/login')}
+        onSelectMemory={(memory) => setSelectedMemory(memory)}
       />
 
       {/* 8. FROM OUR SCHOOL (News & Announcements) */}
@@ -165,15 +168,6 @@ export const HomePage: React.FC = () => {
         announcements={announcements}
         onSelectNews={(news) => setSelectedNews(news)}
       />
-
-      {/* 9. JOIN CTA */}
-      {/* <JoinCTA
-        schoolName={stats.school_name}
-        onJoinClick={() => setIsRegisterModalOpen(true)}
-      /> */}
-
-      {/* Modal 1: Alumni Web Login / Register */}
-     in
 
       {/* Modal 2: Event Details Preview */}
       <Modal
@@ -197,7 +191,7 @@ export const HomePage: React.FC = () => {
               className="w-full bg-[#111111] text-white hover:bg-black font-bold"
               onClick={() => {
                 setSelectedEvent(null);
-                setIsRegisterModalOpen(true);
+                navigate('/login');
               }}
             >
               Sign In to RSVP & Get Ticket
@@ -226,6 +220,58 @@ export const HomePage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Interactive Lightbox Popup Modal for Home Memories */}
+      {selectedMemory && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedMemory(null)}
+              className="absolute top-4 right-4 z-20 bg-black/70 hover:bg-black text-white p-2 rounded-full border border-white/20 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Image Preview */}
+            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
+              <img
+                src={selectedMemory.image_url}
+                alt={selectedMemory.title}
+                className="max-h-[60vh] w-full object-contain"
+              />
+            </div>
+
+            {/* Modal Info Bar */}
+            <div className="p-6 bg-white space-y-4">
+              <div>
+                <h3 className="text-xl font-bold text-[#111111]">{selectedMemory.title}</h3>
+                {selectedMemory.uploader_name && (
+                  <span className="text-sm text-gray-500 font-normal mt-1 block">
+                    Uploaded by {selectedMemory.uploader_name}
+                  </span>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'ta' ? 'அனைத்து நினைவுகளையும் பார்க்க உள்நுழைக' : 'Log in to view complete batch photo archive'}
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedMemory(null);
+                    navigate('/login');
+                  }}
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
+                >
+                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
