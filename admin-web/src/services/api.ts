@@ -1,23 +1,32 @@
 import { 
   SchoolProfile, AlumniProfile, Batch, EventItem, AttendanceDashboard, 
-  AttendanceRosterItem, CheckinResult, Announcement, Memory, DashboardReport 
+  AttendanceRosterItem, CheckinResult, Announcement, Memory, DashboardReport,
+  BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
   private token: string | null = sessionStorage.getItem('alumni_access_token');
+  private cacheMap = new Map<string, { data: any; timestamp: number }>();
+  private cacheTTL = 20000; // 20 seconds TTL
 
   setToken(token: string) {
     this.token = token;
     sessionStorage.setItem('alumni_access_token', token);
     localStorage.removeItem('alumni_access_token');
+    this.clearCache();
   }
 
   clearToken() {
     this.token = null;
     sessionStorage.removeItem('alumni_access_token');
     localStorage.removeItem('alumni_access_token');
+    this.clearCache();
+  }
+
+  clearCache() {
+    this.cacheMap.clear();
   }
 
   getToken(): string | null {
@@ -25,6 +34,21 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const method = (options.method || 'GET').toUpperCase();
+    const isGet = method === 'GET';
+    const cacheKey = `${endpoint}`;
+
+    // Return cached response if GET and within TTL
+    if (isGet) {
+      const cached = this.cacheMap.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp < this.cacheTTL)) {
+        return cached.data as T;
+      }
+    } else {
+      // Invalidate cache on mutations
+      this.clearCache();
+    }
+
     const token = this.getToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -53,7 +77,11 @@ class ApiClient {
       throw new Error(detailMsg || `Request failed with status ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    if (isGet) {
+      this.cacheMap.set(cacheKey, { data, timestamp: Date.now() });
+    }
+    return data as T;
   }
 
   private parseIdentifier(primary: string, secondary?: string) {
@@ -151,6 +179,112 @@ class ApiClient {
     });
   }
 
+  async uploadSchoolImage(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+    const response = await fetch(`${API_BASE_URL}/school/upload-image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: 'Image upload failed' }));
+      throw new Error(errorBody.detail || 'Image upload failed');
+    }
+
+    return response.json() as Promise<{ url: string; filename: string }>;
+  }
+
+  async getSchoolStaff() {
+    return this.request<SchoolStaffMember[]>('/school/staff');
+  }
+
+  async createSchoolStaff(data: Partial<SchoolStaffMember>) {
+    return this.request<SchoolStaffMember>('/school/staff', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSchoolStaff(staff_id: string, data: Partial<SchoolStaffMember>) {
+    return this.request<SchoolStaffMember>(`/school/staff/${staff_id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSchoolStaff(staff_id: string) {
+    return this.request<{ success: boolean; message: string }>(`/school/staff/${staff_id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Alumni Association Management Team
+  async getAssociationTeam() {
+    return this.request<AssociationTeamMember[]>('/association/team');
+  }
+
+  async createAssociationTeamMember(data: Partial<AssociationTeamMember>) {
+    return this.request<AssociationTeamMember>('/association/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAssociationTeamMember(id: string, data: Partial<AssociationTeamMember>) {
+    return this.request<AssociationTeamMember>(`/association/team/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAssociationTeamMember(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/association/team/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // School Rank Holders Management
+  async getRankHolders(search?: string, academic_year?: string) {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (academic_year) params.append('academic_year', academic_year);
+    return this.request<RankHolder[]>(`/rank-holders?${params.toString()}`);
+  }
+
+  async createRankHolder(data: Partial<RankHolder>) {
+    return this.request<RankHolder>('/rank-holders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRankHolder(id: string, data: Partial<RankHolder>) {
+    return this.request<{ success: boolean; message: string }>(`/rank-holders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRankHolder(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/rank-holders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getPublicRankHolders() {
+    return this.request<RankHolder[]>('/public/rank-holders');
+  }
+
   async getSchoolAdmins() {
     return this.request<AlumniProfile[]>('/school/admins');
   }
@@ -220,9 +354,23 @@ class ApiClient {
   }
 
   async assignCoordinator(batch_id: string, alumni_id: string) {
-    return this.request<{ success: boolean; message: string }>(`/batches/${batch_id}/coordinators`, {
+    return this.assignCommitteeRole(batch_id, alumni_id, 'EXECUTIVE_MEMBER');
+  }
+
+  async getBatchCommittee(batch_id: string) {
+    return this.request<BatchCommitteeResponse>(`/batches/${batch_id}/committee`);
+  }
+
+  async assignCommitteeRole(batch_id: string, alumni_id: string, role: string) {
+    return this.request<{ success: boolean; message: string }>(`/batches/${batch_id}/committee`, {
       method: 'POST',
-      body: JSON.stringify({ alumni_id }),
+      body: JSON.stringify({ alumni_id, role }),
+    });
+  }
+
+  async removeCommitteeRole(batch_id: string, alumni_id: string) {
+    return this.request<{ success: boolean; message: string }>(`/batches/${batch_id}/committee/${alumni_id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -290,6 +438,14 @@ class ApiClient {
     return this.request<{ success: boolean; message: string }>(`/events/${event_id}/cancel`, { method: 'POST' });
   }
 
+  async deleteEvent(event_id: string) {
+    return this.request<{ success: boolean; message: string }>(`/events/${event_id}`, { method: 'DELETE' });
+  }
+
+  async getPublicPastEvents() {
+    return this.request<any[]>('/public/past-events');
+  }
+
   // Attendance & Check-in
   async getAttendanceDashboard(event_id: string) {
     return this.request<AttendanceDashboard>(`/attendance/${event_id}/dashboard`);
@@ -326,12 +482,25 @@ class ApiClient {
     });
   }
 
-  // Memories
-  async getMemories(batch_id?: string, event_id?: string) {
+  // Memories & Photos Management
+  async getMemories(status?: string) {
     const params = new URLSearchParams();
-    if (batch_id) params.append('batch_id', batch_id);
-    if (event_id) params.append('event_id', event_id);
+    if (status) params.append('status', status);
     return this.request<Memory[]>(`/memories?${params.toString()}`);
+  }
+
+  async createMemory(data: Partial<Memory>) {
+    return this.request<Memory>('/memories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMemoryStatus(id: string, status: string, admin_remarks?: string) {
+    return this.request<Memory>(`/memories/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, admin_remarks }),
+    });
   }
 
   async deleteMemory(memory_id: string) {
@@ -425,6 +594,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getPublicAssociationTeam() {
+    return this.request<AssociationTeamMember[]>('/public/association-team');
   }
 }
 

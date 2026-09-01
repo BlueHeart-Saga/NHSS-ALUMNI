@@ -121,6 +121,8 @@ class UserProfileResponse(BaseModel):
     verification_status: Optional[str] = "PENDING"
     verification_notes: Optional[str] = None
     roles: List[str] = ["ALUMNI"]
+    committee_role: Optional[str] = None
+    committee_role_title: Optional[str] = None
     email_visible: bool = False
     created_at: datetime
 
@@ -186,28 +188,94 @@ class SchoolProfileResponse(BaseModel):
     id: str
     name: str
     code: str
+    school_type: Optional[str] = "Higher Secondary School"
     logo_url: Optional[str] = None
     cover_url: Optional[str] = None
     description: Optional[str] = None
+    portal_name: Optional[str] = None
+    tagline: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
+    district: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = "India"
+    pin_code: Optional[str] = None
     website: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     established_year: Optional[int] = None
     status: Optional[str] = "ACTIVE"
 
+    # Feature Toggles
+    alumni_registration_enabled: bool = True
+    manual_approval_enabled: bool = True
+    public_directory_enabled: bool = True
+    event_registration_enabled: bool = True
+    announcement_notifications_enabled: bool = True
+
 class UpdateSchoolRequest(BaseModel):
     name: Optional[str] = None
+    school_type: Optional[str] = None
     logo_url: Optional[str] = None
     cover_url: Optional[str] = None
     description: Optional[str] = None
+    portal_name: Optional[str] = None
+    tagline: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    pin_code: Optional[str] = None
     website: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
+    established_year: Optional[int] = None
+    
+    # Feature Toggles
+    alumni_registration_enabled: Optional[bool] = None
+    manual_approval_enabled: Optional[bool] = None
+    public_directory_enabled: Optional[bool] = None
+    event_registration_enabled: Optional[bool] = None
+    announcement_notifications_enabled: Optional[bool] = None
+
+class CreateSchoolStaffRequest(BaseModel):
+    full_name: str = Field(..., example="Dr. S. Ramesh")
+    email: EmailStr = Field(..., example="principal@school.edu.in")
+    mobile: str = Field(..., example="+919876543210")
+    school_position: str = Field(..., example="Principal")
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    staff_id: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+    status: Optional[str] = "ACTIVE"
+    notes: Optional[str] = None
+
+class UpdateSchoolStaffRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    mobile: Optional[str] = None
+    school_position: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    staff_id: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+class SchoolStaffResponse(BaseModel):
+    id: str
+    school_id: str
+    full_name: str
+    email: str
+    mobile: str
+    school_position: str
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    staff_id: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+    status: str = "ACTIVE"
+    notes: Optional[str] = None
+    created_at: datetime
 
 # --- Batch Schemas ---
 class CreateBatchRequest(BaseModel):
@@ -236,6 +304,35 @@ class BatchResponse(BaseModel):
 
 class AssignCoordinatorRequest(BaseModel):
     alumni_id: str
+
+class AssignCommitteeRoleRequest(BaseModel):
+    alumni_id: str
+    role: str = Field(..., example="PRESIDENT") # PRESIDENT, VICE_PRESIDENT, SECRETARY, JOINT_SECRETARY, TREASURER, EXECUTIVE_MEMBER, NORMAL_MEMBER
+
+class CommitteeMemberResponse(BaseModel):
+    alumni_id: str
+    full_name: str
+    profile_photo_url: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    role: str
+    role_title: str
+    assigned_at: Optional[datetime] = None
+
+class BatchCommitteeRoleCount(BaseModel):
+    role: str
+    role_title: str
+    max_quota: int
+    filled_count: int
+
+class BatchCommitteeResponse(BaseModel):
+    batch_id: str
+    batch_name: str
+    passing_year: int
+    total_positions: int = 15
+    total_filled: int = 0
+    roles_summary: List[BatchCommitteeRoleCount] = []
+    members: List[CommitteeMemberResponse] = []
 
 # --- Event Schemas ---
 class MapCoordinates(BaseModel):
@@ -380,3 +477,59 @@ class ContactEnquiryRequest(BaseModel):
     email: EmailStr
     mobile: Optional[str] = None
     message: str
+
+# --- Association Team Schemas ---
+class CreateAssociationTeamMemberRequest(BaseModel):
+    profile_type: str = Field(default="common", example="common") # alumni, common
+    alumni_id: Optional[str] = None
+    full_name: str = Field(..., example="K. Ravi Kumar")
+    photo_url: Optional[str] = None
+    email: Optional[EmailStr] = None
+    mobile: Optional[str] = None
+    location: Optional[str] = None
+    occupation: Optional[str] = None
+    batch_year: Optional[int] = None
+    position: str = Field(..., example="President")
+    responsibility: Optional[str] = None
+    term_start: Optional[str] = "2024"
+    term_end: Optional[str] = "2026"
+    display_order: int = 1
+    bio: Optional[str] = None
+    status: str = "ACTIVE"
+
+class UpdateAssociationTeamMemberRequest(BaseModel):
+    full_name: Optional[str] = None
+    photo_url: Optional[str] = None
+    email: Optional[EmailStr] = None
+    mobile: Optional[str] = None
+    location: Optional[str] = None
+    occupation: Optional[str] = None
+    batch_year: Optional[int] = None
+    position: Optional[str] = None
+    responsibility: Optional[str] = None
+    term_start: Optional[str] = None
+    term_end: Optional[str] = None
+    display_order: Optional[int] = None
+    bio: Optional[str] = None
+    status: Optional[str] = None
+
+class AssociationTeamMemberResponse(BaseModel):
+    id: str
+    school_id: str
+    profile_type: str = "common"
+    alumni_id: Optional[str] = None
+    full_name: str
+    photo_url: Optional[str] = None
+    email: Optional[str] = None
+    mobile: Optional[str] = None
+    location: Optional[str] = None
+    occupation: Optional[str] = None
+    batch_year: Optional[int] = None
+    position: str
+    responsibility: Optional[str] = None
+    term_start: Optional[str] = None
+    term_end: Optional[str] = None
+    display_order: int = 1
+    bio: Optional[str] = None
+    status: str = "ACTIVE"
+    created_at: datetime

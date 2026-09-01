@@ -36,8 +36,18 @@ async def get_public_stats():
 
 @router.get("/events")
 async def get_public_events():
+    """Fetch upcoming events (event_date >= today or status=PUBLISHED/UPCOMING)."""
     db = get_db()
-    events = await db.events.find({"status": {"$in": ["PUBLISHED", "UPCOMING"]}}).sort("event_date", 1).to_list(length=10)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    events = await db.events.find({
+        "status": {"$in": ["PUBLISHED", "UPCOMING"]},
+        "event_date": {"$gte": today_str}
+    }).sort("event_date", 1).to_list(length=10)
+
+    # Fallback if no future dates match
+    if not events:
+        events = await db.events.find({"status": {"$in": ["PUBLISHED", "UPCOMING"]}}).sort("event_date", -1).to_list(length=6)
     
     res = []
     for ev in events:
@@ -47,9 +57,13 @@ async def get_public_events():
         })
         batch_name = "School-wide"
         if ev.get("batch_id"):
-            b = await db.batches.find_one({"_id": ev["batch_id"]})
-            if b:
-                batch_name = b.get("name", "Batch")
+            from bson import ObjectId
+            try:
+                b = await db.batches.find_one({"_id": ObjectId(ev["batch_id"]) if isinstance(ev["batch_id"], str) else ev["batch_id"]})
+                if b:
+                    batch_name = b.get("name", "Batch")
+            except Exception:
+                pass
 
         res.append({
             "id": str(ev["_id"]),
@@ -60,8 +74,35 @@ async def get_public_events():
             "start_time": ev.get("start_time"),
             "venue": ev.get("venue"),
             "attending_count": att_count,
-            "cover_image_url": ev.get("cover_image_url") or "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80",
+            "cover_image_url": ev.get("cover_image_url") or "/school-images/banner.png",
             "registration_url": ev.get("registration_url")
+        })
+    return res
+
+@router.get("/past-events")
+async def get_public_past_events():
+    """Fetch past/expired events (event_date < today) for Memories & Past Event Recaps."""
+    db = get_db()
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    events = await db.events.find({
+        "event_date": {"$lt": today_str}
+    }).sort("event_date", -1).to_list(length=6)
+
+    res = []
+    for ev in events:
+        att_count = await db.event_attendance.count_documents({
+            "event_id": str(ev["_id"]),
+            "rsvp_status": "ATTENDING"
+        })
+        res.append({
+            "id": str(ev["_id"]),
+            "title": ev.get("title"),
+            "event_date": ev.get("event_date"),
+            "venue": ev.get("venue"),
+            "attending_count": att_count,
+            "image_url": ev.get("cover_image_url") or "/school-images/banner.png",
+            "uploader_name": f"Past Event ({ev.get('event_date', '')})"
         })
     return res
 
@@ -134,6 +175,20 @@ async def get_public_batches():
             if cid in coords_map:
                 c_profiles.append(coords_map[cid])
 
+        # Fetch min 5-6 sample alumni members for this batch
+        s_members = []
+        if yr:
+            m_list = await db.alumni.find({"passing_year": yr, "verification_status": "APPROVED"}).to_list(length=6)
+            for m in m_list:
+                s_members.append({
+                    "id": str(m["_id"]),
+                    "full_name": m.get("full_name", "Alumnus"),
+                    "profile_photo_url": m.get("profile_photo_url"),
+                    "profession": m.get("profession") or "Alumnus",
+                    "current_city": m.get("current_city") or "Kovilpatti",
+                    "passing_year": m.get("passing_year")
+                })
+
         res.append({
             "id": b_id,
             "name": b.get("name"),
@@ -142,7 +197,8 @@ async def get_public_batches():
             "total_members": stats["count"],
             "cities_count": stats["cities_count"],
             "upcoming_events_count": events_map.get(b_id, 0),
-            "coordinator_profiles": c_profiles
+            "coordinator_profiles": c_profiles,
+            "sample_members": s_members
         })
     return res
 
@@ -165,14 +221,19 @@ async def get_public_highlights():
 
 @router.get("/memories")
 async def get_public_memories():
+    """Fetch approved photo memories for public photo wall."""
     db = get_db()
-    memories = await db.memories.find({}).to_list(length=12)
+    memories = await db.memories.find({
+        "status": {"$in": ["APPROVED", "PUBLISHED"]}
+    }).sort("created_at", -1).to_list(length=50)
 
     res = []
     for m in memories:
         res.append({
             "id": str(m["_id"]),
-            "title": m.get("title", "Memory"),
+            "title": m.get("title", "School Memory"),
+            "description": m.get("description", ""),
+            "batch_year": str(m.get("batch_year", m.get("batch_id", ""))),
             "image_url": m.get("image_url"),
             "uploader_name": m.get("uploader_name", "Alumnus")
         })
@@ -259,3 +320,74 @@ async def submit_contact_enquiry(request: ContactEnquiryRequest):
         "message": "Thank you for reaching out! Your message has been received and a confirmation email was sent to your inbox.",
         "inquiry_id": str(res.inserted_id)
     }
+
+@router.get("/association-team")
+async def get_public_association_team():
+    """Public endpoint to fetch active Alumni Association Team leadership members."""
+    db = get_db()
+    school = await db.schools.find_one({}) or {}
+    school_id = str(school["_id"]) if school and "_id" in school else None
+
+    query = {"status": "ACTIVE"}
+    if school_id:
+        query["school_id"] = school_id
+
+    cursor = db.association_team.find(query).sort([("display_order", 1), ("created_at", 1)])
+    members = await cursor.to_list(length=100)
+
+    res = []
+    for m in members:
+        res.append({
+            "id": str(m["_id"]),
+            "school_id": m.get("school_id"),
+            "profile_type": m.get("profile_type", "common"),
+            "alumni_id": str(m.get("alumni_id")) if m.get("alumni_id") else None,
+            "full_name": m.get("full_name", "Association Leader"),
+            "photo_url": m.get("photo_url"),
+            "email": m.get("email"),
+            "mobile": m.get("mobile"),
+            "location": m.get("location"),
+            "occupation": m.get("occupation"),
+            "batch_year": m.get("batch_year"),
+            "position": m.get("position", "Committee Member"),
+            "responsibility": m.get("responsibility"),
+            "term_start": m.get("term_start", "2024"),
+            "term_end": m.get("term_end", "2026"),
+            "display_order": m.get("display_order", 1),
+            "bio": m.get("bio"),
+            "status": m.get("status", "ACTIVE"),
+            "created_at": m.get("created_at", datetime.now(timezone.utc))
+        })
+    return res
+
+@router.get("/rank-holders")
+async def get_public_rank_holders():
+    """Public endpoint to fetch active School Rank Holders / Achievers."""
+    db = get_db()
+    
+    # Auto-seed demo data if empty
+    count = await db.rank_holders.count_documents({})
+    if count == 0:
+        from app.api.rank_holders import seed_demo_rank_holders
+        await seed_demo_rank_holders(db, None)
+
+    cursor = db.rank_holders.find({"status": "Active"}).sort([("academic_year", -1), ("class_standard", -1)])
+    docs = await cursor.to_list(length=200)
+
+    res = []
+    for d in docs:
+        res.append({
+            "id": str(d["_id"]),
+            "student_name": d.get("student_name"),
+            "academic_year": d.get("academic_year"),
+            "class_standard": d.get("class_standard"),
+            "rank": d.get("rank"),
+            "achievement_type": d.get("achievement_type"),
+            "marks_percentage": d.get("marks_percentage"),
+            "subject_stream": d.get("subject_stream"),
+            "achievement_title": d.get("achievement_title"),
+            "photograph": d.get("photograph"),
+            "description": d.get("description"),
+            "status": d.get("status", "Active")
+        })
+    return res

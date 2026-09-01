@@ -1,19 +1,22 @@
 import React from 'react';
 import { Users, GraduationCap, Calendar, Award } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { StatsSkeleton } from './SkeletonLoaders';
 
 interface StatsProps {
   totalAlumni: number;
   totalBatches: number;
   totalEvents: number;
   yearsConnected: number;
+  loading?: boolean;
 }
 
 export const CommunityStats: React.FC<StatsProps> = ({
   totalAlumni,
   totalBatches,
   totalEvents,
-  yearsConnected
+  yearsConnected,
+  loading
 }) => {
   const { t, language } = useLanguage();
 
@@ -53,7 +56,10 @@ export const CommunityStats: React.FC<StatsProps> = ({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          <StatsSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {statsList.map((stat, idx) => {
             const Icon = stat.icon;
             return (
@@ -76,6 +82,7 @@ export const CommunityStats: React.FC<StatsProps> = ({
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

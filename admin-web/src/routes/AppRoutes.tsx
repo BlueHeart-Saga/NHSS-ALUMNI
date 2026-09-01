@@ -40,6 +40,8 @@ import { AnnouncementsManager } from '../pages/school-admin/AnnouncementsManager
 import { MemoriesModeration } from '../pages/school-admin/MemoriesModeration';
 import { ReportsDashboard } from '../pages/school-admin/ReportsDashboard';
 import { SchoolSettings } from '../pages/school-admin/SchoolSettings';
+import { AssociationTeam } from '../pages/school-admin/AssociationTeam';
+import { RankHoldersManager } from '../pages/school-admin/RankHoldersManager';
 
 // Developer Pages
 import { DeveloperPortal } from '../pages/developer/DeveloperPortal';
@@ -95,6 +97,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="events/:eventId/attendance" element={<AttendanceRoster />} />
         <Route path="announcements" element={<AnnouncementsManager />} />
         <Route path="memories" element={<MemoriesModeration />} />
+        <Route path="association-team" element={<AssociationTeam />} />
+        <Route path="rank-holders" element={<RankHoldersManager />} />
         <Route path="reports" element={<ReportsDashboard />} />
         <Route path="settings" element={<SchoolSettings />} />
       </Route>

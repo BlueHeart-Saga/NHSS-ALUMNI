@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Download, Upload, UserX } from 'lucide-react';
 import { Table } from '../../components/Table';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Input, Select } from '../../components/Input';
 import { Modal } from '../../components/Modal';
-import { LoadingState } from '../../components/EmptyState';
+import { LoadingState, TableSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AlumniProfile } from '../../types';
@@ -46,17 +46,20 @@ export const AlumniManagement: React.FC = () => {
   };
 
   // Instant in-memory filtering for zero-latency UI response
-  const displayedAlumni = alumniList.filter(a => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      (a.full_name && a.full_name.toLowerCase().includes(q)) ||
-      (a.email && a.email.toLowerCase().includes(q)) ||
-      (a.mobile && a.mobile.includes(q)) ||
-      (a.current_city && a.current_city.toLowerCase().includes(q)) ||
-      (a.profession && a.profession.toLowerCase().includes(q))
-    );
-  });
+  const displayedAlumni = useMemo(() => {
+    return alumniList.filter(a => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        (a.full_name && a.full_name.toLowerCase().includes(q)) ||
+        (a.email && a.email.toLowerCase().includes(q)) ||
+        (a.mobile && a.mobile.includes(q)) ||
+        (a.admission_number && a.admission_number.toLowerCase().includes(q)) ||
+        (a.current_city && a.current_city.toLowerCase().includes(q)) ||
+        (a.profession && a.profession.toLowerCase().includes(q))
+      );
+    });
+  }, [alumniList, search]);
 
   const handleSuspend = async (id: string) => {
     const confirmed = await alertService.showConfirm(
@@ -97,7 +100,7 @@ export const AlumniManagement: React.FC = () => {
 
   const batchOptions = [
     { label: 'All Batches', value: '' },
-    ...Array.from({ length: 21 }, (_, i) => 2005 + i).map((y) => ({ label: `Class of ${y}`, value: y }))
+    ...Array.from({ length: 42 }, (_, i) => 1985 + i).reverse().map((y) => ({ label: `Class of ${y}`, value: y }))
   ];
 
   const statusOptions = [
@@ -219,9 +222,9 @@ export const AlumniManagement: React.FC = () => {
 
       {/* Data Table */}
       {loading ? (
-        <LoadingState />
+        <TableSkeleton rows={8} />
       ) : (
-        <Table columns={columns} data={displayedAlumni} keyExtractor={(item) => item.id} />
+        <Table columns={columns} data={displayedAlumni} keyExtractor={(item) => item.id} defaultPageSize={15} />
       )}
 
       {/* CSV Import Modal */}

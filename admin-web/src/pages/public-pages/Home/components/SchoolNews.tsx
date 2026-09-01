@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { NewsSkeleton } from './SkeletonLoaders';
 
 interface NewsItem {
   id: string;
@@ -11,10 +12,11 @@ interface NewsItem {
 
 interface SchoolNewsProps {
   announcements: NewsItem[];
+  loading?: boolean;
   onSelectNews: (item: NewsItem) => void;
 }
 
-export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, onSelectNews }) => {
+export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, onSelectNews }) => {
   const { t, language } = useLanguage();
 
   return (
@@ -26,7 +28,10 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, onSelectN
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {loading ? (
+          <NewsSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {announcements.map((item) => (
             <div
               key={item.id}
@@ -61,6 +66,7 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, onSelectN
             </div>
           ))}
         </div>
+        )}
       </div>
     </section>
   );

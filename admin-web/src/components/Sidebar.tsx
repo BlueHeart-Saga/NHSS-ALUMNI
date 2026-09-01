@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserCheck, GraduationCap, Calendar, 
-  Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut
+  Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Award, Trophy 
 } from 'lucide-react';
 import { SchoolProfile } from '../types';
 import { api } from '../services/api';
@@ -28,6 +28,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { label: t('admin_events'), path: '/school-admin/events', icon: Calendar },
     { label: t('admin_announcements'), path: '/school-admin/announcements', icon: Megaphone },
     { label: t('admin_memories'), path: '/school-admin/memories', icon: ImageIcon },
+    { label: 'Association Team', path: '/school-admin/association-team', icon: Award },
+    { label: 'Rank Holders', path: '/school-admin/rank-holders', icon: Trophy },
     { label: t('admin_reports'), path: '/school-admin/reports', icon: BarChart3 },
     { label: t('admin_settings'), path: '/school-admin/settings', icon: Settings },
   ];

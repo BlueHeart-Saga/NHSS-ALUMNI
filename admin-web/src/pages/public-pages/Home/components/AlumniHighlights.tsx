@@ -3,6 +3,7 @@ import { Building2, MapPin, ShieldCheck, Briefcase, ArrowRight } from 'lucide-re
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { Modal } from '../../../../components/Modal';
+import { HighlightsSkeleton } from './SkeletonLoaders';
 
 interface HighlightAlumnus {
   id: string;
@@ -15,9 +16,10 @@ interface HighlightAlumnus {
 
 interface AlumniHighlightsProps {
   highlights: HighlightAlumnus[];
+  loading?: boolean;
 }
 
-export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights }) => {
+export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, loading }) => {
   const { t, language } = useLanguage();
   const [previewImage, setPreviewImage] = useState<HighlightAlumnus | null>(null);
 
@@ -34,7 +36,10 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights }
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          <HighlightsSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {highlights.map((alumnus) => (
             <div
               key={alumnus.id}
@@ -88,6 +93,7 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights }
             </div>
           ))}
         </div>
+        )}
 
         {/* View More Students Button Section */}
         <div className="mt-12 text-center">

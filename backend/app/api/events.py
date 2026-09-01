@@ -214,3 +214,18 @@ async def cancel_event(
         {"$set": {"status": "CANCELLED"}}
     )
     return {"success": True, "message": "Event status updated to CANCELLED"}
+
+@router.delete("/{event_id}")
+async def delete_event(
+    event_id: str,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user["school_id"]
+
+    res = await db.events.delete_one({"_id": ObjectId(event_id), "school_id": school_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    await db.event_attendance.delete_many({"event_id": event_id})
+    return {"success": True, "message": "Event deleted successfully"}

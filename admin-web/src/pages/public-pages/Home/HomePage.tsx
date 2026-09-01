@@ -8,6 +8,8 @@ import { FindYourBatch } from './components/FindYourBatch';
 import { AlumniHighlights } from './components/AlumniHighlights';
 import { MemoriesPreview } from './components/MemoriesPreview';
 import { SchoolNews } from './components/SchoolNews';
+import { SchoolAchieversSection } from './components/SchoolAchieversSection';
+// import { AlumniAssociationSection } from '../components/AlumniAssociationSection';
 // import { JoinCTA } from './components/JoinCTA';
 
 import { Modal } from '../../../components/Modal';
@@ -36,7 +38,13 @@ export const HomePage: React.FC = () => {
   const [highlights, setHighlights] = useState<any[]>([]);
   const [memories, setMemories] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Granular Loading States for High-Speed Progressive Rendering
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingBatches, setLoadingBatches] = useState(true);
+  const [loadingHighlights, setLoadingHighlights] = useState(true);
+  const [loadingMemories, setLoadingMemories] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // Auth Modals
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -58,29 +66,37 @@ export const HomePage: React.FC = () => {
     fetchPublicData();
   }, []);
 
-  const fetchPublicData = async () => {
-    try {
-      setLoading(true);
-      const [sData, eData, bData, hData, mData, aData] = await Promise.all([
-        api.getPublicStats().catch(() => null),
-        api.getPublicEvents().catch(() => []),
-        api.getPublicBatches().catch(() => []),
-        api.getPublicHighlights().catch(() => []),
-        api.getPublicMemories().catch(() => []),
-        api.getPublicAnnouncements().catch(() => [])
-      ]);
+  const fetchPublicData = () => {
+    // Non-blocking parallel fetches so fast APIs render instantly!
+    api.getPublicStats()
+      .then(sData => { if (sData) setStats(sData); })
+      .catch(() => {})
+      .finally(() => setLoadingStats(false));
 
-      if (sData) setStats(sData);
-      if (eData.length) setEvents(eData);
-      if (bData.length) setBatches(bData);
-      if (hData.length) setHighlights(hData);
-      if (mData.length) setMemories(mData);
-      if (aData.length) setAnnouncements(aData);
-    } catch (err) {
-      console.error('Failed to load public portal data:', err);
-    } finally {
-      setLoading(false);
-    }
+    api.getPublicEvents()
+      .then(eData => { if (eData) setEvents(eData); })
+      .catch(() => {})
+      .finally(() => setLoadingEvents(false));
+
+    api.getPublicBatches()
+      .then(bData => { if (bData) setBatches(bData); })
+      .catch(() => {})
+      .finally(() => setLoadingBatches(false));
+
+    api.getPublicHighlights()
+      .then(hData => { if (hData) setHighlights(hData); })
+      .catch(() => {})
+      .finally(() => setLoadingHighlights(false));
+
+    api.getPublicPastEvents()
+      .then(mData => { if (mData) setMemories(mData); })
+      .catch(() => {})
+      .finally(() => setLoadingMemories(false));
+
+    api.getPublicAnnouncements()
+      .then(aData => { if (aData) setAnnouncements(aData); })
+      .catch(() => {})
+      .finally(() => setLoadingNews(false));
   };
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -134,7 +150,7 @@ export const HomePage: React.FC = () => {
       {/* 2. UPCOMING GET-TOGETHERS */}
       <UpcomingEvents
         events={events}
-        onSelectEvent={(event) => setSelectedEvent(event)}
+        loading={loadingEvents}
       />
 
       {/* 3. FIND YOUR BATCH */}
@@ -146,18 +162,21 @@ export const HomePage: React.FC = () => {
       {/* 4. ALUMNI HIGHLIGHTS */}
       <AlumniHighlights
         highlights={highlights}
+        loading={loadingHighlights}
       />
 
       {/* 5. MEMORIES GALLERY */}
       <MemoriesPreview
         memories={memories}
-        onViewAllClick={() => navigate('/login')}
+        loading={loadingMemories}
+        onViewAllClick={() => navigate('/memories')}
         onSelectMemory={(memory) => setSelectedMemory(memory)}
       />
 
       {/* 6. FROM OUR SCHOOL (News & Announcements) */}
       <SchoolNews
         announcements={announcements}
+        loading={loadingNews}
         onSelectNews={(news) => setSelectedNews(news)}
       />
 
@@ -167,6 +186,7 @@ export const HomePage: React.FC = () => {
         totalBatches={stats.total_batches}
         totalEvents={stats.total_events}
         yearsConnected={stats.years_connected}
+        loading={loadingStats}
       />
 
       {/* Modal 2: Event Details Preview */}

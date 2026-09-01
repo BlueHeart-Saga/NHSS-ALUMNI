@@ -11,7 +11,7 @@ from app.core.database import connect_to_mongo, close_mongo_connection, get_db
 from app.core.logging import setup_logging
 
 # Routers
-from app.api import auth, school, batches, alumni, events, attendance, checkins, announcements, memories, reports, developer, public
+from app.api import auth, school, batches, alumni, events, attendance, checkins, announcements, memories, reports, developer, public, association, rank_holders
 
 setup_logging()
 logger = logging.getLogger("app.main")
@@ -74,6 +74,10 @@ MEDIA_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=MEDIA_DIR), name="uploads")
 
+PROFILES_DIR = r"C:\Users\mani\Downloads\profile"
+if os.path.exists(PROFILES_DIR):
+    app.mount("/local-profiles", StaticFiles(directory=PROFILES_DIR), name="local-profiles")
+
 # API v1 Routers Sub-Application
 api_v1 = FastAPI(title="School Alumni API v1")
 
@@ -99,6 +103,8 @@ api_v1.include_router(announcements.router)
 api_v1.include_router(memories.router)
 api_v1.include_router(reports.router)
 api_v1.include_router(developer.router)
+api_v1.include_router(association.router)
+api_v1.include_router(rank_holders.router)
 
 app.mount("/api/v1", api_v1)
 

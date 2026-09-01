@@ -1,15 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from typing import List, Optional
+from datetime import datetime, timezone
+from bson import ObjectId
 from app.core.database import get_db
-from app.schemas.models import SchoolProfileResponse, UpdateSchoolRequest
+from app.schemas.models import (
+    SchoolProfileResponse, UpdateSchoolRequest,
+    CreateSchoolStaffRequest, UpdateSchoolStaffRequest, SchoolStaffResponse
+)
 from app.middleware.auth import get_current_user, require_roles
+from app.services.azure_blob import blob_service
 
-router = APIRouter(prefix="/school", tags=["School Profile"])
+router = APIRouter(prefix="/school", tags=["School Profile & Staff"])
+
+@router.post("/upload-image")
+async def upload_school_image(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files (JPG, PNG, WebP, GIF) are allowed")
+
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image size exceeds maximum limit of 10MB")
+
+    school_id = current_user.get("school_id", "school")
+    image_url, _, _ = await blob_service.upload_image(contents, file.filename, file.content_type, school_id=school_id)
+    return {"url": image_url, "filename": file.filename}
+
+def format_school_response(school: dict) -> SchoolProfileResponse:
+    return SchoolProfileResponse(
+        id=str(school["_id"]),
+        name=school.get("name", "School"),
+        code=school.get("code", "SCHOOL"),
+        school_type=school.get("school_type", "Higher Secondary School"),
+        logo_url=school.get("logo_url"),
+        cover_url=school.get("cover_url"),
+        description=school.get("description"),
+        portal_name=school.get("portal_name"),
+        tagline=school.get("tagline"),
+        address=school.get("address"),
+        city=school.get("city"),
+        district=school.get("district"),
+        state=school.get("state"),
+        country=school.get("country", "India"),
+        pin_code=school.get("pin_code"),
+        website=school.get("website"),
+        contact_phone=school.get("contact_phone"),
+        contact_email=school.get("contact_email"),
+        established_year=school.get("established_year"),
+        status=school.get("status", "ACTIVE"),
+        alumni_registration_enabled=school.get("alumni_registration_enabled", True),
+        manual_approval_enabled=school.get("manual_approval_enabled", True),
+        public_directory_enabled=school.get("public_directory_enabled", True),
+        event_registration_enabled=school.get("event_registration_enabled", True),
+        announcement_notifications_enabled=school.get("announcement_notifications_enabled", True)
+    )
 
 @router.get("/profile", response_model=SchoolProfileResponse)
 async def get_school_profile(current_user: dict = Depends(get_current_user)):
     db = get_db()
     school_id = current_user.get("school_id")
-    from bson import ObjectId
 
     school = None
     if school_id and school_id != "None":
@@ -24,19 +75,7 @@ async def get_school_profile(current_user: dict = Depends(get_current_user)):
     if not school:
         raise HTTPException(status_code=404, detail="No active school profile found. Please create a school via Developer Portal.")
 
-    return SchoolProfileResponse(
-        id=str(school["_id"]),
-        name=school.get("name", "School"),
-        code=school.get("code", "SCHOOL"),
-        logo_url=school.get("logo_url"),
-        cover_url=school.get("cover_url"),
-        description=school.get("description"),
-        address=school.get("address"),
-        website=school.get("website"),
-        contact_phone=school.get("contact_phone"),
-        contact_email=school.get("contact_email"),
-        established_year=school.get("established_year")
-    )
+    return format_school_response(school)
 
 @router.put("/profile", response_model=SchoolProfileResponse)
 async def update_school_profile(
@@ -45,7 +84,6 @@ async def update_school_profile(
 ):
     db = get_db()
     school_id = current_user.get("school_id")
-    from bson import ObjectId
 
     school_query = {}
     if school_id and school_id != "None":
@@ -68,19 +106,125 @@ async def update_school_profile(
     await db.schools.update_one(school_query, {"$set": update_fields})
 
     school = await db.schools.find_one(school_query)
-    return SchoolProfileResponse(
-        id=str(school["_id"]),
-        name=school.get("name", "School"),
-        code=school.get("code", "SCHOOL"),
-        logo_url=school.get("logo_url"),
-        cover_url=school.get("cover_url"),
-        description=school.get("description"),
-        address=school.get("address"),
-        website=school.get("website"),
-        contact_phone=school.get("contact_phone"),
-        contact_email=school.get("contact_email"),
-        established_year=school.get("established_year")
+    return format_school_response(school)
+
+# --- School Staff / Person Management ---
+@router.get("/staff", response_model=List[SchoolStaffResponse])
+async def list_school_staff(current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    query = {}
+    if school_id:
+        query["school_id"] = school_id
+
+    staff_cursor = db.school_staff.find(query).sort("created_at", -1)
+    staff_list = await staff_cursor.to_list(length=200)
+
+    res = []
+    for s in staff_list:
+        res.append(SchoolStaffResponse(
+            id=str(s["_id"]),
+            school_id=s.get("school_id", school_id or ""),
+            full_name=s["full_name"],
+            email=s["email"],
+            mobile=s["mobile"],
+            school_position=s.get("school_position", "Teacher"),
+            department=s.get("department"),
+            designation=s.get("designation"),
+            staff_id=s.get("staff_id"),
+            profile_photo_url=s.get("profile_photo_url"),
+            status=s.get("status", "ACTIVE"),
+            notes=s.get("notes"),
+            created_at=s.get("created_at", datetime.now(timezone.utc))
+        ))
+    return res
+
+@router.post("/staff", response_model=SchoolStaffResponse)
+async def create_school_staff(
+    request: CreateSchoolStaffRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+    now = datetime.now(timezone.utc)
+
+    doc = {
+        "school_id": school_id,
+        "full_name": request.full_name,
+        "email": request.email,
+        "mobile": request.mobile,
+        "school_position": request.school_position,
+        "department": request.department,
+        "designation": request.designation,
+        "staff_id": request.staff_id,
+        "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=FFF7D6&color=854D0E",
+        "status": request.status or "ACTIVE",
+        "notes": request.notes,
+        "created_at": now
+    }
+
+    res = await db.school_staff.insert_one(doc)
+    s_id = str(res.inserted_id)
+
+    return SchoolStaffResponse(
+        id=s_id,
+        school_id=school_id or "",
+        full_name=doc["full_name"],
+        email=doc["email"],
+        mobile=doc["mobile"],
+        school_position=doc["school_position"],
+        department=doc["department"],
+        designation=doc["designation"],
+        staff_id=doc["staff_id"],
+        profile_photo_url=doc["profile_photo_url"],
+        status=doc["status"],
+        notes=doc["notes"],
+        created_at=now
     )
+
+@router.put("/staff/{staff_id}", response_model=SchoolStaffResponse)
+async def update_school_staff(
+    staff_id: str,
+    request: UpdateSchoolStaffRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    staff = await db.school_staff.find_one({"_id": ObjectId(staff_id)})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+    update_fields = {k: v for k, v in request.model_dump().items() if v is not None}
+    if update_fields:
+        await db.school_staff.update_one({"_id": ObjectId(staff_id)}, {"$set": update_fields})
+
+    updated = await db.school_staff.find_one({"_id": ObjectId(staff_id)})
+    return SchoolStaffResponse(
+        id=str(updated["_id"]),
+        school_id=updated.get("school_id", school_id or ""),
+        full_name=updated["full_name"],
+        email=updated["email"],
+        mobile=updated["mobile"],
+        school_position=updated.get("school_position", "Teacher"),
+        department=updated.get("department"),
+        designation=updated.get("designation"),
+        staff_id=updated.get("staff_id"),
+        profile_photo_url=updated.get("profile_photo_url"),
+        status=updated.get("status", "ACTIVE"),
+        notes=updated.get("notes"),
+        created_at=updated.get("created_at", datetime.now(timezone.utc))
+    )
+
+@router.delete("/staff/{staff_id}")
+async def delete_school_staff(
+    staff_id: str,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    db = get_db()
+    await db.school_staff.delete_one({"_id": ObjectId(staff_id)})
+    return {"success": True, "message": "Staff member removed successfully"}
 
 @router.get("/admins")
 async def list_school_admins(current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))):

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, GraduationCap, Users, UserPlus } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
-import { LoadingState } from '../../components/EmptyState';
+import { LoadingState, CardGridSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Batch } from '../../types';
@@ -19,6 +19,7 @@ export const Batches: React.FC = () => {
   const [passingYear, setPassingYear] = useState<number>(2026);
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchBatches();
@@ -52,25 +53,23 @@ export const Batches: React.FC = () => {
     }
   };
 
-  const [search, setSearch] = useState('');
-
-  const displayedBatches = batches.filter((b) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      b.name.toLowerCase().includes(q) ||
-      String(b.passing_year).includes(q) ||
-      (b.description && b.description.toLowerCase().includes(q))
-    );
-  });
-
-  if (loading) return <LoadingState />;
+  const displayedBatches = useMemo(() => {
+    return batches.filter((b) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        b.name.toLowerCase().includes(q) ||
+        String(b.passing_year).includes(q) ||
+        (b.description && b.description.toLowerCase().includes(q))
+      );
+    });
+  }, [batches, search]);
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111111]">Batches &amp; Cohorts</h2>
+          <h2 className="text-2xl font-bold text-[#111111]">Batches &amp; Cohorts ({batches.length})</h2>
           <p className="text-xs text-[#6B7280]">School passing year cohorts and assigned batch coordinators</p>
         </div>
 
@@ -88,7 +87,10 @@ export const Batches: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {loading ? (
+        <CardGridSkeleton count={8} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {displayedBatches.map((batch) => {
           const coords = batch.coordinator_profiles || [];
           return (
@@ -174,6 +176,7 @@ export const Batches: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Create Batch Modal */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create New Batch Cohort">
