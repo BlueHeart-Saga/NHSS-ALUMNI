@@ -78,7 +78,7 @@ export const PublicSchool: React.FC = () => {
   return (
     <div className="min-h-screen bg-white text-[#111111] animate-fadeIn">
       {/* Campus Hero Cover */}
-      <div className="relative h-96 sm:h-[420px] overflow-hidden bg-gray-900">
+      <div className="relative h-64 sm:h-96 lg:h-[420px] overflow-hidden bg-gray-900">
         <img
           src={(profile.cover_url && profile.cover_url.trim() !== '') ? profile.cover_url : realCampusBanner}
           alt={profile.name}
@@ -89,89 +89,89 @@ export const PublicSchool: React.FC = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
-        <div className="absolute bottom-10 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white flex items-end justify-between">
-          <div className="flex items-center space-x-5">
+        <div className="absolute bottom-6 sm:bottom-10 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-5">
             <img
               src={logoUrl}
               alt={profile.name}
-              className="h-20 sm:h-24 w-auto object-contain flex-shrink-0"
+              className="h-14 sm:h-24 w-auto object-contain flex-shrink-0"
             />
             <div className="space-y-1">
-              <span className="text-sm font-semibold text-[#F4C542] bg-[#111111] px-4 py-1.5 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
+              <span className="text-[10px] sm:text-sm font-semibold text-[#F4C542] bg-[#111111] px-3 py-1 sm:px-4 sm:py-1.5 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
                 {t('established')} {profile.established_year}
               </span>
-              <h1 className="text-4xl sm:text-5xl font-semibold text-white mt-1">{profile.name}</h1>
+              <h1 className="text-xl sm:text-4xl lg:text-5xl font-semibold text-white mt-0.5 sm:mt-1 leading-snug">{profile.name}</h1>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content Details */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-10 sm:space-y-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
           
           {/* Left Description Block */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#111111]">{t('nav_about')}</h2>
-              <p className="text-base sm:text-lg text-gray-700 leading-relaxed font-normal">
+          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+            <div className="space-y-3 sm:space-y-4">
+              <h2 className="text-xl sm:text-3xl font-bold text-[#111111]">{t('nav_about')}</h2>
+              <p className="text-sm sm:text-lg text-gray-700 leading-relaxed font-normal">
                 {profile.description}
               </p>
             </div>
 
             {/* School Stats Cards */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-b border-gray-100 py-6">
-              <div className="text-center p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">{profile.total_alumni}+</div>
-                <div className="text-xs text-gray-500 font-semibold mt-1">{t('stat_alumni')}</div>
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-4 pt-4 border-t border-b border-gray-100 py-4 sm:py-6">
+              <div className="text-center p-3 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl border border-gray-200">
+                <div className="text-lg sm:text-3xl font-extrabold text-[#111111]">{profile.total_alumni}+</div>
+                <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5 sm:mt-1">{t('stat_alumni')}</div>
               </div>
-              <div className="text-center p-4 bg-[#FFF7D6]/40 rounded-2xl border border-[#F4C542]/50">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#854D0E]">{profile.active_batches}</div>
-                <div className="text-xs text-[#854D0E] font-semibold mt-1">{t('stat_batches')}</div>
+              <div className="text-center p-3 sm:p-4 bg-[#FFF7D6]/40 rounded-xl sm:rounded-2xl border border-[#F4C542]/50">
+                <div className="text-lg sm:text-3xl font-extrabold text-[#854D0E]">{profile.active_batches}</div>
+                <div className="text-[11px] sm:text-xs text-[#854D0E] font-semibold mt-0.5 sm:mt-1">{t('stat_batches')}</div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">{profile.upcoming_events}</div>
-                <div className="text-xs text-gray-500 font-semibold mt-1">{t('stat_events')}</div>
+              <div className="text-center p-3 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl border border-gray-200">
+                <div className="text-lg sm:text-3xl font-extrabold text-[#111111]">{profile.upcoming_events}</div>
+                <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5 sm:mt-1">{t('stat_events')}</div>
               </div>
             </div>
           </div>
 
           {/* Right Contact Card */}
           <div className="lg:col-span-5">
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-6">
-              <h3 className="text-xl font-bold text-[#111111] pb-4 border-b border-gray-100">
+            <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-200 shadow-sm space-y-5 sm:space-y-6">
+              <h3 className="text-lg sm:text-xl font-bold text-[#111111] pb-3 sm:pb-4 border-b border-gray-100">
                 {t('contact_info')}
               </h3>
 
-              <div className="space-y-4 text-sm font-medium text-gray-700">
+              <div className="space-y-4 text-xs sm:text-sm font-medium text-gray-700">
                 <div className="flex items-start space-x-3">
-                  <Building2 className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs text-gray-400 font-bold uppercase">{t('school_code')}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase">{t('school_code')}</div>
                     <div className="font-semibold text-gray-900">{profile.code}</div>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <MapPin className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs text-gray-400 font-bold uppercase">{t('location')}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase">{t('location')}</div>
                     <div className="text-gray-800">{profile.address}</div>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <Phone className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs text-gray-400 font-bold uppercase">Phone</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase">Phone</div>
                     <div className="text-gray-800">{profile.phone}</div>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <Mail className="w-5 h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#854D0E] flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs text-gray-400 font-bold uppercase">Email</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase">Email</div>
                     <div className="text-gray-800">{profile.email}</div>
                   </div>
                 </div>
@@ -182,19 +182,19 @@ export const PublicSchool: React.FC = () => {
         </div>
 
         {/* Real Campus Photos Gallery */}
-        <div className="space-y-6 pt-10 border-t border-gray-200">
+        <div className="space-y-6 pt-8 sm:pt-10 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold text-[#854D0E] uppercase tracking-wider bg-[#FFF7D6] px-3 py-1 rounded-full border border-[#F4C542]">
                 {language === 'ta' ? 'பள்ளி புகைப்படங்கள்' : 'Campus Photo Gallery'}
               </span>
-              <h3 className="text-2xl font-bold text-[#111111] mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-[#111111] mt-2">
                 {language === 'ta' ? 'பள்ளியின் புகைப்படத் கேலரி' : 'Explore Our Campus & Event Highlights'}
               </h3>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {campusPhotos.map((photo, idx) => (
               <div
                 key={idx}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Image as ImageIcon, X, Trophy, Medal, Search, ChevronDown, Plus, Info } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, X, Trophy, Medal, Search, ChevronDown, Plus, Info, Award } from 'lucide-react';
 import { api } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
@@ -79,15 +79,15 @@ export const PublicMemories: React.FC = () => {
   return (
     <div className="bg-white text-[#111111] animate-fadeIn">
       {/* Header Banner */}
-      <div className="py-16 bg-white border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+      <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
             {t('nav_memories')}
           </span>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#111111] tracking-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#111111] tracking-tight">
             {t('memories_page_title')}
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xs sm:text-base text-gray-600 max-w-2xl mx-auto">
             {language === 'ta'
               ? 'பள்ளி நினைவுகள், சிறப்பு புகைப்படங்கள் மற்றும் சிறந்த சாதனை மாணவர்களின் விவரங்கள்.'
               : 'Cherished school memories, heritage photo archives, and academic rank holder achievements.'}
@@ -95,19 +95,19 @@ export const PublicMemories: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-10 sm:space-y-16">
         {/* ========================================================================= */}
-        {/* SECTION 1: SCHOOL RANK HOLDERS & ACHIEVERS (REAL DATA - INITIAL 6 + LOAD MORE 3) */}
+        {/* SECTION 1: SCHOOL RANK HOLDERS & ACHIEVERS */}
         {/* ========================================================================= */}
-        <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b border-gray-200">
+        <div className="space-y-6 sm:space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 pb-4 border-b border-gray-200">
             <div className="space-y-2">
               <span className="inline-flex items-center space-x-2 text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3.5 py-1.5 rounded-full uppercase tracking-wider">
                 <Trophy className="w-4 h-4 text-[#854D0E]" />
                 <span>{language === 'ta' ? 'நமது பள்ளி சாதனையாளர்கள்' : 'School Rank Holders & Achievers'}</span>
               </span>
 
-              <h2 className="text-2xl sm:text-4xl font-bold text-[#111111]">
+              <h2 className="text-xl sm:text-4xl font-bold text-[#111111]">
                 {language === 'ta' ? 'கல்விச் சிறப்பும் விருதுகளும்' : 'Academic Excellence & Rank Holders'}
               </h2>
             </div>
@@ -122,7 +122,7 @@ export const PublicMemories: React.FC = () => {
                   placeholder={language === 'ta' ? 'மாணவர் பெயர் தேட...' : 'Search student or rank...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] bg-gray-50"
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] bg-gray-50 font-medium"
                 />
               </div>
 
@@ -131,7 +131,7 @@ export const PublicMemories: React.FC = () => {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="w-full text-xs p-2 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] font-semibold bg-gray-50 cursor-pointer"
+                  className="w-full text-xs p-2.5 sm:py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] font-semibold bg-gray-50 cursor-pointer"
                 >
                   <option value="">
                     {language === 'ta' ? 'அனைத்து ஆண்டுகள் (All Years)' : 'All Academic Years'}
@@ -160,8 +160,8 @@ export const PublicMemories: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Premium Rank Holders Table View (No profile photos in table, simple corner (i) info button) */}
-              <div className="bg-white border-2 border-[#111111] rounded-[28px] overflow-hidden shadow-[6px_6px_0px_0px_#111111]">
+              {/* Premium Rank Holders Table View */}
+              <div className="bg-white border-2 border-[#111111] rounded-2xl sm:rounded-[28px] overflow-hidden shadow-[4px_4px_0px_0px_#111111] sm:shadow-[6px_6px_0px_0px_#111111]">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#111111] border-collapse">
                     <thead className="bg-[#FFF7D6] border-b-2 border-[#111111] uppercase text-[11px] font-extrabold text-[#111111] tracking-wider">
@@ -170,7 +170,9 @@ export const PublicMemories: React.FC = () => {
                         <th className="p-4 sm:p-5">Student / Alumni Name</th>
                         <th className="p-4 sm:p-5">Academic Year</th>
                         <th className="p-4 sm:p-5">Rank / Distinction</th>
-                        <th className="p-4 sm:p-5 text-right">Details</th>
+                        <th className="p-4 sm:p-5 text-right font-extrabold text-[#854D0E]">
+                          {language === 'ta' ? 'மதிப்பெண்கள் (Total Score)' : 'Total Score / Marks'}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -214,19 +216,23 @@ export const PublicMemories: React.FC = () => {
                               </span>
                             </td>
 
-                            {/* Corner (i) Info Icon Action */}
-                            <td className="p-4 sm:p-5 text-right">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedHolderModal(holder);
-                                }}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#111111] text-gray-600 group-hover:text-[#F4C542] border border-gray-300 group-hover:border-[#111111] transition-all cursor-pointer shadow-xs"
-                                title="View Achiever Details"
-                              >
-                                <Info className="w-4 h-4" />
-                              </button>
+                            {/* Student Total Score / Marks Column */}
+                            <td className="p-4 sm:p-5 text-right font-extrabold">
+                              {holder.total_marks ? (
+                                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] rounded-xl text-xs sm:text-sm font-black shadow-2xs">
+                                  <Award className="w-4 h-4 text-[#854D0E] shrink-0" />
+                                  <span>
+                                    {holder.total_marks}
+                                    {holder.max_marks ? ` / ${holder.max_marks}` : ''}
+                                  </span>
+                                </div>
+                              ) : holder.marks_percentage ? (
+                                <div className="inline-flex items-center space-x-1 px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs sm:text-sm font-bold">
+                                  <span>{holder.marks_percentage}</span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 font-medium text-xs">—</span>
+                              )}
                             </td>
                           </tr>
                         );

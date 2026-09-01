@@ -27,6 +27,8 @@ export const RankHoldersManager: React.FC = () => {
   const [rank, setRank] = useState('1st Rank');
   const [achievementType, setAchievementType] = useState('SSLC / Public Examination');
   const [marksPercentage, setMarksPercentage] = useState('95.6%');
+  const [totalMarks, setTotalMarks] = useState('');
+  const [maxMarks, setMaxMarks] = useState('500');
   const [subjectStream, setSubjectStream] = useState('');
   const [achievementTitle, setAchievementTitle] = useState('School First Rank');
   const [photograph, setPhotograph] = useState('');
@@ -63,6 +65,8 @@ export const RankHoldersManager: React.FC = () => {
     setRank('1st Rank');
     setAchievementType('SSLC / Public Examination');
     setMarksPercentage('');
+    setTotalMarks('');
+    setMaxMarks('500');
     setSubjectStream('');
     setAchievementTitle('School Rank Holder');
     setPhotograph('');
@@ -80,6 +84,8 @@ export const RankHoldersManager: React.FC = () => {
     setRank(holder.rank);
     setAchievementType(holder.achievement_type || 'SSLC / Public Examination');
     setMarksPercentage(holder.marks_percentage || '');
+    setTotalMarks(holder.total_marks || '');
+    setMaxMarks(holder.max_marks || '500');
     setSubjectStream(holder.subject_stream || '');
     setAchievementTitle(holder.achievement_title || 'School Rank Holder');
     setPhotograph(holder.photograph || '');
@@ -128,6 +134,8 @@ export const RankHoldersManager: React.FC = () => {
       rank,
       achievement_type: achievementType,
       marks_percentage: marksPercentage,
+      total_marks: totalMarks.trim(),
+      max_marks: maxMarks.trim(),
       subject_stream: subjectStream,
       achievement_title: achievementTitle,
       photograph,
@@ -307,7 +315,13 @@ export const RankHoldersManager: React.FC = () => {
                           <span>{h.rank}</span>
                         </span>
                       </td>
-                      <td className="p-4 font-bold text-emerald-700">{h.marks_percentage || 'N/A'}</td>
+                      <td className="p-4 font-extrabold text-[#854D0E]">
+                        {h.total_marks ? (
+                          <span>{h.total_marks}{h.max_marks ? ` / ${h.max_marks}` : ''}</span>
+                        ) : (
+                          <span>{h.marks_percentage || 'N/A'}</span>
+                        )}
+                      </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
                           h.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
@@ -424,22 +438,36 @@ export const RankHoldersManager: React.FC = () => {
                 />
               </div>
 
-              {/* Marks & Subject Stream */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Student Marks & Score Details */}
+              <div className="grid grid-cols-3 gap-3">
                 <Input
-                  label="Marks / Percentage"
-                  placeholder="e.g. 95.6% or 490/500"
-                  value={marksPercentage}
-                  onChange={(e) => setMarksPercentage(e.target.value)}
+                  label="Total Score / Marks *"
+                  placeholder="e.g. 485 or 1150"
+                  value={totalMarks}
+                  onChange={(e) => setTotalMarks(e.target.value)}
                 />
 
                 <Input
-                  label="Subject / Stream (Optional)"
-                  placeholder="e.g. Science Stream / Math"
-                  value={subjectStream}
-                  onChange={(e) => setSubjectStream(e.target.value)}
+                  label="Out of (Max Marks)"
+                  placeholder="e.g. 500 or 1200"
+                  value={maxMarks}
+                  onChange={(e) => setMaxMarks(e.target.value)}
+                />
+
+                <Input
+                  label="Percentage / Grade"
+                  placeholder="e.g. 97.0% or A+"
+                  value={marksPercentage}
+                  onChange={(e) => setMarksPercentage(e.target.value)}
                 />
               </div>
+
+              <Input
+                label="Subject / Stream (Optional)"
+                placeholder="e.g. Science Stream / Biology-Maths"
+                value={subjectStream}
+                onChange={(e) => setSubjectStream(e.target.value)}
+              />
 
               {/* Achievement Title */}
               <Input

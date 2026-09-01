@@ -278,6 +278,8 @@ export interface RankHolder {
   rank: string;
   achievement_type?: string;
   marks_percentage?: string;
+  total_marks?: string;
+  max_marks?: string;
   subject_stream?: string;
   achievement_title?: string;
   photograph?: string;

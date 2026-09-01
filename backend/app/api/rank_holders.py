@@ -16,6 +16,8 @@ class CreateRankHolderRequest(BaseModel):
     rank: str  # e.g. "1st Rank", "2nd Rank", "School First", "District First", "State First"
     achievement_type: Optional[str] = "SSLC / Public Examination"
     marks_percentage: Optional[str] = None  # e.g. "95.6%"
+    total_marks: Optional[str] = None  # e.g. "485"
+    max_marks: Optional[str] = None  # e.g. "500" or "1200"
     subject_stream: Optional[str] = None
     achievement_title: Optional[str] = "School Rank Holder"
     photograph: Optional[str] = None
@@ -67,6 +69,8 @@ async def list_rank_holders(
             "rank": d.get("rank"),
             "achievement_type": d.get("achievement_type"),
             "marks_percentage": d.get("marks_percentage"),
+            "total_marks": d.get("total_marks"),
+            "max_marks": d.get("max_marks"),
             "subject_stream": d.get("subject_stream"),
             "achievement_title": d.get("achievement_title"),
             "photograph": d.get("photograph"),
@@ -104,6 +108,8 @@ async def create_rank_holder(
         "rank": req.rank.strip(),
         "achievement_type": req.achievement_type,
         "marks_percentage": req.marks_percentage,
+        "total_marks": req.total_marks,
+        "max_marks": req.max_marks,
         "subject_stream": req.subject_stream,
         "achievement_title": req.achievement_title,
         "photograph": photo,
@@ -135,6 +141,8 @@ async def update_rank_holder(
         "rank": req.rank.strip(),
         "achievement_type": req.achievement_type,
         "marks_percentage": req.marks_percentage,
+        "total_marks": req.total_marks,
+        "max_marks": req.max_marks,
         "subject_stream": req.subject_stream,
         "achievement_title": req.achievement_title,
         "photograph": req.photograph,
@@ -161,7 +169,6 @@ async def delete_rank_holder(
     res = await db.rank_holders.delete_one({"_id": ObjectId(holder_id)})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Rank holder record not found")
-
     return {"success": True, "message": "Rank holder deleted successfully"}
 
 
@@ -177,6 +184,8 @@ async def seed_demo_rank_holders(db, school_id):
             "rank": "1st Rank",
             "achievement_type": "SSLC / Public Examination",
             "marks_percentage": "96%",
+            "total_marks": "480",
+            "max_marks": "500",
             "achievement_title": "School First Rank",
             "photograph": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
             "description": "Achieved top score in SSLC State Board Public Examinations.",
@@ -192,6 +201,8 @@ async def seed_demo_rank_holders(db, school_id):
             "rank": "2nd Rank",
             "achievement_type": "SSLC / Public Examination",
             "marks_percentage": "94%",
+            "total_marks": "470",
+            "max_marks": "500",
             "achievement_title": "School Second Rank",
             "photograph": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80",
             "description": "Outstanding academic record in Mathematics and Science.",
@@ -207,6 +218,8 @@ async def seed_demo_rank_holders(db, school_id):
             "rank": "3rd Rank",
             "achievement_type": "SSLC / Public Examination",
             "marks_percentage": "93%",
+            "total_marks": "465",
+            "max_marks": "500",
             "achievement_title": "School Third Rank",
             "photograph": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
             "description": "Secured top marks in Public Examinations.",

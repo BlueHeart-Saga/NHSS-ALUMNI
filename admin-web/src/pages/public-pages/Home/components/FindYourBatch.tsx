@@ -117,11 +117,11 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
     <section id="find-your-batch" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
         {/* Section Title */}
-        <div className="space-y-3">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight">
+        <div className="space-y-2 sm:space-y-3">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight">
             {t('find_batch_title')}
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 font-normal max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-lg text-gray-600 font-normal max-w-2xl mx-auto leading-relaxed">
             {t('find_batch_desc')}
           </p>
         </div>
@@ -136,7 +136,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
               <select
                 value={selectedYear}
                 onChange={(e) => handleYearChange(e.target.value)}
-                className="w-full pl-12 pr-10 py-4 bg-gray-50 border-2 border-gray-300 rounded-2xl text-base sm:text-lg font-bold text-[#111111] focus:bg-white focus:border-[#111111] focus:outline-none transition-all appearance-none cursor-pointer shadow-xs"
+                className="w-full pl-11 sm:pl-12 pr-10 py-3.5 sm:py-4 bg-gray-50 border-2 border-gray-300 rounded-2xl text-sm sm:text-lg font-bold text-[#111111] focus:bg-white focus:border-[#111111] focus:outline-none transition-all appearance-none cursor-pointer shadow-xs"
               >
                 {/* Default empty placeholder */}
                 <option value="">
@@ -149,16 +149,16 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                   </option>
                 ))}
               </select>
-              <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-700 pointer-events-none" />
+              <GraduationCap className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 text-gray-700 pointer-events-none" />
             </div>
           </div>
         </form>
 
         {/* UNSELECTED EMPTY STATE PROMPT */}
         {!activeResult && (
-          <div className="py-12 px-6 border-2 border-dashed border-gray-200 rounded-3xl max-w-xl mx-auto text-center space-y-3 bg-gray-50/50">
-            <GraduationCap className="w-12 h-12 text-gray-400 mx-auto" />
-            <h3 className="text-lg font-bold text-gray-700">
+          <div className="py-10 sm:py-12 px-5 sm:px-6 border-2 border-dashed border-gray-200 rounded-3xl max-w-xl mx-auto text-center space-y-3 bg-gray-50/50">
+            <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto" />
+            <h3 className="text-base sm:text-lg font-bold text-gray-700">
               {language === 'ta' ? 'வகுப்பு ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select a Graduation Year Above'}
             </h3>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
@@ -169,24 +169,18 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
           </div>
         )}
 
-        {/* OPEN RESULTS DISPLAY (NO WRAPPING CARD, NO SPARKLES/MAGIC ICON, CLEAN BORDER) */}
+        {/* OPEN RESULTS DISPLAY */}
         {activeResult && (
-          <div className="space-y-10 animate-fadeIn pt-4">
+          <div className="space-y-8 sm:space-y-10 animate-fadeIn pt-4">
             {/* Header Title */}
             <div className="space-y-1">
-              {/* <span className="text-xs font-bold text-gray-800 bg-gray-100 border border-gray-300 px-3.5 py-1 rounded-full uppercase tracking-wider inline-block">
-                {language === 'ta' ? `${activeResult.passing_year} ஆம் ஆண்டு வகுப்பு` : `Class of ${activeResult.passing_year}`}
-              </span> */}
-              <h3 className="text-2xl sm:text-3xl font-bold text-[#111111] pt-1">
+              <h3 className="text-xl sm:text-3xl font-bold text-[#111111] pt-1">
                 {language === 'ta' ? 'வகுப்பு பழைய மாணவர்கள் (முன்னோட்டம்)' : 'Batch Alumni Profiles'}
               </h3>
-              {/* <p className="text-xs text-gray-500 font-medium">
-                {language === 'ta' ? 'படத்தைக் கிளிக் செய்து விவரங்களைக் காண்க' : 'Click any profile circle to view details'}
-              </p> */}
             </div>
 
-            {/* 5 BIG CIRCULAR DP PROFILE IMAGES (CLEAN NEUTRAL BORDER, NO MAGIC ICON) */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 sm:gap-8 justify-items-center max-w-4xl mx-auto pt-2">
+            {/* CIRCULAR DP PROFILE IMAGES */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-8 justify-items-center max-w-4xl mx-auto pt-2">
               {getBatchMembersList(activeResult).map((member, idx) => {
                 const photoSrc = getAssetUrl(member.profile_photo_url) ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=F3F4F6&color=111111`;
@@ -202,16 +196,16 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                       <img
                         src={photoSrc}
                         alt={member.full_name}
-                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-gray-200 p-0.5 bg-white object-cover shadow-md group-hover:border-[#111111] group-hover:scale-105 transition-all duration-300"
+                        className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-gray-200 p-0.5 bg-white object-cover shadow-md group-hover:border-[#111111] group-hover:scale-105 transition-all duration-300"
                       />
                     </div>
 
                     {/* Name & Profession */}
                     <div className="text-center">
-                      <h4 className="font-bold text-sm sm:text-base text-[#111111] group-hover:text-black transition-colors leading-tight">
+                      <h4 className="font-bold text-xs sm:text-base text-[#111111] group-hover:text-black transition-colors leading-tight line-clamp-1">
                         {member.full_name}
                       </h4>
-                      <p className="text-xs text-gray-500 font-medium mt-0.5 line-clamp-1">
+                      <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 line-clamp-1">
                         {member.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}
                       </p>
                     </div>

@@ -62,29 +62,28 @@ export const PublicLayout: React.FC = () => {
     <div className="min-h-screen bg-white text-[#111111] flex flex-col font-sans selection:bg-[#F4C542] selection:text-[#111111]">
       {/* Brand Header */}
       <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3 sm:space-x-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          {/* Logo & Brand Title */}
+          <Link to="/" className="flex items-center space-x-2.5 sm:space-x-4 min-w-0">
             <img
               src={logoUrl}
               alt={school?.name || "School Logo"}
-              className="h-12 sm:h-16 w-auto object-contain flex-shrink-0"
+              className="h-10 sm:h-14 lg:h-16 w-auto object-contain flex-shrink-0 rounded-xl"
             />
-            <div>
-              <h1 className="text-xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-[#111111] leading-tight">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-[#111111] leading-snug truncate max-w-[150px] xs:max-w-[220px] sm:max-w-md lg:max-w-none">
                 {school?.name || t('app_title')}
               </h1>
-              <span className="text-xs sm:text-base text-[#854D0E] font-semibold tracking-wide block mt-0.5">
+              <span className="text-[10px] sm:text-xs lg:text-sm text-[#854D0E] font-bold tracking-wide block truncate mt-0.5">
                 {t('tagline')}
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            {/* Language Selector Dropdown */}
-            <LanguageSelector />
-
+          {/* Auth Actions & Language Selector */}
+          <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
             {user ? (
-              <div className="flex items-center space-x-2 text-sm sm:text-lg font-medium tracking-widest text-gray-700 uppercase">
+              <div className="flex items-center space-x-2 text-xs sm:text-base font-semibold tracking-widest text-gray-700 uppercase">
                 <span className="text-[#111111] font-semibold py-1 lowercase hidden md:inline">
                   {user.email || user.full_name}
                 </span>
@@ -98,36 +97,39 @@ export const PublicLayout: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 text-sm sm:text-lg font-medium tracking-widest text-gray-700 uppercase">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs sm:text-base font-semibold tracking-widest text-gray-700 uppercase">
                 <Link
                   to="/register"
-                  className="hover:text-[#111111] transition-colors py-1"
+                  className="hover:text-[#111111] transition-colors py-1 whitespace-nowrap"
                 >
                   {t('nav_register')}
                 </Link>
-                <span className="text-[#F4C542] font-semibold px-1">||</span>
+                <span className="text-[#F4C542] font-bold px-0.5 sm:px-1">||</span>
                 <Link
                   to="/login"
-                  className="hover:text-[#111111] transition-colors py-1"
+                  className="hover:text-[#111111] transition-colors py-1 whitespace-nowrap"
                 >
                   {t('nav_login')}
                 </Link>
               </div>
             )}
+
+            {/* Language Selector Dropdown */}
+            <LanguageSelector />
           </div>
         </div>
 
         {/* Sub-Navigation Bar: Full Height Links and GET MOBILE APP Button */}
-        <div className="bg-[#F4C542] text-[#111111] shadow-sm h-14">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
-            <nav className="flex items-center h-full overflow-x-auto scrollbar-none text-sm sm:text-base font-semibold uppercase tracking-wider space-x-0.5 sm:space-x-1">
+        <div className="bg-[#F4C542] text-[#111111] shadow-sm h-12 sm:h-14">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-2">
+            <nav className="flex items-center h-full overflow-x-auto scrollbar-none text-sm sm:text-base font-semibold uppercase tracking-wider space-x-0.5 sm:space-x-1 flex-1">
               {navLinks.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="relative h-full flex items-center px-2.5 sm:px-3 overflow-hidden whitespace-nowrap group transition-colors focus:outline-none"
+                    className="relative h-full flex items-center px-2.5 sm:px-3.5 overflow-hidden whitespace-nowrap group transition-colors focus:outline-none shrink-0"
                   >
                     {/* Dark Yellow Bottom-to-Top Slide Fill Hover Overlay */}
                     <div
@@ -142,7 +144,7 @@ export const PublicLayout: React.FC = () => {
                     )}
 
                     {/* Link Text */}
-                    <span className={`relative z-10 text-base transition-colors ${isActive ? 'font-bold text-[#111111]' : 'font-semibold text-[#111111]/90 group-hover:text-[#111111]'}`}>
+                    <span className={`relative z-10 text-sm sm:text-base transition-colors ${isActive ? 'font-bold text-[#111111]' : 'font-semibold text-[#111111]/90 group-hover:text-[#111111]'}`}>
                       {item.label}
                     </span>
                   </Link>
@@ -154,11 +156,11 @@ export const PublicLayout: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAppModalOpen(true)}
-              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md border border-[#F4C542]/40 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex-shrink-0 ml-2"
+              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-[10px] sm:text-xs uppercase tracking-wider rounded-xl transition-all shadow-md border border-[#F4C542]/40 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 ml-1"
             >
-              <Smartphone className="w-4 h-4 text-[#F4C542]" />
-              <span>{t('nav_get_mobile_app')}</span>
-              <QrCode className="w-4 h-4 text-[#F4C542]" />
+              <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4C542]" />
+              <span className="hidden xs:inline">{t('nav_get_mobile_app')}</span>
+              <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4C542]" />
             </button>
           </div>
         </div>

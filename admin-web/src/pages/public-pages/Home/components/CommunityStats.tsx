@@ -48,10 +48,10 @@ export const CommunityStats: React.FC<StatsProps> = ({
   ];
 
   return (
-    <section id="community-stats" className="py-16 sm:py-20 bg-white border-b border-[#E5E7EB]">
+    <section id="community-stats" className="py-12 sm:py-20 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12 space-y-3">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+        <div className="text-center mb-8 sm:mb-12 space-y-2 sm:space-y-3">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {t('community_stats_title')}
           </h2>
         </div>
@@ -59,25 +59,25 @@ export const CommunityStats: React.FC<StatsProps> = ({
         {loading ? (
           <StatsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {statsList.map((stat, idx) => {
             const Icon = stat.icon;
             return (
               <div
                 key={idx}
-                className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
+                className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#F4C542]/20 flex items-center justify-center text-[#854D0E] group-hover:bg-[#F4C542] group-hover:text-[#111111] transition-colors">
-                    <Icon className="w-6 h-6" />
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-[#F4C542]/20 flex items-center justify-center text-[#854D0E] group-hover:bg-[#F4C542] group-hover:text-[#111111] transition-colors shrink-0">
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">LIVE</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">LIVE</span>
                 </div>
-                <div className="text-3xl sm:text-4xl font-bold text-[#111111] tracking-tight mb-1">
+                <div className="text-2xl sm:text-4xl font-bold text-[#111111] tracking-tight mb-0.5 sm:mb-1">
                   {stat.value}
                 </div>
-                <div className="text-base font-semibold text-gray-900 mb-0.5">{stat.label}</div>
-                <div className="text-xs text-gray-500 font-medium">{stat.subtitle}</div>
+                <div className="text-xs sm:text-base font-semibold text-gray-900 mb-0.5 truncate">{stat.label}</div>
+                <div className="text-[11px] sm:text-xs text-gray-500 font-medium truncate">{stat.subtitle}</div>
               </div>
             );
           })}

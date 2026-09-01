@@ -66,28 +66,28 @@ export const SchoolAdminRequest: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
       <div className="max-w-2xl w-full mx-auto">
         {/* Back Link */}
         <Link
           to="/admin/login"
-          className="inline-flex items-center space-x-2 text-xs font-semibold text-gray-500 hover:text-[#111111] transition-colors mb-6 uppercase tracking-wider"
+          className="inline-flex items-center space-x-2 text-xs font-semibold text-gray-500 hover:text-[#111111] transition-colors mb-4 sm:mb-6 uppercase tracking-wider"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to School Admin Login</span>
         </Link>
 
         {/* Form Container Card */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 sm:p-10 shadow-xl space-y-8">
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 sm:p-10 shadow-xl space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center mx-auto shadow-xs">
-              <ShieldCheck className="w-8 h-8 text-[#854D0E]" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center mx-auto shadow-xs">
+              <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-[#854D0E]" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+            <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-[#111111]">
               Request School Admin Access
             </h2>
-            <p className="text-sm text-gray-600 font-normal max-w-md mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 font-normal max-w-md mx-auto leading-relaxed">
               Tell us about your school and we'll help you set up your official alumni platform.
             </p>
           </div>

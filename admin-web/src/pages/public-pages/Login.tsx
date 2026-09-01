@@ -71,13 +71,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
-      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xl">
+      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xl">
         {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#854D0E]">
-            <ShieldCheck className="w-8 h-8 text-[#854D0E]" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 text-[#854D0E]">
+            <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-[#854D0E]" />
           </div>
-          <h1 className="text-2xl font-bold text-[#111111]">School Admin Portal</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#111111]">School Admin Portal</h1>
           <p className="text-xs text-[#6B7280] mt-1">Authorized School Administrator Verification</p>
         </div>
 

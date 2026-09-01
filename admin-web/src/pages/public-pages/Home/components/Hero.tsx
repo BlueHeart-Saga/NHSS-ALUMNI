@@ -24,7 +24,7 @@ export const Hero: React.FC<HeroProps> = ({
   const badgeText = schoolCode || (schoolName.length <= 8 ? schoolName : schoolName.split(' ').map(w => w[0]).join('').slice(0, 6).toUpperCase()) || "ALUMNI";
 
   return (
-    <section className="bg-white py-14 lg:py-24 border-b border-[#E5E7EB] relative overflow-hidden">
+    <section className="bg-white py-8 sm:py-14 lg:py-24 border-b border-[#E5E7EB] relative overflow-hidden">
       {/* Background Ambient Decorative Waves */}
       <div className="absolute top-0 right-0 w-1/2 h-full pointer-events-none opacity-40 -z-0">
         <svg viewBox="0 0 500 500" className="w-full h-full text-gray-200" fill="none">
@@ -36,12 +36,12 @@ export const Hero: React.FC<HeroProps> = ({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 lg:gap-16 items-center">
           
           {/* Left Column: Single School Photo Card */}
           <div className="lg:col-span-7">
-            <div className="p-2 sm:p-2.5 bg-white rounded-2xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-300 relative group">
-              <div className="relative overflow-hidden rounded-xl h-[380px] sm:h-[480px] bg-gray-100">
+            <div className="p-1.5 sm:p-2.5 bg-white rounded-2xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-300 relative group">
+              <div className="relative overflow-hidden rounded-xl h-64 sm:h-[420px] lg:h-[480px] bg-gray-100">
                 <img
                   src={campusImg}
                   alt={schoolName}
@@ -55,7 +55,7 @@ export const Hero: React.FC<HeroProps> = ({
                 />
                 
                 {/* Overlay Text Badge at Bottom Left */}
-                <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-md text-white font-bold text-base sm:text-lg px-5 py-2 rounded-xl border border-white/20 tracking-widest uppercase shadow-xl">
+                <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-black/80 backdrop-blur-md text-white font-bold text-xs sm:text-base lg:text-lg px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl border border-white/20 tracking-widest uppercase shadow-xl">
                   {badgeText}
                 </div>
               </div>
@@ -63,29 +63,29 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
 
           {/* Right Column: Welcome Text & Primary CTA Button */}
-          <div className="lg:col-span-5 space-y-7">
+          <div className="lg:col-span-5 space-y-4 sm:space-y-7">
             <div>
-              <div className="text-3xl sm:text-4xl text-[#111111] font-semibold tracking-tight">
+              <div className="text-2xl xs:text-3xl sm:text-4xl text-[#111111] font-semibold tracking-tight">
                 {language === 'ta' ? 'அன்புடன் வரவேற்கிறது' : 'Welcome to'}
               </div>
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-2">
+              <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-1 sm:mt-2">
                 {language === 'ta' ? 'பழைய மாணவர்கள் சங்கம்' : 'The Alumni Portal'}
               </h1>
             </div>
 
             {/* Description Text */}
-            <p className="text-lg sm:text-xl text-gray-600 font-normal leading-relaxed max-w-xl">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 font-normal leading-relaxed max-w-xl">
               {t('hero_subtitle')}
             </p>
 
             {/* Primary Action Button */}
-            <div className="pt-3">
+            <div className="pt-2 sm:pt-3">
               <button
                 onClick={onJoinClick}
-                className="px-8 sm:px-10 py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center space-x-3 border border-[#E0B238] cursor-pointer"
+                className="w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-base sm:text-lg rounded-2xl sm:rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center justify-center space-x-3 border border-[#E0B238] cursor-pointer"
               >
                 <span>{t('join_network_btn')}</span>
-                <ArrowRight className="w-6 h-6" />
+                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
           </div>

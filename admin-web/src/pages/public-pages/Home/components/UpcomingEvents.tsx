@@ -38,15 +38,15 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
   };
 
   return (
-    <section id="upcoming-events" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <section id="upcoming-events" className="py-12 sm:py-24 bg-white border-b border-[#E5E7EB]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
         {/* Section Header */}
         <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight leading-tight">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight leading-tight">
             {t('upcoming_events_title')}
           </h2>
 
-          <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
+          <p className="text-xs sm:text-base text-gray-600 font-normal leading-relaxed">
             {language === 'ta'
               ? 'உங்கள் வகுப்புத் தோழர்களைச் சந்திக்கவும் பழைய நினைவுகளைப் பகிர்ந்து கொள்ளவும் ஏற்பாடு செய்யப்பட்டுள்ள விழாக்கள்.'
               : 'Reconnect with school batchmates, share nostalgic memories, and participate in upcoming reunions.'}
@@ -64,7 +64,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-8 sm:space-y-10">
             {events.map((event) => {
               const coverImage = getAssetUrl(event.cover_image_url) ||
                 getAssetUrl("/school-images/banner.png");
@@ -72,47 +72,76 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               return (
                 <div
                   key={event.id}
-                  onClick={() => handleCardClick(event)}
-                  className="relative h-64 sm:h-80 w-full rounded-[32px] overflow-hidden border-2 border-[#111111] shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 cursor-pointer group transform hover:-translate-x-1 hover:-translate-y-1 bg-white"
+                  className="bg-white rounded-3xl overflow-hidden border-2 border-[#111111] shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 group transform hover:-translate-y-1 flex flex-col justify-between"
                 >
-                  {/* CLEAN FULL RECTANGULAR HERO BANNER IMAGE (ONLY BANNER PHOTO SHOWN INITIALLY) */}
-                  <img
-                    src={coverImage}
-                    alt={event.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
+                  {/* TOP COVER BANNER IMAGE */}
+                  <div
+                    onClick={() => handleCardClick(event)}
+                    className="relative h-52 sm:h-64 w-full overflow-hidden bg-gray-900 cursor-pointer"
+                  >
+                    <img
+                      src={coverImage}
+                      alt={event.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                  {/* Resting Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0" />
+                    {/* Top Left Batch Badge */}
+                    {/* <div className="absolute top-4 left-4 z-10 flex items-center space-x-2">
+                      <span className="text-xs font-black bg-[#111111] text-[#F4C542] px-3.5 py-1.5 rounded-full uppercase tracking-wider border-2 border-[#F4C542] shadow-md">
+                        {event.batch_name}
+                      </span>
+                    </div> */}
 
-                  {/* Resting State Bottom Event Title */}
-                  <div className="absolute bottom-6 left-7 right-7 z-10 transition-opacity duration-300 group-hover:opacity-0">
-                    <h3 className="text-2xl sm:text-4xl font-bold text-white leading-tight drop-shadow-lg line-clamp-1">
-                      {event.title}
-                    </h3>
+                    {/* Top Right Attending Count Badge */}
+                    {/* <div className="absolute top-4 right-4 z-10">
+                      <span className="text-xs font-bold bg-white/90 backdrop-blur-md text-[#111111] px-3 py-1 rounded-full shadow-md flex items-center space-x-1.5 border border-white">
+                        <Users className="w-3.5 h-3.5 text-[#854D0E]" />
+                        <span>{event.attending_count ?? 0} {language === 'ta' ? 'உறுதிப்படுத்தப்பட்டவர்கள்' : 'Attending'}</span>
+                      </span>
+                    </div> */}
+
+                    {/* Bottom Image Overlay Title */}
+                    <div className="absolute bottom-4 left-5 right-5 z-10 text-white">
+                      <h3 className="text-xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow-md line-clamp-1">
+                        {event.title}
+                      </h3>
+                    </div>
                   </div>
 
-                  {/* HOVER OVERLAY: SHOWS DESCRIPTION AND CTA ONLY ON HOVER */}
-                  <div className="absolute inset-0 bg-black/80 backdrop-blur-xs p-6 sm:p-8 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end space-y-3 text-white">
-                    <h3 className="text-2xl sm:text-3xl font-bold text-white leading-tight drop-shadow-md">
-                      {event.title}
-                    </h3>
+                  {/* BOTTOM CARD BODY OUTSIDE OF IMAGE WITH HIGHLIGHTED CTA BUTTONS */}
+                  <div className="p-5 sm:p-7 space-y-4 bg-white flex-1 flex flex-col justify-between text-left">
+                    <div className="space-y-3">
+                      {/* Event Date & Venue Highlights Bar */}
+                      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm font-semibold text-gray-700">
+                        <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-xl shadow-2xs">
+                          <Calendar className="w-4 h-4 text-[#854D0E]" />
+                          <span>{event.event_date} {event.start_time && `• ${event.start_time}`}</span>
+                        </div>
+                        {event.venue && (
+                          <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-xl">
+                            <MapPin className="w-4 h-4 text-[#854D0E]" />
+                            <span className="truncate max-w-[240px]">{event.venue}</span>
+                          </div>
+                        )}
+                      </div>
 
-                    <p className="text-xs sm:text-sm text-gray-300 font-normal line-clamp-2 leading-relaxed max-w-3xl">
-                      {event.description}
-                    </p>
+                      {/* Description */}
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
+                        {event.description}
+                      </p>
+                    </div>
 
-                    <div className="pt-2 flex items-center space-x-4">
+                    {/* HIGHLIGHTED CTA ACTION BUTTONS OUTSIDE OF CARD IMAGE */}
+                    <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCardClick(event);
-                        }}
-                        className="px-6 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center space-x-2 border border-yellow-500 cursor-pointer"
+                        onClick={() => handleCardClick(event)}
+                        className="w-full sm:w-auto px-6 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer active:scale-95 group/btn"
                       >
-                        <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட்' : 'View Details & QR Code'}</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
+                        <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட் பெற' : 'View Details & RSVP Ticket'}</span>
+                        <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
                       </button>
 
                       {event.registration_url && (
@@ -121,10 +150,10 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center space-x-1.5 border border-white/40"
+                          className="w-full sm:w-auto px-5 py-3.5 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] hover:text-[#111111] font-extrabold text-xs uppercase tracking-wider rounded-2xl border-2 border-[#F4C542] transition-all flex items-center justify-center space-x-1.5 shadow-sm"
                         >
-                          <span>{language === 'ta' ? 'பதிவு லிங்க்' : 'Register Link'}</span>
-                          <ExternalLink className="w-3.5 h-3.5 text-[#F4C542]" />
+                          <span>{language === 'ta' ? 'பதிவு படிவம்' : 'External Register'}</span>
+                          <ExternalLink className="w-4 h-4" />
                         </a>
                       )}
                     </div>

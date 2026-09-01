@@ -178,18 +178,18 @@ export const AlumniAssociationSection: React.FC = () => {
           </p>
         </div>
 
-        {/* SIMPLE CARD GRID: Big Profile Image + Name + Position Badge (President #1 First) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+        {/* SIMPLE CARD GRID: Big Profile Image + Name + Position Badge */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-8">
           {team
             .filter((t) => !t.position.toLowerCase().includes('patron'))
             .map((member) => (
             <div
               key={member.id}
               onClick={() => setSelectedMember(member)}
-              className="bg-white border border-gray-200 hover:border-[#F4C542] rounded-3xl p-4 shadow-sm hover:shadow-2xl transition-all cursor-pointer group flex flex-col items-center text-center space-y-3 transform hover:-translate-y-1"
+              className="bg-white border border-gray-200 hover:border-[#F4C542] rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-sm hover:shadow-2xl transition-all cursor-pointer group flex flex-col items-center text-center space-y-2 sm:space-y-3 transform hover:-translate-y-1"
             >
               {/* Big Profile Image */}
-              <div className="w-full h-64 sm:h-72 overflow-hidden rounded-2xl bg-gray-100 relative">
+              <div className="w-full h-44 sm:h-72 overflow-hidden rounded-xl sm:rounded-2xl bg-gray-100 relative">
                 <img
                   src={member.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=FFF7D6&color=854D0E`}
                   alt={getMemberName(member)}
@@ -198,13 +198,13 @@ export const AlumniAssociationSection: React.FC = () => {
               </div>
 
               {/* Name & Position Badge */}
-              <div className="space-y-1 w-full pt-1">
-                <h3 className="font-bold text-base sm:text-lg text-[#111111] group-hover:text-[#854D0E] transition-colors leading-tight line-clamp-1">
+              <div className="space-y-1 w-full pt-0.5">
+                <h3 className="font-bold text-sm sm:text-lg text-[#111111] group-hover:text-[#854D0E] transition-colors leading-tight line-clamp-1">
                   {getMemberName(member)}
                 </h3>
 
                 <div>
-                  <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/70 px-3 py-0.5 rounded-full inline-block">
+                  <span className="text-[10px] sm:text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/70 px-2 sm:px-3 py-0.5 rounded-full inline-block truncate max-w-full">
                     {getMemberPosition(member)}
                   </span>
                 </div>

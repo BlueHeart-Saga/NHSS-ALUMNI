@@ -76,20 +76,20 @@ export const SchoolAchieversSection: React.FC = () => {
   };
 
   return (
-    <section id="school-achievers" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <section id="school-achievers" className="py-12 sm:py-24 bg-white border-b border-[#E5E7EB]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
         {/* Section Header */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
+        <div className="text-center space-y-2 sm:space-y-3 max-w-3xl mx-auto">
           <span className="inline-flex items-center space-x-2 text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
             <Trophy className="w-4 h-4 text-[#854D0E]" />
             <span>{language === 'ta' ? 'நமது பள்ளி சாதனையாளர்கள்' : 'Our School Achievers'}</span>
           </span>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight leading-tight">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight leading-tight">
             {language === 'ta' ? 'கல்விச் சிறப்பும் சாதனைகளும்' : 'Celebrating Excellence & Success'}
           </h2>
 
-          <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
+          <p className="text-xs sm:text-base text-gray-600 font-normal leading-relaxed">
             {language === 'ta'
               ? 'பள்ளி மற்றும் மாநில அளவில் அதிக மதிப்பெண்கள் பெற்று முதலிடம் பிடித்த சிறந்த மாணவர்களின் பட்டியல்.'
               : 'Honoring our academic rank holders and high achievers who made our school proud.'}
@@ -97,7 +97,7 @@ export const SchoolAchieversSection: React.FC = () => {
         </div>
 
         {/* Achievers Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
           {displayHolders.map((holder) => {
             const photoSrc = getAssetUrl(holder.photograph) ||
               `https://ui-avatars.com/api/?name=${encodeURIComponent(holder.student_name)}&background=111111&color=ffffff`;
@@ -108,7 +108,7 @@ export const SchoolAchieversSection: React.FC = () => {
               <div
                 key={holder.id}
                 onClick={() => setSelectedHolder(holder)}
-                className="bg-white border-2 border-[#111111] rounded-[32px] overflow-hidden shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 transform hover:-translate-x-1 hover:-translate-y-1 cursor-pointer flex flex-col justify-between group p-6 relative"
+                className="bg-white border-2 border-[#111111] rounded-2xl sm:rounded-[32px] overflow-hidden shadow-[4px_4px_0px_0px_#111111] sm:shadow-[6px_6px_0px_0px_#111111] hover:shadow-[8px_8px_0px_0px_#F4C542] transition-all duration-300 transform hover:-translate-x-0.5 hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between group p-4 sm:p-6 relative"
               >
                 {/* Top Rank Badge */}
                 <div className="flex items-center justify-between mb-4">
@@ -117,9 +117,9 @@ export const SchoolAchieversSection: React.FC = () => {
                     <span>{holder.rank}</span>
                   </span>
 
-                  {holder.marks_percentage && (
-                    <span className="text-sm font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                      {holder.marks_percentage}
+                  {(holder.total_marks || holder.marks_percentage) && (
+                    <span className="text-xs font-black text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3 py-1 rounded-full shadow-2xs">
+                      {holder.total_marks ? `${holder.total_marks} / ${holder.max_marks || '500'}` : holder.marks_percentage}
                     </span>
                   )}
                 </div>

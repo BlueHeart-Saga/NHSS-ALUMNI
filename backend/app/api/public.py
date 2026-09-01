@@ -384,6 +384,8 @@ async def get_public_rank_holders():
             "rank": d.get("rank"),
             "achievement_type": d.get("achievement_type"),
             "marks_percentage": d.get("marks_percentage"),
+            "total_marks": d.get("total_marks"),
+            "max_marks": d.get("max_marks"),
             "subject_stream": d.get("subject_stream"),
             "achievement_title": d.get("achievement_title"),
             "photograph": d.get("photograph"),
