@@ -33,136 +33,160 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
   const handleCardClick = (event: EventItem) => {
     setSelectedPreviewEvent(event);
     if (onSelectEvent) {
-      // Optional callback, not triggering duplicate page modal
+      // Optional callback
     }
   };
 
   return (
     <section id="upcoming-events" className="py-12 sm:py-24 bg-white border-b border-[#E5E7EB]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
-        {/* Section Header */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight leading-tight">
-            {t('upcoming_events_title')}
-          </h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
+          
+          {/* LEFT SIDE HERO / ANNOUNCEMENT FEATURE BLOCK WITH mic.png BACKGROUND GRAPHIC */}
+          <div className="lg:col-span-4 relative bg-gradient-to-br from-[#111111] via-[#1c1917] to-[#854D0E] text-white rounded-3xl p-6 sm:p-8 overflow-hidden border-2 border-[#111111] shadow-[8px_8px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all flex flex-col justify-between min-h-[380px] group">
+            {/* Background Megaphone Graphic (mic.png) */}
+            <div className="absolute -right-8 -bottom-8 w-64 sm:w-76 h-64 sm:h-76 opacity-30 sm:opacity-40 pointer-events-none transform rotate-12 group-hover:scale-105 transition-transform duration-500">
+              <img
+                src={getAssetUrl('/assets/components/mic.png')}
+                alt="Events Announcement Megaphone"
+                className="w-full h-full object-contain filter drop-shadow-2xl"
+              />
+            </div>
 
-          <p className="text-xs sm:text-base text-gray-600 font-normal leading-relaxed">
-            {language === 'ta'
-              ? 'உங்கள் வகுப்புத் தோழர்களைச் சந்திக்கவும் பழைய நினைவுகளைப் பகிர்ந்து கொள்ளவும் ஏற்பாடு செய்யப்பட்டுள்ள விழாக்கள்.'
-              : 'Reconnect with school batchmates, share nostalgic memories, and participate in upcoming reunions.'}
-          </p>
-        </div>
+            {/* Top Content */}
+            <div className="relative z-10 space-y-4">
+              <span className="inline-flex items-center space-x-2 text-xs font-bold text-[#F4C542] bg-[#F4C542]/15 border border-[#F4C542]/40 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                <Calendar className="w-4 h-4 text-[#F4C542]" />
+                <span>{t('upcoming_events_title')}</span>
+              </span>
 
-        {loading ? (
-          <EventsSkeleton />
-        ) : events.length === 0 ? (
-          <div className="text-center py-14 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-300 max-w-2xl mx-auto space-y-3">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto" />
-            <p className="text-gray-600 font-bold text-base">{t('no_events_yet')}</p>
-            <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              {language === 'ta' ? 'புதிய நிகழ்ச்சிகள் விரைவில் அறிவிக்கப்படும்.' : 'Check back soon for newly published batch reunions.'}
-            </p>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
+                {language === 'ta'
+                  ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு'
+                  : 'Reunions & School Celebrations'}
+              </h2>
+
+              <p className="text-xs sm:text-sm text-gray-300 font-normal leading-relaxed">
+                {language === 'ta'
+                  ? 'உங்கள் வகுப்புத் தோழர்களைச் சந்திக்கவும் பழைய நினைவுகளைப் பகிர்ந்து கொள்ளவும் ஏற்பாடு செய்யப்பட்டுள்ள விழாக்கள்.'
+                  : 'Reconnect with school batchmates, share nostalgic memories, and participate in upcoming reunions.'}
+              </p>
+            </div>
+
+            {/* Bottom Status Badge */}
+            <div className="relative z-10 pt-6 border-t border-white/10 mt-6 space-y-2">
+              <div className="flex items-center space-x-2 text-xs font-bold text-[#F4C542]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F4C542] animate-ping" />
+                <span>
+                  {events.length} {language === 'ta' ? 'அறிவிக்கப்பட்ட நிகழ்வுகள்' : 'Upcoming Events Scheduled'}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                {language === 'ta' ? 'அனைத்துப் பழைய மாணவர்களும் பங்கேற்க வரவேற்கப்படுகிறார்கள்.' : 'Open for all batch alumni members & guests.'}
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-8 sm:space-y-10">
-            {events.map((event) => {
-              const coverImage = getAssetUrl(event.cover_image_url) ||
-                getAssetUrl("/school-images/banner.png");
 
-              return (
-                <div
-                  key={event.id}
-                  className="bg-white rounded-3xl overflow-hidden border-2 border-[#111111] shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 group transform hover:-translate-y-1 flex flex-col justify-between"
-                >
-                  {/* TOP COVER BANNER IMAGE */}
-                  <div
-                    onClick={() => handleCardClick(event)}
-                    className="relative h-52 sm:h-64 w-full overflow-hidden bg-gray-900 cursor-pointer"
-                  >
-                    <img
-                      src={coverImage}
-                      alt={event.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* RIGHT SIDE: UPCOMING EVENTS CARDS */}
+          <div className="lg:col-span-8 space-y-6">
+            {loading ? (
+              <EventsSkeleton />
+            ) : events.length === 0 ? (
+              <div className="text-center py-14 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-300 max-w-2xl mx-auto space-y-3">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto" />
+                <p className="text-gray-600 font-bold text-base">{t('no_events_yet')}</p>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                  {language === 'ta' ? 'புதிய நிகழ்ச்சிகள் விரைவில் அறிவிக்கப்படும்.' : 'Check back soon for newly published batch reunions.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6 sm:space-y-8">
+                {events.map((event) => {
+                  const coverImage = getAssetUrl(event.cover_image_url) ||
+                    getAssetUrl("/school-images/banner.png");
 
-                    {/* Top Left Batch Badge */}
-                    {/* <div className="absolute top-4 left-4 z-10 flex items-center space-x-2">
-                      <span className="text-xs font-black bg-[#111111] text-[#F4C542] px-3.5 py-1.5 rounded-full uppercase tracking-wider border-2 border-[#F4C542] shadow-md">
-                        {event.batch_name}
-                      </span>
-                    </div> */}
-
-                    {/* Top Right Attending Count Badge */}
-                    {/* <div className="absolute top-4 right-4 z-10">
-                      <span className="text-xs font-bold bg-white/90 backdrop-blur-md text-[#111111] px-3 py-1 rounded-full shadow-md flex items-center space-x-1.5 border border-white">
-                        <Users className="w-3.5 h-3.5 text-[#854D0E]" />
-                        <span>{event.attending_count ?? 0} {language === 'ta' ? 'உறுதிப்படுத்தப்பட்டவர்கள்' : 'Attending'}</span>
-                      </span>
-                    </div> */}
-
-                    {/* Bottom Image Overlay Title */}
-                    <div className="absolute bottom-4 left-5 right-5 z-10 text-white">
-                      <h3 className="text-xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow-md line-clamp-1">
-                        {event.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* BOTTOM CARD BODY OUTSIDE OF IMAGE WITH HIGHLIGHTED CTA BUTTONS */}
-                  <div className="p-5 sm:p-7 space-y-4 bg-white flex-1 flex flex-col justify-between text-left">
-                    <div className="space-y-3">
-                      {/* Event Date & Venue Highlights Bar */}
-                      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm font-semibold text-gray-700">
-                        <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-xl shadow-2xs">
-                          <Calendar className="w-4 h-4 text-[#854D0E]" />
-                          <span>{event.event_date} {event.start_time && `• ${event.start_time}`}</span>
-                        </div>
-                        {event.venue && (
-                          <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-xl">
-                            <MapPin className="w-4 h-4 text-[#854D0E]" />
-                            <span className="truncate max-w-[240px]">{event.venue}</span>
-                          </div>
-                        )}
+                  return (
+                    <div
+                      key={event.id}
+                      className="bg-white rounded-3xl overflow-hidden border-2 border-[#111111] shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 group transform hover:-translate-y-1 flex flex-col justify-between"
+                    >
+                      {/* CLEAN FULL-SIZE COVER IMAGE (NO TEXT OVERLAY) */}
+                      <div
+                        onClick={() => handleCardClick(event)}
+                        className="relative h-56 sm:h-72 w-full overflow-hidden bg-gray-100 cursor-pointer border-b-2 border-[#111111]"
+                      >
+                        <img
+                          src={coverImage}
+                          alt={event.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        />
                       </div>
 
-                      {/* Description */}
-                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
-                        {event.description}
-                      </p>
-                    </div>
+                      {/* CARD BODY WITH TITLE, DATA & ACTION LINK BUTTONS BELOW IMAGE */}
+                      <div className="p-5 sm:p-7 space-y-4 bg-white flex-1 flex flex-col justify-between text-left">
+                        <div className="space-y-3">
+                          {/* Event Title */}
+                          <h3
+                            onClick={() => handleCardClick(event)}
+                            className="text-xl sm:text-2xl font-extrabold text-[#111111] leading-tight cursor-pointer hover:text-[#854D0E] transition-colors"
+                          >
+                            {event.title}
+                          </h3>
 
-                    {/* HIGHLIGHTED CTA ACTION BUTTONS OUTSIDE OF CARD IMAGE */}
-                    <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleCardClick(event)}
-                        className="w-full sm:w-auto px-6 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer active:scale-95 group/btn"
-                      >
-                        <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
-                        <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட் பெற' : 'View Details & RSVP Ticket'}</span>
-                        <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
-                      </button>
+                          {/* Event Date & Venue Highlights Bar */}
+                          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm font-semibold text-gray-700">
+                            <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-xl shadow-2xs">
+                              <Calendar className="w-4 h-4 text-[#854D0E]" />
+                              <span>{event.event_date} {event.start_time && `• ${event.start_time}`}</span>
+                            </div>
+                            {event.venue && (
+                              <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-xl">
+                                <MapPin className="w-4 h-4 text-[#854D0E]" />
+                                <span className="truncate max-w-[240px]">{event.venue}</span>
+                              </div>
+                            )}
+                          </div>
 
-                      {event.registration_url && (
-                        <a
-                          href={event.registration_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full sm:w-auto px-5 py-3.5 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] hover:text-[#111111] font-extrabold text-xs uppercase tracking-wider rounded-2xl border-2 border-[#F4C542] transition-all flex items-center justify-center space-x-1.5 shadow-sm"
-                        >
-                          <span>{language === 'ta' ? 'பதிவு படிவம்' : 'External Register'}</span>
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
+                          {/* Description */}
+                          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
+                            {event.description}
+                          </p>
+                        </div>
+
+                        {/* ACTION & REGISTRATION LINK BUTTONS */}
+                        <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleCardClick(event)}
+                            className="w-full sm:w-auto px-6 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer active:scale-95 group/btn"
+                          >
+                            <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
+                            <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட் பெற' : 'View Details & RSVP Ticket'}</span>
+                            <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
+                          </button>
+
+                          {event.registration_url && (
+                            <a
+                              href={event.registration_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full sm:w-auto px-5 py-3.5 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] hover:text-[#111111] font-extrabold text-xs uppercase tracking-wider rounded-2xl border-2 border-[#F4C542] transition-all flex items-center justify-center space-x-1.5 shadow-sm"
+                            >
+                              <span>{language === 'ta' ? 'பதிவு படிவம்' : 'External Register'}</span>
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+
+        </div>
       </div>
 
       {/* FULL LENGTH TOP BANNER PREVIEW MODAL WITH REAL QR CODE BARCODE */}
@@ -180,7 +204,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
             {/* TOP WIDE BANNER IMAGE WITH INSIDE TITLE & BATCH BADGE */}
             <div className="h-60 sm:h-72 w-full relative bg-gray-900 shrink-0 overflow-hidden">
               <img
-                src={getAssetUrl(selectedPreviewEvent.cover_image_url) || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&q=80"}
+                src={getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl("/school-images/banner.png")}
                 alt={selectedPreviewEvent.title}
                 className="w-full h-full object-cover"
               />
@@ -201,11 +225,12 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
             {/* MIDDLE DETAILS & QR CODE CONTENT */}
             <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-left">
-              {/* Event Date & Time Field (Outside Banner Photo) */}
+              {/* Event Date & Time Field */}
               <div className="inline-flex items-center space-x-2 text-xs sm:text-sm font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-2 rounded-2xl shadow-xs">
                 <Clock className="w-4 h-4 text-[#854D0E]" />
                 <span>{selectedPreviewEvent.event_date} ({selectedPreviewEvent.start_time || '10:00 AM'})</span>
               </div>
+
               {/* Event Description */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#854D0E] uppercase tracking-wider">

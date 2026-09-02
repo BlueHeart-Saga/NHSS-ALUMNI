@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Award, X, MapPin, Briefcase, Calendar, ChevronRight, UserCheck, ShieldCheck } from 'lucide-react';
+import { Award, X, MapPin, Briefcase, Calendar, ChevronRight, UserCheck, ShieldCheck, User } from 'lucide-react';
 import { api } from '../../../services/api';
 import { useLanguage } from '../../../context/LanguageContext';
 import { AssociationTeamMember } from '../../../types';
@@ -189,12 +189,16 @@ export const AlumniAssociationSection: React.FC = () => {
               className="bg-white border border-gray-200 hover:border-[#F4C542] rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-sm hover:shadow-2xl transition-all cursor-pointer group flex flex-col items-center text-center space-y-2 sm:space-y-3 transform hover:-translate-y-1"
             >
               {/* Big Profile Image */}
-              <div className="w-full h-44 sm:h-72 overflow-hidden rounded-xl sm:rounded-2xl bg-gray-100 relative">
-                <img
-                  src={member.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=FFF7D6&color=854D0E`}
-                  alt={getMemberName(member)}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+              <div className="w-full h-44 sm:h-72 overflow-hidden rounded-xl sm:rounded-2xl bg-[#FFF7D6] border border-[#F4C542]/50 relative flex items-center justify-center text-[#854D0E]">
+                {member.photo_url ? (
+                  <img
+                    src={member.photo_url}
+                    alt={getMemberName(member)}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <User className="w-16 h-16 sm:w-20 sm:h-20 stroke-[2.2] text-[#854D0E]" />
+                )}
               </div>
 
               {/* Name & Position Badge */}
@@ -228,12 +232,16 @@ export const AlumniAssociationSection: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 max-h-[85vh] overflow-y-auto md:overflow-hidden">
               {/* LEFT SIDE: Full Image */}
-              <div className="md:col-span-5 bg-gray-900 relative min-h-[320px] md:min-h-[460px] flex items-center justify-center">
-                <img
-                  src={selectedMember.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedMember.full_name)}&background=FFF7D6&color=854D0E`}
-                  alt={getMemberName(selectedMember)}
-                  className="w-full h-full object-cover"
-                />
+              <div className="md:col-span-5 bg-[#FFF7D6] relative min-h-[320px] md:min-h-[460px] flex items-center justify-center text-[#854D0E]">
+                {selectedMember.photo_url ? (
+                  <img
+                    src={selectedMember.photo_url}
+                    alt={getMemberName(selectedMember)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-24 h-24 stroke-[2.2] text-[#854D0E]" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden" />
               </div>
 

@@ -98,11 +98,40 @@ async def get_public_past_events():
         res.append({
             "id": str(ev["_id"]),
             "title": ev.get("title"),
+            "description": ev.get("description"),
             "event_date": ev.get("event_date"),
+            "start_time": ev.get("start_time"),
+            "end_time": ev.get("end_time"),
             "venue": ev.get("venue"),
+            "cover_image_url": ev.get("cover_image_url"),
             "attending_count": att_count,
-            "image_url": ev.get("cover_image_url") or "/school-images/banner.png",
-            "uploader_name": f"Past Event ({ev.get('event_date', '')})"
+            "status": "PAST"
+        })
+    return res
+
+@router.get("/school-events")
+async def get_public_school_events():
+    """Fetch public official school events and celebrations."""
+    db = get_db()
+    cursor = db.school_events.find({}).sort("event_date", -1)
+    events_list = await cursor.to_list(length=100)
+    res = []
+    for doc in events_list:
+        res.append({
+            "id": str(doc["_id"]),
+            "title": doc.get("title", ""),
+            "category": doc.get("category", "ANNUAL_DAY"),
+            "event_date": doc.get("event_date", ""),
+            "end_date": doc.get("end_date"),
+            "start_time": doc.get("start_time", "09:00 AM"),
+            "end_time": doc.get("end_time", "04:00 PM"),
+            "venue": doc.get("venue", "School Campus"),
+            "chief_guest": doc.get("chief_guest"),
+            "target_audience": doc.get("target_audience", "ALL_STUDENTS"),
+            "description": doc.get("description", ""),
+            "cover_image_url": doc.get("cover_image_url"),
+            "gallery_urls": doc.get("gallery_urls", []),
+            "status": doc.get("status", "UPCOMING")
         })
     return res
 
@@ -215,7 +244,7 @@ async def get_public_highlights():
             "passing_year": a.get("passing_year"),
             "profession": a.get("profession") or "Alumnus",
             "current_city": a.get("current_city") or "N/A",
-            "profile_photo_url": a.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={a.get('full_name')}&background=111111&color=ffffff"
+            "profile_photo_url": a.get("profile_photo_url")
         })
     return res
 
@@ -229,12 +258,22 @@ async def get_public_memories():
 
     res = []
     for m in memories:
+        cover = m.get("cover_image_url") or m.get("image_url") or ""
+        urls = m.get("media_urls") or []
+        if not urls and cover:
+            urls = [cover]
+
         res.append({
             "id": str(m["_id"]),
             "title": m.get("title", "School Memory"),
+            "album_name": m.get("album_name", "Campus Memories"),
+            "media_type": m.get("media_type", "IMAGE"),
             "description": m.get("description", ""),
             "batch_year": str(m.get("batch_year", m.get("batch_id", ""))),
-            "image_url": m.get("image_url"),
+            "image_url": cover,
+            "cover_image_url": cover,
+            "media_urls": urls,
+            "video_url": m.get("video_url"),
             "uploader_name": m.get("uploader_name", "Alumnus")
         })
     return res
@@ -364,12 +403,6 @@ async def get_public_association_team():
 async def get_public_rank_holders():
     """Public endpoint to fetch active School Rank Holders / Achievers."""
     db = get_db()
-    
-    # Auto-seed demo data if empty
-    count = await db.rank_holders.count_documents({})
-    if count == 0:
-        from app.api.rank_holders import seed_demo_rank_holders
-        await seed_demo_rank_holders(db, None)
 
     cursor = db.rank_holders.find({"status": "Active"}).sort([("academic_year", -1), ("class_standard", -1)])
     docs = await cursor.to_list(length=200)

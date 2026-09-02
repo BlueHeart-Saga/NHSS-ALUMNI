@@ -49,11 +49,6 @@ async def list_rank_holders(
             {"achievement_title": {"$regex": search, "$options": "i"}}
         ]
 
-    # Auto-seed demo rank holders if collection is completely empty
-    count = await db.rank_holders.count_documents({})
-    if count == 0:
-        await seed_demo_rank_holders(db, school_id)
-
     cursor = db.rank_holders.find(query).sort("created_at", -1)
     docs = await cursor.to_list(length=100)
 
@@ -170,62 +165,3 @@ async def delete_rank_holder(
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Rank holder record not found")
     return {"success": True, "message": "Rank holder deleted successfully"}
-
-
-async def seed_demo_rank_holders(db, school_id):
-    """Seed initial demo rank holders so admin and public portal instantly showcase cards."""
-    now = datetime.now(timezone.utc)
-    demo_holders = [
-        {
-            "school_id": school_id,
-            "student_name": "Arun Kumar",
-            "academic_year": "2025–26",
-            "class_standard": "10th",
-            "rank": "1st Rank",
-            "achievement_type": "SSLC / Public Examination",
-            "marks_percentage": "96%",
-            "total_marks": "480",
-            "max_marks": "500",
-            "achievement_title": "School First Rank",
-            "photograph": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
-            "description": "Achieved top score in SSLC State Board Public Examinations.",
-            "status": "Active",
-            "created_at": now,
-            "updated_at": now
-        },
-        {
-            "school_id": school_id,
-            "student_name": "Priya S",
-            "academic_year": "2025–26",
-            "class_standard": "10th",
-            "rank": "2nd Rank",
-            "achievement_type": "SSLC / Public Examination",
-            "marks_percentage": "94%",
-            "total_marks": "470",
-            "max_marks": "500",
-            "achievement_title": "School Second Rank",
-            "photograph": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80",
-            "description": "Outstanding academic record in Mathematics and Science.",
-            "status": "Active",
-            "created_at": now,
-            "updated_at": now
-        },
-        {
-            "school_id": school_id,
-            "student_name": "Karthik R",
-            "academic_year": "2024–25",
-            "class_standard": "10th",
-            "rank": "3rd Rank",
-            "achievement_type": "SSLC / Public Examination",
-            "marks_percentage": "93%",
-            "total_marks": "465",
-            "max_marks": "500",
-            "achievement_title": "School Third Rank",
-            "photograph": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
-            "description": "Secured top marks in Public Examinations.",
-            "status": "Active",
-            "created_at": now,
-            "updated_at": now
-        }
-    ]
-    await db.rank_holders.insert_many(demo_holders)

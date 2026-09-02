@@ -1,5 +1,5 @@
 import { 
-  SchoolProfile, AlumniProfile, Batch, EventItem, AttendanceDashboard, 
+  SchoolProfile, AlumniProfile, Batch, EventItem, SchoolEventItem, AttendanceDashboard, 
   AttendanceRosterItem, CheckinResult, Announcement, Memory, DashboardReport,
   BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder
 } from '../types';
@@ -285,6 +285,41 @@ class ApiClient {
     return this.request<RankHolder[]>('/public/rank-holders');
   }
 
+  // School Events & Celebrations
+  async getSchoolEvents(category?: string, status?: string) {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (status) params.append('status', status);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.request<SchoolEventItem[]>(`/school-events${queryString}`);
+  }
+
+  async createSchoolEvent(data: Partial<SchoolEventItem>) {
+    return this.request<SchoolEventItem>('/school-events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSchoolEvent(id: string, data: Partial<SchoolEventItem>) {
+    return this.request<SchoolEventItem>(`/school-events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSchoolEvent(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/school-events/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async seedSchoolEvents() {
+    return this.request<{ success: boolean; message: string }>('/school-events/seed', {
+      method: 'POST',
+    });
+  }
+
   async getSchoolAdmins() {
     return this.request<AlumniProfile[]>('/school/admins');
   }
@@ -483,10 +518,63 @@ class ApiClient {
   }
 
   // Memories & Photos Management
-  async getMemories(status?: string) {
+  async getMemories(status?: string, media_type?: string, album_name?: string, search?: string) {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
+    if (media_type) params.append('media_type', media_type);
+    if (album_name) params.append('album_name', album_name);
+    if (search) params.append('search', search);
     return this.request<Memory[]>(`/memories?${params.toString()}`);
+  }
+
+  async getMemoryAlbums() {
+    return this.request<{ album_name: string; count: number; cover_image_url: string; last_updated: string }[]>('/memories/albums');
+  }
+
+  async uploadMemoryFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/memories/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: 'File upload failed' }));
+      throw new Error(errorBody.detail || 'File upload failed');
+    }
+
+    return response.json() as Promise<{ url: string; filename: string; media_type: string }>;
+  }
+
+  async uploadMultipleMemoryFiles(files: FileList | File[]) {
+    const formData = new FormData();
+    Array.from(files).forEach((file) => formData.append('files', file));
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/memories/upload-multiple`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: 'Files upload failed' }));
+      throw new Error(errorBody.detail || 'Files upload failed');
+    }
+
+    return response.json() as Promise<{ urls: string[]; files: any[] }>;
   }
 
   async createMemory(data: Partial<Memory>) {
@@ -572,12 +660,11 @@ class ApiClient {
   }
 
   async getPublicMemories() {
-    return this.request<Array<{
-      id: string;
-      title: string;
-      image_url: string;
-      uploader_name: string;
-    }>>('/public/memories');
+    return this.request<Memory[]>('/public/memories');
+  }
+
+  async getPublicSchoolEvents() {
+    return this.request<SchoolEventItem[]>('/public/school-events');
   }
 
   async getPublicAnnouncements() {

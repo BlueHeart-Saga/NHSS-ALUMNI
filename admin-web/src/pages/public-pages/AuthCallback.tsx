@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Loader2 } from 'lucide-react';
+import { getRedirectPathForRoles } from '../../utils/roleRedirect';
 
 export const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,21 +26,42 @@ export const AuthCallback: React.FC = () => {
 
     if (token) {
       api.setToken(token);
-      alertService.showSuccess('Google Sign In Successful', `Welcome back, ${name || email || 'Alumni'}!`);
       
-      if (registrationRequired) {
-        navigate('/register', {
-          state: {
-            email: email,
-            fullName: name,
-            profilePhotoUrl: photo,
-            resumeStep: resumeStep,
-            isGoogleAuth: true
+      api.getMe()
+        .then((u) => {
+          const targetPath = getRedirectPathForRoles(u.roles, registrationRequired);
+          alertService.showSuccess('Google Sign In Successful', `Welcome back, ${u.full_name || name || email || 'User'}!`);
+
+          if (targetPath === '/register') {
+            navigate('/register', {
+              state: {
+                email: email,
+                fullName: name,
+                profilePhotoUrl: photo,
+                resumeStep: resumeStep,
+                isGoogleAuth: true
+              }
+            });
+          } else {
+            navigate(targetPath);
+          }
+        })
+        .catch(() => {
+          alertService.showSuccess('Google Sign In Successful', `Welcome back, ${name || email || 'Alumni'}!`);
+          if (registrationRequired) {
+            navigate('/register', {
+              state: {
+                email: email,
+                fullName: name,
+                profilePhotoUrl: photo,
+                resumeStep: resumeStep,
+                isGoogleAuth: true
+              }
+            });
+          } else {
+            navigate('/alumni');
           }
         });
-      } else {
-        navigate('/alumni');
-      }
     } else {
       alertService.showError('Authentication Failed', 'No access token received from Google authentication.');
       navigate('/login');

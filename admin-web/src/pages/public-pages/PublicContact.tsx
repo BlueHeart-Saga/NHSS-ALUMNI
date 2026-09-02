@@ -38,9 +38,7 @@ export const PublicContact: React.FC = () => {
       {/* Header Banner */}
       <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
-          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
-            {t('nav_contact')}
-          </span>
+          
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {t('contact_title')}
           </h1>
@@ -71,7 +69,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('location')}</strong>
-                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'முதன்மை வளாகம், பள்ளி பழைய மாணவர்கள் கட்டிடம், தமிழ்நாடு' : 'Main Campus, School Alumni Building, Tamil Nadu'}</span>
+                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, கோவில்பட்டி' : 'NHSS School Building, Kaattunayakkanpatti,Kovilpatti Tamil Nadu'}</span>
                   </div>
                 </div>
 

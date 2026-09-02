@@ -78,11 +78,17 @@ export const AlumniPortal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAlumni.map((a) => (
                 <div key={a.id || a.mobile} className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-start space-x-4">
-                  <img
-                    src={a.profile_photo_url || `https://ui-avatars.com/api/?name=${a.full_name}&background=111111&color=ffffff`}
-                    alt={a.full_name}
-                    className="w-14 h-14 rounded-full object-cover border border-[#E5E7EB]"
-                  />
+                  <div className="w-14 h-14 rounded-full overflow-hidden border border-[#E5E7EB] bg-[#FFF7D6] flex items-center justify-center text-[#854D0E] shrink-0">
+                    {a.profile_photo_url ? (
+                      <img
+                        src={a.profile_photo_url}
+                        alt={a.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 stroke-[2.2] text-[#854D0E]" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-sm text-[#111111] truncate">{a.full_name}</h4>
                     <span className="text-[11px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block mt-0.5">

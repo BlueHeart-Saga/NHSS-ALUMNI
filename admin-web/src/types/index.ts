@@ -196,6 +196,25 @@ export interface EventItem {
   created_at: string;
 }
 
+export interface SchoolEventItem {
+  id: string;
+  school_id?: string;
+  title: string;
+  category: 'ANNUAL_DAY' | 'SPORTS_DAY' | 'CULTURAL_FEST' | 'NATIONAL_DAY' | 'EXHIBITION' | 'CELEBRATION' | 'ACADEMIC_MEET' | 'GRADUATION_DAY' | 'OTHER';
+  event_date: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
+  venue: string;
+  chief_guest?: string;
+  target_audience?: string;
+  description: string;
+  cover_image_url?: string;
+  gallery_urls?: string[];
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
+  created_at?: string;
+}
+
 export interface AttendanceRosterItem {
   alumni_id: string;
   full_name: string;
@@ -248,8 +267,14 @@ export interface Memory {
   batch_year?: string;
   event_id?: string;
   title: string;
+  album_name?: string;
+  media_type?: 'IMAGE' | 'VIDEO' | 'ALBUM';
   description?: string;
   image_url: string;
+  cover_image_url?: string;
+  media_urls?: string[];
+  video_url?: string;
+  video_thumbnail_url?: string;
   uploader_name: string;
   uploader_email?: string;
   uploader_id?: string;

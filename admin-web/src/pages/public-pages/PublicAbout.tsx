@@ -29,9 +29,7 @@ export const PublicAbout: React.FC = () => {
       {/* Header Banner */}
       <div className="py-10 sm:py-20 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
-          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
-            {t('nav_about')}
-          </span>
+          
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {t('about_title')}
           </h1>
@@ -46,10 +44,7 @@ export const PublicAbout: React.FC = () => {
         {/* Mission & Vision Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div className="space-y-4 sm:space-y-6">
-            <div className="inline-flex items-center space-x-2 text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] px-3.5 py-1 rounded-full border border-[#F4C542]">
-              <Sparkles className="w-4 h-4 text-[#F4C542]" />
-              <span>{t('our_mission_title')}</span>
-            </div>
+           
             <h2 className="text-xl sm:text-3xl lg:text-4xl font-semibold text-[#111111] leading-tight">
               {language === 'ta' ? 'வாழ்நாள் தொடர்புகள் மற்றும் பரஸ்பர வளர்ச்சி' : 'Fostering Lifelong Connections & Mutual Growth'}
             </h2>

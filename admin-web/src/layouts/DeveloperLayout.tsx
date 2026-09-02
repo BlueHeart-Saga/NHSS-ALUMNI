@@ -18,8 +18,13 @@ export const DeveloperLayout: React.FC = () => {
     }
     api.getMe()
       .then((u) => {
-        if (!u.roles?.includes('SUPER_ADMIN')) {
-          console.warn('Unauthorized access: User does not have Super Admin role');
+        const upperRoles = (u.roles || []).map((r) => String(r).toUpperCase());
+        if (
+          !upperRoles.includes('SUPER_ADMIN') &&
+          !upperRoles.includes('DEVELOPER') &&
+          !upperRoles.includes('PLATFORM_DEVELOPER')
+        ) {
+          console.warn('Unauthorized access: User does not have Developer/Super Admin role');
           handleLogout();
         }
       })

@@ -10,6 +10,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { getAssetUrl } from '../../utils/asset';
 
+import { getRedirectPathForRoles } from '../../utils/roleRedirect';
+
 export const AlumniLogin: React.FC = () => {
   const navigate = useNavigate();
   const { t, language, logoUrl } = useLanguage();
@@ -42,7 +44,19 @@ export const AlumniLogin: React.FC = () => {
         if (s.logo_url) setSchoolLogo(s.logo_url);
       })
       .catch(() => {});
-  }, []);
+
+    // Auto-redirect if user is already authenticated
+    if (api.getToken()) {
+      api.getMe()
+        .then((u) => {
+          if (u && u.roles) {
+            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+            navigate(target);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [navigate]);
 
   // Step 1 Submission: Validate Credentials & Send OTP
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -93,7 +107,9 @@ export const AlumniLogin: React.FC = () => {
 
     try {
       const res = await api.verifyOTP(email, otp);
-      if (res.registration_required) {
+      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+
+      if (targetPath === '/register') {
         navigate('/register', {
           state: {
             email: email,
@@ -102,7 +118,12 @@ export const AlumniLogin: React.FC = () => {
           }
         });
       } else {
-        navigate('/alumni');
+        if (targetPath === '/developer') {
+          alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
+        } else if (targetPath === '/school-admin') {
+          alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
+        }
+        navigate(targetPath);
       }
     } catch (err: any) {
       setError(err.message || (language === 'ta' ? 'தவறான OTP. மீண்டும் முயற்சிக்கவும்.' : 'Invalid verification code. Please try again.'));

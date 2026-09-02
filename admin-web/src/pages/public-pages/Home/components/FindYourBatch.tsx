@@ -155,7 +155,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
         </form>
 
         {/* UNSELECTED EMPTY STATE PROMPT */}
-        {!activeResult && (
+        {/* {!activeResult && (
           <div className="py-10 sm:py-12 px-5 sm:px-6 border-2 border-dashed border-gray-200 rounded-3xl max-w-xl mx-auto text-center space-y-3 bg-gray-50/50">
             <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto" />
             <h3 className="text-base sm:text-lg font-bold text-gray-700">
@@ -167,7 +167,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                 : 'Choose a batch year from the dropdown above to explore batch members and statistics.'}
             </p>
           </div>
-        )}
+        )} */}
 
         {/* OPEN RESULTS DISPLAY */}
         {activeResult && (

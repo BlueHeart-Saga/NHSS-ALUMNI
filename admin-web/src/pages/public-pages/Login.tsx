@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, KeyRound, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { alertService } from '../../services/alertService';
+import { getRedirectPathForRoles } from '../../utils/roleRedirect';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess?: (path?: string) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
@@ -19,6 +20,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [step, setStep] = useState<'CREDENTIALS' | 'OTP'>('CREDENTIALS');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (api.getToken()) {
+      api.getMe()
+        .then((u) => {
+          if (u && u.roles) {
+            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+            navigate(target);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [navigate]);
 
   const handleVerifyCredentialsAndSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +72,20 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setLoading(true);
     try {
       // Step 2: Verify 6-Digit OTP code and issue JWT token
-      await api.verifyAdminOTP(email.trim(), otp.trim());
-      alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
-      onLoginSuccess();
-      navigate('/school-admin');
+      const res = await api.verifyAdminOTP(email.trim(), otp.trim());
+      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+
+      if (targetPath === '/developer') {
+        alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
+      } else {
+        alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
+      }
+
+      if (onLoginSuccess) {
+        onLoginSuccess(targetPath);
+      } else {
+        navigate(targetPath);
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid or expired verification OTP code.');
     } finally {

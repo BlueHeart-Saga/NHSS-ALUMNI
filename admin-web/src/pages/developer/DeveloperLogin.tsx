@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Mail, KeyRound, ArrowRight, Lock } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
 import { alertService } from '../../services/alertService';
+import { getRedirectPathForRoles } from '../../utils/roleRedirect';
 
 interface DeveloperLoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess?: (path?: string) => void;
 }
 
 export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'EMAIL' | 'OTP'>('EMAIL');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (api.getToken()) {
+      api.getMe()
+        .then((u) => {
+          if (u && u.roles) {
+            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+            navigate(target);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [navigate]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,10 +72,21 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
     setLoading(true);
 
     try {
-      await api.verifyOTP(email.trim().toLowerCase(), otp.trim());
+      const res = await api.verifyOTP(email.trim().toLowerCase(), otp.trim());
       if (email) localStorage.setItem('developer_email', email.trim().toLowerCase());
-      alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
-      onLoginSuccess();
+      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+
+      if (targetPath === '/developer') {
+        alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
+      } else if (targetPath === '/school-admin') {
+        alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
+      }
+
+      if (onLoginSuccess) {
+        onLoginSuccess(targetPath);
+      } else {
+        navigate(targetPath);
+      }
     } catch (err: any) {
       const errMsg = err.message || 'Invalid developer verification OTP code.';
       setError(errMsg);

@@ -18,9 +18,7 @@ export const PublicEvents: React.FC = () => {
       {/* Header Banner */}
       <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-          <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider">
-            {t('nav_events')}
-          </span>
+        
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {t('events_page_title')}
           </h1>

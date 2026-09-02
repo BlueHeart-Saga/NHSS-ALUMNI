@@ -41,9 +41,12 @@ export const SchoolAdminLayout: React.FC = () => {
     if (pathname.includes('/school-admin/verification')) return 'Verification Queue';
     if (pathname.includes('/school-admin/batches')) return 'Batches & Cohorts';
     if (pathname.includes('/school-admin/events/create')) return 'Create Reunion Event';
-    if (pathname.includes('/school-admin/events')) return 'Events & Get-Togethers';
+    if (pathname.includes('/school-admin/school-events')) return 'School Events & Celebrations';
+    if (pathname.includes('/school-admin/events')) return 'Alumni Events & Get-Togethers';
     if (pathname.includes('/school-admin/announcements')) return 'Announcements Feed';
     if (pathname.includes('/school-admin/memories')) return 'Memories & Photo Moderation';
+    if (pathname.includes('/school-admin/association-team')) return 'Association Leadership Team';
+    if (pathname.includes('/school-admin/rank-holders')) return 'Academic Rank Holders & Toppers';
     if (pathname.includes('/school-admin/reports')) return 'Reports & Analytics';
     if (pathname.includes('/school-admin/settings')) return 'School Settings';
     return 'School Admin Overview';

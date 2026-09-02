@@ -42,6 +42,7 @@ import { ReportsDashboard } from '../pages/school-admin/ReportsDashboard';
 import { SchoolSettings } from '../pages/school-admin/SchoolSettings';
 import { AssociationTeam } from '../pages/school-admin/AssociationTeam';
 import { RankHoldersManager } from '../pages/school-admin/RankHoldersManager';
+import { SchoolEventsManager } from '../pages/school-admin/SchoolEventsManager';
 
 // Developer Pages
 import { DeveloperPortal } from '../pages/developer/DeveloperPortal';
@@ -65,10 +66,10 @@ export const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Admin & Developer Logins & Access Requests */}
-      <Route path="/admin/login" element={<Login onLoginSuccess={() => window.location.href = '/school-admin'} />} />
+      <Route path="/admin/login" element={<Login onLoginSuccess={(path) => window.location.href = path || '/school-admin'} />} />
       <Route path="/admin/request-access" element={<SchoolAdminRequest />} />
       <Route path="/admin/setup-password" element={<AdminSetupPassword />} />
-      <Route path="/developer/login" element={<DeveloperLogin onLoginSuccess={() => window.location.href = '/developer'} />} />
+      <Route path="/developer/login" element={<DeveloperLogin onLoginSuccess={(path) => window.location.href = path || '/developer'} />} />
 
       {/* 2. ALUMNI STUDENT ROUTES */}
       <Route path="/alumni" element={<AlumniLayout />}>
@@ -95,6 +96,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="events/create" element={<CreateEditEvent />} />
         <Route path="events/:eventId" element={<EventDetails />} />
         <Route path="events/:eventId/attendance" element={<AttendanceRoster />} />
+        <Route path="school-events" element={<SchoolEventsManager />} />
         <Route path="announcements" element={<AnnouncementsManager />} />
         <Route path="memories" element={<MemoriesModeration />} />
         <Route path="association-team" element={<AssociationTeam />} />

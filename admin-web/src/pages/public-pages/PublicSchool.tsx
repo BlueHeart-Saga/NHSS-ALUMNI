@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, MapPin, Phone, Mail, Globe, Calendar, GraduationCap, ShieldCheck, X, ExternalLink, ArrowRight } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Globe, Calendar, GraduationCap, ShieldCheck, X, ExternalLink, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -20,10 +20,18 @@ interface PublicSchoolProfile {
   email: string;
 }
 
+interface GalleryPhotoItem {
+  id: string;
+  title: string;
+  src: string;
+  category: string;
+}
+
 export const PublicSchool: React.FC = () => {
   const { t, language, logoUrl } = useLanguage();
   const navigate = useNavigate();
-  const [selectedPhoto, setSelectedPhoto] = useState<{ src: string; title: string; category: string } | null>(null);
+
+  const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhotoItem | null>(null);
   const realCampusBanner = getAssetUrl('/school-images/banner.png');
   const [profile, setProfile] = useState<PublicSchoolProfile>({
     name: language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHSS SCHOOL',
@@ -40,15 +48,19 @@ export const PublicSchool: React.FC = () => {
     email: 'info@nhssalumni.com'
   });
 
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhotoItem[]>([]);
+  const [loadingGallery, setLoadingGallery] = useState(true);
+
   useEffect(() => {
+    // 1. Fetch School Stats
     api.getPublicStats()
       .then((s: any) => setProfile({
         name: s.school_name || (language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHSS SCHOOL'),
         code: s.school_code || 'NHSS',
         established_year: s.established_year || 1965,
-        total_alumni: s.total_alumni || 1250,
-        active_batches: s.total_batches || 48,
-        upcoming_events: s.total_events || 5,
+        total_alumni: s.total_alumni || 0,
+        active_batches: s.total_batches || 0,
+        upcoming_events: s.total_events || 0,
         cover_url: s.cover_url || '',
         logo_url: s.logo_url || '',
         description: s.description || 'Empowering generations through quality education.',
@@ -57,26 +69,50 @@ export const PublicSchool: React.FC = () => {
         email: s.email || s.contact_email || 'info@nhssalumni.com'
       }))
       .catch(console.error);
-  }, []);
 
-  const campusPhotos = [
-    { title: language === 'ta' ? 'பாரம்பரிய நுழைவாயில்' : 'Heritage School Entrance', src: getAssetUrl('/school-images/school-door.png'), category: 'Campus Heritage' },
-    { title: language === 'ta' ? 'முதன்மை வளாகக் கட்டிடம்' : 'Main School Campus', src: getAssetUrl('/school-images/banner.png'), category: 'Campus Infrastructure' },
-    { title: language === 'ta' ? 'குடியரசு தின விழா' : 'Republic Day Celebrations', src: getAssetUrl('/school-images/Republic-Day.png'), category: 'National Events' },
-    { title: language === 'ta' ? 'இலவச மிதிவண்டி திட்டம்' : 'Student Welfare & Bicycle Scheme', src: getAssetUrl('/school-images/give-cycle.png'), category: 'Welfare Schemes' },
-    { title: language === 'ta' ? 'பழைய மாணவர்கள் நிர்வாகக் கூட்டம்' : 'Alumni Reunion Executive Gathering', src: getAssetUrl('/school-images/meeting.png'), category: 'Alumni Network' },
-    { title: language === 'ta' ? 'முன்னாள் தலைமையாசிரியர்கள்' : 'Former Principals & School Honors', src: getAssetUrl('/school-images/old-pricipal.png'), category: 'Leadership' },
-    { title: language === 'ta' ? 'பழைய மாணவர்கள் செல்ஃபி' : 'Alumni Reunion Batch Group Photo', src: getAssetUrl('/school-images/old-students-selfie.png'), category: 'Batch Reunion' },
-    { title: language === 'ta' ? 'பள்ளி மாணவர்கள்' : 'Student Assembly & Cohorts', src: getAssetUrl('/school-images/our-students.png'), category: 'Student Life' },
-    { title: language === 'ta' ? 'ஆசிரியர்கள் உரை' : 'Faculty Address & Speeches', src: getAssetUrl('/school-images/staff-speech.png'), category: 'Faculty & Mentors' },
-    { title: language === 'ta' ? 'மாணவர் விருதுகள்' : 'Academic & Sports Awards', src: getAssetUrl('/school-images/studentaward.png'), category: 'Excellence Awards' },
-    { title: language === 'ta' ? 'கலை நிகழ்ச்சிகள்' : 'Cultural Programs & Student Events', src: getAssetUrl('/school-images/students-events.png'), category: 'Co-Curricular' },
-    { title: language === 'ta' ? 'பரிசு அளிப்பு விழா' : 'Annual Prize Distribution', src: getAssetUrl('/school-images/sudentgetprize.png'), category: 'Annual Function' },
-    { title: language === 'ta' ? 'கொடியேற்று விழா' : 'Flag Hoisting Ceremony', src: getAssetUrl('/school-images/flag-inaguration.png'), category: 'Celebrations' }
-  ];
+    // 2. Fetch Real Campus Photos & Events from Database
+    Promise.all([
+      api.getPublicSchoolEvents().catch(() => []),
+      api.getPublicMemories().catch(() => [])
+    ]).then(([schoolEvents, memories]) => {
+      const photos: GalleryPhotoItem[] = [];
+
+      (schoolEvents || []).forEach((ev: any) => {
+        if (ev.cover_image_url) {
+          photos.push({
+            id: `se-${ev.id}`,
+            title: ev.title,
+            src: getAssetUrl(ev.cover_image_url),
+            category: ev.category?.replace('_', ' ') || 'School Event'
+          });
+        }
+        (ev.gallery_urls || []).forEach((gUrl: string, idx: number) => {
+          photos.push({
+            id: `se-${ev.id}-g-${idx}`,
+            title: `${ev.title} Gallery`,
+            src: getAssetUrl(gUrl),
+            category: ev.category?.replace('_', ' ') || 'School Event'
+          });
+        });
+      });
+
+      (memories || []).forEach((mem: any) => {
+        if (mem.cover_image_url || mem.image_url) {
+          photos.push({
+            id: `mem-${mem.id}`,
+            title: mem.title,
+            src: getAssetUrl(mem.cover_image_url || mem.image_url),
+            category: mem.album_name || 'Campus Heritage'
+          });
+        }
+      });
+
+      setGalleryPhotos(photos);
+    }).finally(() => setLoadingGallery(false));
+  }, [language]);
 
   return (
-    <div className="min-h-screen bg-white text-[#111111] animate-fadeIn">
+    <div className="min-h-screen bg-white text-[#111111] animate-fadeIn font-sans">
       {/* Campus Hero Cover */}
       <div className="relative h-64 sm:h-96 lg:h-[420px] overflow-hidden bg-gray-900">
         <img
@@ -181,7 +217,7 @@ export const PublicSchool: React.FC = () => {
 
         </div>
 
-        {/* Real Campus Photos Gallery */}
+        {/* Real Campus Photos Gallery (From DB) */}
         <div className="space-y-6 pt-8 sm:pt-10 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -189,28 +225,44 @@ export const PublicSchool: React.FC = () => {
                 {language === 'ta' ? 'பள்ளி புகைப்படங்கள்' : 'Campus Photo Gallery'}
               </span>
               <h3 className="text-xl sm:text-2xl font-bold text-[#111111] mt-2">
-                {language === 'ta' ? 'பள்ளியின் புகைப்படத் கேலரி' : 'Explore Our Campus & Event Highlights'}
+                {language === 'ta' ? 'பள்ளியின் புகைப்படக் கேலரி' : 'Explore Our Campus & Event Highlights'}
               </h3>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {campusPhotos.map((photo, idx) => (
-              <div
-                key={idx}
-                onClick={() => setSelectedPhoto(photo)}
-                className="group overflow-hidden rounded-2xl border border-gray-200 shadow-sm hover:shadow-2xl hover:border-[#F4C542] transition-all bg-white cursor-pointer transform hover:-translate-y-1"
-              >
-                <div className="h-48 overflow-hidden bg-gray-100 relative">
-                  <img src={photo.src} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          {loadingGallery ? (
+            <div className="text-center py-12 text-gray-500 font-semibold text-sm">
+              Loading Campus Gallery...
+            </div>
+          ) : galleryPhotos.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-300 max-w-xl mx-auto space-y-2 p-6">
+              <ImageIcon className="w-10 h-10 text-gray-400 mx-auto" />
+              <h4 className="font-bold text-sm text-[#111111]">
+                {language === 'ta' ? 'புகைப்படங்கள் எதுவும் பதிவேற்றப்படவில்லை' : 'No Campus Photos or Events Added Yet'}
+              </h4>
+              <p className="text-xs text-gray-500 font-medium">
+                Campus photos and celebration event highlights will appear here once added by the school administration.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {galleryPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  onClick={() => setSelectedPhoto(photo)}
+                  className="group overflow-hidden rounded-2xl border border-gray-200 shadow-sm hover:shadow-2xl hover:border-[#F4C542] transition-all bg-white cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between"
+                >
+                  <div className="h-48 overflow-hidden bg-gray-100 relative">
+                    <img src={photo.src} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <span className="text-[11px] font-bold text-[#854D0E] uppercase">{photo.category}</span>
+                    <h4 className="font-bold text-sm text-[#111111] mt-0.5 line-clamp-1">{photo.title}</h4>
+                  </div>
                 </div>
-                <div className="p-4">
-                  <span className="text-[11px] font-bold text-[#854D0E] uppercase">{photo.category}</span>
-                  <h4 className="font-bold text-sm text-[#111111] mt-0.5">{photo.title}</h4>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* View More Button leading to Login */}
           <div className="text-center pt-8">
