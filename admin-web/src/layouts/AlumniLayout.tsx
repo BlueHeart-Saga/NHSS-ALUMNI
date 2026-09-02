@@ -20,7 +20,7 @@ export interface AlumniContextType {
 export const AlumniLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logoUrl } = useLanguage();
+  const { t, logoUrl } = useLanguage();
 
   const [user, setUser] = useState<AlumniProfile | null>(null);
   const [school, setSchool] = useState<SchoolProfile | null>(null);
@@ -121,7 +121,7 @@ export const AlumniLayout: React.FC = () => {
             />
             <div className="hidden sm:block">
               <div className="flex items-center space-x-1.5">
-                <h1 className="font-extrabold text-sm sm:text-base text-[#111111]">{school?.name || 'Alumni Portal'}</h1>
+                <h1 className="font-extrabold text-sm sm:text-base text-[#111111]">{t('app_title')}</h1>
                 <CheckCircle2 className="w-4 h-4 text-amber-500 fill-amber-100" />
               </div>
               <span className="text-[11px] text-[#6B7280]">Class of {user?.passing_year || 'Alumni'}</span>

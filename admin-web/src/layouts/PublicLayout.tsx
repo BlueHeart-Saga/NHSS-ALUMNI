@@ -72,7 +72,7 @@ export const PublicLayout: React.FC = () => {
             />
             <div className="min-w-0">
               <h1 className="text-base sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-[#111111] leading-snug truncate max-w-[150px] xs:max-w-[220px] sm:max-w-md lg:max-w-none">
-                {school?.name || t('app_title')}
+                {t('app_title')}
               </h1>
               <span className="text-[10px] sm:text-xs lg:text-sm text-[#854D0E] font-bold tracking-wide block truncate mt-0.5">
                 {t('tagline')}
@@ -175,7 +175,7 @@ export const PublicLayout: React.FC = () => {
       <footer className="bg-white border-t border-[#E5E7EB] py-10 text-sm text-gray-600 font-normal mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div>
-            <div className="font-semibold text-[#111111] text-base sm:text-lg">{school?.name || t('app_title')}</div>
+            <div className="font-semibold text-[#111111] text-base sm:text-lg">{t('app_title')}</div>
             <div className="mt-1.5 text-sm text-gray-500 font-medium flex flex-wrap items-center justify-center md:justify-start gap-2">
               <span>{t('copyright')}</span>
               <span className="text-gray-300 hidden sm:inline">•</span>

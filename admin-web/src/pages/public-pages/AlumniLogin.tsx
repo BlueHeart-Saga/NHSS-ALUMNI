@@ -278,7 +278,7 @@ export const AlumniLogin: React.FC = () => {
               />
               <div>
                 <h1 className="text-2xl sm:text-3xl font-medium text-[#111111] tracking-tight leading-tight">
-                  {schoolName}
+                  {t('app_title')}
                 </h1>
                 <p className="text-sm text-gray-500 font-normal mt-0.5">
                   {language === 'ta' ? 'இணைந்திருப்போம். முன்னேறுவோம்.' : 'Stay Connected. Stay Together.'}

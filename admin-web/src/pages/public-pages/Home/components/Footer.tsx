@@ -7,7 +7,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ schoolName, logoUrl: propLogoUrl }) => {
-  const { logoUrl: contextLogoUrl } = useLanguage();
+  const { t, logoUrl: contextLogoUrl } = useLanguage();
   const activeLogoUrl = propLogoUrl || contextLogoUrl;
 
   return (
@@ -16,9 +16,9 @@ export const Footer: React.FC<FooterProps> = ({ schoolName, logoUrl: propLogoUrl
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-[#E5E7EB]">
           {/* Logo & Name */}
           <div className="flex items-start space-x-3.5">
-            <img src={contextLogoUrl} alt={schoolName} className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border border-[#E5E7EB] object-contain shrink-0" />
+            <img src={contextLogoUrl} alt={t('app_title')} className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border border-[#E5E7EB] object-contain shrink-0" />
             <div>
-              <div className="font-semibold text-base sm:text-lg text-[#111111]">{schoolName}</div>
+              <div className="font-semibold text-base sm:text-lg text-[#111111]">{t('app_title')}</div>
               <div className="text-xs font-semibold text-[#854D0E]">Official School Alumni Network</div>
             </div>
           </div>
@@ -36,7 +36,7 @@ export const Footer: React.FC<FooterProps> = ({ schoolName, logoUrl: propLogoUrl
         {/* Legal & Copyright */}
         <div className="flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-gray-500 font-normal gap-4 text-center sm:text-left">
           <div>
-            © 2026 {schoolName} Alumni Network. Built on Devopstrio. All Rights Reserved.
+            © 2026 {t('app_title')} Alumni Network. Built on Devopstrio. All Rights Reserved.
           </div>
 
           <div className="flex items-center space-x-4 font-semibold text-[#111111] text-xs sm:text-sm">
