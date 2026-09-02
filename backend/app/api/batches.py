@@ -62,7 +62,13 @@ async def list_batches(current_user: dict = Depends(get_current_user)):
     result = []
     for b in batches:
         b_id = str(b["_id"])
-        total_members = counts_map.get(b["passing_year"], 0)
+        try:
+            raw_yr = b.get("passing_year")
+            passing_yr = int(raw_yr) if raw_yr is not None else 2020
+        except Exception:
+            passing_yr = 2020
+        total_members = counts_map.get(passing_yr, 0) or counts_map.get(str(passing_yr), 0)
+        batch_name = b.get("name") or b.get("title") or (f"Batch of {passing_yr}" if passing_yr else "Alumni Batch")
 
         c_profiles = []
         for c in b.get("coordinators", []):
@@ -73,8 +79,8 @@ async def list_batches(current_user: dict = Depends(get_current_user)):
         result.append(BatchResponse(
             id=b_id,
             school_id=school_id,
-            name=b["name"],
-            passing_year=b["passing_year"],
+            name=batch_name,
+            passing_year=passing_yr,
             description=b.get("description"),
             coordinators=b.get("coordinators", []),
             coordinator_profiles=c_profiles,
@@ -131,9 +137,16 @@ async def get_batch_details(batch_id: str, current_user: dict = Depends(get_curr
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
 
+    try:
+        raw_yr = batch.get("passing_year")
+        passing_yr = int(raw_yr) if raw_yr is not None else 2020
+    except Exception:
+        passing_yr = 2020
+    batch_name = batch.get("name") or batch.get("title") or (f"Batch of {passing_yr}" if passing_yr else "Alumni Batch")
+
     total_members = await db.alumni.count_documents({
         "school_id": school_id,
-        "passing_year": batch["passing_year"],
+        "passing_year": passing_yr,
         "verification_status": "APPROVED"
     })
 
@@ -160,8 +173,8 @@ async def get_batch_details(batch_id: str, current_user: dict = Depends(get_curr
     return BatchResponse(
         id=str(batch["_id"]),
         school_id=school_id,
-        name=batch["name"],
-        passing_year=batch["passing_year"],
+        name=batch_name,
+        passing_year=passing_yr,
         description=batch.get("description"),
         coordinators=batch.get("coordinators", []),
         coordinator_profiles=c_profiles,
@@ -285,10 +298,17 @@ async def get_batch_committee(batch_id: str, current_user: dict = Depends(get_cu
 
     total_filled = sum(role_counts.values())
 
+    try:
+        raw_yr = batch.get("passing_year")
+        passing_yr = int(raw_yr) if raw_yr is not None else 2020
+    except Exception:
+        passing_yr = 2020
+    batch_name = batch.get("name") or batch.get("title") or (f"Batch of {passing_yr}" if passing_yr else "Alumni Batch")
+
     return BatchCommitteeResponse(
         batch_id=str(batch["_id"]),
-        batch_name=batch["name"],
-        passing_year=batch["passing_year"],
+        batch_name=batch_name,
+        passing_year=passing_yr,
         total_positions=15,
         total_filled=total_filled,
         roles_summary=roles_summary,
@@ -382,9 +402,10 @@ async def assign_committee_role(
         except Exception:
             pass
 
+    b_name = batch.get("name") or batch.get("title") or "Batch"
     return {
         "success": True,
-        "message": f"{alumni['full_name']} has been appointed as {role_title} for {batch['name']}"
+        "message": f"{alumni['full_name']} has been appointed as {role_title} for {b_name}"
     }
 
 @router.delete("/{batch_id}/committee/{alumni_id}")

@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone
+from typing import Optional
+from pydantic import BaseModel
 from bson import ObjectId
 import json
 import urllib.parse
@@ -889,3 +891,85 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))
     )
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class ResetPasswordWithOTPRequest(BaseModel):
+    email: Optional[str] = None
+    mobile: Optional[str] = None
+    otp: str
+    new_password: str
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Change password for authenticated user with current password confirmation."""
+    db = get_db()
+    user_id = current_user["user_id"]
+    
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    stored_password = user.get("password", "")
+    if stored_password and stored_password != data.current_password.strip():
+        raise HTTPException(status_code=400, detail="Current password entered is incorrect.")
+
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": data.new_password.strip()}}
+    )
+    return {"success": True, "message": "Password changed successfully."}
+
+@router.post("/reset-password-with-otp")
+async def reset_password_with_otp(data: ResetPasswordWithOTPRequest):
+    """Reset account password using verified OTP code."""
+    email = data.email.strip().lower() if data.email else None
+    mobile = data.mobile.strip() if data.mobile else None
+    otp = data.otp.strip()
+
+    if not email and not mobile:
+        raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
+
+    # Validate OTP
+    stored_data = None
+    if email and email in OTP_STORE:
+        stored_data = OTP_STORE.get(email)
+    elif mobile and mobile in OTP_STORE:
+        stored_data = OTP_STORE.get(mobile)
+
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if not stored_data:
+        raise HTTPException(status_code=400, detail="No active OTP found. Please request a new OTP code.")
+
+    if stored_data["expires_at"] < now_ts:
+        if email: OTP_STORE.pop(email, None)
+        if mobile: OTP_STORE.pop(mobile, None)
+        raise HTTPException(status_code=400, detail="OTP code has expired. Please request a new OTP code.")
+
+    if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
+        raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please try again.")
+
+    # Clear OTP
+    if email: OTP_STORE.pop(email, None)
+    if mobile: OTP_STORE.pop(mobile, None)
+
+    db = get_db()
+    query = []
+    if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    if mobile: query.append({"mobile": mobile})
+
+    user = await db.users.find_one({"$or": query}) if query else None
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found matching identifier.")
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password": data.new_password.strip()}}
+    )
+    return {"success": True, "message": "Password reset successfully. You can now log in with your new password."}
+

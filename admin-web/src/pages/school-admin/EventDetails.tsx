@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, CheckCircle2, UserCheck, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, CheckCircle2, UserCheck, Download, Edit3 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
@@ -70,6 +70,10 @@ export const EventDetails: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Button variant="secondary" onClick={() => navigate(`/school-admin/events/${eventId}/edit`)}>
+            <Edit3 className="w-4 h-4 mr-1.5" />
+            Edit Event
+          </Button>
           <Button onClick={() => setIsQRModalOpen(true)}>
             <CheckCircle2 className="w-4 h-4 mr-1.5" />
             Open QR Check-in Terminal

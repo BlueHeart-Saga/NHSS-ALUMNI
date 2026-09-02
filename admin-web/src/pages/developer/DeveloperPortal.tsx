@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Building2, UserPlus, Phone, Mail, CheckCircle2, UserCheck, Key, RefreshCw, Layers, GraduationCap } from 'lucide-react';
+import { Shield, Building2, UserPlus, Phone, Mail, CheckCircle2, UserCheck, Key, RefreshCw, Layers, GraduationCap, Settings, Trash2 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -26,6 +26,7 @@ export const DeveloperPortal: React.FC = () => {
   const [enquiryModalOpen, setEnquiryModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [enquiryNotes, setEnquiryNotes] = useState('');
+  const [enquirySelectedSchoolId, setEnquirySelectedSchoolId] = useState('');
 
   // Modals
   const [schoolModalOpen, setSchoolModalOpen] = useState(false);
@@ -57,6 +58,12 @@ export const DeveloperPortal: React.FC = () => {
   const [adminEmail, setAdminEmail] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit / Delete School State
+  const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
+  const [deleteSchoolModalOpen, setDeleteSchoolModalOpen] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState<{ id: string, name: string, code: string } | null>(null);
+  const [deleteConfirmCode, setDeleteConfirmCode] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -104,7 +111,7 @@ export const DeveloperPortal: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${api.getToken()}`
         },
-        body: JSON.stringify({ status: newStatus, notes: enquiryNotes })
+        body: JSON.stringify({ status: newStatus, notes: enquiryNotes, school_id: enquirySelectedSchoolId || undefined })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Failed to update status');
@@ -112,6 +119,7 @@ export const DeveloperPortal: React.FC = () => {
       setSuccessMessage(`Enquiry request status set to ${newStatus}!`);
       setEnquiryModalOpen(false);
       setSelectedEnquiry(null);
+      setEnquirySelectedSchoolId('');
       fetchEnquiriesData();
       fetchDeveloperData();
     } catch (err: any) {
@@ -121,44 +129,97 @@ export const DeveloperPortal: React.FC = () => {
     }
   };
 
-  const handleCreateSchoolStep1 = async (e: React.FormEvent) => {
+  const handleSaveSchoolStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
+    const payload = {
+      name: schoolName,
+      code: schoolCode,
+      description: schoolDescription || undefined,
+      address: schoolAddress,
+      city: schoolCity,
+      state: schoolState,
+      country: schoolCountry || 'India',
+      website: schoolWebsite || undefined,
+      contact_phone: schoolPhone,
+      contact_email: schoolEmail,
+      established_year: schoolYear,
+      logo_url: schoolLogoUrl || undefined,
+      cover_url: schoolCoverUrl || undefined,
+      status: schoolStatus || 'ACTIVE'
+    };
+
     try {
-      const created = await api.createNewSchool({
-        name: schoolName,
-        code: schoolCode,
-        description: schoolDescription || undefined,
-        address: schoolAddress,
-        city: schoolCity,
-        state: schoolState,
-        country: schoolCountry || 'India',
-        website: schoolWebsite || undefined,
-        contact_phone: schoolPhone,
-        contact_email: schoolEmail,
-        established_year: schoolYear,
-        logo_url: schoolLogoUrl || undefined,
-        cover_url: schoolCoverUrl || undefined,
-        status: schoolStatus || 'ACTIVE'
-      });
+      if (editingSchoolId) {
+        await api.updateSchool(editingSchoolId, payload);
+        setSuccessMessage(`School "${schoolName}" updated successfully!`);
+        setSchoolModalOpen(false);
+        await fetchDeveloperData();
+      } else {
+        const created = await api.createNewSchool(payload);
 
-      // Refresh list & Pre-select created school for Step 2 Provisioning
-      await fetchDeveloperData();
-      if (created && created.id) {
-        setTargetSchoolId(created.id);
+        // Refresh list & Pre-select created school for Step 2 Provisioning
+        await fetchDeveloperData();
+        if (created && created.id) {
+          setTargetSchoolId(created.id);
+        }
+
+        // Automatically advance wizard to Step 2
+        setWizardStep(2);
+        setSuccessMessage(`School "${created.name || schoolName}" created successfully! Complete Step 2 below to provision the primary administrator.`);
       }
-
-      // Automatically advance wizard to Step 2
-      setWizardStep(2);
-      setSuccessMessage(`School "${created.name || schoolName}" created successfully! Complete Step 2 below to provision the primary administrator.`);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to create school entity.');
+      setErrorMessage(err.message || (editingSchoolId ? 'Failed to update school.' : 'Failed to create school entity.'));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDeleteSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolToDelete) return;
+    if (deleteConfirmCode !== schoolToDelete.code) {
+      setErrorMessage('School code does not match. Deletion aborted.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.deleteSchool(schoolToDelete.id);
+      setSuccessMessage(`School "${schoolToDelete.name}" deleted successfully.`);
+      setDeleteSchoolModalOpen(false);
+      setSchoolToDelete(null);
+      setDeleteConfirmCode('');
+      await fetchDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to delete school.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openEditSchoolModal = (school: any) => {
+    setEditingSchoolId(school.id);
+    setSchoolName(school.name || '');
+    setSchoolCode(school.code || '');
+    setSchoolDescription(school.description || '');
+    setSchoolAddress(school.address || '');
+    setSchoolCity(school.city || '');
+    setSchoolState(school.state || '');
+    setSchoolCountry(school.country || 'India');
+    setSchoolWebsite(school.website || '');
+    setSchoolPhone(school.contact_phone || '');
+    setSchoolEmail(school.contact_email || '');
+    setSchoolYear(school.established_year || 1985);
+    setSchoolLogoUrl(school.logo_url || '');
+    setSchoolCoverUrl(school.cover_url || '');
+    setSchoolStatus(school.status || 'ACTIVE');
+    
+    setWizardStep(1);
+    setSchoolModalOpen(true);
   };
 
   const handleProvisionAdminStep2 = async (e: React.FormEvent) => {
@@ -398,6 +459,28 @@ export const DeveloperPortal: React.FC = () => {
                     <div className="flex items-center space-x-2 flex-shrink-0">
                       <Button
                         size="sm"
+                        variant="secondary"
+                        onClick={() => openEditSchoolModal(school)}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        title="Edit School"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setSchoolToDelete({ id: school.id, name: school.name, code: school.code });
+                          setDeleteConfirmCode('');
+                          setDeleteSchoolModalOpen(true);
+                        }}
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+                        title="Delete School"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => {
                           setTargetSchoolId(school.id);
                           setWizardStep(2);
@@ -516,6 +599,7 @@ export const DeveloperPortal: React.FC = () => {
                             onClick={() => {
                               setSelectedEnquiry(item);
                               setEnquiryNotes(item.notes || '');
+                              setEnquirySelectedSchoolId('');
                               setEnquiryModalOpen(true);
                             }}
                             className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors"
@@ -524,7 +608,12 @@ export const DeveloperPortal: React.FC = () => {
                           </button>
                           {item.status === 'PENDING' && (
                             <button
-                              onClick={() => handleUpdateEnquiryStatus(item.id, 'APPROVED')}
+                              onClick={() => {
+                                setSelectedEnquiry(item);
+                                setEnquiryNotes(item.notes || '');
+                                setEnquirySelectedSchoolId('');
+                                setEnquiryModalOpen(true);
+                              }}
                               className="px-2.5 py-1 bg-[#111111] hover:bg-black text-[#F4C542] font-semibold rounded-md transition-colors"
                             >
                               Approve
@@ -545,7 +634,7 @@ export const DeveloperPortal: React.FC = () => {
       <Modal
         isOpen={schoolModalOpen}
         onClose={() => setSchoolModalOpen(false)}
-        title={wizardStep === 1 ? "Step 1: School Information" : "Step 2: Provision School Admin"}
+        title={wizardStep === 1 ? (editingSchoolId ? "Edit School Entity" : "Step 1: School Information") : "Step 2: Provision School Admin"}
       >
         {/* Step Indicator Header */}
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
@@ -555,22 +644,27 @@ export const DeveloperPortal: React.FC = () => {
             className={`flex items-center space-x-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 1 ? 'bg-[#111111] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4">1</span>
-            <span>School Entity Details</span>
+            <span>{editingSchoolId ? "Edit School Details" : "School Entity Details"}</span>
           </button>
-          <div className="h-0.5 flex-1 bg-gray-200 mx-3"></div>
-          <button
-            type="button"
-            onClick={() => setWizardStep(2)}
-            className={`flex items-center space-x-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 2 ? 'bg-[#111111] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4">2</span>
-            <span>Provision Administrator</span>
-          </button>
+          
+          {!editingSchoolId && (
+            <>
+              <div className="h-0.5 flex-1 bg-gray-200 mx-3"></div>
+              <button
+                type="button"
+                onClick={() => setWizardStep(2)}
+                className={`flex items-center space-x-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 2 ? 'bg-[#111111] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4">2</span>
+                <span>Provision Administrator</span>
+              </button>
+            </>
+          )}
         </div>
 
         {wizardStep === 1 ? (
           /* STEP 1: School Entity Details Form (Single-Column Row Layout) */
-          <form onSubmit={handleCreateSchoolStep1} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <form onSubmit={handleSaveSchoolStep1} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             <Input
               label="School Name *"
               placeholder="Enter school name"
@@ -759,7 +853,7 @@ export const DeveloperPortal: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white hover:bg-black font-bold">
-                <span>Next: Provision Admin →</span>
+                <span>{editingSchoolId ? "Save Changes ✓" : "Next: Provision Admin →"}</span>
               </Button>
             </div>
           </form>
@@ -883,6 +977,25 @@ export const DeveloperPortal: React.FC = () => {
               />
             </div>
 
+            {/* Target School Selection (Required for Approval) */}
+            <div className="space-y-1.5">
+              <label className="block font-bold text-gray-700 uppercase tracking-wider text-[11px]">
+                Assign to School (Required for Approval)
+              </label>
+              <select
+                value={enquirySelectedSchoolId}
+                onChange={(e) => setEnquirySelectedSchoolId(e.target.value)}
+                className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-xl text-xs font-bold focus:outline-none focus:border-[#111111] bg-white"
+              >
+                <option value="">-- Select an Existing School --</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Decision Action Buttons */}
             <div className="pt-4 border-t border-[#E5E7EB] flex flex-wrap items-center justify-between gap-3">
               <div className="flex space-x-2">
@@ -910,15 +1023,80 @@ export const DeveloperPortal: React.FC = () => {
                 type="button"
                 size="sm"
                 isLoading={submitting}
-                onClick={() => handleUpdateEnquiryStatus(selectedEnquiry.id, 'APPROVED')}
+                onClick={() => {
+                  if (!enquirySelectedSchoolId) {
+                    setErrorMessage('Please select a school to approve and assign this admin.');
+                    return;
+                  }
+                  handleUpdateEnquiryStatus(selectedEnquiry.id, 'APPROVED');
+                }}
                 className="bg-[#111111] text-[#F4C542] hover:bg-black font-bold border border-[#111111]"
               >
-                ✓ Approve Access &amp; Provision School
+                ✓ Approve Access &amp; Assign to School
               </Button>
             </div>
           </div>
         </Modal>
       )}
+
+      {/* Delete School Confirmation Modal */}
+      {schoolToDelete && (
+        <Modal
+          isOpen={deleteSchoolModalOpen}
+          onClose={() => {
+            setDeleteSchoolModalOpen(false);
+            setSchoolToDelete(null);
+            setDeleteConfirmCode('');
+          }}
+          title="Delete School Entity"
+        >
+          <div className="space-y-4">
+            <div className="bg-rose-50 text-rose-800 p-4 rounded-xl border border-rose-200">
+              <h4 className="font-bold text-sm mb-1 flex items-center">
+                <Shield className="w-4 h-4 mr-1.5" />
+                DANGER: Destructive Action
+              </h4>
+              <p className="text-xs">
+                You are about to permanently delete <strong>{schoolToDelete.name}</strong>.
+                This action will <strong className="underline">CASCADE DELETE</strong> all associated data, including:
+                batches, users (admins and alumni), events, memories, rank holders, and announcements.
+                <br /><br />
+                This action CANNOT be undone.
+              </p>
+            </div>
+            
+            <form onSubmit={handleDeleteSchool} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#111111]">
+                  Type the school code <strong>{schoolToDelete.code}</strong> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmCode}
+                  onChange={(e) => setDeleteConfirmCode(e.target.value)}
+                  placeholder={schoolToDelete.code}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-rose-500"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <Button type="button" variant="secondary" onClick={() => setDeleteSchoolModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  isLoading={submitting} 
+                  disabled={deleteConfirmCode !== schoolToDelete.code}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold disabled:opacity-50"
+                >
+                  Confirm Delete
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 };

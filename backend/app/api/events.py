@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 from app.core.database import get_db
-from app.schemas.models import CreateEventRequest, EventResponse, MapCoordinates
+from app.schemas.models import CreateEventRequest, UpdateEventRequest, EventResponse, MapCoordinates
 from app.middleware.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/events", tags=["Events & Get-Togethers"])
@@ -51,7 +51,7 @@ async def list_events(
             id=e_id,
             school_id=school_id,
             batch_id=str(e["batch_id"]) if e.get("batch_id") else None,
-            batch_name=batch["name"] if batch else "School-wide",
+            batch_name=(batch.get("name") or f"Batch of {batch.get('passing_year', '')}") if batch else "School-wide",
             title=e["title"],
             description=e["description"],
             event_date=e["event_date"],
@@ -122,7 +122,7 @@ async def create_event(
         id=e_id,
         school_id=school_id,
         batch_id=request.batch_id,
-        batch_name=batch["name"] if batch else "School-wide",
+        batch_name=(batch.get("name") or f"Batch of {batch.get('passing_year', '')}") if batch else "School-wide",
         title=request.title,
         description=request.description,
         event_date=request.event_date,
@@ -166,7 +166,7 @@ async def get_event_details(event_id: str, current_user: dict = Depends(get_curr
         id=event_id,
         school_id=school_id,
         batch_id=str(e["batch_id"]) if e.get("batch_id") else None,
-        batch_name=batch["name"] if batch else "School-wide",
+        batch_name=(batch.get("name") or f"Batch of {batch.get('passing_year', '')}") if batch else "School-wide",
         title=e["title"],
         description=e["description"],
         event_date=e["event_date"],
@@ -229,3 +229,34 @@ async def delete_event(
 
     await db.event_attendance.delete_many({"event_id": event_id})
     return {"success": True, "message": "Event deleted successfully"}
+
+@router.put("/{event_id}", response_model=EventResponse)
+async def update_event(
+    event_id: str,
+    request: UpdateEventRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR"]))
+):
+    db = get_db()
+    school_id = current_user["school_id"]
+
+    existing = await db.events.find_one({"_id": ObjectId(event_id), "school_id": school_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Coordinator validation
+    if "SCHOOL_ADMIN" not in current_user["roles"] and existing.get("batch_id"):
+        batch = await db.batches.find_one({"_id": ObjectId(existing["batch_id"])})
+        if not batch or current_user["user_id"] not in batch.get("coordinators", []):
+            raise HTTPException(status_code=403, detail="Coordinator can only edit events for their assigned batch")
+
+    update_data = {k: v for k, v in request.model_dump().items() if v is not None}
+    if "map_coordinates" in update_data and update_data["map_coordinates"]:
+        update_data["map_coordinates"] = request.map_coordinates.model_dump()
+
+    if update_data:
+        await db.events.update_one(
+            {"_id": ObjectId(event_id), "school_id": school_id},
+            {"$set": update_data}
+        )
+
+    return await get_event_details(event_id=event_id, current_user=current_user)

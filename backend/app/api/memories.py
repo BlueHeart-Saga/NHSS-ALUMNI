@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 from app.core.database import get_db
 from app.middleware.auth import get_current_user
-from app.services.azure_blob import blob_service, MEDIA_DIR
+from app.services.azure_blob import blob_service, save_to_gridfs
 
 logger = logging.getLogger("app.memories")
 
@@ -162,7 +162,7 @@ async def create_memory(payload: MemoryCreatePayload):
 
 @router.post("/upload")
 async def upload_single_memory_file(file: UploadFile = File(...)):
-    """Uploads single image or video file for memories."""
+    """Uploads single image or video file directly to database storage."""
     content_type = file.content_type or ""
     contents = await file.read()
 
@@ -175,17 +175,14 @@ async def upload_single_memory_file(file: UploadFile = File(...)):
     elif content_type.startswith("video/"):
         ext = os.path.splitext(file.filename)[1] or ".mp4"
         unique_name = f"video_{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(MEDIA_DIR, unique_name)
-        with open(file_path, "wb") as f:
-            f.write(contents)
-        video_url = f"/uploads/{unique_name}"
+        video_url = await save_to_gridfs(contents, unique_name, content_type)
         return {"url": video_url, "filename": file.filename, "media_type": "VIDEO"}
     else:
         raise HTTPException(status_code=400, detail="Only image (JPG, PNG, WebP) and video files (MP4, WebM, MOV) are supported.")
 
 @router.post("/upload-multiple")
 async def upload_multiple_memory_files(files: List[UploadFile] = File(...)):
-    """Uploads multiple images or videos at once."""
+    """Uploads multiple images or videos directly to database storage."""
     results = []
     for file in files:
         content_type = file.content_type or ""
@@ -196,10 +193,7 @@ async def upload_multiple_memory_files(files: List[UploadFile] = File(...)):
         elif content_type.startswith("video/"):
             ext = os.path.splitext(file.filename)[1] or ".mp4"
             unique_name = f"video_{uuid.uuid4().hex}{ext}"
-            file_path = os.path.join(MEDIA_DIR, unique_name)
-            with open(file_path, "wb") as f:
-                f.write(contents)
-            video_url = f"/uploads/{unique_name}"
+            video_url = await save_to_gridfs(contents, unique_name, content_type)
             results.append({"url": video_url, "filename": file.filename, "media_type": "VIDEO"})
     return {"urls": [r["url"] for r in results], "files": results}
 

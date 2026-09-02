@@ -220,7 +220,10 @@ export const PublicMemories: React.FC = () => {
                   type="text"
                   placeholder={language === 'ta' ? 'மாணவர் பெயர் தேட...' : 'Search student or rank...'}
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setVisibleCount(10);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 sm:py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] bg-gray-50 font-medium"
                 />
               </div>
@@ -228,7 +231,10 @@ export const PublicMemories: React.FC = () => {
               <div className="w-full sm:w-56">
                 <select
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedYear(e.target.value);
+                    setVisibleCount(10);
+                  }}
                   className="w-full text-xs p-2.5 sm:py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] font-semibold bg-gray-50 cursor-pointer"
                 >
                   <option value="">
@@ -260,39 +266,67 @@ export const PublicMemories: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {displayedRankHolders.map((holder) => (
-                <div
-                  key={holder.id}
-                  onClick={() => setSelectedHolderModal(holder)}
-                  className="bg-white border-2 border-[#111111] rounded-3xl p-5 shadow-[4px_4px_0px_0px_#111111] hover:shadow-[7px_7px_0px_0px_#F4C542] transition-all cursor-pointer flex flex-col justify-between group"
-                >
-                  <div className="space-y-4">
-                    <div className="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-[#111111] bg-[#FFF7D6] flex items-center justify-center text-[#854D0E] shadow-md relative">
-                      {holder.photograph ? (
-                        <img
-                          src={getAssetUrl(holder.photograph)}
-                          alt={holder.student_name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                      ) : (
-                        <User className="w-10 h-10 stroke-[2.2] text-[#854D0E]" />
-                      )}
-                    </div>
-                    <div className="text-center space-y-1">
-                      <span className="text-[10px] font-extrabold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block">
-                        {holder.rank}
-                      </span>
-                      <h4 className="font-bold text-base text-[#111111] leading-tight truncate">{holder.student_name}</h4>
-                      <p className="text-xs text-gray-500 font-medium">Class {holder.class_standard || '10th'} ({holder.academic_year})</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 mt-4 text-center">
-                    <span className="text-xs font-extrabold text-emerald-700">{holder.marks_percentage || 'School Ranker'}</span>
-                  </div>
+            <div className="bg-white border-2 border-[#111111] rounded-3xl shadow-[4px_4px_0px_0px_#111111] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-[#111111] text-white uppercase text-[11px] font-extrabold tracking-wider">
+                      <th className="py-3.5 px-4 text-center w-12">{language === 'ta' ? 'எண்' : '#'}</th>
+                      <th className="py-3.5 px-4">{language === 'ta' ? 'மாணவர் பெயர்' : 'Student Name'}</th>
+                      <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'கல்வியாண்டு' : 'Academic Year'}</th>
+                      <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'வகுப்பு' : 'Class / Standard'}</th>
+                      <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'பெற்ற மதிப்பெண்கள்' : 'Marks Secured'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 font-medium">
+                    {displayedRankHolders.map((holder, idx) => (
+                      <tr
+                        key={holder.id}
+                        onClick={() => setSelectedHolderModal(holder)}
+                        className="hover:bg-[#FFF7D6]/60 transition-colors cursor-pointer group"
+                      >
+                        <td className="py-3.5 px-4 text-center font-bold text-gray-400 text-xs">
+                          {idx + 1}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <p className="font-extrabold text-sm text-[#111111] group-hover:text-[#854D0E] transition-colors">
+                            {language === 'ta' && holder.student_name_ta ? holder.student_name_ta : holder.student_name}
+                          </p>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="inline-block px-2.5 py-1 bg-gray-100 border border-gray-300 rounded-lg font-bold text-gray-800 text-xs">
+                            {holder.academic_year}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center text-xs font-bold text-gray-700">
+                          {holder.class_standard || '10th'}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-extrabold text-sm text-[#111111]">
+                          {holder.total_marks ? (
+                            <span>
+                              {holder.total_marks}
+                              <span className="text-xs text-gray-400 font-normal"> / {holder.max_marks || (Number(holder.total_marks) > 500 ? '1200' : '500')}</span>
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs font-normal">N/A</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {visibleCount < filteredRankHolders.length && (
+                <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
+                  <button
+                    onClick={() => setVisibleCount(prev => prev + 10)}
+                    className="px-6 py-2 bg-white border border-gray-300 text-[#111111] hover:bg-gray-100 font-bold text-xs rounded-full shadow-sm transition-all"
+                  >
+                    {language === 'ta' ? `மேலும் பார்க்க (${filteredRankHolders.length - visibleCount} மீதம்)` : `View More (${filteredRankHolders.length - visibleCount} remaining)`}
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

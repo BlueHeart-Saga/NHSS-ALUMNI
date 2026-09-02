@@ -375,6 +375,18 @@ async def update_own_profile(
         await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
         alumni = await db.alumni.find_one({"user_id": user_id})
 
+    # Also sync core fields (full_name, email, mobile, profile_photo_url) to db.users
+    user_updates = {}
+    if "full_name" in update_fields: user_updates["full_name"] = update_fields["full_name"]
+    if "email" in update_fields: user_updates["email"] = update_fields["email"]
+    if "mobile" in update_fields: user_updates["mobile"] = update_fields["mobile"]
+    if "profile_photo_url" in update_fields: user_updates["profile_photo_url"] = update_fields["profile_photo_url"]
+    if user_updates:
+        try:
+            await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_updates})
+        except Exception:
+            await db.users.update_one({"_id": user_id}, {"$set": user_updates})
+
     return UserProfileResponse(
         id=str(alumni["_id"]),
         user_id=user_id,
@@ -388,7 +400,22 @@ async def update_own_profile(
         admission_number=alumni.get("admission_number", ""),
         section=alumni.get("section"),
         current_city=alumni.get("current_city"),
+        state=alumni.get("state"),
+        country=alumni.get("country"),
         profession=alumni.get("profession"),
+        company=alumni.get("company"),
+        industry=alumni.get("industry"),
+        experience_years=alumni.get("experience_years"),
+        bio=alumni.get("bio"),
+        house=alumni.get("house"),
+        stream=alumni.get("stream"),
+        linkedin_url=alumni.get("linkedin_url"),
+        github_url=alumni.get("github_url"),
+        twitter_url=alumni.get("twitter_url"),
+        website_url=alumni.get("website_url"),
+        skills=alumni.get("skills") or [],
+        phone_visible=alumni.get("phone_visible", False),
+        directory_visible=alumni.get("directory_visible", True),
         verification_status=alumni.get("verification_status", "APPROVED"),
         roles=current_user.get("roles", ["ALUMNI"]),
         email_visible=alumni.get("email_visible", False),

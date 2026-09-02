@@ -117,7 +117,22 @@ class UserProfileResponse(BaseModel):
     admission_number: Optional[str] = None
     section: Optional[str] = None
     current_city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
     profession: Optional[str] = None
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    experience_years: Optional[int] = None
+    bio: Optional[str] = None
+    house: Optional[str] = None
+    stream: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    website_url: Optional[str] = None
+    skills: Optional[List[str]] = []
+    phone_visible: bool = False
+    directory_visible: bool = True
     verification_status: Optional[str] = "PENDING"
     verification_notes: Optional[str] = None
     roles: List[str] = ["ALUMNI"]
@@ -129,10 +144,29 @@ class UserProfileResponse(BaseModel):
 class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    mobile: Optional[str] = None
     current_city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
     profession: Optional[str] = None
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    experience_years: Optional[int] = None
+    bio: Optional[str] = None
+    admission_number: Optional[str] = None
+    passing_year: Optional[int] = None
+    section: Optional[str] = None
+    house: Optional[str] = None
+    stream: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    website_url: Optional[str] = None
     profile_photo_url: Optional[str] = None
     email_visible: Optional[bool] = None
+    phone_visible: Optional[bool] = None
+    directory_visible: Optional[bool] = None
+    skills: Optional[List[str]] = None
 
 # --- Verification Schemas ---
 class VerificationDecisionRequest(BaseModel):
@@ -356,6 +390,23 @@ class CreateEventRequest(BaseModel):
     registration_url: Optional[str] = None
     publish_immediately: bool = True
 
+class UpdateEventRequest(BaseModel):
+    title: Optional[str] = None
+    batch_id: Optional[str] = None
+    description: Optional[str] = None
+    event_date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    venue: Optional[str] = None
+    address: Optional[str] = None
+    map_coordinates: Optional[MapCoordinates] = None
+    registration_deadline: Optional[str] = None
+    guest_allowed: Optional[bool] = None
+    max_capacity: Optional[int] = None
+    cover_image_url: Optional[str] = None
+    registration_url: Optional[str] = None
+    status: Optional[str] = None
+
 class EventResponse(BaseModel):
     id: str
     school_id: str
@@ -365,13 +416,13 @@ class EventResponse(BaseModel):
     description: str
     event_date: str
     start_time: str
-    end_time: str
+    end_time: Optional[str] = None
     venue: str
-    address: str
+    address: Optional[str] = None
     map_coordinates: Optional[MapCoordinates] = None
     registration_deadline: Optional[str] = None
-    guest_allowed: bool
-    max_capacity: int
+    guest_allowed: bool = True
+    max_capacity: int = 300
     cover_image_url: Optional[str] = None
     registration_url: Optional[str] = None
     status: str # DRAFT, PUBLISHED, CANCELLED, COMPLETED
@@ -379,7 +430,7 @@ class EventResponse(BaseModel):
     maybe_count: int = 0
     declined_count: int = 0
     total_guests: int = 0
-    created_by: str
+    created_by: Optional[str] = "ADMIN"
     created_at: datetime
 
 # --- Attendance & RSVP Schemas ---

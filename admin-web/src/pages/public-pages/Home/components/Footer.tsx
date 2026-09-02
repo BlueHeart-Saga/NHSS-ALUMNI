@@ -36,7 +36,7 @@ export const Footer: React.FC<FooterProps> = ({ schoolName, logoUrl: propLogoUrl
         {/* Legal & Copyright */}
         <div className="flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-gray-500 font-normal gap-4 text-center sm:text-left">
           <div>
-            © 2026 {schoolName} Alumni Network. Built on JustGatherNow. All Rights Reserved.
+            © 2026 {schoolName} Alumni Network. Built on Devopstrio. All Rights Reserved.
           </div>
 
           <div className="flex items-center space-x-4 font-semibold text-[#111111] text-xs sm:text-sm">

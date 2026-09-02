@@ -124,7 +124,7 @@ def send_school_admin_invite_email(to_email: str, admin_name: str, school_name: 
             <div class="header">
                 <span class="badge">{settings.EMAILS_FROM_NAME}</span>
                 <h1 class="title">Welcome, {admin_name}!</h1>
-                <p class="subtitle">You have been provisioned as a School Administrator for <strong>{school_name}</strong>.</p>
+                <p class="subtitle">Thank you! Your request has been verified by our team. You have been provisioned as a School Administrator for <strong>{school_name}</strong>.</p>
             </div>
             
             <p class="info">

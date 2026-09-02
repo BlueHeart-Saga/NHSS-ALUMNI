@@ -38,7 +38,7 @@ async def scan_qr_token(
         raise HTTPException(status_code=404, detail="Alumni profile not found")
 
     batch = await db.batches.find_one({"school_id": school_id, "passing_year": alumni["passing_year"]})
-    batch_name = batch["name"] if batch else f"Class of {alumni['passing_year']}"
+    batch_name = (batch.get("name") or f"Class of {alumni.get('passing_year', '')}") if batch else f"Class of {alumni.get('passing_year', '')}"
 
     # Check RSVP status
     att = await db.event_attendance.find_one({"event_id": request.event_id, "alumni_id": alumni_id})

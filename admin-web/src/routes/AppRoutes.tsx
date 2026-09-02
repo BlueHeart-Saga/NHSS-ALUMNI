@@ -24,7 +24,19 @@ import { AdminSetupPassword } from '../pages/public-pages/AdminSetupPassword';
 import { DeveloperLogin } from '../pages/developer/DeveloperLogin';
 
 // Alumni Pages
-import { AlumniPortal } from '../pages/alumni/AlumniPortal';
+import { AlumniDashboard } from '../pages/alumni/AlumniDashboard';
+import { AlumniProfilePage } from '../pages/alumni/AlumniProfilePage';
+import { AlumniBatchesPage } from '../pages/alumni/AlumniBatchesPage';
+import { AlumniDirectoryPage } from '../pages/alumni/AlumniDirectoryPage';
+import { AlumniCommunityPage } from '../pages/alumni/AlumniCommunityPage';
+import { AlumniMentorshipPage } from '../pages/alumni/AlumniMentorshipPage';
+import { AlumniSchoolEventsPage } from '../pages/alumni/AlumniSchoolEventsPage';
+import { AlumniEventsPage } from '../pages/alumni/AlumniEventsPage';
+import { AlumniAnnouncementsPage } from '../pages/alumni/AlumniAnnouncementsPage';
+import { AlumniGalleryPage } from '../pages/alumni/AlumniGalleryPage';
+import { AlumniDocumentsPage } from '../pages/alumni/AlumniDocumentsPage';
+import { AlumniNotificationsPage } from '../pages/alumni/AlumniNotificationsPage';
+import { AlumniSettingsPage } from '../pages/alumni/AlumniSettingsPage';
 
 // School Admin Pages
 import { Dashboard } from '../pages/school-admin/Dashboard';
@@ -73,15 +85,22 @@ export const AppRoutes: React.FC = () => {
 
       {/* 2. ALUMNI STUDENT ROUTES */}
       <Route path="/alumni" element={<AlumniLayout />}>
-        <Route index element={<AlumniPortal />} />
-        <Route path="profile" element={<AlumniPortal />} />
-        <Route path="batch" element={<AlumniPortal />} />
-        <Route path="batch/members" element={<AlumniPortal />} />
-        <Route path="events" element={<AlumniPortal />} />
-        <Route path="events/:eventId" element={<AlumniPortal />} />
-        <Route path="announcements" element={<AlumniPortal />} />
-        <Route path="memories" element={<AlumniPortal />} />
-        <Route path="settings" element={<AlumniPortal />} />
+        <Route index element={<AlumniDashboard />} />
+        <Route path="profile" element={<AlumniProfilePage />} />
+        <Route path="batch" element={<AlumniBatchesPage />} />
+        <Route path="batch/members" element={<AlumniBatchesPage />} />
+        <Route path="directory" element={<AlumniDirectoryPage />} />
+        <Route path="school-events" element={<AlumniSchoolEventsPage />} />
+        <Route path="community" element={<AlumniSchoolEventsPage />} />
+        <Route path="mentorship" element={<AlumniSchoolEventsPage />} />
+        <Route path="events" element={<AlumniEventsPage />} />
+        <Route path="events/:eventId" element={<AlumniEventsPage />} />
+        <Route path="announcements" element={<AlumniAnnouncementsPage />} />
+        <Route path="gallery" element={<AlumniGalleryPage />} />
+        <Route path="memories" element={<AlumniGalleryPage />} />
+        <Route path="documents" element={<AlumniDocumentsPage />} />
+        <Route path="notifications" element={<AlumniNotificationsPage />} />
+        <Route path="settings" element={<AlumniSettingsPage />} />
       </Route>
 
       {/* 3. SCHOOL ADMIN ROUTES */}
@@ -94,6 +113,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="batches/:batchId" element={<BatchDetails />} />
         <Route path="events" element={<EventsList />} />
         <Route path="events/create" element={<CreateEditEvent />} />
+        <Route path="events/:eventId/edit" element={<CreateEditEvent />} />
         <Route path="events/:eventId" element={<EventDetails />} />
         <Route path="events/:eventId/attendance" element={<AttendanceRoster />} />
         <Route path="school-events" element={<SchoolEventsManager />} />

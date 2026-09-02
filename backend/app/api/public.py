@@ -21,9 +21,10 @@ async def get_public_stats():
     return {
         "school_name": school.get("name") or "NHSS SCHOOL",
         "school_code": school.get("code") or "NHSS",
+        "established_year": est_year,
         "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",
         "cover_url": school.get("cover_url") or "/school-images/school-door.png",
-        "description": school.get("description") or "Stay Connected. Stay Part of the Story.",
+        "description": school.get("description") or "1924 ஆம் ஆண்டு இந்து நாடார் துவக்கப்பள்ளி தொடங்கப்பட்டது முதல் நடராஜன் மேல்நிலைப்பள்ளி வரை நூற்றாண்டு கண்டது நமது பள்ளி. 23/07/1956 ல் கர்மவீரர் காமராஜர் அவர்களால் இலவச மதிய உணவு திட்டம் தொடங்கப்பட்ட பெருமைமிக்க பள்ளி.",
         "address": school.get("address") or "Main Campus, School Alumni Building, Tamil Nadu",
         "contact_phone": school.get("contact_phone") or school.get("phone") or "+91 98765 43210",
         "contact_email": school.get("contact_email") or school.get("email") or "info@nhssalumni.com",
@@ -44,10 +45,6 @@ async def get_public_events():
         "status": {"$in": ["PUBLISHED", "UPCOMING"]},
         "event_date": {"$gte": today_str}
     }).sort("event_date", 1).to_list(length=10)
-
-    # Fallback if no future dates match
-    if not events:
-        events = await db.events.find({"status": {"$in": ["PUBLISHED", "UPCOMING"]}}).sort("event_date", -1).to_list(length=6)
     
     res = []
     for ev in events:
@@ -87,7 +84,7 @@ async def get_public_past_events():
     
     events = await db.events.find({
         "event_date": {"$lt": today_str}
-    }).sort("event_date", -1).to_list(length=6)
+    }).sort("event_date", -1).to_list(length=50)
 
     res = []
     for ev in events:
@@ -412,6 +409,7 @@ async def get_public_rank_holders():
         res.append({
             "id": str(d["_id"]),
             "student_name": d.get("student_name"),
+            "student_name_ta": d.get("student_name_ta"),
             "academic_year": d.get("academic_year"),
             "class_standard": d.get("class_standard"),
             "rank": d.get("rank"),

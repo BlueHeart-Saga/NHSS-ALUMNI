@@ -187,6 +187,93 @@ async def create_new_school(request: CreateSchoolRequest):
         status=school.get("status", "ACTIVE")
     )
 
+@router.put("/schools/{school_id}", response_model=SchoolProfileResponse)
+async def update_school(school_id: str, request: CreateSchoolRequest):
+    """Platform Developer: Update an existing school entity."""
+    db = get_db()
+    
+    if not ObjectId.is_valid(school_id):
+        raise HTTPException(status_code=400, detail="Invalid school ID format")
+        
+    code_upper = request.code.strip().upper()
+
+    # Check if school code exists on another school
+    existing = await db.schools.find_one({"code": code_upper, "_id": {"$ne": ObjectId(school_id)}})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"School code '{code_upper}' already exists.")
+
+    school_doc = {
+        "name": request.name.strip(),
+        "code": code_upper,
+        "description": request.description,
+        "address": request.address,
+        "city": request.city,
+        "state": request.state,
+        "country": request.country or "India",
+        "website": request.website,
+        "contact_phone": request.contact_phone,
+        "contact_email": request.contact_email,
+        "established_year": request.established_year or 1985,
+        "logo_url": request.logo_url,
+        "cover_url": request.cover_url,
+        "status": request.status or "ACTIVE",
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    res = await db.schools.update_one({"_id": ObjectId(school_id)}, {"$set": school_doc})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="School not found")
+
+    # Fetch updated
+    school = await db.schools.find_one({"_id": ObjectId(school_id)})
+    return SchoolProfileResponse(
+        id=school_id,
+        name=school["name"],
+        code=school["code"],
+        logo_url=school.get("logo_url"),
+        cover_url=school.get("cover_url"),
+        description=school.get("description"),
+        address=school.get("address"),
+        city=school.get("city"),
+        state=school.get("state"),
+        country=school.get("country", "India"),
+        website=school.get("website"),
+        contact_phone=school.get("contact_phone"),
+        contact_email=school.get("contact_email"),
+        established_year=school.get("established_year"),
+        status=school.get("status", "ACTIVE")
+    )
+
+@router.delete("/schools/{school_id}")
+async def delete_school(school_id: str):
+    """Platform Developer: Delete a school and cascade delete all its linked records."""
+    db = get_db()
+    
+    if not ObjectId.is_valid(school_id):
+        raise HTTPException(status_code=400, detail="Invalid school ID format")
+        
+    obj_id = ObjectId(school_id)
+    str_id = school_id
+    
+    school = await db.schools.find_one({"_id": obj_id})
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+
+    # Cascade deletion across all multi-tenant collections
+    await db.batches.delete_many({"school_id": str_id})
+    await db.users.delete_many({"school_id": str_id})
+    await db.alumni.delete_many({"school_id": str_id})
+    await db.events.delete_many({"school_id": str_id})
+    await db.rank_holders.delete_many({"school_id": str_id})
+    await db.announcements.delete_many({"school_id": str_id})
+    await db.memories.delete_many({"school_id": str_id})
+    
+    # Delete the school entity
+    await db.schools.delete_one({"_id": obj_id})
+
+    return {"success": True, "message": "School and all associated records deleted successfully."}
+
+
 @router.post("/schools/{school_id}/admin", response_model=UserProfileResponse)
 async def provision_admin_for_school(school_id: str, request: ProvisionSchoolAdminRequest):
     """Platform Developer: Provision a dedicated School Admin account for a specific school."""
@@ -374,29 +461,17 @@ async def update_enquiry_status(
         {"$set": {"status": new_status, "notes": notes, "updated_at": now}}
     )
 
-    # If APPROVED: provision/find School & provision School Admin user
+    # If APPROVED: provision School Admin user for selected school
     if new_status == "APPROVED":
-        school_name = eq.get("school_name")
-        school = await db.schools.find_one({"name": {"$regex": f"^{school_name}$", "$options": "i"}})
+        school_id = payload.get("school_id")
+        if not school_id:
+            raise HTTPException(status_code=400, detail="school_id is required when approving an enquiry.")
+        
+        school = await db.schools.find_one({"_id": ObjectId(school_id)})
         if not school:
-            code = "".join([c for c in school_name.upper() if c.isalnum()])[:8] or "SCHOOL"
-            school_doc = {
-                "name": school_name,
-                "code": code,
-                "description": f"Official Alumni Portal for {school_name}",
-                "address": f"{eq.get('city', '')}, {eq.get('state', '')}",
-                "city": eq.get("city"),
-                "state": eq.get("state"),
-                "country": eq.get("country", "India"),
-                "contact_email": eq.get("email"),
-                "contact_phone": eq.get("mobile"),
-                "status": "ACTIVE",
-                "created_at": now
-            }
-            res_s = await db.schools.insert_one(school_doc)
-            school_id = str(res_s.inserted_id)
-        else:
-            school_id = str(school["_id"])
+            raise HTTPException(status_code=404, detail="Selected school not found")
+        
+        school_name = school.get("name")
 
         admin_email = eq.get("email")
         admin_user = await db.users.find_one({"email": admin_email})

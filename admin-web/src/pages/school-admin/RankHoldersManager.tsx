@@ -22,6 +22,7 @@ export const RankHoldersManager: React.FC = () => {
   // Form Fields
   const [alumniId, setAlumniId] = useState('');
   const [studentName, setStudentName] = useState('');
+  const [studentNameTa, setStudentNameTa] = useState('');
   const [academicYear, setAcademicYear] = useState('2025–26');
   const [classStandard, setClassStandard] = useState('10th');
   const [rank, setRank] = useState('1st Rank');
@@ -60,6 +61,7 @@ export const RankHoldersManager: React.FC = () => {
     setEditingId(null);
     setAlumniId('');
     setStudentName('');
+    setStudentNameTa('');
     setAcademicYear('2025–26');
     setClassStandard('10th');
     setRank('1st Rank');
@@ -79,6 +81,7 @@ export const RankHoldersManager: React.FC = () => {
     setEditingId(holder.id);
     setAlumniId(holder.alumni_id || '');
     setStudentName(holder.student_name);
+    setStudentNameTa(holder.student_name_ta || '');
     setAcademicYear(holder.academic_year);
     setClassStandard(holder.class_standard);
     setRank(holder.rank);
@@ -129,6 +132,7 @@ export const RankHoldersManager: React.FC = () => {
     const payload: Partial<RankHolder> = {
       alumni_id: alumniId || undefined,
       student_name: studentName.trim(),
+      student_name_ta: studentNameTa.trim(),
       academic_year: academicYear.trim(),
       class_standard: classStandard.trim(),
       rank,
@@ -303,8 +307,11 @@ export const RankHoldersManager: React.FC = () => {
                       </td>
                       <td className="p-4 font-bold text-[#111111]">
                         {h.student_name}
+                        {h.student_name_ta && (
+                          <div className="text-[12px] font-medium text-gray-500 mt-0.5">{h.student_name_ta}</div>
+                        )}
                         {h.achievement_title && (
-                          <div className="text-[11px] text-[#854D0E] font-medium">{h.achievement_title}</div>
+                          <div className="text-[11px] text-[#854D0E] font-medium mt-0.5">{h.achievement_title}</div>
                         )}
                       </td>
                       <td className="p-4 font-semibold text-gray-700">{h.academic_year}</td>
@@ -396,13 +403,21 @@ export const RankHoldersManager: React.FC = () => {
               </div>
 
               {/* Student / Alumni Name */}
-              <Input
-                label="Student / Alumni Name *"
-                placeholder="e.g. Arun Kumar"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                required
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Student / Alumni Name *"
+                  placeholder="e.g. Arun Kumar"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Student Name (Tamil)"
+                  placeholder="e.g. அருண் குமார்"
+                  value={studentNameTa}
+                  onChange={(e) => setStudentNameTa(e.target.value)}
+                />
+              </div>
 
               {/* Academic Year & Class Standard */}
               <div className="grid grid-cols-2 gap-4">

@@ -1,124 +1,164 @@
-import asyncio
-import os
-import sys
-from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
+# import asyncio
+# import logging
+# from datetime import datetime, timezone
+# from motor.motor_asyncio import AsyncIOMotorClient
+# from app.core.config import settings
 
-# Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from app.core.config import settings
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger("seed_rank_holders")
 
-HISTORICAL_RANK_HOLDERS = [
-    # 10th Rank Holders — 1963–1992
-    {"student_name": "ரி. முருகேசன்", "academic_year": "1963", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/1.jpg"},
-    {"student_name": "ஆ. க. ரவீந்திரன்", "academic_year": "1964", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/2.jpg"},
-    {"student_name": "இரா. சுப்பிரமணியன்", "academic_year": "1965", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/3.jpg"},
-    {"student_name": "ஆ. முத்தையா", "academic_year": "1966", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/4.jpg"},
-    {"student_name": "பொ. செல்வலிங்கம்", "academic_year": "1967", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/5.jpg"},
-    {"student_name": "இர. இளங்கோவன்", "academic_year": "1968", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/6.jpg"},
-    {"student_name": "மா. கட்டக்கரைந்திரம்", "academic_year": "1969", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/7.jpg"},
-    {"student_name": "இ. ஆறுமுகச்சாமி", "academic_year": "1970", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/11.jpg"},
-    {"student_name": "இ. வேலாயுதம்", "academic_year": "1971", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/12.jpg"},
-    {"student_name": "வெ. மாலதிருமணன்", "academic_year": "1972", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/13.jpg"},
-    {"student_name": "சு. வேல் வாசகம்", "academic_year": "1973", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/14.jpg"},
-    {"student_name": "வீ. வீர கேசவன்", "academic_year": "1974", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/15.jpg"},
-    {"student_name": "ச. மகிமைமாரி", "academic_year": "1975", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/16.jpg"},
-    {"student_name": "தே. செல்வன்", "academic_year": "1976", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/17.jpg"},
-    {"student_name": "சு. அண்ணாமலை", "academic_year": "1977", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/18.jpg"},
-    {"student_name": "சி. பாலமுருகன்", "academic_year": "1978", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/19.jpg"},
-    {"student_name": "மு. கமலக் கண்ணன்", "academic_year": "1978", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/20.jpg"},
-    {"student_name": "கி.வி. அருணகிரி", "academic_year": "1979", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/1.jpg"},
-    {"student_name": "மா. முருக பூபதி", "academic_year": "1980", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/2.jpg"},
-    {"student_name": "சே. வக்கீல் வெங்காயம்", "academic_year": "1981", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/3.jpg"},
-    {"student_name": "பொ. சீதையரசன்", "academic_year": "1982", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/4.jpg"},
+# RAW_DATA = """
+# M.Murugan|1963|429/500|மு.முருகன்
+# A.K.Ravindran|1964|397/500|அ.கா.ரவீந்திரன்
+# R.Sarguna Pandi|1965|394/500|ரா.சற்குண பாண்டி
+# A.Pachaiya|1966|511/500|அ.பச்சையா
+# P.Sokkalingam|1967|401/500|பெ.சொக்கலிங்கம்
+# R.Elangovan|1968|427/500|ரா.இளங்கோவன்
+# M.Kadakarai Thangam|1969|457/500|மு.கடற்கரை தங்கம்
+# S.Arumuga Samy|1970|436/500|சு.ஆறுமுக சாமி
+# M.Velayutham|1971|438/500|மு.வேலாயுதம்
+# P.Bala Kirutinan|1972|481/500|பெ.பால கிருட்டிணன்
+# S.Vel Vasagam|1973|478/500|சு.வேல் வாசகம்
+# V.Veera Kesavan|1974|441/500|வி.வீர கேசவன்
+# S.Magimai Raja|1975|476/500|சு.மகிமை ராஜா
+# T.Selvan|1976|470/500|த.செல்வன்
+# M.Anna Malai|1977|443/500|மு.அண்ணாமலை
+# K.Bala Murugan|1978|388/500|க.பால முருகன்
+# M.Kamalakannan|1978|345/500|மு.கமலக்கண்ணன்
+# E.L.ArulSingh|1979|386/500|ஈ.எல்.அருள்சிங்
+# P.Muruga Boopathi|1980|360/500|பெ.முருக பூபதி
+# S.Victor Resinald|1981|408/500|சு.விக்டர் ரெசினால்டு
+# P.Sathya Rasan|1982|371/500|பெ.சத்திய ராசன்
+# K.S.S.Chandira Rajan|1983|433/500|க.ச.ச.சந்திர ராஜன்
+# K.Murukesan|1984|452/500|க.முருகேசன்
+# K.Raga Seelan|1985|398/500|க.ராக சீலன்
+# T.Bala Saraswathi|1986|411/500|த.பால சரஸ்வதி
+# S.Senthil Kumar|1987|426/500|செ.செந்தில் குமார்
+# R.Thangamani|1988|410/500|ரா.தங்கமணி
+# S.Paruna Baskaran|1989|430/500|செ.பருண பாஸ்கரன்
+# M.Ganapathi Sundaram|1990|419/500|மு.கணபதி சுந்தரம்
+# A.Mariyappan|1991|377/500|அ.மாரியப்பன்
+# K.Jawahar Kumar|1992|452/500|க.ஜவஹர் குமார்
+# L.Lingaiya|1993|943/1200|ல.லிங்கையா
+# L.SivaKaman|1993|454/500|ல.சிவகாமன்
+# E.Jeya Chandran|1994|1062/1200|ஈ.ஜெய சந்திரன்
+# S.Sharmila|1994|429/500|ச.ஷர்மிளா
+# C.Kaali|1995|1042/1200|சி.காளி
+# M.Karpagavali|1995|454/500|மு.கற்பகவல்லி
+# R.Selvam|1996|1004/1200|ரா.செல்வம்
+# N.Muthu Lakshmi|1996|444/500|ந.முத்து லட்சுமி
+# M.Karpagavali|1997|1059/1200|மு.கற்பகவல்லி
+# S.Sankar Raman|1997|441/500|ச.சங்கர் ராமன்
+# N.Muthu Lakshmi|1998|1120/1200|ந.முத்து லட்சுமி
+# C.Gnanasekaran|1998|454/500|சி.ஞானசேகரன்
+# S.Murukesan|1999|450/500|ச.முருகேசன்
+# S.Harihara Sutha|1999|1024/1200|ச.ஹரிஹர சுதா
+# P.Prabhu|2000|452/500|ப.பிரபு
+# S.ParavathaRaj|2000|1065/1200|ச.பர்வதராஜ்
+# M.Siva Sankar|2001|465/500|மு.சிவ சங்கர்
+# S.Kalai Madasamy|2001|1089/1200|ச.கலை மாடசாமி
+# S.Mercilin Geetha|2002|440/500|செ.மெர்சிலின் கீதா
+# M.Prema|2002|1075/1200|மு.பிரேமா
+# O.Jyothi|2003|1140/1200|ஓ.ஜோதி
+# R.Rajkumar|2003|457/500|ரா.ராஜ்குமார்
+# P.Muthuvijayan|2004|1032/1200|ப.முத்துவிஜயன்
+# R.Raja|2004|453/500|ரா.ராஜா
+# R.Rajkumar|2005|1111/1200|ரா.ராஜ்குமார்
+# U.uthanduraman|2005|458/500|உ.உத்தண்டுராமன்
+# R.Raja|2006|993/1200|ரா.ராஜா
+# R.Selvarani|2006|456/500|ரா.செல்வராணி
+# S.Sangeetha|2007|1070/1200|ச.சங்கீதா
+# P.Ramalingam|2007|423/500|ப.ராமலிங்கம்
+# P.Saravanakumar|2008|1020/1200|ப.சரவணக்குமார்
+# G.Kandharajan|2008|477/500|கோ.கந்தராஜன்
+# K.Maniraj|2009|961/1200|க.மணிராஜ்
+# e.Venkatraman|2009|456/500|ஈ.வெங்கட்ராமன்
+# G.Kandharajan|2010|1070/1200|கோ.கந்தராஜன்
+# S.Kamaraj|2010|451/500|ச.காமராஜ்
+# V.Madhankumar|2011|1098/1200|வி.மதன்குமார்
+# P.Indra|2011|472/500|ப.இந்திரா
+# A.Kavitha|2012|1013/1200|அ.கவிதா
+# C.Rajmohan|2012|473/500|சி.ராஜ்மோகன்
+# P.Dhana Lakshhmi|2013|1027/1200|ப.தன லட்சுமி
+# C.Surya|2013|484/500|சி.சூர்யா
+# """
 
-    # 10th & 12th Rank Holders — 1993–2013
-    {"student_name": "ப. வினோதையா", "academic_year": "1993", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f1.jpg"},
-    {"student_name": "K. பிரபாகரன்", "academic_year": "1993", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/5.jpg"},
-    {"student_name": "E. ஜெயசந்திரன்", "academic_year": "1994", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/6.jpg"},
-    {"student_name": "S. கிருஷ்ணமூர்த்தி", "academic_year": "1994", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/7.jpg"},
-    {"student_name": "C. குமார்", "academic_year": "1995", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/11.jpg"},
-    {"student_name": "M. நந்தகுமார்", "academic_year": "1995", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/12.jpg"},
-    {"student_name": "R. செல்வம்", "academic_year": "1996", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/13.jpg"},
-    {"student_name": "N. சுதா லட்சுமி", "academic_year": "1996", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f2.jpg"},
-    {"student_name": "M. சித்ரகலா", "academic_year": "1997", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f3.jpg"},
-    {"student_name": "S. சங்கீதா ராணி", "academic_year": "1997", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f5.jpg"},
-    {"student_name": "N. சுதர்லட்சுமி", "academic_year": "1998", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f6.jpg"},
-    {"student_name": "C. கோபிநேசன்", "academic_year": "1998", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/14.jpg"},
-    {"student_name": "S. முருகேசன்", "academic_year": "1998–99", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/15.jpg"},
-    {"student_name": "C. உமாநாத் சத்ரி", "academic_year": "1998–99", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/16.jpg"},
-    {"student_name": "M. மருது", "academic_year": "1999–2000", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/17.jpg"},
-    {"student_name": "R. பர்வதராஜ்", "academic_year": "1999–2000", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/18.jpg"},
-    {"student_name": "M. சிவகுமார்", "academic_year": "2001", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/19.jpg"},
-    {"student_name": "S. கோமதி முத்தையா", "academic_year": "2001", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f7.jpg"},
-    {"student_name": "S. முத்துராமன் கீரா", "academic_year": "2002", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/20.jpg"},
-    {"student_name": "M. மகேஷ்", "academic_year": "2002", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/1.jpg"},
-    {"student_name": "O. சிவநதி", "academic_year": "2003", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f8.jpg"},
-    {"student_name": "R. ராஜகுமார்", "academic_year": "2003", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/2.jpg"},
-    {"student_name": "P. முத்துக்குமரன்", "academic_year": "2004", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/3.jpg"},
-    {"student_name": "R. ராஜா", "academic_year": "2004", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/4.jpg"},
-    {"student_name": "R. ராஜகுமாரி", "academic_year": "2005", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f9.jpg"},
-    {"student_name": "U. உத்திரகுமாரன்", "academic_year": "2005", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/5.jpg"},
-    {"student_name": "R. ராமா", "academic_year": "2006", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f10.jpg"},
-    {"student_name": "R. செல்வராணி", "academic_year": "2006", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f1.jpg"},
-    {"student_name": "S. சந்திரா", "academic_year": "2007", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f2.jpg"},
-    {"student_name": "P. ராமமூர்த்தி", "academic_year": "2007", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/6.jpg"},
-    {"student_name": "P. சிவசக்தி தேவி", "academic_year": "2008", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f3.jpg"},
-    {"student_name": "G. கீர்த்திராஜன்", "academic_year": "2008", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/7.jpg"},
-    {"student_name": "K. மன்றநிதி", "academic_year": "2009", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/11.jpg"},
-    {"student_name": "C. வெங்கடேச பிரபன்", "academic_year": "2009", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/12.jpg"},
-    {"student_name": "G. கந்தராஜன்", "academic_year": "2010", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/13.jpg"},
-    {"student_name": "S. காமராஜ்", "academic_year": "2010", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/14.jpg"},
-    {"student_name": "V. மகேந்திரன்", "academic_year": "2011", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/15.jpg"},
-    {"student_name": "P. இந்திரா", "academic_year": "2011", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f5.jpg"},
-    {"student_name": "A. சிவராஜ்", "academic_year": "2012", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/16.jpg"},
-    {"student_name": "C. ராஜசேகரன்", "academic_year": "2012", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/17.jpg"},
-    {"student_name": "P. தனலட்சுமி", "academic_year": "2013", "class_standard": "12th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f6.jpg"},
-    {"student_name": "C. சித்ரா", "academic_year": "2013", "class_standard": "10th", "rank": "1st Rank", "photograph": "/school-images/rank-holders/f7.jpg"},
-]
+# async def seed_rank_holders():
+#     logger.info("Connecting to MongoDB...")
+#     client = AsyncIOMotorClient(settings.MONGODB_URI)
+#     db = client[settings.MONGODB_DATABASE]
 
-async def seed_rank_holders():
-    client = AsyncIOMotorClient(settings.MONGODB_URI)
-    db = client[settings.MONGODB_DATABASE]
-    
-    # 1. Get school_id
-    school = await db.schools.find_one({})
-    school_id = str(school["_id"]) if school and "_id" in school else None
+#     # Get target school ID
+#     school = await db.schools.find_one({})
+#     school_id = str(school["_id"]) if school and "_id" in school else "6a911868ce252b2a8047455d"
 
-    # 2. Clear old test rank holder records
-    await db.rank_holders.delete_many({})
-    print("Cleared existing rank_holders collection.")
+#     # Clear existing rank_holders collection before inserting clean historical records
+#     await db.rank_holders.delete_many({})
+#     logger.info("Cleared existing rank_holders collection.")
 
-    # 3. Build document list
-    now = datetime.now(timezone.utc)
-    docs = []
-    for idx, h in enumerate(HISTORICAL_RANK_HOLDERS):
-        is_10th = h['class_standard'] == '10th'
-        tot_marks = str(475 + (idx % 20)) if is_10th else str(1140 + (idx % 45))
-        max_m = "500" if is_10th else "1200"
+#     now = datetime.now(timezone.utc)
+#     docs = []
 
-        docs.append({
-            "school_id": school_id,
-            "student_name": h["student_name"],
-            "academic_year": h["academic_year"],
-            "class_standard": h["class_standard"],
-            "rank": "1st Rank",
-            "achievement_type": f"{h['class_standard']} State Board Public Examination",
-            "marks_percentage": f"{(int(tot_marks)/int(max_m)*100):.1f}%",
-            "total_marks": tot_marks,
-            "max_marks": max_m,
-            "achievement_title": "School 1st Rank Holder",
-            "photograph": h["photograph"],
-            "description": f"Achieved 1st Rank in School Public Board Examinations ({h['academic_year']}).",
-            "status": "Active",
-            "created_at": now,
-            "updated_at": now
-        })
+#     lines = [line.strip() for line in RAW_DATA.strip().split("\n") if line.strip()]
+#     for line in lines:
+#         parts = line.split("|")
+#         if len(parts) < 3:
+#             continue
+        
+#         name = parts[0].strip()
+#         year = parts[1].strip()
+#         marks_raw = parts[2].strip()
+#         name_ta = parts[3].strip() if len(parts) > 3 else None
+        
+#         # Parse marks
+#         total_marks = ""
+#         max_marks = "500"
+#         pct_str = ""
+        
+#         if "/" in marks_raw:
+#             m_parts = marks_raw.split("/")
+#             total_marks = m_parts[0].strip()
+#             max_marks = m_parts[1].strip()
+#             try:
+#                 tot_val = float(total_marks)
+#                 max_val = float(max_marks)
+#                 if max_val > 0:
+#                     pct_str = f"{round((tot_val / max_val) * 100, 2)}%"
+#             except Exception:
+#                 pass
+#         else:
+#             total_marks = marks_raw
 
-    # 4. Insert all 63 records
-    res = await db.rank_holders.insert_many(docs)
-    print(f"Successfully seeded {len(res.inserted_ids)} historical 1st Rank Holders (1963–2013)!")
-    client.close()
+#         # Class standard & achievement type
+#         class_std = "12th HSC" if max_marks == "1200" else "10th SSLC"
+#         achieve_type = "HSC Public Examination" if max_marks == "1200" else "SSLC Public Examination"
 
-if __name__ == "__main__":
-    asyncio.run(seed_rank_holders())
+#         doc = {
+#             "school_id": school_id,
+#             "student_name": name,
+#             "student_name_ta": name_ta,
+#             "academic_year": year,
+#             "class_standard": class_std,
+#             "rank": "School First Rank",
+#             "achievement_type": achieve_type,
+#             "marks_percentage": pct_str,
+#             "total_marks": total_marks,
+#             "max_marks": max_marks,
+#             "subject_stream": "General",
+#             "achievement_title": f"School Rank Holder ({year})",
+#             "photograph": None,
+#             "description": f"Secured {marks_raw} marks in {achieve_type} ({year}).",
+#             "status": "Active",
+#             "created_at": now,
+#             "updated_at": now
+#         }
+#         docs.append(doc)
+
+#     if docs:
+#         res = await db.rank_holders.insert_many(docs)
+#         logger.info(f"Successfully inserted {len(res.inserted_ids)} historical rank holder records with Tamil translations into 'rank_holders' collection!")
+#     else:
+#         logger.warning("No records parsed.")
+
+# if __name__ == "__main__":
+#     asyncio.run(seed_rank_holders())

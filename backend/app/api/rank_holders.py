@@ -11,6 +11,7 @@ router = APIRouter(prefix="/rank-holders", tags=["Rank Holders Management"])
 class CreateRankHolderRequest(BaseModel):
     alumni_id: Optional[str] = None
     student_name: str
+    student_name_ta: Optional[str] = None
     academic_year: str  # e.g. "2025–2026"
     class_standard: str  # e.g. "10th" or "12th"
     rank: str  # e.g. "1st Rank", "2nd Rank", "School First", "District First", "State First"
@@ -59,6 +60,7 @@ async def list_rank_holders(
             "school_id": d.get("school_id"),
             "alumni_id": d.get("alumni_id"),
             "student_name": d.get("student_name"),
+            "student_name_ta": d.get("student_name_ta"),
             "academic_year": d.get("academic_year"),
             "class_standard": d.get("class_standard"),
             "rank": d.get("rank"),
@@ -98,6 +100,7 @@ async def create_rank_holder(
         "school_id": school_id,
         "alumni_id": req.alumni_id,
         "student_name": req.student_name.strip(),
+        "student_name_ta": req.student_name_ta.strip() if req.student_name_ta else None,
         "academic_year": req.academic_year.strip(),
         "class_standard": req.class_standard.strip(),
         "rank": req.rank.strip(),
@@ -131,6 +134,7 @@ async def update_rank_holder(
     update_doc = {
         "alumni_id": req.alumni_id,
         "student_name": req.student_name.strip(),
+        "student_name_ta": req.student_name_ta.strip() if req.student_name_ta else None,
         "academic_year": req.academic_year.strip(),
         "class_standard": req.class_standard.strip(),
         "rank": req.rank.strip(),

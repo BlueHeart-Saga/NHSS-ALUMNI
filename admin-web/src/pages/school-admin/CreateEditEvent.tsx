@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Save, Send } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Save, Send } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input, Select } from '../../components/Input';
+import { LoadingState } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Batch } from '../../types';
 
 export const CreateEditEvent: React.FC = () => {
   const navigate = useNavigate();
+  const { eventId } = useParams<{ eventId?: string }>();
+  const isEditMode = Boolean(eventId);
+
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [loading, setLoading] = useState(isEditMode);
 
   const [title, setTitle] = useState('');
   const [batchId, setBatchId] = useState<string>('');
@@ -26,8 +31,37 @@ export const CreateEditEvent: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api.getBatches().then(setBatches).catch(console.error);
-  }, []);
+    loadInitialData();
+  }, [eventId]);
+
+  const loadInitialData = async () => {
+    try {
+      if (isEditMode) setLoading(true);
+      const bData = await api.getBatches();
+      setBatches(bData);
+
+      if (eventId) {
+        const ev = await api.getEventDetails(eventId);
+        setTitle(ev.title || '');
+        setBatchId(ev.batch_id || '');
+        setDescription(ev.description || '');
+        setEventDate(ev.event_date || '2026-12-20');
+        setStartTime(ev.start_time || '10:00 AM');
+        setEndTime(ev.end_time || '05:00 PM');
+        setVenue(ev.venue || '');
+        setAddress(ev.address || '');
+        setMaxCapacity(ev.max_capacity ?? 300);
+        setGuestAllowed(ev.guest_allowed ?? true);
+        setCoverImageUrl(ev.cover_image_url || '');
+        setRegistrationUrl(ev.registration_url || '');
+      }
+    } catch (err) {
+      console.error('Failed to load initial data:', err);
+      alertService.showError('Error Loading Event', 'Could not fetch event details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,7 +82,7 @@ export const CreateEditEvent: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await api.createEvent({
+      const payload: any = {
         title,
         batch_id: batchId || null,
         description,
@@ -61,15 +95,22 @@ export const CreateEditEvent: React.FC = () => {
         guest_allowed: guestAllowed,
         cover_image_url: coverImageUrl || null,
         registration_url: registrationUrl || null,
-        publish_immediately: publishImmediately
-      });
-      await alertService.showSuccess(
-        publishImmediately ? 'Event Published Successfully' : 'Event Saved as Draft',
-        publishImmediately ? 'Alumni can now view and RSVP for this event.' : 'Your event draft has been saved.'
-      );
+      };
+
+      if (isEditMode && eventId) {
+        await api.updateEvent(eventId, payload);
+        alertService.showSuccess('Event Updated', `"${title}" has been updated successfully.`);
+      } else {
+        payload.publish_immediately = publishImmediately;
+        await api.createEvent(payload);
+        await alertService.showSuccess(
+          publishImmediately ? 'Event Published Successfully' : 'Event Saved as Draft',
+          publishImmediately ? 'Alumni can now view and RSVP for this event.' : 'Your event draft has been saved.'
+        );
+      }
       navigate('/school-admin/events');
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to create event.');
+      alertService.handleApiError(err, isEditMode ? 'Failed to update event.' : 'Failed to create event.');
     } finally {
       setSubmitting(false);
     }
@@ -79,6 +120,8 @@ export const CreateEditEvent: React.FC = () => {
     { label: 'School-wide Event (All Alumni)', value: '' },
     ...batches.map((b) => ({ label: `${b.name} (Year ${b.passing_year})`, value: b.id }))
   ];
+
+  if (loading) return <LoadingState />;
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto animate-fadeIn">
@@ -91,8 +134,12 @@ export const CreateEditEvent: React.FC = () => {
       </button>
 
       <div>
-        <h2 className="text-2xl font-bold text-[#111111]">Create Get-Together Event</h2>
-        <p className="text-xs text-[#6B7280]">Organize a batch reunion or school-wide alumni gathering</p>
+        <h2 className="text-2xl font-bold text-[#111111]">
+          {isEditMode ? 'Edit Get-Together Event' : 'Create Get-Together Event'}
+        </h2>
+        <p className="text-xs text-[#6B7280]">
+          {isEditMode ? 'Modify event details, timing, and venue' : 'Organize a batch reunion or school-wide alumni gathering'}
+        </p>
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xs space-y-6">
@@ -217,14 +264,23 @@ export const CreateEditEvent: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-end space-x-3 pt-6 border-t border-[#E5E7EB]">
-          <Button type="button" variant="secondary" onClick={() => handleSubmit(false)} isLoading={submitting}>
-            <Save className="w-4 h-4 mr-1.5" />
-            Save as Draft
-          </Button>
-          <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting}>
-            <Send className="w-4 h-4 mr-1.5" />
-            Publish Event Immediately
-          </Button>
+          {isEditMode ? (
+            <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting}>
+              <Save className="w-4 h-4 mr-1.5" />
+              Save Changes
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="secondary" onClick={() => handleSubmit(false)} isLoading={submitting}>
+                <Save className="w-4 h-4 mr-1.5" />
+                Save as Draft
+              </Button>
+              <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting}>
+                <Send className="w-4 h-4 mr-1.5" />
+                Publish Event Immediately
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

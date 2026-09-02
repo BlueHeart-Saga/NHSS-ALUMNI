@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Calendar, MapPin, Users, Trash2, ExternalLink, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Trash2, ExternalLink, Clock, AlertTriangle, CheckCircle2, Edit3 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { LoadingState, EmptyState } from '../../components/EmptyState';
@@ -170,21 +170,35 @@ export const EventsList: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Footer & Delete Action */}
+                  {/* Footer & Actions */}
                   <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
                     <span className="font-bold text-[#111111] flex items-center">
                       <Users className="w-4 h-4 mr-1 text-[#854D0E]" />
                       {ev.attending_count} Confirmed
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, ev.id, ev.title)}
-                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-red-200"
-                      title="Delete Event"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/school-admin/events/${ev.id}/edit`);
+                        }}
+                        className="p-2 text-gray-600 hover:text-[#111111] hover:bg-gray-100 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-gray-300"
+                        title="Edit Event"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, ev.id, ev.title)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-red-200"
+                        title="Delete Event"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

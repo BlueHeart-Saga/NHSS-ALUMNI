@@ -89,7 +89,14 @@ export const HomePage: React.FC = () => {
       .finally(() => setLoadingHighlights(false));
 
     api.getPublicPastEvents()
-      .then(mData => { if (mData) setMemories(mData); })
+      .then(mData => {
+        if (mData) {
+          setMemories(mData.map((ev: any) => ({
+            ...ev,
+            image_url: ev.cover_image_url || ev.image_url
+          })));
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingMemories(false));
 

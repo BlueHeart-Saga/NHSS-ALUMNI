@@ -167,6 +167,13 @@ class ApiClient {
     return this.getMe();
   }
 
+  async updateAlumniProfile(data: Record<string, any>) {
+    return this.request<AlumniProfile>('/alumni/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // School
   async getSchoolProfile() {
     return this.request<SchoolProfile>('/school/profile');
@@ -365,6 +372,19 @@ class ApiClient {
     });
   }
 
+  async updateSchool(id: string, schoolData: any) {
+    return this.request<SchoolProfile>(`/developer/schools/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(schoolData),
+    });
+  }
+
+  async deleteSchool(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/schools/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async provisionAdminForSchool(school_id: string, data: { full_name: string; mobile: string; email?: string }) {
     return this.request<AlumniProfile>(`/developer/schools/${school_id}/admin`, {
       method: 'POST',
@@ -457,6 +477,13 @@ class ApiClient {
   async createEvent(eventData: any) {
     return this.request<EventItem>('/events', {
       method: 'POST',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async updateEvent(event_id: string, eventData: any) {
+    return this.request<EventItem>(`/events/${event_id}`, {
+      method: 'PUT',
       body: JSON.stringify(eventData),
     });
   }
@@ -685,6 +712,45 @@ class ApiClient {
 
   async getPublicAssociationTeam() {
     return this.request<AssociationTeamMember[]>('/public/association-team');
+  }
+
+  // --- Document Requests API ---
+  async getDocumentRequests() {
+    return this.request<any[]>('/documents/requests');
+  }
+
+  async createDocumentRequest(data: { doc_type: string; reason: string; remarks?: string }) {
+    return this.request<any>('/documents/requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAllDocumentRequestsAdmin(status?: string) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<any[]>(`/documents/admin/requests${q}`);
+  }
+
+  async updateDocumentRequestAdmin(id: string, status: string, admin_remarks?: string) {
+    return this.request<any>(`/documents/admin/requests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, admin_remarks }),
+    });
+  }
+
+  // --- Password Management API ---
+  async changePassword(current_password: string, new_password: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password, new_password }),
+    });
+  }
+
+  async resetPasswordWithOTP(email: string | undefined, mobile: string | undefined, otp: string, new_password: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/reset-password-with-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, mobile, otp, new_password }),
+    });
   }
 }
 

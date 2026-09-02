@@ -78,7 +78,7 @@ export const PublicContact: React.FC = () => {
                     <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />
                   </div>
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</strong>
+                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('phone_label')}</strong>
                     <span className="font-semibold text-sm sm:text-base">+91 98765 43210</span>
                   </div>
                 </div>
@@ -88,7 +88,7 @@ export const PublicContact: React.FC = () => {
                     <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />
                   </div>
                   <div>
-                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</strong>
+                    <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('email_contact_label')}</strong>
                     <span className="font-semibold text-sm sm:text-base">info@nhssalumni.com</span>
                   </div>
                 </div>
