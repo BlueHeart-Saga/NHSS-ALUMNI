@@ -1,5 +1,6 @@
 import smtplib
 import logging
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.core.config import settings
@@ -14,6 +15,7 @@ def send_email_smtp(to_email: str, subject: str, html_content: str, text_content
         logger.warning("SMTP credentials not configured. Skipping email dispatch.")
         return False
 
+    start_time = time.perf_counter()
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -32,13 +34,14 @@ def send_email_smtp(to_email: str, subject: str, html_content: str, text_content
             server.login(settings.SMTP_USER, settings.SMTP_PASS)
             server.sendmail(settings.EMAILS_FROM_EMAIL, [to_email], msg.as_string())
 
-        logger.info(f"Successfully dispatched SMTP email to {to_email} with subject: '{subject}'")
-        print(f"\n[SMTP EMAIL SENT SUCCESS] Email dispatched to: {to_email} | Sender: {settings.EMAILS_FROM_NAME}\n")
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        logger.info(f"operation=smtp_send duration_ms={duration_ms}")
         return True
     except Exception as e:
-        logger.error(f"Failed to dispatch SMTP email to {to_email}: {str(e)}")
-        print(f"\n[SMTP EMAIL ERROR] Failed to send email to {to_email}: {str(e)}\n")
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        logger.error(f"operation=smtp_send_error duration_ms={duration_ms} error={str(e)}")
         return False
+
 
 def send_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") -> bool:
     """

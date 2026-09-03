@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: 'Noto Sans Tamil', 'Inter', system-ui, -apple-system, sans-serif;
     color: #111111;

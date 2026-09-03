@@ -8,8 +8,9 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
   private token: string | null = sessionStorage.getItem('alumni_access_token');
-  private cacheMap = new Map<string, { data: any; timestamp: number }>();
-  private cacheTTL = 20000; // 20 seconds TTL
+  private cacheMap = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private pendingPromises = new Map<string, Promise<any>>();
+  private defaultCacheTTL = 20000; // 20 seconds default TTL
 
   setToken(token: string) {
     this.token = token;
@@ -27,6 +28,7 @@ class ApiClient {
 
   clearCache() {
     this.cacheMap.clear();
+    this.pendingPromises.clear();
   }
 
   getToken(): string | null {
@@ -38,51 +40,73 @@ class ApiClient {
     const isGet = method === 'GET';
     const cacheKey = `${endpoint}`;
 
-    // Return cached response if GET and within TTL
     if (isGet) {
+      // 1. Return cached response if within TTL
       const cached = this.cacheMap.get(cacheKey);
-      if (cached && (Date.now() - cached.timestamp < this.cacheTTL)) {
+      if (cached && (Date.now() - cached.timestamp < cached.ttl)) {
         return cached.data as T;
       }
+
+      // 2. In-flight Promise Deduplication: Return ongoing promise if duplicate request fired simultaneously
+      if (this.pendingPromises.has(cacheKey)) {
+        return this.pendingPromises.get(cacheKey) as Promise<T>;
+      }
     } else {
-      // Invalidate cache on mutations
+      // Invalidate cache on state-changing mutations
       this.clearCache();
     }
 
-    const token = this.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
+    const requestPromise = (async () => {
+      try {
+        const token = this.getToken();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...(options.headers as Record<string, string>),
+        };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers,
-    });
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers,
+        });
 
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ detail: 'An unexpected error occurred' }));
-      let detailMsg = 'An unexpected error occurred';
-      if (typeof errorBody.detail === 'string') {
-        detailMsg = errorBody.detail;
-      } else if (Array.isArray(errorBody.detail)) {
-        detailMsg = errorBody.detail.map((err: any) => err.msg || (typeof err === 'string' ? err : JSON.stringify(err))).join(', ');
-      } else if (errorBody.detail) {
-        detailMsg = JSON.stringify(errorBody.detail);
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({ detail: 'An unexpected error occurred' }));
+          let detailMsg = 'An unexpected error occurred';
+          if (typeof errorBody.detail === 'string') {
+            detailMsg = errorBody.detail;
+          } else if (Array.isArray(errorBody.detail)) {
+            detailMsg = errorBody.detail.map((err: any) => err.msg || (typeof err === 'string' ? err : JSON.stringify(err))).join(', ');
+          } else if (errorBody.detail) {
+            detailMsg = JSON.stringify(errorBody.detail);
+          }
+          throw new Error(detailMsg || `Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (isGet) {
+          // Public endpoints get 60s stale time, user endpoints get 20s
+          const ttl = endpoint.startsWith('/public') ? 60000 : this.defaultCacheTTL;
+          this.cacheMap.set(cacheKey, { data, timestamp: Date.now(), ttl });
+        }
+        return data as T;
+      } finally {
+        if (isGet) {
+          this.pendingPromises.delete(cacheKey);
+        }
       }
-      throw new Error(detailMsg || `Request failed with status ${response.status}`);
+    })();
+
+    if (isGet) {
+      this.pendingPromises.set(cacheKey, requestPromise);
     }
 
-    const data = await response.json();
-    if (isGet) {
-      this.cacheMap.set(cacheKey, { data, timestamp: Date.now() });
-    }
-    return data as T;
+    return requestPromise;
   }
+
 
   private parseIdentifier(primary: string, secondary?: string) {
     if (!primary) return { email: undefined, mobile: secondary || undefined };

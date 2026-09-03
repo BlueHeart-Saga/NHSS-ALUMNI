@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection, get_db
@@ -34,6 +35,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# GZip Compression Middleware (Minimum response size 500 bytes)
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # CORS Middleware Configuration (Supporting Production & Local Origins)
 cors_origins_set = list(set([
     o.rstrip('/') for o in settings.CORS_ORIGINS if o and o != "*"
@@ -55,6 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Global Sanitized Exception Handler for Production
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -75,6 +80,7 @@ if os.path.exists(PROFILES_DIR):
 
 # API v1 Routers Sub-Application
 api_v1 = FastAPI(title="School Alumni API v1")
+api_v1.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Attach CORSMiddleware directly to api_v1 sub-application as well
 api_v1.add_middleware(
@@ -85,6 +91,7 @@ api_v1.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 api_v1.include_router(public.router)
 api_v1.include_router(auth.router)

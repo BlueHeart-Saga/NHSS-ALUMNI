@@ -10,8 +10,15 @@ class Database:
 
 db_instance = Database()
 
+def redact_uri(uri: str) -> str:
+    if not uri:
+        return "[REDACTED]"
+    import re
+    return re.sub(r"://([^:]+):([^@]+)@", "://[REDACTED]:[REDACTED]@", uri)
+
 async def connect_to_mongo():
-    logger.info(f"Connecting to MongoDB at {settings.MONGODB_URI} (Environment: {settings.APP_ENV})...")
+    logger.info(f"Connecting to MongoDB at {redact_uri(settings.MONGODB_URI)} (Environment: {settings.APP_ENV})...")
+
     
     # In production, validate configuration secrets first
     settings.validate_production_secrets()
@@ -87,6 +94,7 @@ async def create_indexes():
         # Alumni
         await db.alumni.create_index([("school_id", 1), ("batch_id", 1)])
         await db.alumni.create_index([("school_id", 1), ("verification_status", 1)])
+        await db.alumni.create_index([("passing_year", 1), ("verification_status", 1)])
         await db.alumni.create_index("mobile")
         await db.alumni.create_index("user_id", unique=True)
 
@@ -96,9 +104,12 @@ async def create_indexes():
         # Events
         await db.events.create_index([("school_id", 1), ("event_date", 1)])
         await db.events.create_index([("school_id", 1), ("batch_id", 1)])
+        await db.events.create_index([("status", 1), ("event_date", 1)])
+        await db.events.create_index([("event_date", -1)])
 
         # Event Attendance
         await db.event_attendance.create_index([("event_id", 1), ("alumni_id", 1)], unique=True)
+        await db.event_attendance.create_index([("event_id", 1), ("rsvp_status", 1)])
 
         # Checkins
         await db.checkins.create_index([("event_id", 1), ("alumni_id", 1)], unique=True)
@@ -113,6 +124,7 @@ async def create_indexes():
         logger.info("MongoDB indexes created successfully.")
     except Exception as e:
         logger.warning(f"Index creation notice: {e}")
+
 
 def get_db():
     return db_instance.db

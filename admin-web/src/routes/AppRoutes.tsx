@@ -1,13 +1,10 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Layouts
 import { PublicLayout } from '../layouts/PublicLayout';
-import { AlumniLayout } from '../layouts/AlumniLayout';
-import { SchoolAdminLayout } from '../layouts/SchoolAdminLayout';
-import { DeveloperLayout } from '../layouts/DeveloperLayout';
 
-// Public Pages
+// Public Pages (Eagerly Loaded for Immediate First Paint)
 import { HomePage } from '../pages/public-pages/HomePage';
 import { PublicAbout } from '../pages/public-pages/PublicAbout';
 import { PublicSchool } from '../pages/public-pages/PublicSchool';
@@ -22,47 +19,58 @@ import { Login } from '../pages/public-pages/Login';
 import { SchoolAdminRequest } from '../pages/public-pages/SchoolAdminRequest';
 import { AdminSetupPassword } from '../pages/public-pages/AdminSetupPassword';
 import { DeveloperLogin } from '../pages/developer/DeveloperLogin';
-
-// Alumni Pages
-import { AlumniDashboard } from '../pages/alumni/AlumniDashboard';
-import { AlumniProfilePage } from '../pages/alumni/AlumniProfilePage';
-import { AlumniBatchesPage } from '../pages/alumni/AlumniBatchesPage';
-import { AlumniDirectoryPage } from '../pages/alumni/AlumniDirectoryPage';
-import { AlumniCommunityPage } from '../pages/alumni/AlumniCommunityPage';
-import { AlumniMentorshipPage } from '../pages/alumni/AlumniMentorshipPage';
-import { AlumniSchoolEventsPage } from '../pages/alumni/AlumniSchoolEventsPage';
-import { AlumniEventsPage } from '../pages/alumni/AlumniEventsPage';
-import { AlumniAnnouncementsPage } from '../pages/alumni/AlumniAnnouncementsPage';
-import { AlumniGalleryPage } from '../pages/alumni/AlumniGalleryPage';
-import { AlumniDocumentsPage } from '../pages/alumni/AlumniDocumentsPage';
-import { AlumniNotificationsPage } from '../pages/alumni/AlumniNotificationsPage';
-import { AlumniSettingsPage } from '../pages/alumni/AlumniSettingsPage';
-
-// School Admin Pages
-import { Dashboard } from '../pages/school-admin/Dashboard';
-import { VerificationQueue } from '../pages/school-admin/VerificationQueue';
-import { AlumniManagement } from '../pages/school-admin/AlumniManagement';
-import { Batches } from '../pages/school-admin/Batches';
-import { BatchDetails } from '../pages/school-admin/BatchDetails';
-import { EventsList } from '../pages/school-admin/EventsList';
-import { CreateEditEvent } from '../pages/school-admin/CreateEditEvent';
-import { EventDetails } from '../pages/school-admin/EventDetails';
-import { AttendanceRoster } from '../pages/school-admin/AttendanceRoster';
-import { AnnouncementsManager } from '../pages/school-admin/AnnouncementsManager';
-import { MemoriesModeration } from '../pages/school-admin/MemoriesModeration';
-import { ReportsDashboard } from '../pages/school-admin/ReportsDashboard';
-import { SchoolSettings } from '../pages/school-admin/SchoolSettings';
-import { AssociationTeam } from '../pages/school-admin/AssociationTeam';
-import { RankHoldersManager } from '../pages/school-admin/RankHoldersManager';
-import { SchoolEventsManager } from '../pages/school-admin/SchoolEventsManager';
-
-// Developer Pages
-import { DeveloperPortal } from '../pages/developer/DeveloperPortal';
 import { NotFound } from '../pages/common-pages/NotFound';
+
+// Lazy-Loaded Layouts & Secondary Pages (On-Demand Code Splitting)
+const AlumniLayout = lazy(() => import('../layouts/AlumniLayout').then(m => ({ default: m.AlumniLayout })));
+const SchoolAdminLayout = lazy(() => import('../layouts/SchoolAdminLayout').then(m => ({ default: m.SchoolAdminLayout })));
+const DeveloperLayout = lazy(() => import('../layouts/DeveloperLayout').then(m => ({ default: m.DeveloperLayout })));
+
+// Alumni Pages (Lazy)
+const AlumniDashboard = lazy(() => import('../pages/alumni/AlumniDashboard').then(m => ({ default: m.AlumniDashboard })));
+const AlumniProfilePage = lazy(() => import('../pages/alumni/AlumniProfilePage').then(m => ({ default: m.AlumniProfilePage })));
+const AlumniBatchesPage = lazy(() => import('../pages/alumni/AlumniBatchesPage').then(m => ({ default: m.AlumniBatchesPage })));
+const AlumniDirectoryPage = lazy(() => import('../pages/alumni/AlumniDirectoryPage').then(m => ({ default: m.AlumniDirectoryPage })));
+const AlumniSchoolEventsPage = lazy(() => import('../pages/alumni/AlumniSchoolEventsPage').then(m => ({ default: m.AlumniSchoolEventsPage })));
+const AlumniEventsPage = lazy(() => import('../pages/alumni/AlumniEventsPage').then(m => ({ default: m.AlumniEventsPage })));
+const AlumniAnnouncementsPage = lazy(() => import('../pages/alumni/AlumniAnnouncementsPage').then(m => ({ default: m.AlumniAnnouncementsPage })));
+const AlumniGalleryPage = lazy(() => import('../pages/alumni/AlumniGalleryPage').then(m => ({ default: m.AlumniGalleryPage })));
+const AlumniDocumentsPage = lazy(() => import('../pages/alumni/AlumniDocumentsPage').then(m => ({ default: m.AlumniDocumentsPage })));
+const AlumniNotificationsPage = lazy(() => import('../pages/alumni/AlumniNotificationsPage').then(m => ({ default: m.AlumniNotificationsPage })));
+const AlumniSettingsPage = lazy(() => import('../pages/alumni/AlumniSettingsPage').then(m => ({ default: m.AlumniSettingsPage })));
+
+// School Admin Pages (Lazy)
+const Dashboard = lazy(() => import('../pages/school-admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const VerificationQueue = lazy(() => import('../pages/school-admin/VerificationQueue').then(m => ({ default: m.VerificationQueue })));
+const AlumniManagement = lazy(() => import('../pages/school-admin/AlumniManagement').then(m => ({ default: m.AlumniManagement })));
+const Batches = lazy(() => import('../pages/school-admin/Batches').then(m => ({ default: m.Batches })));
+const BatchDetails = lazy(() => import('../pages/school-admin/BatchDetails').then(m => ({ default: m.BatchDetails })));
+const EventsList = lazy(() => import('../pages/school-admin/EventsList').then(m => ({ default: m.EventsList })));
+const CreateEditEvent = lazy(() => import('../pages/school-admin/CreateEditEvent').then(m => ({ default: m.CreateEditEvent })));
+const EventDetails = lazy(() => import('../pages/school-admin/EventDetails').then(m => ({ default: m.EventDetails })));
+const AttendanceRoster = lazy(() => import('../pages/school-admin/AttendanceRoster').then(m => ({ default: m.AttendanceRoster })));
+const AnnouncementsManager = lazy(() => import('../pages/school-admin/AnnouncementsManager').then(m => ({ default: m.AnnouncementsManager })));
+const MemoriesModeration = lazy(() => import('../pages/school-admin/MemoriesModeration').then(m => ({ default: m.MemoriesModeration })));
+const ReportsDashboard = lazy(() => import('../pages/school-admin/ReportsDashboard').then(m => ({ default: m.ReportsDashboard })));
+const SchoolSettings = lazy(() => import('../pages/school-admin/SchoolSettings').then(m => ({ default: m.SchoolSettings })));
+const AssociationTeam = lazy(() => import('../pages/school-admin/AssociationTeam').then(m => ({ default: m.AssociationTeam })));
+const RankHoldersManager = lazy(() => import('../pages/school-admin/RankHoldersManager').then(m => ({ default: m.RankHoldersManager })));
+const SchoolEventsManager = lazy(() => import('../pages/school-admin/SchoolEventsManager').then(m => ({ default: m.SchoolEventsManager })));
+
+// Developer Pages (Lazy)
+const DeveloperPortal = lazy(() => import('../pages/developer/DeveloperPortal').then(m => ({ default: m.DeveloperPortal })));
+
+const PageFallback = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+  </div>
+);
 
 export const AppRoutes: React.FC = () => {
   return (
-    <Routes>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+
       {/* 1. PUBLIC ROUTES */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<HomePage />} />
@@ -140,5 +148,7 @@ export const AppRoutes: React.FC = () => {
       {/* Default Catch-All */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+  </Suspense>
   );
 };
+

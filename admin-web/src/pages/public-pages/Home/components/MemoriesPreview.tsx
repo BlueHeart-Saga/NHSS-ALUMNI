@@ -66,8 +66,9 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, load
         ) : (
           <div className="space-y-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {visibleMemories.map((event) => {
+              {visibleMemories.map((event, idx) => {
                 const coverSrc = getAssetUrl(event.image_url) || '/school-images/banner.png';
+                const isAboveFold = idx < 3;
 
                 return (
                   <div
@@ -76,13 +77,17 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, load
                       if (onSelectMemory) onSelectMemory(event);
                       else onViewAllClick();
                     }}
-                    className="bg-white border-2 border-[#111111] rounded-2xl sm:rounded-[32px] overflow-hidden shadow-[4px_4px_0px_0px_#111111] sm:shadow-[6px_6px_0px_0px_#111111] hover:shadow-[8px_8px_0px_0px_#F4C542] transition-all duration-300 transform hover:-translate-x-0.5 hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between group h-60 sm:h-72 relative"
+                    className="bg-white border-2 border-[#111111] rounded-2xl sm:rounded-[32px] overflow-hidden shadow-[4px_4px_0px_0px_#111111] sm:shadow-[6px_6px_0px_0px_#111111] hover:shadow-[8px_8px_0px_0px_#F4C542] transition-all duration-300 transform hover:-translate-x-0.5 hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between group h-60 sm:h-72 relative bg-slate-100"
                   >
                     <img
                       src={coverSrc}
                       alt={event.title}
+                      loading={isAboveFold ? "eager" : "lazy"}
+                      decoding="async"
+                      {...(isAboveFold ? { fetchPriority: "high" } : {})}
                       className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                     />
+
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 sm:p-6 flex flex-col justify-end space-y-1.5 sm:space-y-2 z-10">
                       <span className="text-[10px] sm:text-xs font-bold text-[#F4C542] bg-[#111111] border border-[#F4C542]/50 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full self-start inline-flex items-center space-x-1">
                         <Calendar className="w-3 h-3 text-[#F4C542] mr-1 inline" />

@@ -1,5 +1,8 @@
 import io
+import os
 import uuid
+import time
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Tuple, Optional
@@ -43,7 +46,8 @@ class BlobStorageService:
                 self.use_azure = False
 
     def process_and_compress_image(self, file_bytes: bytes, max_dimension: int = 1600, quality: int = 85) -> Tuple[bytes, str]:
-        """Resizes and compresses image to WebP format"""
+        """Resizes and compresses image to WebP format with timing instrumentation."""
+        start_time = time.perf_counter()
         try:
             img = Image.open(io.BytesIO(file_bytes))
             if img.mode in ("RGBA", "P"):
@@ -52,9 +56,12 @@ class BlobStorageService:
             img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
             output = io.BytesIO()
             img.save(output, format="WEBP", quality=quality, optimize=True)
+            duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            logger.info(f"operation=image_resize duration_ms={duration_ms} max_dim={max_dimension}")
             return output.getvalue(), "image/webp"
         except Exception as e:
-            logger.error(f"Image compression failed, fallback to raw bytes: {e}")
+            duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            logger.error(f"operation=image_resize_error duration_ms={duration_ms} error={e}")
             return file_bytes, "image/jpeg"
 
     async def upload_image(
@@ -68,8 +75,10 @@ class BlobStorageService:
         """Uploads main image & thumbnail to Azure or MongoDB GridFS database (zero local disk files)."""
         
         unique_id = uuid.uuid4().hex
-        main_bytes, main_mime = self.process_and_compress_image(file_content, max_dimension=1600, quality=85)
-        thumb_bytes, thumb_mime = self.process_and_compress_image(file_content, max_dimension=400, quality=75)
+        
+        # Move CPU-bound image compression off the asyncio event loop thread using asyncio.to_thread
+        main_bytes, main_mime = await asyncio.to_thread(self.process_and_compress_image, file_content, 1600, 85)
+        thumb_bytes, thumb_mime = await asyncio.to_thread(self.process_and_compress_image, file_content, 400, 75)
 
         s_id = school_id or "general"
         e_id = event_id or "general"
@@ -79,15 +88,25 @@ class BlobStorageService:
 
         if self.use_azure:
             try:
-                # Upload Main Image to Azure
+                from azure.storage.blob import ContentSettings
+                start_time = time.perf_counter()
+                
+                cnt_settings_main = ContentSettings(content_type=main_mime, cache_control="public, max-age=31536000, immutable")
                 client_main = self.container_client.get_blob_client(blob_path_main)
-                client_main.upload_blob(main_bytes, overwrite=True, content_type=main_mime)
+                await asyncio.to_thread(client_main.upload_blob, main_bytes, overwrite=True, content_settings=cnt_settings_main)
 
-                # Upload Thumbnail to Azure
+                cnt_settings_thumb = ContentSettings(content_type=thumb_mime, cache_control="public, max-age=31536000, immutable")
                 client_thumb = self.container_client.get_blob_client(blob_path_thumb)
-                client_thumb.upload_blob(thumb_bytes, overwrite=True, content_type=thumb_mime)
+                await asyncio.to_thread(client_thumb.upload_blob, thumb_bytes, overwrite=True, content_settings=cnt_settings_thumb)
 
-                return client_main.url, client_thumb.url, blob_path_main
+                duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                logger.info(f"operation=azure_blob_upload duration_ms={duration_ms}")
+
+                main_url = f"{settings.AZURE_CDN_URL.rstrip('/')}/{blob_path_main}" if settings.AZURE_CDN_URL else client_main.url
+                thumb_url = f"{settings.AZURE_CDN_URL.rstrip('/')}/{blob_path_thumb}" if settings.AZURE_CDN_URL else client_thumb.url
+
+                return main_url, thumb_url, blob_path_main
+
             except Exception as e:
                 logger.error(f"Azure blob upload error: {e}, falling back to MongoDB GridFS database storage")
 
@@ -97,4 +116,35 @@ class BlobStorageService:
 
         return main_url, thumb_url, blob_path_main
 
+    async def upload_raw_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+        school_id: Optional[str] = "general"
+    ) -> str:
+        """Uploads generic raw file (videos, documents, etc.) to Azure Blob Storage or MongoDB GridFS fallback."""
+        unique_id = uuid.uuid4().hex
+        ext = os.path.splitext(filename)[1] or ""
+        s_id = school_id or "general"
+        blob_path = f"{s_id}/raw/{unique_id}{ext}"
+
+        if self.use_azure:
+            try:
+                from azure.storage.blob import ContentSettings
+                start_time = time.perf_counter()
+                client = self.container_client.get_blob_client(blob_path)
+                cnt_settings = ContentSettings(content_type=content_type, cache_control="public, max-age=31536000, immutable")
+                await asyncio.to_thread(client.upload_blob, file_content, overwrite=True, content_settings=cnt_settings)
+                
+                duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                logger.info(f"operation=azure_raw_upload duration_ms={duration_ms}")
+
+                return f"{settings.AZURE_CDN_URL.rstrip('/')}/{blob_path}" if settings.AZURE_CDN_URL else client.url
+            except Exception as e:
+                logger.error(f"Azure raw blob upload error: {e}, falling back to MongoDB GridFS")
+
+        return await save_to_gridfs(file_content, f"{unique_id}{ext}", content_type)
+
 blob_service = BlobStorageService()
+

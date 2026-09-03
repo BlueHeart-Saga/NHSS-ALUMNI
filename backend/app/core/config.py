@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # Azure Storage Settings
     AZURE_STORAGE_CONNECTION_STRING: str = ""
     AZURE_STORAGE_CONTAINER: str = "alumni-memories"
+    AZURE_CDN_URL: str = ""
 
     # Firebase Settings
     FIREBASE_PROJECT_ID: str = ""

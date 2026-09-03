@@ -173,16 +173,14 @@ async def upload_single_memory_file(file: UploadFile = File(...)):
         image_url, _, _ = await blob_service.upload_image(contents, file.filename, content_type)
         return {"url": image_url, "filename": file.filename, "media_type": "IMAGE"}
     elif content_type.startswith("video/"):
-        ext = os.path.splitext(file.filename)[1] or ".mp4"
-        unique_name = f"video_{uuid.uuid4().hex}{ext}"
-        video_url = await save_to_gridfs(contents, unique_name, content_type)
+        video_url = await blob_service.upload_raw_file(contents, file.filename, content_type)
         return {"url": video_url, "filename": file.filename, "media_type": "VIDEO"}
     else:
         raise HTTPException(status_code=400, detail="Only image (JPG, PNG, WebP) and video files (MP4, WebM, MOV) are supported.")
 
 @router.post("/upload-multiple")
 async def upload_multiple_memory_files(files: List[UploadFile] = File(...)):
-    """Uploads multiple images or videos directly to database storage."""
+    """Uploads multiple images or videos directly to storage."""
     results = []
     for file in files:
         content_type = file.content_type or ""
@@ -191,11 +189,10 @@ async def upload_multiple_memory_files(files: List[UploadFile] = File(...)):
             image_url, _, _ = await blob_service.upload_image(contents, file.filename, content_type)
             results.append({"url": image_url, "filename": file.filename, "media_type": "IMAGE"})
         elif content_type.startswith("video/"):
-            ext = os.path.splitext(file.filename)[1] or ".mp4"
-            unique_name = f"video_{uuid.uuid4().hex}{ext}"
-            video_url = await save_to_gridfs(contents, unique_name, content_type)
+            video_url = await blob_service.upload_raw_file(contents, file.filename, content_type)
             results.append({"url": video_url, "filename": file.filename, "media_type": "VIDEO"})
     return {"urls": [r["url"] for r in results], "files": results}
+
 
 @router.put("/{memory_id}/status")
 async def update_memory_status(memory_id: str, payload: MemoryStatusUpdatePayload):

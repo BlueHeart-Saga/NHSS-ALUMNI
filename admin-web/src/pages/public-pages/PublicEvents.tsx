@@ -39,16 +39,32 @@ export const PublicEvents: React.FC = () => {
   const [selectedPreviewEvent, setSelectedPreviewEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      api.getPublicEvents().catch(() => []),
-      api.getPublicPastEvents().catch(() => [])
-    ])
-      .then(([upData, pastData]) => {
-        setUpcomingEvents(upData || []);
-        setPastEvents(pastData || []);
+    // Non-blocking parallel data fetching for instant card rendering!
+    let active = true;
+
+    api.getPublicEvents()
+      .then(upData => {
+        if (active && upData) {
+          setUpcomingEvents(upData);
+          setLoading(false);
+        }
       })
-      .finally(() => setLoading(false));
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    api.getPublicPastEvents()
+      .then(pastData => {
+        if (active && pastData) {
+          setPastEvents(pastData);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Combine & filter events based on active tab and search query
@@ -164,7 +180,7 @@ export const PublicEvents: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filteredEvents.map((event) => {
+            {filteredEvents.map((event, idx) => {
               const coverImage = language === 'ta'
                 ? (getAssetUrl(event.cover_image_url_ta) || getAssetUrl(event.cover_image_url) || getAssetUrl('/school-images/banner.png'))
                 : (getAssetUrl(event.cover_image_url) || getAssetUrl(event.cover_image_url_ta) || getAssetUrl('/school-images/banner.png'));
@@ -176,6 +192,8 @@ export const PublicEvents: React.FC = () => {
               const displayDescription = language === 'ta'
                 ? (event.description_ta || event.description)
                 : (event.description || event.description_ta);
+
+              const isAboveTheFold = idx < 3;
 
               return (
                 <div
@@ -190,6 +208,9 @@ export const PublicEvents: React.FC = () => {
                     <img
                       src={coverImage}
                       alt={displayTitle}
+                      loading={isAboveTheFold ? "eager" : "lazy"}
+                      decoding="async"
+                      {...(isAboveTheFold ? { fetchPriority: "high" } : {})}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out ${
                         event.isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''
                       }`}

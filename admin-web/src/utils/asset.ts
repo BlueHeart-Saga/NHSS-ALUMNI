@@ -3,7 +3,7 @@
  * to local asset URLs, preventing browser disk/memory cache from serving stale images.
  */
 const ASSET_VERSION = '20260831_v2';
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '';
 
 export const getAssetUrl = (url: string | undefined): string => {
   if (!url) return '';

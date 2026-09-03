@@ -175,8 +175,12 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                       <img
                         src={getEventCoverImage(currentEvent)}
                         alt={getEventTitle(currentEvent)}
+                        loading="eager"
+                        fetchPriority="high"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                       />
+
 
                       {/* Overlay Arrows on Top of Image for Quick Swiping */}
                       {events.length > 1 && (

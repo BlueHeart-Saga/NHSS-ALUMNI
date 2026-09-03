@@ -1,3 +1,5 @@
+import asyncio
+from bson import ObjectId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.security import decode_token
@@ -17,20 +19,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
         db = get_db()
-        user = await db.users.find_one({"_id": user_id})
-        if not user:
-            # Check string or ObjectId
-            from bson import ObjectId
-            try:
-                user = await db.users.find_one({"_id": ObjectId(user_id)})
-            except Exception:
-                pass
+        user_obj_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+        user_str_id = str(user_id)
+
+        # Run user and alumni database lookups concurrently in parallel
+        user_task = db.users.find_one({"_id": user_obj_id})
+        alumni_task = db.alumni.find_one({"user_id": user_str_id})
+
+        user, alumni = await asyncio.gather(user_task, alumni_task)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or deleted")
-
-        # Find associated alumni record if any
-        alumni = await db.alumni.find_one({"user_id": str(user["_id"])})
 
         user_roles = user.get("roles")
         if not user_roles:
@@ -55,6 +54,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
+
 
 def require_roles(allowed_roles: list):
     async def role_checker(current_user: dict = Depends(get_current_user)):
