@@ -13,7 +13,7 @@ on:
 jobs:
   build-and-deploy-backend:
     name: Build & Deploy FastAPI Backend to Azure (NHSS-ALUMNI-BACKEND)
-    if: github.repository == 'Devopstrio/NHSS-ALUMNI'
+    if: github.repository == 'Devopstrio/NHSS-ALUMNI' || github.repository == 'BlueHeart-Saga/NHSS-ALUMNI'
     runs-on: ubuntu-latest
     permissions:
       contents: read
