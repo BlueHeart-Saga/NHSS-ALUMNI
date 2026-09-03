@@ -63,7 +63,7 @@ jobs:
       - name: Install & Build Admin Web
         run: |
           cd admin-web
-          npm ci
+          npm install
           npm run build
 
   personal-mobile-ci:
@@ -85,5 +85,6 @@ jobs:
       - name: Install & Build Mobile App
         run: |
           cd mobile-app
-          npm ci
+          npm install
           npm run build
+
