@@ -568,7 +568,13 @@ export const AlumniRegister: React.FC = () => {
       };
 
       await api.register(payload);
-      setRegistrationSuccess(true);
+      await alertService.showSuccess(
+        language === 'ta' ? 'பதிவு வெற்றிகரமாகச் சமர்ப்பிக்கப்பட்டது!' : 'Registration Submitted Successfully!',
+        language === 'ta'
+          ? 'உங்கள் பழைய மாணவர் விவரங்கள் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகியின் அனுமதிக்காகக் காத்திருக்கிறது.'
+          : 'Your alumni profile has been registered and submitted for School Admin verification. Redirecting to portal...'
+      );
+      navigate('/alumni');
     } catch (err: any) {
       alertService.handleApiError(err, 'Registration submission failed. Please try again.');
     } finally {
@@ -621,81 +627,9 @@ export const AlumniRegister: React.FC = () => {
   const effectiveBatchYear = getEffectiveBatchYear(passingYear, leavingClass);
   const calculatedBatchName = passingYear ? `Batch of ${effectiveBatchYear}` : 'Select Passing Year';
 
-  if (registrationSuccess) {
-
-    return (
-      <div className="min-h-screen bg-[#FAFAFA] text-[#111111] py-12 px-4 sm:px-6 flex items-center justify-center font-sans selection:bg-[#F4C542] selection:text-[#111111]">
-        <div className="max-w-2xl w-full bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-xl space-y-6 text-center animate-fadeIn relative overflow-hidden">
-          
-          {/* Soft Glow */}
-          <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#F4C542]/20 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="w-20 h-20 bg-[#FFF7D6] border-4 border-[#F4C542]/60 rounded-3xl flex items-center justify-center text-[#854D0E] shadow-sm mx-auto">
-            <ShieldCheck className="w-10 h-10 text-[#854D0E]" />
-          </div>
-
-          <div className="flex justify-center">
-            <span className="inline-flex items-center space-x-2 px-4 py-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/70 rounded-full text-xs font-bold uppercase tracking-wider">
-              <CheckCircle2 className="w-4 h-4 text-[#854D0E]" />
-              <span>{language === 'ta' ? 'பதிவு வெற்றிகரமாகச் சமர்ப்பிக்கப்பட்டது' : 'Registration Submitted Successfully'}</span>
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
-              {language === 'ta'
-                ? `நன்றி ${fullName}! உங்கள் விண்ணப்பம் பள்ளி நிர்வாகியின் அனுமதிக்காக அனுப்பப்பட்டுள்ளது`
-                : `Thank You, ${fullName}! Application Submitted`}
-            </h1>
-
-            <p className="text-sm text-gray-600 max-w-lg mx-auto leading-relaxed font-normal">
-              {language === 'ta'
-                ? 'உங்கள் பழைய மாணவர் கணக்கு விவரங்கள் பள்ளி சங்க நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்தவுடன், நீங்கள் பழைய மாணவர் தளத்தை முழுமையாகப் பயன்படுத்தலாம்.'
-                : 'Your registration details have been submitted to your School Association Admin for verification. Once approved by your school admin, your account will be unlocked to explore the Alumni Portal.'}
-            </p>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-left text-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-              <span className="font-bold text-[#111111] uppercase tracking-wider text-[11px] flex items-center">
-                <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" />
-                {language === 'ta' ? 'விண்ணப்பச் சுருக்கம்' : 'Application Summary'}
-              </span>
-              <span className="text-[#854D0E] font-bold bg-[#FFF7D6] px-2.5 py-0.5 rounded-md text-[11px]">
-                {language === 'ta' ? 'அனுமதி நிலுவையில் உள்ளது' : 'Pending Admin Verification'}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700">
-              <div><span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'பெயர்:' : 'Full Name:'}</span> <span className="font-semibold text-[#111111]">{fullName}</span></div>
-              <div><span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'வகுப்புத் தொகுதி:' : 'Batch Year:'}</span> <span className="font-semibold text-[#111111]">{calculatedBatchName}</span></div>
-              <div><span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'பள்ளி:' : 'School Name:'}</span> <span className="font-semibold text-[#111111]">{schoolName}</span></div>
-              <div><span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'மின்னஞ்சல்:' : 'Email Address:'}</span> <span className="font-semibold text-[#111111]">{email}</span></div>
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={() => navigate('/alumni')}
-              className="w-full sm:w-auto px-8 py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs"
-            >
-              <span>{language === 'ta' ? 'பழைய மாணவர் தளத்திற்கு செல்ல' : 'Go to Alumni Portal (Pending View)'}</span>
-              <ArrowRight className="w-4 h-4 text-[#111111]" />
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="w-full sm:w-auto px-6 py-3.5 bg-white border border-[#E5E7EB] hover:border-[#111111] text-[#111111] font-semibold text-xs rounded-xl flex items-center justify-center transition-all cursor-pointer"
-            >
-              <span>{language === 'ta' ? 'முகப்புப் பக்கத்திற்கு திரும்ப' : 'Return to Home'}</span>
-            </button>
-          </div>
-
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111111] py-8 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
