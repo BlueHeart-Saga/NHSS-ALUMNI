@@ -8,6 +8,9 @@ import {
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Button } from '../../components/Button';
+import { useLanguage } from '../../context/LanguageContext';
+import { LanguageSelector } from '../../components/LanguageSelector';
+
 
 interface CountryOption {
   name: string;
@@ -73,7 +76,9 @@ const defaultCountryList: CountryOption[] = [
 export const AlumniRegister: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language } = useLanguage();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -574,12 +579,36 @@ export const AlumniRegister: React.FC = () => {
   };
 
   const stepsList = [
-    { num: 1, label: 'Sign Up', sub: 'Verify Email OTP' },
-    { num: 2, label: 'Personal Info', sub: 'Contact & Profile Photo' },
-    { num: 3, label: 'School Details', sub: 'Passing Year & Batch' },
-    { num: 4, label: 'Education History', sub: 'College & Qualification' },
-    { num: 5, label: 'Professional Details', sub: 'Employment & Career' },
-    { num: 6, label: 'Review & Submit', sub: 'Preview & Registration' },
+    {
+      num: 1,
+      label: language === 'ta' ? 'கணக்கு சரிபார்ப்பு' : 'Sign Up',
+      sub: language === 'ta' ? 'மின்னஞ்சல் OTP சரிபார்க்க' : 'Verify Email OTP'
+    },
+    {
+      num: 2,
+      label: language === 'ta' ? 'தனிப்பட்ட விவரங்கள்' : 'Personal Info',
+      sub: language === 'ta' ? 'தொடர்பு & புகைப்பட விவரங்கள்' : 'Contact & Profile Photo'
+    },
+    {
+      num: 3,
+      label: language === 'ta' ? 'பள்ளி விவரங்கள்' : 'School Details',
+      sub: language === 'ta' ? 'படித்த ஆண்டு & வகுப்பு' : 'Passing Year & Batch'
+    },
+    {
+      num: 4,
+      label: language === 'ta' ? 'உயர் கல்வி' : 'Education History',
+      sub: language === 'ta' ? 'கல்லூரி & பட்டப்படிப்பு' : 'College & Qualification'
+    },
+    {
+      num: 5,
+      label: language === 'ta' ? 'தொழில்/பணி விவரங்கள்' : 'Professional Details',
+      sub: language === 'ta' ? 'வேலை & பணி அனுபவம்' : 'Employment & Career'
+    },
+    {
+      num: 6,
+      label: language === 'ta' ? 'சரிபார்த்து சமர்ப்பிக்க' : 'Review & Submit',
+      sub: language === 'ta' ? 'சுயவிவரம் & பதிவு' : 'Preview & Registration'
+    },
   ];
 
   // Helper to compute expected 12th graduation batch year
@@ -597,22 +626,32 @@ export const AlumniRegister: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111111] py-8 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
 
           {/* LEFT SIDEBAR: Navigation Progress Tracker */}
           <div className="lg:col-span-4 sticky top-6 space-y-6">
             <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
-                <div className="w-12 h-12 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center text-[#854D0E]">
-                  <GraduationCap className="w-6 h-6 text-[#854D0E]" />
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 gap-2">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-10 h-10 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center text-[#854D0E] shrink-0">
+                    <GraduationCap className="w-5 h-5 text-[#854D0E]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-[#111111] truncate">
+                      {language === 'ta' ? 'பழைய மாணவர்கள் தளம்' : 'Alumni Portal'}
+                    </h2>
+                    <p className="text-[11px] text-gray-500 font-medium truncate">
+                      {language === 'ta' ? 'அதிகாரப்பூர்வ உறுப்பினர் பதிவு' : 'Official Member Registration'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-[#111111]">Alumni Portal</h2>
-                  <p className="text-xs text-gray-500 font-medium">Official Member Registration</p>
+                <div className="shrink-0">
+                  <LanguageSelector />
                 </div>
               </div>
+
 
               {/* Steps Progress List - Backward & Forward Step Jump Enabled */}
               <div className="space-y-4">
@@ -629,8 +668,10 @@ export const AlumniRegister: React.FC = () => {
                           goToStep(s.num as any);
                         } else {
                           alertService.showWarning(
-                            'Step Locked',
-                            `Please complete Step ${step} first before advancing to Step ${s.num}.`
+                            language === 'ta' ? 'படி பூட்டப்பட்டுள்ளது' : 'Step Locked',
+                            language === 'ta'
+                              ? `படி ${s.num}-க்கு செல்லும் முன் படி ${step}-ஐ பூர்த்தி செய்ய வேண்டும்.`
+                              : `Please complete Step ${step} first before advancing to Step ${s.num}.`
                           );
                         }
                       }}
@@ -665,21 +706,22 @@ export const AlumniRegister: React.FC = () => {
               </div>
 
               <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
-                <span>Step {step} of 6</span>
-                <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% Completed</span>
+                <span>{language === 'ta' ? `படி ${step} / 6` : `Step ${step} of 6`}</span>
+                <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
               </div>
             </div>
 
             {/* Existing User Login Prompt */}
             <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 text-center text-xs text-gray-600">
-              Already have an verified alumni account?{' '}
+              {language === 'ta' ? 'ஏற்கனவே சரிபார்க்கப்பட்ட கணக்கு உள்ளதா?' : 'Already have a verified alumni account?'}{' '}
               <Link to="/login" className="font-bold text-[#111111] underline hover:text-[#854D0E]">
-                Log In Here
+                {language === 'ta' ? 'இங்கே உள்நுழையவும்' : 'Log In Here'}
               </Link>
             </div>
           </div>
 
           {/* RIGHT COLUMN: Form Card */}
+
           <div className="lg:col-span-8">
             <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
               
@@ -688,12 +730,18 @@ export const AlumniRegister: React.FC = () => {
                 <div className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111111]">Step 1: Account Verification</h2>
-                      <p className="text-xs text-gray-500 mt-1">Verify your primary email address to begin your alumni registration</p>
+                      <h2 className="text-xl font-bold text-[#111111]">
+                        {language === 'ta' ? 'படி 1: கணக்கு சரிபார்ப்பு' : 'Step 1: Account Verification'}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === 'ta'
+                          ? 'உங்கள் பழைய மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்'
+                          : 'Verify your primary email address to begin your alumni registration'}
+                      </p>
                     </div>
                     {maxStepReached > 1 && (
                       <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(2)}>
-                        Forward to Step 2 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        {language === 'ta' ? 'படி 2-க்கு செல்ல' : 'Forward to Step 2'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     )}
                   </div>
@@ -702,7 +750,7 @@ export const AlumniRegister: React.FC = () => {
                     <form onSubmit={handleSendEmailOTP} className="space-y-5">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                          Email Address <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'மின்னஞ்சல் முகவரி' : 'Email Address'} <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -719,15 +767,19 @@ export const AlumniRegister: React.FC = () => {
 
                       {accountAlreadyExists && (
                         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-2">
-                          <p className="font-bold">An account already exists with this email address.</p>
+                          <p className="font-bold">
+                            {language === 'ta'
+                              ? 'இந்த மின்னஞ்சல் முகவரியில் ஏற்கனவே கணக்கு உள்ளது.'
+                              : 'An account already exists with this email address.'}
+                          </p>
                           <Link to="/login" className="inline-block font-semibold text-[#111111] underline">
-                            Click here to Log In directly →
+                            {language === 'ta' ? 'நேரடியாக உள்நுழைய இங்கே கிளிக் செய்யவும் →' : 'Click here to Log In directly →'}
                           </Link>
                         </div>
                       )}
 
                       <Button type="submit" className="w-full py-3 font-bold cursor-pointer" isLoading={loading}>
-                        <span>Send 6-Digit Verification Code</span>
+                        <span>{language === 'ta' ? '6-இலக்க OTP சரிபார்ப்புக் குறியீட்டை அனுப்பவும்' : 'Send 6-Digit Verification Code'}</span>
                         <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
 
@@ -735,7 +787,7 @@ export const AlumniRegister: React.FC = () => {
                       <div className="relative py-2 flex items-center justify-center">
                         <div className="border-t border-[#E5E7EB] w-full" />
                         <span className="bg-white px-3 text-xs font-normal text-gray-400 uppercase tracking-wider">
-                          OR
+                          {language === 'ta' ? 'அல்லது' : 'OR'}
                         </span>
                       </div>
 
@@ -754,7 +806,7 @@ export const AlumniRegister: React.FC = () => {
                           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                         </svg>
-                        <span>Sign Up with Google</span>
+                        <span>{language === 'ta' ? 'கூகிள் மூலம் பதிவு செய்க' : 'Sign Up with Google'}</span>
                       </button>
                     </form>
                   ) : (
@@ -762,16 +814,19 @@ export const AlumniRegister: React.FC = () => {
                       <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] font-medium flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
-                          <span>Verification OTP code sent to <strong>{email}</strong></span>
+                          <span>
+                            {language === 'ta' ? 'சரிபார்ப்பு OTP அனுப்பப்பட்டது: ' : 'Verification OTP code sent to '}
+                            <strong>{email}</strong>
+                          </span>
                         </div>
                         <button type="button" onClick={() => setOtpSent(false)} className="text-[11px] font-bold text-[#854D0E] underline">
-                          Change Email
+                          {language === 'ta' ? 'மின்னஞ்சலை மாற்ற' : 'Change Email'}
                         </button>
                       </div>
 
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                          6-Digit Verification Code <span className="text-rose-500">*</span>
+                          {language === 'ta' ? '6-இலக்க சரிபார்ப்புக் குறியீடு (OTP)' : '6-Digit Verification Code'} <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -785,7 +840,7 @@ export const AlumniRegister: React.FC = () => {
                       </div>
 
                       <Button type="submit" className="w-full py-3 font-bold" isLoading={loading}>
-                        <span>Verify Security Code &amp; Continue</span>
+                        <span>{language === 'ta' ? 'OTP சரிபார்த்துத் தொடரவும்' : 'Verify Security Code & Continue'}</span>
                         <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </form>
@@ -793,17 +848,22 @@ export const AlumniRegister: React.FC = () => {
                 </div>
               )}
 
+
               {/* STEP 2: Personal Information */}
               {step === 2 && (
                 <form onSubmit={handleStep2Next} className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111111]">Step 2: Personal Information</h2>
-                      <p className="text-xs text-gray-500 mt-1">Provide your verified contact details and profile photograph</p>
+                      <h2 className="text-xl font-bold text-[#111111]">
+                        {language === 'ta' ? 'படி 2: தனிப்பட்ட விவரங்கள்' : 'Step 2: Personal Information'}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === 'ta' ? 'உங்கள் தொடர்பு விவரங்கள் மற்றும் சுயவிவரப் புகைப்படத்தை வழங்கவும்' : 'Provide your verified contact details and profile photograph'}
+                      </p>
                     </div>
                     {maxStepReached > 2 && (
                       <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(3)}>
-                        Forward to Step 3 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        {language === 'ta' ? 'படி 3-க்கு செல்ல' : 'Forward to Step 3'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     )}
                   </div>
@@ -811,7 +871,7 @@ export const AlumniRegister: React.FC = () => {
                   {/* Photo Upload */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                      Profile Photograph <span className="text-rose-500">*</span>
+                      {language === 'ta' ? 'சுயவிவர புகைப்படம்' : 'Profile Photograph'} <span className="text-rose-500">*</span>
                     </label>
                     <div className="flex items-center space-x-5">
                       <div className="w-20 h-20 rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
@@ -824,7 +884,7 @@ export const AlumniRegister: React.FC = () => {
                       <div className="space-y-2">
                         <label className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-semibold rounded-xl cursor-pointer transition-all border border-gray-200">
                           <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Photo</span>
+                          <span>{language === 'ta' ? 'புகைப்படத்தைப் பதிவேற்றவும்' : 'Upload Photo'}</span>
                           <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </label>
                         <p className="text-[11px] text-gray-500">JPG, PNG format up to 5MB</p>
@@ -836,14 +896,14 @@ export const AlumniRegister: React.FC = () => {
                     {/* Full Name */}
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Full Name <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'முழு பெயர் (சான்றிதழில் உள்ளது போல்)' : 'Full Name (As per school records)'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter your full official name"
+                        placeholder={language === 'ta' ? 'உங்கள் அதிகாரப்பூர்வ முழு பெயரை உள்ளிடவும்' : 'Enter your full official name'}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
                       />
                     </div>
@@ -851,7 +911,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Gender */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Gender <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'பாலினம்' : 'Gender'} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -859,18 +919,18 @@ export const AlumniRegister: React.FC = () => {
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
                       >
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
+                        <option value="">{language === 'ta' ? 'பாலினத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Gender'}</option>
+                        <option value="Male">{language === 'ta' ? 'ஆண்' : 'Male'}</option>
+                        <option value="Female">{language === 'ta' ? 'பெண்' : 'Female'}</option>
+                        <option value="Other">{language === 'ta' ? 'மற்றவை' : 'Other'}</option>
+                        <option value="Prefer not to say">{language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say'}</option>
                       </select>
                     </div>
 
                     {/* Date of Birth */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Date of Birth <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'பிறந்த தேதி' : 'Date of Birth'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -885,7 +945,7 @@ export const AlumniRegister: React.FC = () => {
                     <div className="sm:col-span-2 grid grid-cols-12 gap-3">
                       <div className="col-span-5 sm:col-span-4">
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Country Code <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'நாட்டு குறியீடு' : 'Country Code'} <span className="text-rose-500">*</span>
                         </label>
                         <select
                           value={mobilePrefix}
@@ -906,7 +966,7 @@ export const AlumniRegister: React.FC = () => {
 
                       <div className="col-span-7 sm:col-span-8">
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Mobile Phone Number <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'கைபேசி எண்' : 'Mobile Phone Number'} <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="tel"
@@ -923,7 +983,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Country Dropdown (Defaults to India) */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Country <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'வசிக்கும் நாடு' : 'Country'} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -946,7 +1006,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Current State */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Current State <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'தற்போதைய மாநிலம்' : 'Current State'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -961,7 +1021,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Current City */}
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Current City <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'தற்போதைய நகரம்' : 'Current City'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -976,33 +1036,38 @@ export const AlumniRegister: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(1)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
                     <div className="flex items-center space-x-2">
                       {maxStepReached > 2 && (
                         <Button type="button" variant="secondary" onClick={() => goToStep(3)}>
-                          Forward →
+                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
                         </Button>
                       )}
                       <Button type="submit" className="font-bold">
-                        Save &amp; Continue to School Details <ArrowRight className="w-4 h-4 ml-1.5" />
+                        {language === 'ta' ? 'சேமித்து பள்ளி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to School Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </div>
                   </div>
                 </form>
               )}
 
+
               {/* STEP 3: School Details */}
               {step === 3 && (
                 <form onSubmit={handleStep3Next} className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111111]">Step 3: School Education Details</h2>
-                      <p className="text-xs text-gray-500 mt-1">Specify your school study timeline and passing batch</p>
+                      <h2 className="text-xl font-bold text-[#111111]">
+                        {language === 'ta' ? 'படி 3: பள்ளி கல்வி விவரங்கள்' : 'Step 3: School Education Details'}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === 'ta' ? 'உங்கள் பள்ளி, சேர்ந்த ஆண்டு, தேர்ச்சி பெற்ற ஆண்டு மற்றும் வகுப்பைக் குறிப்பிடவும்' : 'Specify your school study timeline and passing batch'}
+                      </p>
                     </div>
                     {maxStepReached > 3 && (
                       <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(4)}>
-                        Forward to Step 4 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        {language === 'ta' ? 'படி 4-க்கு செல்ல' : 'Forward to Step 4'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     )}
                   </div>
@@ -1011,7 +1076,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* School Name */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        School Name <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'பள்ளியின் பெயர்' : 'School Name'} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1026,7 +1091,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Admission / Joining Year */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Admission / Joining Year <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'பள்ளியில் சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
                         </label>
                         <select
                           required
@@ -1034,7 +1099,7 @@ export const AlumniRegister: React.FC = () => {
                           onChange={(e) => setJoiningYear(e.target.value)}
                           className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
                         >
-                          <option value="">Select Joining Year</option>
+                          <option value="">{language === 'ta' ? 'சேர்ந்த ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Joining Year'}</option>
                           {yearOptions.map(y => (
                             <option key={y} value={y}>{y}</option>
                           ))}
@@ -1044,7 +1109,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Leaving / Passing Year */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Leaving / Passing Year <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'பள்ளியை விட்டு வெளியேறிய / தேர்ச்சி பெற்ற ஆண்டு' : 'Leaving / Passing Year'} <span className="text-rose-500">*</span>
                         </label>
                         <select
                           required
@@ -1052,7 +1117,7 @@ export const AlumniRegister: React.FC = () => {
                           onChange={(e) => setPassingYear(e.target.value)}
                           className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
                         >
-                          <option value="">Select Passing Year</option>
+                          <option value="">{language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Year'}</option>
                           {yearOptions.map(y => (
                             <option key={y} value={y}>{y}</option>
                           ))}
@@ -1063,7 +1128,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Class / Standard at Leaving */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Class / Standard at Leaving <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'பள்ளி முடித்த போது இருந்த வகுப்பு' : 'Class / Standard at Leaving'} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -1071,9 +1136,9 @@ export const AlumniRegister: React.FC = () => {
                         onChange={(e) => setLeavingClass(e.target.value)}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
                       >
-                        <option value="">Select Class at Leaving</option>
+                        <option value="">{language === 'ta' ? 'வகுப்பைத் தேர்ந்தெடுக்கவும்' : 'Select Class at Leaving'}</option>
                         {leavingClassOptions.map(cls => (
-                          <option key={cls} value={cls}>{cls} Standard</option>
+                          <option key={cls} value={cls}>{cls} {language === 'ta' ? 'வகுப்பு' : 'Standard'}</option>
                         ))}
                       </select>
                     </div>
@@ -1083,45 +1148,52 @@ export const AlumniRegister: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <GraduationCap className="w-6 h-6 text-[#854D0E]" />
                         <div>
-                          <div className="text-xs text-[#854D0E] font-medium">Assigned Academic Batch</div>
+                          <div className="text-xs text-[#854D0E] font-medium">
+                            {language === 'ta' ? 'ஒதுக்கப்பட்ட கல்வி வகுப்புத் தொகுதி' : 'Assigned Academic Batch'}
+                          </div>
                           <div className="text-sm font-bold text-[#111111]">{calculatedBatchName}</div>
                         </div>
                       </div>
                       <span className="px-3 py-1 bg-[#F4C542] text-[#111111] text-xs font-bold rounded-lg">
-                        Auto Generated
+                        {language === 'ta' ? 'தானாக உருவாக்கப்பட்டது' : 'Auto Generated'}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(2)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
                     <div className="flex items-center space-x-2">
                       {maxStepReached > 3 && (
                         <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
-                          Forward →
+                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
                         </Button>
                       )}
                       <Button type="submit" className="font-bold">
-                        Save &amp; Continue to Education History <ArrowRight className="w-4 h-4 ml-1.5" />
+                        {language === 'ta' ? 'சேமித்து உயர் கல்வி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Education History'} <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </div>
                   </div>
                 </form>
               )}
 
+
               {/* STEP 4: Higher Education / College Details */}
               {step === 4 && (
                 <form onSubmit={handleStep4Next} className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111111]">Step 4: Education History</h2>
-                      <p className="text-xs text-gray-500 mt-1">College, Degree, and Higher Education Details</p>
+                      <h2 className="text-xl font-bold text-[#111111]">
+                        {language === 'ta' ? 'படி 4: உயர் கல்வி விவரங்கள்' : 'Step 4: Education History'}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === 'ta' ? 'கல்லூரி, பட்டப்படிப்பு மற்றும் உயர் கல்வி விவரங்கள்' : 'College, Degree, and Higher Education Details'}
+                      </p>
                     </div>
                     {maxStepReached > 4 && (
                       <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(5)}>
-                        Forward to Step 5 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        {language === 'ta' ? 'படி 5-க்கு செல்ல' : 'Forward to Step 5'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     )}
                   </div>
@@ -1136,7 +1208,7 @@ export const AlumniRegister: React.FC = () => {
                       className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer"
                     />
                     <label htmlFor="noHigherEducation" className="text-xs font-semibold text-[#111111] cursor-pointer select-none">
-                      No higher education / Not applicable or prefer not to say
+                      {language === 'ta' ? 'உயர் கல்வி இல்லை / பள்ளி படிப்புடன் முடிந்தது' : 'No higher education / Not applicable or prefer not to say'}
                     </label>
                   </div>
 
@@ -1145,7 +1217,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* College / Institution Name */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          College / Institution Name <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'கல்லூரி / கல்வி நிறுவனத்தின் பெயர்' : 'College / Institution Name'} <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1160,7 +1232,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Degree / Course Dropdown */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Degree / Course <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'பட்டப்படிப்பு / தகுதி' : 'Degree / Course'} <span className="text-rose-500">*</span>
                         </label>
                         <select
                           required={!noHigherEducation}
@@ -1168,7 +1240,7 @@ export const AlumniRegister: React.FC = () => {
                           onChange={(e) => setDegree(e.target.value)}
                           className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
                         >
-                          <option value="">Select Degree / Course</option>
+                          <option value="">{language === 'ta' ? 'பட்டப்படிப்பைத் தேர்ந்தெடுக்கவும்' : 'Select Degree / Course'}</option>
                           {degreeOptions.map(deg => (
                             <option key={deg} value={deg}>{deg}</option>
                           ))}
@@ -1179,7 +1251,7 @@ export const AlumniRegister: React.FC = () => {
                       {degree === 'Other - write something' && (
                         <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/40 rounded-xl space-y-1.5">
                           <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Enter Degree / Qualification Name <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'பட்டப்படிப்பின் பெயரை உள்ளிடவும்' : 'Enter Degree / Qualification Name'} <span className="text-rose-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1195,7 +1267,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Department / Stream */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Department / Stream / Major <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'துறை / பாடப்பிரிவு' : 'Department / Stream / Major'} <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1210,7 +1282,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Register / Roll Number (Optional) */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Register / Roll Number <span className="text-gray-400 font-normal">(Optional)</span>
+                          {language === 'ta' ? 'பதிவு எண்' : 'Register / Roll Number'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
@@ -1225,7 +1297,7 @@ export const AlumniRegister: React.FC = () => {
                         {/* College Joining Year */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Admission / Joining Year <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
                           </label>
                           <select
                             required={!noHigherEducation}
@@ -1233,7 +1305,7 @@ export const AlumniRegister: React.FC = () => {
                             onChange={(e) => setCollegeJoiningYear(e.target.value)}
                             className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
                           >
-                            <option value="">Select Year</option>
+                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
                             {yearOptions.map(y => (
                               <option key={y} value={y}>{y}</option>
                             ))}
@@ -1243,7 +1315,7 @@ export const AlumniRegister: React.FC = () => {
                         {/* College Passing Year */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Graduation / Passing Year <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'முடித்த ஆண்டு' : 'Graduation / Passing Year'} <span className="text-rose-500">*</span>
                           </label>
                           <select
                             required={!noHigherEducation}
@@ -1251,7 +1323,7 @@ export const AlumniRegister: React.FC = () => {
                             onChange={(e) => setCollegePassingYear(e.target.value)}
                             className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
                           >
-                            <option value="">Select Year</option>
+                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
                             {yearOptions.map(y => (
                               <option key={y} value={y}>{y}</option>
                             ))}
@@ -1263,16 +1335,16 @@ export const AlumniRegister: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(3)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
                     <div className="flex items-center space-x-2">
                       {maxStepReached > 4 && (
                         <Button type="button" variant="secondary" onClick={() => goToStep(5)}>
-                          Forward →
+                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
                         </Button>
                       )}
                       <Button type="submit" className="font-bold">
-                        Save &amp; Continue to Professional Details <ArrowRight className="w-4 h-4 ml-1.5" />
+                        {language === 'ta' ? 'சேமித்து வேலை விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Professional Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </div>
                   </div>
@@ -1284,12 +1356,16 @@ export const AlumniRegister: React.FC = () => {
                 <form onSubmit={handleStep5Next} className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111111]">Step 5: Current Professional Details</h2>
-                      <p className="text-xs text-gray-500 mt-1">Work experience, current organization, and skills</p>
+                      <h2 className="text-xl font-bold text-[#111111]">
+                        {language === 'ta' ? 'படி 5: தற்போதைய வேலை மற்றும் பணி விவரங்கள்' : 'Step 5: Current Professional Details'}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === 'ta' ? 'பணி அனுபவம், தற்போதைய நிறுவனம் மற்றும் திறன்கள்' : 'Work experience, current organization, and skills'}
+                      </p>
                     </div>
                     {maxStepReached > 5 && (
                       <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(6)}>
-                        Forward to Step 6 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        {language === 'ta' ? 'படி 6-க்கு செல்ல' : 'Forward to Step 6'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     )}
                   </div>
@@ -1298,7 +1374,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Employment Status */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Employment Status <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'வேலை நிலை' : 'Employment Status'} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -1306,10 +1382,12 @@ export const AlumniRegister: React.FC = () => {
                         onChange={(e) => setEmploymentStatus(e.target.value)}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
                       >
-                        <option value="">Select Employment Status</option>
-                        {employmentStatusOptions.map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
+                        <option value="">{language === 'ta' ? 'வேலை நிலையைத் தேர்ந்தெடுக்கவும்' : 'Select Employment Status'}</option>
+                        <option value="Employed">{language === 'ta' ? 'பணியில் உள்ளவர் (Employed)' : 'Employed'}</option>
+                        <option value="Business / Self-Employed">{language === 'ta' ? 'சுயதொழில் / தொழில்முனைவோர் (Business / Self-Employed)' : 'Business / Self-Employed'}</option>
+                        <option value="Student">{language === 'ta' ? 'மாணவர் (Student)' : 'Student'}</option>
+                        <option value="Unemployed">{language === 'ta' ? 'வேலையில்லாதவர் (Unemployed)' : 'Unemployed'}</option>
+                        <option value="Retired">{language === 'ta' ? 'ஓய்வு பெற்றவர் (Retired)' : 'Retired'}</option>
                       </select>
                     </div>
 
@@ -1317,7 +1395,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Company / Organization (Optional) */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Company / Organization <span className="text-gray-400 font-normal">(Optional)</span>
+                          {language === 'ta' ? 'நிறுவனம் / அமைப்பு' : 'Company / Organization'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
@@ -1331,7 +1409,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Position / Job Role (Optional) */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Position / Job Role <span className="text-gray-400 font-normal">(Optional)</span>
+                          {language === 'ta' ? 'பதவி / வேலை தலைப்பு' : 'Position / Job Role'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
@@ -1347,7 +1425,7 @@ export const AlumniRegister: React.FC = () => {
                       {/* Industry (Optional) */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Industry <span className="text-gray-400 font-normal">(Optional)</span>
+                          {language === 'ta' ? 'தொழில் துறை' : 'Industry'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
@@ -1361,19 +1439,19 @@ export const AlumniRegister: React.FC = () => {
                       {/* Total Years of Experience (Optional) */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Total Experience <span className="text-gray-400 font-normal">(Optional)</span>
+                          {language === 'ta' ? 'மொத்த அனுபவம்' : 'Total Experience'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <select
                           value={totalExperience}
                           onChange={(e) => setTotalExperience(e.target.value)}
                           className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
                         >
-                          <option value="">Select Experience</option>
-                          <option value="0-1 Years">0-1 Years</option>
-                          <option value="1-3 Years">1-3 Years</option>
-                          <option value="3-5 Years">3-5 Years</option>
-                          <option value="5-10 Years">5-10 Years</option>
-                          <option value="10+ Years">10+ Years</option>
+                          <option value="">{language === 'ta' ? 'அனுபவத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Experience'}</option>
+                          <option value="0-1 Years">0-1 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
+                          <option value="1-3 Years">1-3 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
+                          <option value="3-5 Years">3-5 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
+                          <option value="5-10 Years">5-10 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
+                          <option value="10+ Years">10+ {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
                         </select>
                       </div>
                     </div>
@@ -1381,7 +1459,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Professional Skills (Optional) */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Professional Skills <span className="text-gray-400 font-normal">(Optional)</span>
+                        {language === 'ta' ? 'முக்கிய தொழில் திறன்கள்' : 'Professional Skills'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                       </label>
                       <input
                         type="text"
@@ -1395,7 +1473,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* LinkedIn Profile (Optional) */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        LinkedIn Profile URL <span className="text-gray-400 font-normal">(Optional)</span>
+                        {language === 'ta' ? 'லிங்க்ட்இன் சுயவிவர இணைப்பு' : 'LinkedIn Profile URL'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                       </label>
                       <input
                         type="url"
@@ -1409,16 +1487,16 @@ export const AlumniRegister: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
                     <div className="flex items-center space-x-2">
                       {maxStepReached > 5 && (
                         <Button type="button" variant="secondary" onClick={() => goToStep(6)}>
-                          Forward →
+                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
                         </Button>
                       )}
                       <Button type="submit" className="font-bold">
-                        Review &amp; Submit Registration <ArrowRight className="w-4 h-4 ml-1.5" />
+                        {language === 'ta' ? 'சரிபார்த்து சமர்ப்பிக்க செல்லவும்' : 'Review & Submit Registration'} <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </div>
                   </div>
@@ -1429,8 +1507,12 @@ export const AlumniRegister: React.FC = () => {
               {step === 6 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">Step 6: Review &amp; Confirm Registration</h2>
-                    <p className="text-xs text-gray-500 mt-1">Please review all your details carefully before final submission</p>
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 6: சரிபார்த்து பதிவை உறுதிசெய்யவும்' : 'Step 6: Review & Confirm Registration'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta' ? 'இறுதி சமர்ப்பிப்புக்கு முன் உங்கள் அனைத்து விவரங்களையும் கவனமாகச் சரிபார்க்கவும்' : 'Please review all your details carefully before final submission'}
+                    </p>
                   </div>
 
                   {/* Summary Card Preview */}
@@ -1455,14 +1537,16 @@ export const AlumniRegister: React.FC = () => {
                     <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <User className="w-4 h-4 mr-1.5 text-[#854D0E]" /> Personal Details
+                          <User className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'தனிப்பட்ட விவரங்கள்' : 'Personal Details'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(2)} className="text-xs font-semibold text-[#854D0E] hover:underline">Edit</button>
+                        <button type="button" onClick={() => goToStep(2)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                          {language === 'ta' ? 'திருத்து' : 'Edit'}
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">Gender:</span> <span className="font-semibold text-[#111111]">{gender || 'N/A'}</span></div>
-                        <div><span className="text-gray-400 block">Date of Birth:</span> <span className="font-semibold text-[#111111]">{dob || 'N/A'}</span></div>
-                        <div><span className="text-gray-400 block">Location:</span> <span className="font-semibold text-[#111111]">{currentCity}, {state}, {country}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பாலினம்:' : 'Gender:'}</span> <span className="font-semibold text-[#111111]">{gender || 'N/A'}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பிறந்த தேதி:' : 'Date of Birth:'}</span> <span className="font-semibold text-[#111111]">{dob || 'N/A'}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'இடம்:' : 'Location:'}</span> <span className="font-semibold text-[#111111]">{currentCity}, {state}, {country}</span></div>
                       </div>
                     </div>
 
@@ -1470,14 +1554,16 @@ export const AlumniRegister: React.FC = () => {
                     <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" /> School Education
+                          <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'பள்ளி கல்வி' : 'School Education'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(3)} className="text-xs font-semibold text-[#854D0E] hover:underline">Edit</button>
+                        <button type="button" onClick={() => goToStep(3)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                          {language === 'ta' ? 'திருத்து' : 'Edit'}
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">School:</span> <span className="font-semibold text-[#111111]">{schoolName}</span></div>
-                        <div><span className="text-gray-400 block">Study Period:</span> <span className="font-semibold text-[#111111]">{joiningYear} – {passingYear}</span></div>
-                        <div><span className="text-gray-400 block">Class at Leaving:</span> <span className="font-semibold text-[#111111]">{leavingClass} Standard</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பள்ளி:' : 'School:'}</span> <span className="font-semibold text-[#111111]">{schoolName}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'படித்த காலம்:' : 'Study Period:'}</span> <span className="font-semibold text-[#111111]">{joiningYear} – {passingYear}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'வெளியேறிய வகுப்பு:' : 'Class at Leaving:'}</span> <span className="font-semibold text-[#111111]">{leavingClass} {language === 'ta' ? 'வகுப்பு' : 'Standard'}</span></div>
                       </div>
                     </div>
 
@@ -1485,17 +1571,19 @@ export const AlumniRegister: React.FC = () => {
                     <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <BookOpen className="w-4 h-4 mr-1.5 text-[#854D0E]" /> Higher Education
+                          <BookOpen className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'உயர் கல்வி' : 'Higher Education'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(4)} className="text-xs font-semibold text-[#854D0E] hover:underline">Edit</button>
+                        <button type="button" onClick={() => goToStep(4)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                          {language === 'ta' ? 'திருத்து' : 'Edit'}
+                        </button>
                       </div>
                       {noHigherEducation ? (
-                        <p className="text-xs text-gray-500 italic">No higher education specified / Not applicable</p>
+                        <p className="text-xs text-gray-500 italic">{language === 'ta' ? 'உயர் கல்வி இல்லை / பொருந்தாது' : 'No higher education specified / Not applicable'}</p>
                       ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                          <div><span className="text-gray-400 block">College:</span> <span className="font-semibold text-[#111111]">{collegeName}</span></div>
-                          <div><span className="text-gray-400 block">Degree &amp; Stream:</span> <span className="font-semibold text-[#111111]">{degree === 'Other - write something' ? otherDegree : degree} ({stream})</span></div>
-                          <div><span className="text-gray-400 block">College Period:</span> <span className="font-semibold text-[#111111]">{collegeJoiningYear || 'N/A'} – {collegePassingYear || 'N/A'}</span></div>
+                          <div><span className="text-gray-400 block">{language === 'ta' ? 'கல்லூரி:' : 'College:'}</span> <span className="font-semibold text-[#111111]">{collegeName}</span></div>
+                          <div><span className="text-gray-400 block">{language === 'ta' ? 'பட்டப்படிப்பு & துறை:' : 'Degree & Stream:'}</span> <span className="font-semibold text-[#111111]">{degree === 'Other - write something' ? otherDegree : degree} ({stream})</span></div>
+                          <div><span className="text-gray-400 block">{language === 'ta' ? 'கல்லூரி காலம்:' : 'College Period:'}</span> <span className="font-semibold text-[#111111]">{collegeJoiningYear || 'N/A'} – {collegePassingYear || 'N/A'}</span></div>
                         </div>
                       )}
                     </div>
@@ -1504,14 +1592,16 @@ export const AlumniRegister: React.FC = () => {
                     <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <Briefcase className="w-4 h-4 mr-1.5 text-[#854D0E]" /> Professional Status
+                          <Briefcase className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'தொழில்/பணி விவரம்' : 'Professional Status'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(5)} className="text-xs font-semibold text-[#854D0E] hover:underline">Edit</button>
+                        <button type="button" onClick={() => goToStep(5)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                          {language === 'ta' ? 'திருத்து' : 'Edit'}
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">Status:</span> <span className="font-semibold text-[#111111]">{employmentStatus}</span></div>
-                        <div><span className="text-gray-400 block">Company / Role:</span> <span className="font-semibold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span></div>
-                        <div><span className="text-gray-400 block">Experience:</span> <span className="font-semibold text-[#111111]">{totalExperience || 'N/A'}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'வேலை நிலை:' : 'Status:'}</span> <span className="font-semibold text-[#111111]">{employmentStatus}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span> <span className="font-semibold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span></div>
+                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பணி அனுபவம்:' : 'Experience:'}</span> <span className="font-semibold text-[#111111]">{totalExperience || 'N/A'}</span></div>
                       </div>
                     </div>
                   </div>
@@ -1526,14 +1616,15 @@ export const AlumniRegister: React.FC = () => {
                       className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer mt-0.5"
                     />
                     <label htmlFor="agreeTerms" className="text-xs text-gray-600 leading-relaxed cursor-pointer select-none">
-                      I confirm that all information provided in this registration form is accurate. I agree to the{' '}
-                      <span className="font-semibold text-[#111111] underline">Alumni Terms of Association</span> and Privacy Guidelines.
+                      {language === 'ta'
+                        ? 'இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். பழைய மாணவர்கள் சங்க விதிகளுக்கு உடன்படுகிறேன்.'
+                        : 'I confirm that all information provided in this registration form is accurate. I agree to the Alumni Terms of Association and Privacy Guidelines.'}
                     </label>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(5)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Edit
+                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'திருத்த பின்செல்ல' : 'Back to Edit'}
                     </Button>
                     <Button
                       type="button"
@@ -1542,12 +1633,13 @@ export const AlumniRegister: React.FC = () => {
                       disabled={!agreeTerms}
                       className="font-bold py-3 px-8"
                     >
-                      <span>Submit Official Registration</span>
+                      <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பதிவைச் சமர்ப்பிக்கவும்' : 'Submit Official Registration'}</span>
                       <ShieldCheck className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </div>
               )}
+
 
             </div>
           </div>
