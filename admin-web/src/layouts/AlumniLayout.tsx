@@ -95,8 +95,188 @@ export const AlumniLayout: React.FC = () => {
 
   const isApproved = user?.verification_status === 'APPROVED';
 
+  // =========================================================================
+  // UNVERIFIED USER VIEW: CLEAN PAGE WITHOUT NAVBAR OR SIDEBAR
+  // =========================================================================
+  if (!isApproved) {
+    const isPending = !user?.verification_status || user?.verification_status === 'PENDING' || user?.verification_status === 'NOT_REGISTERED';
+    const isRejected = user?.verification_status === 'REJECTED';
+    const isSuspended = user?.verification_status === 'SUSPENDED';
+
+    return (
+      <div className="min-h-screen w-screen bg-[#FAFAFA] text-[#111111] flex flex-col font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+        
+        {/* Top Minimal Bar */}
+        <header className="h-16 shrink-0 bg-white border-b border-[#E5E7EB] px-4 sm:px-8 flex items-center justify-between shadow-xs z-20">
+          <div className="flex items-center space-x-3">
+            <img
+              src={school?.logo_url || logoUrl}
+              alt="School Logo"
+              className="w-10 h-10 object-contain rounded-xl"
+            />
+            <div>
+              <h1 className="font-extrabold text-sm sm:text-base text-[#111111] tracking-tight">
+                {school?.name || 'Alumni Association Portal'}
+              </h1>
+              <p className="text-[11px] text-gray-500 font-medium">
+                {language === 'ta' ? 'அதிகாரப்பூர்வ பழைய மாணவர்கள் தளம்' : 'Official Alumni Member Network'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <LanguageSelector />
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 text-gray-500" />
+              <span className="hidden sm:inline">{language === 'ta' ? 'வெளியேறு' : 'Log Out'}</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Main Center Area with Awaiting Approval Card */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-10">
+          <div className="max-w-2xl w-full bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-xl space-y-6 text-center animate-fadeIn relative overflow-hidden">
+            
+            {/* Soft Ambient Glow */}
+            <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#F4C542]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-amber-300/15 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Status Icon */}
+            <div className="flex justify-center">
+              {isPending && (
+                <div className="w-20 h-20 bg-[#FFF7D6] border-4 border-[#F4C542]/50 rounded-3xl flex items-center justify-center text-[#854D0E] shadow-sm">
+                  <Clock className="w-10 h-10 text-[#854D0E] animate-pulse" />
+                </div>
+              )}
+              {isRejected && (
+                <div className="w-20 h-20 bg-rose-50 border-4 border-rose-200 rounded-3xl flex items-center justify-center text-rose-600 shadow-sm">
+                  <AlertTriangle className="w-10 h-10 text-rose-600" />
+                </div>
+              )}
+              {isSuspended && (
+                <div className="w-20 h-20 bg-amber-50 border-4 border-amber-200 rounded-3xl flex items-center justify-center text-amber-600 shadow-sm">
+                  <ShieldAlert className="w-10 h-10 text-amber-600" />
+                </div>
+              )}
+            </div>
+
+            {/* Status Pill */}
+            <div className="flex justify-center">
+              {isPending && (
+                <span className="bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/70 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#854D0E] animate-ping" />
+                  {language === 'ta' ? 'பள்ளி நிர்வாகியின் அனுமதி நிலுவையில் உள்ளது' : 'Awaiting School Admin Verification'}
+                </span>
+              )}
+              {isRejected && (
+                <span className="bg-rose-100 text-rose-800 border border-rose-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                  {language === 'ta' ? 'பதிவு நிராகரிக்கப்பட்டது' : 'Registration Rejected'}
+                </span>
+              )}
+              {isSuspended && (
+                <span className="bg-amber-100 text-amber-800 border border-amber-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                  {language === 'ta' ? 'கணக்கு இடைநிறுத்தப்பட்டுள்ளது' : 'Account Suspended'}
+                </span>
+              )}
+            </div>
+
+            {/* Main Headline & Description */}
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
+                {isPending && (language === 'ta'
+                  ? `வணக்கம் ${user?.full_name || ''}! உங்கள் அனுமதி நிலுவையில் உள்ளது`
+                  : `Welcome, ${user?.full_name || 'Alumni Member'}!`)}
+                {isRejected && (language === 'ta' ? 'பதிவு விண்ணப்பம் நிராகரிக்கப்பட்டது' : 'Registration Application Rejected')}
+                {isSuspended && (language === 'ta' ? 'கணக்கு தற்காலிகமாக இடைநிறுத்தப்பட்டுள்ளது' : 'Account Access Suspended')}
+              </h2>
+
+              <p className="text-sm text-gray-600 max-w-lg mx-auto leading-relaxed font-normal">
+                {isPending && (language === 'ta'
+                  ? 'உங்கள் விவரங்கள் பள்ளி நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்த பிறகே பழைய மாணவர் தளத்தை அணுக முடியும். தயவுசெய்து காத்திருக்கவும்.'
+                  : 'Your alumni registration details have been submitted successfully! School Association Admin will review and verify your details before granting access to explore the Alumni Portal. Please wait for approval.')}
+                {isRejected && (language === 'ta' ? 'உங்கள் தகவல்கள் பள்ளி பதிவுகளுடன் பொருந்தவில்லை. கூடுதல் விவரங்களுக்கு பள்ளி நிர்வாகியைத் தொடர்பு கொள்ளவும்.' : 'Your registration details could not be verified against official school records. Please contact your school administrator.')}
+                {isSuspended && (language === 'ta' ? 'உங்கள் பழைய மாணவர் கணக்கு தற்காலிகமாக இடைநிறுத்தப்பட்டுள்ளது.' : 'Your alumni portal account access has been suspended by the school administrator.')}
+              </p>
+            </div>
+
+            {/* Application Summary Box */}
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-5 text-left text-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span className="font-bold text-[#111111] uppercase tracking-wider text-[11px] flex items-center">
+                  <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" />
+                  {language === 'ta' ? 'சமர்ப்பிக்கப்பட்ட விவரங்கள்' : 'Submitted Registration Summary'}
+                </span>
+                <span className="text-gray-500 font-mono text-[11px]">
+                  Ref: {user?.admission_number || 'REG-PENDING'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700">
+                <div>
+                  <span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'பெயர்:' : 'Full Name:'}</span>
+                  <span className="font-semibold text-[#111111]">{user?.full_name || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'படித்த வகுப்புத் தொகுதி:' : 'Batch Year:'}</span>
+                  <span className="font-semibold text-[#111111]">Batch of {user?.passing_year || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'மின்னஞ்சல்:' : 'Email Address:'}</span>
+                  <span className="font-semibold text-[#111111]">{user?.email || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">{language === 'ta' ? 'கைபேசி எண்:' : 'Mobile Number:'}</span>
+                  <span className="font-semibold text-[#111111]">{user?.mobile || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={fetchMe}
+                disabled={refreshing}
+                className="w-full sm:w-auto px-6 py-3 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 text-[#111111] ${refreshing ? 'animate-spin' : ''}`} />
+                <span>
+                  {refreshing
+                    ? (language === 'ta' ? 'சரிபார்க்கிறது...' : 'Checking Status...')
+                    : (language === 'ta' ? 'சரிபார்ப்பு நிலையை மீண்டும் சரிபார்க்க' : 'Check Verification Status')}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.location.href = `mailto:${school?.contact_email || 'support@justgathernow.com'}?subject=Alumni Verification Request - ${user?.full_name}`;
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-white border border-[#E5E7EB] hover:border-[#111111] text-[#111111] font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
+              >
+                <Mail className="w-4 h-4 text-gray-600" />
+                <span>{language === 'ta' ? 'பள்ளி நிர்வாகியைத் தொடர்பு கொள்ள' : 'Contact School Admin'}</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="w-full sm:w-auto px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-gray-500" />
+                <span>{language === 'ta' ? 'வெளியேறு' : 'Log Out'}</span>
+              </button>
+            </div>
+
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-screen bg-[#FAFAFA] text-[#111111] flex flex-col overflow-hidden font-sans">
+
 
       
       {/* ========================================================================= */}
