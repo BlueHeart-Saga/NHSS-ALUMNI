@@ -4,6 +4,7 @@ import { Award, Download, X, FileText, Clock, CheckCircle2, AlertCircle, Loader2
 import Swal from 'sweetalert2';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DocumentRequestItem {
   id: string;
@@ -17,6 +18,7 @@ interface DocumentRequestItem {
 }
 
 export const AlumniDocumentsPage: React.FC = () => {
+  const { language } = useLanguage();
   const { user, school } = useOutletContext<AlumniContextType>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -59,19 +61,22 @@ export const AlumniDocumentsPage: React.FC = () => {
       setShowDocRequestModal(false);
       setDocReason('');
       setDocRemarks('');
-      await fetchRequests();
 
       Swal.fire({
         icon: 'success',
-        title: 'Document Request Sent!',
-        text: `Your official request for ${docType} has been dispatched directly to the school administration.`,
+        title: language === 'ta' ? 'விண்ணப்பம் சமர்ப்பிக்கப்பட்டது!' : 'Request Submitted Successfully!',
+        text: language === 'ta'
+          ? 'உங்கள் சான்றிதழ் கோரிக்கை பள்ளி நிர்வாகத்திற்கு அனுப்பப்பட்டுள்ளது.'
+          : 'Your document request has been logged. Admin will review and notify expected completion date.',
         confirmButtonColor: '#111111'
       });
+
+      await fetchRequests();
     } catch (err: any) {
       console.error('Document request failed:', err);
       Swal.fire({
         icon: 'error',
-        title: 'Submission Failed',
+        title: language === 'ta' ? 'சமர்ப்பிக்க முடியவில்லை' : 'Submission Failed',
         text: err?.message || 'Could not send document request.',
         confirmButtonColor: '#111111'
       });
@@ -84,15 +89,15 @@ export const AlumniDocumentsPage: React.FC = () => {
     switch (status) {
       case 'APPROVED':
       case 'READY_FOR_PICKUP':
-        return <span className="font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center space-x-1"><CheckCircle2 className="w-3.5 h-3.5" /><span>{status.replace(/_/g, ' ')}</span></span>;
+        return <span className="font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center space-x-1"><CheckCircle2 className="w-3.5 h-3.5" /><span>{language === 'ta' ? 'தயாராக உள்ளது' : status.replace(/_/g, ' ')}</span></span>;
       case 'COMPLETED':
-        return <span className="font-extrabold px-3 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center space-x-1"><CheckCircle2 className="w-3.5 h-3.5" /><span>COMPLETED</span></span>;
+        return <span className="font-extrabold px-3 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center space-x-1"><CheckCircle2 className="w-3.5 h-3.5" /><span>{language === 'ta' ? 'முடிந்தது' : 'COMPLETED'}</span></span>;
       case 'IN_REVIEW':
-        return <span className="font-extrabold px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 flex items-center space-x-1"><Clock className="w-3.5 h-3.5" /><span>IN REVIEW</span></span>;
+        return <span className="font-extrabold px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 flex items-center space-x-1"><Clock className="w-3.5 h-3.5" /><span>{language === 'ta' ? 'பரிசீலனையில்' : 'IN REVIEW'}</span></span>;
       case 'REJECTED':
-        return <span className="font-extrabold px-3 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 flex items-center space-x-1"><AlertCircle className="w-3.5 h-3.5" /><span>REJECTED</span></span>;
+        return <span className="font-extrabold px-3 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 flex items-center space-x-1"><AlertCircle className="w-3.5 h-3.5" /><span>{language === 'ta' ? 'நிராகரிக்கப்பட்டது' : 'REJECTED'}</span></span>;
       default:
-        return <span className="font-extrabold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center space-x-1"><Clock className="w-3.5 h-3.5" /><span>PENDING ADMIN</span></span>;
+        return <span className="font-extrabold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center space-x-1"><Clock className="w-3.5 h-3.5" /><span>{language === 'ta' ? 'நிர்வாகியின் நிலுவையில்' : 'PENDING ADMIN'}</span></span>;
     }
   };
 
@@ -101,15 +106,21 @@ export const AlumniDocumentsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">Official Certificates & Document Requests</h2>
-          <p className="text-xs text-[#6B7280]">Generate digital membership credentials or submit official document requisitions to the school administration</p>
+          <h2 className="text-xl font-bold text-[#111111]">
+            {language === 'ta' ? 'சான்றிதழ்கள் & ஆவணங்கள் விண்ணப்பம்' : 'Official Certificates & Document Requests'}
+          </h2>
+          <p className="text-xs text-[#6B7280]">
+            {language === 'ta'
+              ? 'உறுப்பினர் சான்றிதழ்களைப் பெறவும், பள்ளி நிர்வாகத்திடம் ஆவணங்கள் கோரி விண்ணப்பிக்கவும்'
+              : 'Generate digital membership credentials or submit official document requisitions to the school administration'}
+          </p>
         </div>
         <button
           onClick={() => setShowDocRequestModal(true)}
           className="px-5 py-2.5 bg-[#111111] text-white hover:bg-black rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2"
         >
           <Send className="w-3.5 h-3.5 text-[#F4C542]" />
-          <span>New Document Request</span>
+          <span>{language === 'ta' ? 'புதிய ஆவண விண்ணப்பம்' : 'New Document Request'}</span>
         </button>
       </div>
 

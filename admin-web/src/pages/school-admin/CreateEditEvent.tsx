@@ -17,8 +17,10 @@ export const CreateEditEvent: React.FC = () => {
   const [loading, setLoading] = useState(isEditMode);
 
   const [title, setTitle] = useState('');
+  const [titleTa, setTitleTa] = useState('');
   const [batchId, setBatchId] = useState<string>('');
   const [description, setDescription] = useState('');
+  const [descriptionTa, setDescriptionTa] = useState('');
   const [eventDate, setEventDate] = useState('2026-12-20');
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endTime, setEndTime] = useState('05:00 PM');
@@ -27,6 +29,7 @@ export const CreateEditEvent: React.FC = () => {
   const [maxCapacity, setMaxCapacity] = useState(300);
   const [guestAllowed, setGuestAllowed] = useState(true);
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImageUrlTa, setCoverImageUrlTa] = useState('');
   const [registrationUrl, setRegistrationUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,8 +46,10 @@ export const CreateEditEvent: React.FC = () => {
       if (eventId) {
         const ev = await api.getEventDetails(eventId);
         setTitle(ev.title || '');
+        setTitleTa(ev.title_ta || '');
         setBatchId(ev.batch_id || '');
         setDescription(ev.description || '');
+        setDescriptionTa(ev.description_ta || '');
         setEventDate(ev.event_date || '2026-12-20');
         setStartTime(ev.start_time || '10:00 AM');
         setEndTime(ev.end_time || '05:00 PM');
@@ -53,6 +58,7 @@ export const CreateEditEvent: React.FC = () => {
         setMaxCapacity(ev.max_capacity ?? 300);
         setGuestAllowed(ev.guest_allowed ?? true);
         setCoverImageUrl(ev.cover_image_url || '');
+        setCoverImageUrlTa(ev.cover_image_url_ta || '');
         setRegistrationUrl(ev.registration_url || '');
       }
     } catch (err) {
@@ -74,6 +80,17 @@ export const CreateEditEvent: React.FC = () => {
     }
   };
 
+  const handleBannerUploadTa = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImageUrlTa(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (publishImmediately: boolean) => {
     if (!title || !eventDate || !venue) {
       alertService.showWarning('Required Fields Missing', 'Please fill in required fields (Event Title, Date, and Venue) before saving.');
@@ -84,8 +101,10 @@ export const CreateEditEvent: React.FC = () => {
     try {
       const payload: any = {
         title,
+        title_ta: titleTa || null,
         batch_id: batchId || null,
         description,
+        description_ta: descriptionTa || null,
         event_date: eventDate,
         start_time: startTime,
         end_time: endTime,
@@ -94,6 +113,7 @@ export const CreateEditEvent: React.FC = () => {
         max_capacity: maxCapacity,
         guest_allowed: guestAllowed,
         cover_image_url: coverImageUrl || null,
+        cover_image_url_ta: coverImageUrlTa || null,
         registration_url: registrationUrl || null,
       };
 
@@ -143,13 +163,23 @@ export const CreateEditEvent: React.FC = () => {
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xs space-y-6">
-        <Input
-          label="Event Name *"
-          placeholder="2010 Silver Jubilee Reunion"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
+        {/* Bilingual Titles Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Event Name / Title (English) *"
+            placeholder="2010 Silver Jubilee Reunion"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+
+          <Input
+            label="நிகழ்வின் பெயர் (தமிழ் / Tamil Name)"
+            placeholder="2010 வெள்ளி விழா மறுசந்திப்பு"
+            value={titleTa}
+            onChange={(e) => setTitleTa(e.target.value)}
+          />
+        </div>
 
         <Select
           label="Target Audience / Batch Cohort"
@@ -158,31 +188,59 @@ export const CreateEditEvent: React.FC = () => {
           onChange={(e) => setBatchId(e.target.value)}
         />
 
-        {/* Banner Photo Upload */}
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-[#111111]">Event Cover Banner Image</label>
-          <div className="flex items-center space-x-4">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleBannerUpload}
-              className="text-xs text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7D6] file:text-[#854D0E] hover:file:bg-[#F4C542] cursor-pointer"
-            />
-            <span className="text-xs text-gray-400">or paste URL:</span>
-          </div>
-          <Input
-            placeholder="https://images.unsplash.com/... (Image URL)"
-            value={coverImageUrl}
-            onChange={(e) => setCoverImageUrl(e.target.value)}
-          />
-          {coverImageUrl && (
-            <div className="relative h-44 rounded-2xl overflow-hidden border-2 border-[#F4C542] shadow-sm mt-2">
-              <img src={coverImageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
-              <span className="absolute top-2 left-2 bg-[#111111] text-[#F4C542] text-[10px] font-bold px-2 py-0.5 rounded-md">
-                Banner Preview
-              </span>
+        {/* Bilingual Banner Photo Uploads */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* English Banner Image */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-[#111111]">Event Cover Banner Image (English)</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerUpload}
+                className="text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7D6] file:text-[#854D0E] hover:file:bg-[#F4C542] cursor-pointer"
+              />
             </div>
-          )}
+            <Input
+              placeholder="https://images.unsplash.com/... (English Image URL)"
+              value={coverImageUrl}
+              onChange={(e) => setCoverImageUrl(e.target.value)}
+            />
+            {coverImageUrl && (
+              <div className="relative h-36 rounded-2xl overflow-hidden border-2 border-[#F4C542] shadow-sm mt-2">
+                <img src={coverImageUrl} alt="English Banner Preview" className="w-full h-full object-cover" />
+                <span className="absolute top-2 left-2 bg-[#111111] text-[#F4C542] text-[10px] font-bold px-2 py-0.5 rounded-md">
+                  English Banner Preview
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Tamil Banner Image */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-[#111111]">Event Cover Banner Image (தமிழ் / Tamil)</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerUploadTa}
+                className="text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#FFF7D6] file:text-[#854D0E] hover:file:bg-[#F4C542] cursor-pointer"
+              />
+            </div>
+            <Input
+              placeholder="https://images.unsplash.com/... (Tamil Image URL)"
+              value={coverImageUrlTa}
+              onChange={(e) => setCoverImageUrlTa(e.target.value)}
+            />
+            {coverImageUrlTa && (
+              <div className="relative h-36 rounded-2xl overflow-hidden border-2 border-[#F4C542] shadow-sm mt-2">
+                <img src={coverImageUrlTa} alt="Tamil Banner Preview" className="w-full h-full object-cover" />
+                <span className="absolute top-2 left-2 bg-[#111111] text-[#F4C542] text-[10px] font-bold px-2 py-0.5 rounded-md">
+                  தமிழ் பேனர் முன்னோட்டம்
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Apply / Registration Link */}
@@ -193,15 +251,29 @@ export const CreateEditEvent: React.FC = () => {
           onChange={(e) => setRegistrationUrl(e.target.value)}
         />
 
-        <div>
-          <label className="block text-xs font-semibold text-[#111111] mb-1.5">Description & Agenda</label>
-          <textarea
-            rows={4}
-            placeholder="Details, dress code, schedule overview..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] focus:bg-white"
-          />
+        {/* Bilingual Descriptions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#111111] mb-1.5">Description & Agenda (English)</label>
+            <textarea
+              rows={4}
+              placeholder="Details, dress code, schedule overview..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#111111] mb-1.5">விவரங்கள் & நிரல் (தமிழ் / Tamil Description)</label>
+            <textarea
+              rows={4}
+              placeholder="நிகழ்ச்சி விவரங்கள், உடைக்கட்டுப்பாடு, கால அட்டவணை..."
+              value={descriptionTa}
+              onChange={(e) => setDescriptionTa(e.target.value)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] focus:bg-white"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

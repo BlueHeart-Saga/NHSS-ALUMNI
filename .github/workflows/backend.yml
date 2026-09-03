@@ -27,9 +27,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies into Azure virtual environment (antenv)
+      - name: Install dependencies into Azure virtual environment (antenv) & set permissions
         run: |
           cd backend
+          chmod +x startup.sh
           python -m venv antenv
           source antenv/bin/activate
           python -m pip install --upgrade pip
@@ -42,28 +43,3 @@ jobs:
           slot-name: 'Production'
           package: './backend'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND || secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F9ABA5BFE5AF4C56B5A5E9DCC96455D3 }}
-          app-settings-json: |
-            [
-              {"name": "APP_ENV", "value": "production", "slotSetting": false},
-              {"name": "PORT", "value": "8000", "slotSetting": false},
-              {"name": "JWT_ALGORITHM", "value": "HS256", "slotSetting": false},
-              {"name": "ACCESS_TOKEN_EXPIRE_MINUTES", "value": "1440", "slotSetting": false},
-              {"name": "REFRESH_TOKEN_EXPIRE_DAYS", "value": "30", "slotSetting": false},
-              {"name": "APP_NAME", "value": "${{ secrets.APP_NAME }}", "slotSetting": false},
-              {"name": "MONGODB_URI", "value": "${{ secrets.MONGODB_URI }}", "slotSetting": false},
-              {"name": "MONGODB_DATABASE", "value": "${{ secrets.MONGODB_DATABASE }}", "slotSetting": false},
-              {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET || 'nhss-alumni-prod-jwt-secret-key-64-bytes-super-secure-2026-production' }}", "slotSetting": false},
-              {"name": "DEFAULT_DEV_OTP", "value": "${{ secrets.DEFAULT_DEV_OTP }}", "slotSetting": false},
-              {"name": "GOOGLE_CLIENT_ID", "value": "${{ secrets.GOOGLE_CLIENT_ID }}", "slotSetting": false},
-              {"name": "GOOGLE_CLIENT_SECRET", "value": "${{ secrets.GOOGLE_CLIENT_SECRET }}", "slotSetting": false},
-              {"name": "GOOGLE_REDIRECT_URI", "value": "${{ secrets.GOOGLE_REDIRECT_URI }}", "slotSetting": false},
-              {"name": "FRONTEND_URL", "value": "${{ secrets.FRONTEND_URL }}", "slotSetting": false},
-              {"name": "SMTP_SERVER", "value": "${{ secrets.SMTP_SERVER }}", "slotSetting": false},
-              {"name": "SMTP_PORT", "value": "587", "slotSetting": false},
-              {"name": "SMTP_USER", "value": "${{ secrets.SMTP_USER }}", "slotSetting": false},
-              {"name": "SMTP_PASS", "value": "${{ secrets.SMTP_PASS }}", "slotSetting": false},
-              {"name": "EMAILS_FROM_NAME", "value": "${{ secrets.EMAILS_FROM_NAME }}", "slotSetting": false},
-              {"name": "EMAILS_FROM_EMAIL", "value": "${{ secrets.EMAILS_FROM_EMAIL }}", "slotSetting": false},
-              {"name": "WEBSITE_SWAP_WARMUP_PING_PATH", "value": "/ready", "slotSetting": false},
-              {"name": "WEBSITE_SWAP_WARMUP_PING_STATUSES", "value": "200", "slotSetting": false}
-            ]

@@ -5,8 +5,10 @@ import Swal from 'sweetalert2';
 import { api } from '../../services/api';
 import { Memory } from '../../types';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AlumniGalleryPage: React.FC = () => {
+  const { language } = useLanguage();
   const { user } = useOutletContext<AlumniContextType>();
   const [memories, setMemories] = useState<Memory[]>([]);
 
@@ -43,8 +45,8 @@ export const AlumniGalleryPage: React.FC = () => {
     setMemoryFileUrl('');
     Swal.fire({
       icon: 'info',
-      title: 'Memory Submitted!',
-      text: 'Your photo memory has been submitted for moderation. It will appear once approved by admin.',
+      title: language === 'ta' ? 'நினைவு அனுப்பப்பட்டது!' : 'Memory Submitted!',
+      text: language === 'ta' ? 'உங்கள் பதிவு நிர்வாகியின் சரிபார்ப்பிற்குப் பின் வெளியிடப்படும்.' : 'Your photo memory has been submitted for moderation. It will appear once approved by admin.',
       confirmButtonColor: '#111111'
     });
   };
@@ -53,15 +55,21 @@ export const AlumniGalleryPage: React.FC = () => {
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">Photo Gallery & Memories</h2>
-          <p className="text-xs text-[#6B7280]">Relive school memories, reunion photos, and submit your own old photographs</p>
+          <h2 className="text-xl font-bold text-[#111111]">
+            {language === 'ta' ? 'புகைப்பட கேலரி & நினைவுகள்' : 'Photo Gallery & Memories'}
+          </h2>
+          <p className="text-xs text-[#6B7280]">
+            {language === 'ta'
+              ? 'பள்ளி நினைவுகள், புகைப்படங்களைப் பகிர்ந்து கொள்ளுங்கள்'
+              : 'Relive school memories, reunion photos, and submit your own old photographs'}
+          </p>
         </div>
         <button
           onClick={() => setShowUploadMemoryModal(true)}
           className="px-5 py-2.5 bg-[#111111] text-white hover:bg-gray-800 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-2"
         >
           <Upload className="w-4 h-4" />
-          <span>Submit Memory Photo</span>
+          <span>{language === 'ta' ? 'புகைப்படம் பதிவேற்று' : 'Submit Memory Photo'}</span>
         </button>
       </div>
 
@@ -72,13 +80,13 @@ export const AlumniGalleryPage: React.FC = () => {
               <img src={mem.image_url} alt={mem.title} className="w-full h-48 object-cover" />
               <div className="p-4 space-y-1">
                 <h4 className="font-bold text-xs text-[#111111]">{mem.title}</h4>
-                <p className="text-[11px] text-gray-500">Uploaded by {mem.uploader_name}</p>
+                <p className="text-[11px] text-gray-500">{language === 'ta' ? `பதிவேற்றியவர் ${mem.uploader_name}` : `Uploaded by ${mem.uploader_name}`}</p>
               </div>
             </div>
           ))
         ) : (
           <div className="col-span-1 sm:col-span-2 md:col-span-3 p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center shadow-sm">
-            <p className="text-xs text-[#6B7280]">No photo memories uploaded to gallery yet.</p>
+            <p className="text-xs text-[#6B7280]">{language === 'ta' ? 'புகைப்படங்கள் எதுவும் பதிவேற்றப்படவில்லை.' : 'No photo memories uploaded to gallery yet.'}</p>
           </div>
         )}
       </div>
@@ -91,10 +99,12 @@ export const AlumniGalleryPage: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="font-bold text-base text-[#111111]">Submit School Memory Photo</h3>
+            <h3 className="font-bold text-base text-[#111111]">
+              {language === 'ta' ? 'பள்ளி புகைப்படத்தைப் பதிவேற்று' : 'Submit School Memory Photo'}
+            </h3>
 
             <div>
-              <label className="block font-semibold text-gray-700 mb-1">Memory Title</label>
+              <label className="block font-semibold text-gray-700 mb-1">{language === 'ta' ? 'தலைப்பு' : 'Memory Title'}</label>
               <input
                 type="text"
                 required

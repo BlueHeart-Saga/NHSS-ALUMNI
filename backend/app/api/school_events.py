@@ -10,6 +10,7 @@ router = APIRouter(prefix="/school-events", tags=["School Events & Celebrations"
 
 class CreateSchoolEventRequest(BaseModel):
     title: str
+    title_ta: Optional[str] = None
     category: str = "ANNUAL_DAY"  # ANNUAL_DAY, SPORTS_DAY, CULTURAL_FEST, NATIONAL_DAY, EXHIBITION, CELEBRATION, ACADEMIC_MEET, GRADUATION_DAY, OTHER
     event_date: str  # YYYY-MM-DD
     end_date: Optional[str] = None
@@ -19,12 +20,15 @@ class CreateSchoolEventRequest(BaseModel):
     chief_guest: Optional[str] = None
     target_audience: Optional[str] = "ALL_STUDENTS"  # ALL_STUDENTS, PARENTS, STAFF, PUBLIC, ALUMNI_GUESTS
     description: str
+    description_ta: Optional[str] = None
     cover_image_url: Optional[str] = None
+    cover_image_url_ta: Optional[str] = None
     gallery_urls: Optional[List[str]] = []
     status: str = "UPCOMING"  # UPCOMING, COMPLETED, CANCELLED
 
 class UpdateSchoolEventRequest(BaseModel):
     title: Optional[str] = None
+    title_ta: Optional[str] = None
     category: Optional[str] = None
     event_date: Optional[str] = None
     end_date: Optional[str] = None
@@ -34,7 +38,9 @@ class UpdateSchoolEventRequest(BaseModel):
     chief_guest: Optional[str] = None
     target_audience: Optional[str] = None
     description: Optional[str] = None
+    description_ta: Optional[str] = None
     cover_image_url: Optional[str] = None
+    cover_image_url_ta: Optional[str] = None
     gallery_urls: Optional[List[str]] = None
     status: Optional[str] = None
 
@@ -74,6 +80,7 @@ async def list_school_events(
             "id": str(doc["_id"]),
             "school_id": str(doc.get("school_id")) if doc.get("school_id") else None,
             "title": doc.get("title", ""),
+            "title_ta": doc.get("title_ta"),
             "category": doc.get("category", "ANNUAL_DAY"),
             "event_date": doc.get("event_date", ""),
             "end_date": doc.get("end_date"),
@@ -83,7 +90,9 @@ async def list_school_events(
             "chief_guest": doc.get("chief_guest"),
             "target_audience": doc.get("target_audience", "ALL_STUDENTS"),
             "description": doc.get("description", ""),
+            "description_ta": doc.get("description_ta"),
             "cover_image_url": doc.get("cover_image_url"),
+            "cover_image_url_ta": doc.get("cover_image_url_ta"),
             "gallery_urls": doc.get("gallery_urls", []),
             "status": doc.get("status", "UPCOMING"),
             "created_at": doc.get("created_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("created_at"), datetime) else str(doc.get("created_at", ""))

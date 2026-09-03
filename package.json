@@ -12,7 +12,7 @@
     "build:admin": "cd admin-web && npm run build",
     "build:mobile": "cd mobile-app && npm run build",
     "build": "cd admin-web && npm run build",
-    "start": "cd admin-web && npm run preview -- --port 8080 --host"
+    "start": "cd admin-web && npm start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

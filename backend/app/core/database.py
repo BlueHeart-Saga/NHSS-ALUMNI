@@ -46,17 +46,19 @@ async def connect_to_mongo():
 
     if not connected:
         if settings.is_production:
-            logger.critical(f"FATAL: Production database connection failed after {max_retries} attempts: {last_error}")
-            raise RuntimeError(f"Database connection failed in production environment: {last_error}")
-        
-        logger.warning(f"Local MongoDB daemon not reachable ({last_error}). Falling back to in-memory mongomock engine for dev/test...")
-        from mongomock_motor import AsyncMongoMockClient
-        client = AsyncMongoMockClient()
-        db_instance.client = client
-        db_instance.db = client[settings.MONGODB_DATABASE]
-        logger.info(f"Initialized in-memory MongoDB database: {settings.MONGODB_DATABASE}")
+            logger.critical(f"WARNING: Production database connection failed after {max_retries} attempts: {last_error}. Server booting in degraded state.")
+            db_instance.client = client
+            db_instance.db = client[settings.MONGODB_DATABASE] if client is not None else None
+        else:
+            logger.warning(f"Local MongoDB daemon not reachable ({last_error}). Falling back to in-memory mongomock engine for dev/test...")
+            from mongomock_motor import AsyncMongoMockClient
+            client = AsyncMongoMockClient()
+            db_instance.client = client
+            db_instance.db = client[settings.MONGODB_DATABASE]
+            logger.info(f"Initialized in-memory MongoDB database: {settings.MONGODB_DATABASE}")
 
-    await create_indexes()
+    if db_instance.db is not None:
+        await create_indexes()
 
 async def close_mongo_connection():
     if db_instance.client and hasattr(db_instance.client, "close"):

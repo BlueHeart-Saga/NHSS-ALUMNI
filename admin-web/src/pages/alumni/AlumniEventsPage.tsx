@@ -5,8 +5,10 @@ import Swal from 'sweetalert2';
 import { api } from '../../services/api';
 import { EventItem } from '../../types';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AlumniEventsPage: React.FC = () => {
+  const { language } = useLanguage();
   const { user } = useOutletContext<AlumniContextType>();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [eventsSubTab, setEventsSubTab] = useState<'upcoming' | 'registered' | 'past'>('upcoming');
@@ -31,10 +33,13 @@ export const AlumniEventsPage: React.FC = () => {
       setRegisteredEventIds([...registeredEventIds, selectedEvent.id]);
     }
     setShowRsvpModal(false);
+    const title = language === 'ta' ? (selectedEvent.title_ta || selectedEvent.title) : selectedEvent.title;
     Swal.fire({
       icon: 'success',
-      title: 'Registration Confirmed!',
-      text: `You have successfully registered for "${selectedEvent.title}" as ${rsvpStatus}. Ticket QR generated!`,
+      title: language === 'ta' ? 'பதிவு உறுதி செய்யப்பட்டது!' : 'Registration Confirmed!',
+      text: language === 'ta'
+        ? `"${title}" நிகழ்விற்கு நீங்கள் வெற்றிகரமாக பதிவு செய்துள்ளீர்கள்!`
+        : `You have successfully registered for "${selectedEvent.title}" as ${rsvpStatus}. Ticket QR generated!`,
       confirmButtonColor: '#111111'
     });
   };
@@ -44,15 +49,21 @@ export const AlumniEventsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">Alumni Events & Reunions</h2>
-          <p className="text-xs text-[#6B7280]">Browse upcoming events, view your registered passes, and check past archives</p>
+          <h2 className="text-xl font-bold text-[#111111]">
+            {language === 'ta' ? 'பழைய மாணவர்கள் நிகழ்வுகள் & மறுசந்திப்புகள்' : 'Alumni Events & Reunions'}
+          </h2>
+          <p className="text-xs text-[#6B7280]">
+            {language === 'ta'
+              ? 'வரவிருக்கும் நிகழ்வுகளைப் பார்க்கவும், உங்கள் டிக்கெட்டுகளைச் சரிபார்க்கவும்'
+              : 'Browse upcoming events, view your registered passes, and check past archives'}
+          </p>
         </div>
 
         <div className="flex gap-2 border-b border-[#E5E7EB] sm:border-0 pb-1 sm:pb-0 text-xs font-bold">
           {[
-            { id: 'upcoming', label: 'Upcoming Events' },
-            { id: 'registered', label: 'My Registrations' },
-            { id: 'past', label: 'Past Events' }
+            { id: 'upcoming', label: language === 'ta' ? 'வரவிருக்கும் நிகழ்வுகள்' : 'Upcoming Events' },
+            { id: 'registered', label: language === 'ta' ? 'என் பதிவுகள்' : 'My Registrations' },
+            { id: 'past', label: language === 'ta' ? 'கடந்த நிகழ்வுகள்' : 'Past Events' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -73,58 +84,68 @@ export const AlumniEventsPage: React.FC = () => {
       {eventsSubTab === 'upcoming' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {events.length > 0 ? (
-            events.map(ev => (
-              <div key={ev.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col justify-between">
-                <div>
-                  {ev.cover_image_url ? (
-                    <img src={ev.cover_image_url} alt={ev.title} className="w-full h-44 object-cover" />
-                  ) : (
-                    <div className="w-full h-36 bg-gradient-to-r from-[#111111] to-[#2D2D2D] p-6 text-white flex flex-col justify-end">
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">ALUMNI GATHERING</span>
-                      <h3 className="font-extrabold text-base">{ev.title}</h3>
-                    </div>
-                  )}
-                  <div className="p-6 space-y-3">
-                    <h3 className="font-bold text-base text-[#111111]">{ev.title}</h3>
-                    <p className="text-xs text-[#4B5563] line-clamp-2">{ev.description}</p>
-                    <div className="text-xs text-gray-500 space-y-1.5 pt-2 border-t border-[#E5E7EB]">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{new Date(ev.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            events.map(ev => {
+              const displayTitle = language === 'ta' ? (ev.title_ta || ev.title) : ev.title;
+              const displayDesc = language === 'ta' ? (ev.description_ta || ev.description) : ev.description;
+              const coverImg = language === 'ta' ? (ev.cover_image_url_ta || ev.cover_image_url) : ev.cover_image_url;
+
+              return (
+                <div key={ev.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col justify-between">
+                  <div>
+                    {coverImg ? (
+                      <img src={coverImg} alt={displayTitle} className="w-full h-44 object-cover" />
+                    ) : (
+                      <div className="w-full h-36 bg-gradient-to-r from-[#111111] to-[#2D2D2D] p-6 text-white flex flex-col justify-end">
+                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                          {language === 'ta' ? 'பழைய மாணவர்கள் சந்திப்பு' : 'ALUMNI GATHERING'}
+                        </span>
+                        <h3 className="font-extrabold text-base">{displayTitle}</h3>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{ev.venue}</span>
+                    )}
+                    <div className="p-6 space-y-3">
+                      <h3 className="font-bold text-base text-[#111111]">{displayTitle}</h3>
+                      <p className="text-xs text-[#4B5563] line-clamp-2">{displayDesc}</p>
+                      <div className="text-xs text-gray-500 space-y-1.5 pt-2 border-t border-[#E5E7EB]">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{new Date(ev.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{ev.venue}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="p-6 pt-0">
-                  {registeredEventIds.includes(ev.id) ? (
-                    <button
-                      onClick={() => setQrTicketEvent(ev)}
-                      className="w-full py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      <span>View Ticket Pass</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { setSelectedEvent(ev); setShowRsvpModal(true); }}
-                      className="w-full py-2.5 bg-[#111111] text-white hover:bg-gray-800 rounded-xl text-xs font-bold transition-all shadow-sm"
-                    >
-                      Register / RSVP Now
-                    </button>
-                  )}
+                  <div className="p-6 pt-0">
+                    {registeredEventIds.includes(ev.id) ? (
+                      <button
+                        onClick={() => setQrTicketEvent(ev)}
+                        className="w-full py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        <span>{language === 'ta' ? 'டிக்கெட் பாஸைப் பார்க்க' : 'View Ticket Pass'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setSelectedEvent(ev); setShowRsvpModal(true); }}
+                        className="w-full py-2.5 bg-[#111111] text-white hover:bg-gray-800 rounded-xl text-xs font-bold transition-all shadow-sm"
+                      >
+                        {language === 'ta' ? 'இப்போதே பதிவு செய்ய' : 'Register / RSVP Now'}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-2 p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center">
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="font-bold text-sm text-[#111111]">No Upcoming Events</h3>
-              <p className="text-xs text-[#6B7280] mt-1">Check back soon for new reunion and sports meet announcements.</p>
+              <h3 className="font-bold text-sm text-[#111111]">{language === 'ta' ? 'நிகழ்வுகள் எதுவும் இல்லை' : 'No Upcoming Events'}</h3>
+              <p className="text-xs text-[#6B7280] mt-1">
+                {language === 'ta' ? 'புதிய நிகழ்வுகள் விரைவில் அறிவிக்கப்படும்.' : 'Check back soon for new reunion and sports meet announcements.'}
+              </p>
             </div>
           )}
         </div>

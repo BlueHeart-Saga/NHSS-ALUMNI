@@ -118,7 +118,7 @@ export const EventsList: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedEvents.map((ev) => {
             const isPast = ev.event_date && ev.event_date < todayStr;
-            const coverImage = getAssetUrl(ev.cover_image_url) || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80";
+            const coverImage = getAssetUrl(ev.cover_image_url) || getAssetUrl(ev.cover_image_url_ta) || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80";
 
             return (
               <div
@@ -140,12 +140,21 @@ export const EventsList: React.FC = () => {
                     <span className="text-[11px] font-bold bg-[#111111] text-[#F4C542] border border-[#F4C542]/60 px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
                       {ev.batch_name || 'School-wide'}
                     </span>
-                    <Badge status={isPast ? 'PAST' : ev.status} />
+                    <div className="flex items-center space-x-1.5">
+                      {ev.title_ta && (
+                        <span className="text-[10px] font-bold bg-[#854D0E] text-white px-2 py-0.5 rounded-md shadow-xs">
+                          தமிழ்
+                        </span>
+                      )}
+                      <Badge status={isPast ? 'PAST' : ev.status} />
+                    </div>
                   </div>
 
                   {/* Title overlay */}
                   <div className="absolute bottom-3 left-3 right-3 z-10">
-                    <h3 className="font-bold text-white text-base leading-snug drop-shadow-md line-clamp-1">{ev.title}</h3>
+                    <h3 className="font-bold text-white text-base leading-snug drop-shadow-md line-clamp-1">
+                      {ev.title} {ev.title_ta && <span className="text-xs text-[#F4C542] font-normal ml-1">({ev.title_ta})</span>}
+                    </h3>
                   </div>
                 </div>
 

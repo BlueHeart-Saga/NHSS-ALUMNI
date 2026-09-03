@@ -65,13 +65,16 @@ async def get_public_events():
         res.append({
             "id": str(ev["_id"]),
             "title": ev.get("title"),
+            "title_ta": ev.get("title_ta"),
             "batch_name": batch_name,
             "description": ev.get("description"),
+            "description_ta": ev.get("description_ta"),
             "event_date": ev.get("event_date"),
             "start_time": ev.get("start_time"),
             "venue": ev.get("venue"),
             "attending_count": att_count,
             "cover_image_url": ev.get("cover_image_url") or "/school-images/banner.png",
+            "cover_image_url_ta": ev.get("cover_image_url_ta"),
             "registration_url": ev.get("registration_url")
         })
     return res
@@ -95,12 +98,15 @@ async def get_public_past_events():
         res.append({
             "id": str(ev["_id"]),
             "title": ev.get("title"),
+            "title_ta": ev.get("title_ta"),
             "description": ev.get("description"),
+            "description_ta": ev.get("description_ta"),
             "event_date": ev.get("event_date"),
             "start_time": ev.get("start_time"),
             "end_time": ev.get("end_time"),
             "venue": ev.get("venue"),
             "cover_image_url": ev.get("cover_image_url"),
+            "cover_image_url_ta": ev.get("cover_image_url_ta"),
             "attending_count": att_count,
             "status": "PAST"
         })
@@ -117,6 +123,7 @@ async def get_public_school_events():
         res.append({
             "id": str(doc["_id"]),
             "title": doc.get("title", ""),
+            "title_ta": doc.get("title_ta"),
             "category": doc.get("category", "ANNUAL_DAY"),
             "event_date": doc.get("event_date", ""),
             "end_date": doc.get("end_date"),
@@ -126,7 +133,9 @@ async def get_public_school_events():
             "chief_guest": doc.get("chief_guest"),
             "target_audience": doc.get("target_audience", "ALL_STUDENTS"),
             "description": doc.get("description", ""),
+            "description_ta": doc.get("description_ta"),
             "cover_image_url": doc.get("cover_image_url"),
+            "cover_image_url_ta": doc.get("cover_image_url_ta"),
             "gallery_urls": doc.get("gallery_urls", []),
             "status": doc.get("status", "UPCOMING")
         })

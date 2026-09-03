@@ -8,8 +8,10 @@ import { getAssetUrl } from '../../utils/asset';
 interface EventItem {
   id: string;
   title: string;
+  title_ta?: string;
   batch_name?: string;
   description: string;
+  description_ta?: string;
   event_date: string;
   start_time?: string;
   end_time?: string;
@@ -18,6 +20,7 @@ interface EventItem {
   attending_count?: number;
   max_capacity?: number;
   cover_image_url: string;
+  cover_image_url_ta?: string;
   registration_url?: string;
   status?: string;
 }
@@ -162,7 +165,17 @@ export const PublicEvents: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {filteredEvents.map((event) => {
-              const coverImage = getAssetUrl(event.cover_image_url) || getAssetUrl('/school-images/banner.png');
+              const coverImage = language === 'ta'
+                ? (getAssetUrl(event.cover_image_url_ta) || getAssetUrl(event.cover_image_url) || getAssetUrl('/school-images/banner.png'))
+                : (getAssetUrl(event.cover_image_url) || getAssetUrl(event.cover_image_url_ta) || getAssetUrl('/school-images/banner.png'));
+
+              const displayTitle = language === 'ta'
+                ? (event.title_ta || event.title)
+                : (event.title || event.title_ta);
+
+              const displayDescription = language === 'ta'
+                ? (event.description_ta || event.description)
+                : (event.description || event.description_ta);
 
               return (
                 <div
@@ -176,7 +189,7 @@ export const PublicEvents: React.FC = () => {
                   >
                     <img
                       src={coverImage}
-                      alt={event.title}
+                      alt={displayTitle}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out ${
                         event.isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''
                       }`}
@@ -207,11 +220,11 @@ export const PublicEvents: React.FC = () => {
                         onClick={() => setSelectedPreviewEvent(event)}
                         className="text-xl font-extrabold text-[#111111] group-hover:text-[#854D0E] transition-colors leading-tight cursor-pointer line-clamp-2"
                       >
-                        {event.title}
+                        {displayTitle}
                       </h3>
 
                       <p className="text-xs sm:text-sm text-gray-600 font-normal line-clamp-3 leading-relaxed">
-                        {event.description}
+                        {displayDescription}
                       </p>
                     </div>
 
@@ -233,7 +246,7 @@ export const PublicEvents: React.FC = () => {
 
                     {/* CARD FOOTER BUTTONS */}
                     <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-                      <button
+                      {/* <button
                         type="button"
                         onClick={() => setSelectedPreviewEvent(event)}
                         className="w-full py-3 px-4 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer group/btn"
@@ -241,7 +254,7 @@ export const PublicEvents: React.FC = () => {
                         <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
                         <span>{language === 'ta' ? 'விவரங்கள் & RSVP டிக்கெட்' : 'View Details & RSVP'}</span>
                         <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
-                      </button>
+                      </button> */}
 
                       {event.registration_url && (
                         <a
@@ -250,7 +263,7 @@ export const PublicEvents: React.FC = () => {
                           rel="noopener noreferrer"
                           className="w-full py-2.5 px-4 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] hover:text-[#111111] font-bold text-xs uppercase tracking-wider rounded-2xl border border-[#F4C542] transition-all flex items-center justify-center space-x-1.5"
                         >
-                          <span>{language === 'ta' ? 'வெளிப்புற பதிவு படிவம்' : 'External Registration'}</span>
+                          <span>{language === 'ta' ? 'பதிவு படிவம்' : 'Register'}</span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
@@ -278,15 +291,25 @@ export const PublicEvents: React.FC = () => {
             {/* Banner Header Image */}
             <div className="h-56 sm:h-64 w-full relative bg-gray-900 shrink-0 overflow-hidden">
               <img
-                src={getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl('/school-images/banner.png')}
-                alt={selectedPreviewEvent.title}
+                src={
+                  language === 'ta'
+                    ? (getAssetUrl(selectedPreviewEvent.cover_image_url_ta) || getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl('/school-images/banner.png'))
+                    : (getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl(selectedPreviewEvent.cover_image_url_ta) || getAssetUrl('/school-images/banner.png'))
+                }
+                alt={
+                  language === 'ta'
+                    ? (selectedPreviewEvent.title_ta || selectedPreviewEvent.title)
+                    : (selectedPreviewEvent.title || selectedPreviewEvent.title_ta)
+                }
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
               <div className="absolute bottom-5 left-6 right-6 z-10 text-white">
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow-lg">
-                  {selectedPreviewEvent.title}
+                  {language === 'ta'
+                    ? (selectedPreviewEvent.title_ta || selectedPreviewEvent.title)
+                    : (selectedPreviewEvent.title || selectedPreviewEvent.title_ta)}
                 </h2>
               </div>
             </div>
@@ -310,7 +333,9 @@ export const PublicEvents: React.FC = () => {
               <div>
                 <h4 className="font-bold text-gray-900 mb-1">{language === 'ta' ? 'நிகழ்ச்சி விவரங்கள் & நிகழ்ச்சி நிரல்:' : 'Event Description & Agenda:'}</h4>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                  {selectedPreviewEvent.description}
+                  {language === 'ta'
+                    ? (selectedPreviewEvent.description_ta || selectedPreviewEvent.description)
+                    : (selectedPreviewEvent.description || selectedPreviewEvent.description_ta)}
                 </p>
               </div>
 

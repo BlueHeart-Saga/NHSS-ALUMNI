@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface LiveNotificationItem {
   id: string;
@@ -19,6 +20,7 @@ export interface LiveNotificationItem {
 }
 
 export const AlumniNotificationsPage: React.FC = () => {
+  const { language } = useLanguage();
   const { user } = useOutletContext<AlumniContextType>();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<LiveNotificationItem[]>([]);
@@ -145,14 +147,20 @@ export const AlumniNotificationsPage: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">Live Notifications & Activity Stream</h2>
-          <p className="text-xs text-[#6B7280]">Real-time alerts for school announcements, event invitations, and document requisition updates</p>
+          <h2 className="text-xl font-bold text-[#111111]">
+            {language === 'ta' ? 'நேரலை அறிவிப்புகள்' : 'Live Notifications & Activity Stream'}
+          </h2>
+          <p className="text-xs text-[#6B7280]">
+            {language === 'ta'
+              ? 'பள்ளி அறிவிப்புகள், நிகழ்வு அழைப்புகள் மற்றும் ஆவண நிலவரங்கள்'
+              : 'Real-time alerts for school announcements, event invitations, and document requisition updates'}
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={fetchLiveNotifications}
             className="p-2 bg-[#FAFAFA] hover:bg-[#F3F4F6] text-[#111111] rounded-xl border border-[#E5E7EB] transition-all"
-            title="Refresh Live Notifications"
+            title={language === 'ta' ? 'புதுப்பிக்க' : 'Refresh Live Notifications'}
           >
             <RotateCcw className="w-4 h-4 text-amber-700" />
           </button>
@@ -160,7 +168,7 @@ export const AlumniNotificationsPage: React.FC = () => {
             onClick={handleMarkAllRead}
             className="px-4 py-2 bg-[#111111] text-white hover:bg-black text-xs font-bold rounded-xl transition-all shadow-sm"
           >
-            Mark All as Read
+            {language === 'ta' ? 'அனைத்தையும் படித்ததாகக் குறிக்க' : 'Mark All as Read'}
           </button>
         </div>
       </div>
@@ -168,11 +176,11 @@ export const AlumniNotificationsPage: React.FC = () => {
       {/* Filter Category Pills */}
       <div className="flex overflow-x-auto gap-2 border-b border-[#E5E7EB] pb-2 text-xs font-bold scrollbar-none">
         {[
-          { id: 'ALL', label: `All Alerts (${notifications.length})` },
-          { id: 'ANNOUNCEMENT', label: `Announcements (${notifications.filter(n => n.category === 'ANNOUNCEMENT').length})` },
-          { id: 'SCHOOL_EVENT', label: `School Events (${notifications.filter(n => n.category === 'SCHOOL_EVENT').length})` },
-          { id: 'REUNION', label: `Reunions (${notifications.filter(n => n.category === 'REUNION').length})` },
-          { id: 'DOCUMENT', label: `Document Requests (${notifications.filter(n => n.category === 'DOCUMENT').length})` }
+          { id: 'ALL', label: language === 'ta' ? `அனைத்து அறிவிப்புகள் (${notifications.length})` : `All Alerts (${notifications.length})` },
+          { id: 'ANNOUNCEMENT', label: language === 'ta' ? `பள்ளி அறிவிப்புகள் (${notifications.filter(n => n.category === 'ANNOUNCEMENT').length})` : `Announcements (${notifications.filter(n => n.category === 'ANNOUNCEMENT').length})` },
+          { id: 'SCHOOL_EVENT', label: language === 'ta' ? `பள்ளி விழாக்கள் (${notifications.filter(n => n.category === 'SCHOOL_EVENT').length})` : `School Events (${notifications.filter(n => n.category === 'SCHOOL_EVENT').length})` },
+          { id: 'REUNION', label: language === 'ta' ? `மறுசந்திப்புகள் (${notifications.filter(n => n.category === 'REUNION').length})` : `Reunions (${notifications.filter(n => n.category === 'REUNION').length})` },
+          { id: 'DOCUMENT', label: language === 'ta' ? `ஆவணங்கள் (${notifications.filter(n => n.category === 'DOCUMENT').length})` : `Document Requests (${notifications.filter(n => n.category === 'DOCUMENT').length})` }
         ].map(cat => (
           <button
             key={cat.id}

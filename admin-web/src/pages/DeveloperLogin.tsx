@@ -128,7 +128,7 @@
 //         )}
 
 //         <div className="pt-4 border-t border-[#E5E7EB] text-center text-[11px] text-[#6B7280]">
-//           JustGatherNow Multi-Tenant Architecture • Platform Developer Terminal
+//           NHSS Multi-Tenant Architecture • Platform Developer Terminal
 //         </div>
 //       </div>
 //     </div>

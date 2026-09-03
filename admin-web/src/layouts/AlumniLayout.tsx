@@ -124,7 +124,7 @@ export const AlumniLayout: React.FC = () => {
                 <h1 className="font-extrabold text-sm sm:text-base text-[#111111]">{t('app_title')}</h1>
                 <CheckCircle2 className="w-4 h-4 text-amber-500 fill-amber-100" />
               </div>
-              <span className="text-[11px] text-[#6B7280]">Class of {user?.passing_year || 'Alumni'}</span>
+              <span className="text-[11px] text-[#6B7280]">{t('alumni_class_of')} {user?.passing_year || 'Alumni'}</span>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@ export const AlumniLayout: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search directory, events, notices..."
+            placeholder={t('alumni_search_placeholder')}
             value={headerSearch}
             onChange={e => setHeaderSearch(e.target.value)}
             className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#F4C542] transition-all"
@@ -150,7 +150,7 @@ export const AlumniLayout: React.FC = () => {
             <button
               onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
               className="p-2 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#4B5563] hover:text-[#111111] hover:bg-[#F3F4F6] relative"
-              title="Notifications"
+              title={t('alumni_nav_notifications')}
             >
               <Bell className="w-4 h-4" />
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500"></span>
@@ -159,7 +159,7 @@ export const AlumniLayout: React.FC = () => {
             {showNotificationsDropdown && (
               <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-[#E5E7EB] shadow-xl p-4 z-50 text-xs space-y-3">
                 <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
-                  <h4 className="font-bold text-[#111111]">Notifications</h4>
+                  <h4 className="font-bold text-[#111111]">{t('alumni_nav_notifications')}</h4>
                   <button onClick={() => { setShowNotificationsDropdown(false); navigate('/alumni/notifications'); }} className="text-amber-800 font-bold text-[11px] hover:underline">
                     View All
                   </button>
@@ -188,12 +188,12 @@ export const AlumniLayout: React.FC = () => {
             />
             <div className="hidden sm:block text-left cursor-pointer" onClick={() => navigate('/alumni/profile')}>
               <p className="font-bold text-xs text-[#111111] line-clamp-1">{user?.full_name || 'Alumni'}</p>
-              <span className="text-[10px] text-[#854D0E] font-semibold bg-[#FFF7D6] px-1.5 py-0.2 rounded-full">Verified Alumnus</span>
+              <span className="text-[10px] text-[#854D0E] font-semibold bg-[#FFF7D6] px-1.5 py-0.2 rounded-full">{t('alumni_verified_badge')}</span>
             </div>
             <button
               onClick={handleLogout}
               className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-              title="Logout"
+              title={t('nav_logout')}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -224,72 +224,72 @@ export const AlumniLayout: React.FC = () => {
             
             {/* SECTION 1: MAIN */}
             <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">MAIN</p>}
+              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_main')}</p>}
               <div className="space-y-1">
-                <NavLink to="/alumni" end className={navItemClass} title="Dashboard">
+                <NavLink to="/alumni" end className={navItemClass} title={t('alumni_nav_dashboard')}>
                   <LayoutDashboard className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Dashboard</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_dashboard')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/profile" className={navItemClass} title="My Profile">
+                <NavLink to="/alumni/profile" className={navItemClass} title={t('alumni_nav_profile')}>
                   <User className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>My Profile</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_profile')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/batch" className={navItemClass} title="My Batches">
+                <NavLink to="/alumni/batch" className={navItemClass} title={t('alumni_nav_batches')}>
                   <Users className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>My Batches</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_batches')}</span>}
                 </NavLink>
               </div>
             </div>
 
             {/* SECTION 2: CONNECT */}
             <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">CONNECT</p>}
+              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_connect')}</p>}
               <div className="space-y-1">
-                <NavLink to="/alumni/directory" className={navItemClass} title="Alumni Directory">
+                <NavLink to="/alumni/directory" className={navItemClass} title={t('alumni_nav_directory')}>
                   <Compass className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Alumni Directory</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_directory')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/school-events" className={navItemClass} title="School Events">
+                <NavLink to="/alumni/school-events" className={navItemClass} title={t('alumni_nav_school_events')}>
                   <Sparkles className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>School Events</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_school_events')}</span>}
                 </NavLink>
               </div>
             </div>
 
             {/* SECTION 3: ACTIVITIES */}
             <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">ACTIVITIES</p>}
+              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_activities')}</p>}
               <div className="space-y-1">
-                <NavLink to="/alumni/events" className={navItemClass} title="Events">
+                <NavLink to="/alumni/events" className={navItemClass} title={t('alumni_nav_events')}>
                   <Calendar className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Events</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_events')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/announcements" className={navItemClass} title="Announcements">
+                <NavLink to="/alumni/announcements" className={navItemClass} title={t('alumni_nav_announcements')}>
                   <Bell className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Announcements</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_announcements')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/gallery" className={navItemClass} title="Gallery & Memories">
+                <NavLink to="/alumni/gallery" className={navItemClass} title={t('alumni_nav_gallery')}>
                   <Camera className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Gallery & Memories</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_gallery')}</span>}
                 </NavLink>
               </div>
             </div>
 
             {/* SECTION 4: MY ACCOUNT */}
             <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">MY ACCOUNT</p>}
+              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_account')}</p>}
               <div className="space-y-1">
-                <NavLink to="/alumni/documents" className={navItemClass} title="Certificates / Docs">
+                <NavLink to="/alumni/documents" className={navItemClass} title={t('alumni_nav_documents')}>
                   <Award className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Certificates / Docs</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_documents')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/notifications" className={navItemClass} title="Notifications">
+                <NavLink to="/alumni/notifications" className={navItemClass} title={t('alumni_nav_notifications')}>
                   <Bell className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Notifications</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_notifications')}</span>}
                 </NavLink>
-                <NavLink to="/alumni/settings" className={navItemClass} title="Settings">
+                <NavLink to="/alumni/settings" className={navItemClass} title={t('alumni_nav_settings')}>
                   <Settings className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span>Settings</span>}
+                  {!sidebarCollapsed && <span>{t('alumni_nav_settings')}</span>}
                 </NavLink>
               </div>
             </div>

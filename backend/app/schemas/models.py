@@ -375,8 +375,10 @@ class MapCoordinates(BaseModel):
 
 class CreateEventRequest(BaseModel):
     title: str = Field(..., example="2010 Batch Reunion")
+    title_ta: Optional[str] = None
     batch_id: Optional[str] = None # Null if school-wide
     description: str
+    description_ta: Optional[str] = None
     event_date: str = Field(..., example="2026-12-20")
     start_time: str = Field(..., example="10:00 AM")
     end_time: str = Field(..., example="05:00 PM")
@@ -387,13 +389,16 @@ class CreateEventRequest(BaseModel):
     guest_allowed: bool = True
     max_capacity: int = 300
     cover_image_url: Optional[str] = None
+    cover_image_url_ta: Optional[str] = None
     registration_url: Optional[str] = None
     publish_immediately: bool = True
 
 class UpdateEventRequest(BaseModel):
     title: Optional[str] = None
+    title_ta: Optional[str] = None
     batch_id: Optional[str] = None
     description: Optional[str] = None
+    description_ta: Optional[str] = None
     event_date: Optional[str] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
@@ -404,6 +409,7 @@ class UpdateEventRequest(BaseModel):
     guest_allowed: Optional[bool] = None
     max_capacity: Optional[int] = None
     cover_image_url: Optional[str] = None
+    cover_image_url_ta: Optional[str] = None
     registration_url: Optional[str] = None
     status: Optional[str] = None
 
@@ -413,7 +419,9 @@ class EventResponse(BaseModel):
     batch_id: Optional[str] = None
     batch_name: Optional[str] = None
     title: str
+    title_ta: Optional[str] = None
     description: str
+    description_ta: Optional[str] = None
     event_date: str
     start_time: str
     end_time: Optional[str] = None
@@ -424,6 +432,7 @@ class EventResponse(BaseModel):
     guest_allowed: bool = True
     max_capacity: int = 300
     cover_image_url: Optional[str] = None
+    cover_image_url_ta: Optional[str] = None
     registration_url: Optional[str] = None
     status: str # DRAFT, PUBLISHED, CANCELLED, COMPLETED
     attending_count: int = 0

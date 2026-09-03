@@ -7,8 +7,10 @@ import { getAssetUrl } from '../../../../utils/asset';
 interface EventItem {
   id: string;
   title: string;
+  title_ta?: string;
   batch_name: string;
   description: string;
+  description_ta?: string;
   event_date: string;
   start_time: string;
   end_time?: string;
@@ -17,6 +19,7 @@ interface EventItem {
   attending_count: number;
   max_capacity?: number;
   cover_image_url: string;
+  cover_image_url_ta?: string;
   registration_url?: string;
 }
 
@@ -45,6 +48,27 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
   const safeIndex = currentIndex < events.length ? currentIndex : 0;
   const currentEvent = events[safeIndex];
+
+  const getEventCoverImage = (ev: EventItem) => {
+    if (language === 'ta') {
+      return getAssetUrl(ev.cover_image_url_ta) || getAssetUrl(ev.cover_image_url) || getAssetUrl("/school-images/banner.png");
+    }
+    return getAssetUrl(ev.cover_image_url) || getAssetUrl(ev.cover_image_url_ta) || getAssetUrl("/school-images/banner.png");
+  };
+
+  const getEventTitle = (ev: EventItem) => {
+    if (language === 'ta') {
+      return ev.title_ta || ev.title;
+    }
+    return ev.title || ev.title_ta;
+  };
+
+  const getEventDescription = (ev: EventItem) => {
+    if (language === 'ta') {
+      return ev.description_ta || ev.description;
+    }
+    return ev.description || ev.description_ta;
+  };
 
   return (
     <section id="upcoming-events" className="py-12 sm:py-24 bg-white border-b border-[#E5E7EB]">
@@ -149,8 +173,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                       className="relative h-56 sm:h-72 w-full overflow-hidden bg-gray-100 cursor-pointer border-b-2 border-[#111111]"
                     >
                       <img
-                        src={getAssetUrl(currentEvent.cover_image_url) || getAssetUrl("/school-images/banner.png")}
-                        alt={currentEvent.title}
+                        src={getEventCoverImage(currentEvent)}
+                        alt={getEventTitle(currentEvent)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                       />
 
@@ -189,7 +213,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                           onClick={() => handleCardClick(currentEvent)}
                           className="text-xl sm:text-2xl font-extrabold text-[#111111] leading-tight cursor-pointer hover:text-[#854D0E] transition-colors"
                         >
-                          {currentEvent.title}
+                          {getEventTitle(currentEvent)}
                         </h3>
 
                         {/* Event Date & Venue Highlights Bar */}
@@ -209,7 +233,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
                       {/* ACTION & REGISTRATION LINK BUTTONS */}
                       <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                        <button
+                        {/* <button
                           type="button"
                           onClick={() => handleCardClick(currentEvent)}
                           className="w-full sm:w-auto px-6 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer active:scale-95 group/btn"
@@ -217,7 +241,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                           <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
                           <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட் பெற' : 'View Details & RSVP Ticket'}</span>
                           <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
-                        </button>
+                        </button> */}
 
                         {currentEvent.registration_url && (
                           <a
@@ -257,8 +281,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
             {/* TOP WIDE BANNER IMAGE WITH INSIDE TITLE & BATCH BADGE */}
             <div className="h-60 sm:h-72 w-full relative bg-gray-900 shrink-0 overflow-hidden">
               <img
-                src={getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl("/school-images/banner.png")}
-                alt={selectedPreviewEvent.title}
+                src={getEventCoverImage(selectedPreviewEvent)}
+                alt={getEventTitle(selectedPreviewEvent)}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
@@ -271,7 +295,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
               <div className="absolute bottom-5 left-6 right-6 z-10 text-white">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight drop-shadow-lg">
-                  {selectedPreviewEvent.title}
+                  {getEventTitle(selectedPreviewEvent)}
                 </h2>
               </div>
             </div>
@@ -290,7 +314,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                   {language === 'ta' ? 'நிகழ்ச்சி பற்றிய தகவல்' : 'About This Event'}
                 </h4>
                 <p className="text-sm text-gray-700 leading-relaxed p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                  {selectedPreviewEvent.description}
+                  {getEventDescription(selectedPreviewEvent)}
                 </p>
               </div>
 

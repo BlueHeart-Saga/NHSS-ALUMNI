@@ -192,7 +192,9 @@ export interface EventItem {
   batch_id?: string;
   batch_name?: string;
   title: string;
+  title_ta?: string;
   description: string;
+  description_ta?: string;
   event_date: string;
   start_time: string;
   end_time: string;
@@ -202,6 +204,7 @@ export interface EventItem {
   guest_allowed: boolean;
   max_capacity: number;
   cover_image_url?: string;
+  cover_image_url_ta?: string;
   registration_url?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
   attending_count: number;
@@ -216,6 +219,7 @@ export interface SchoolEventItem {
   id: string;
   school_id?: string;
   title: string;
+  title_ta?: string;
   category: 'ANNUAL_DAY' | 'SPORTS_DAY' | 'CULTURAL_FEST' | 'NATIONAL_DAY' | 'EXHIBITION' | 'CELEBRATION' | 'ACADEMIC_MEET' | 'GRADUATION_DAY' | 'OTHER';
   event_date: string;
   end_date?: string;
@@ -225,7 +229,9 @@ export interface SchoolEventItem {
   chief_guest?: string;
   target_audience?: string;
   description: string;
+  description_ta?: string;
   cover_image_url?: string;
+  cover_image_url_ta?: string;
   gallery_urls?: string[];
   status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
   created_at?: string;

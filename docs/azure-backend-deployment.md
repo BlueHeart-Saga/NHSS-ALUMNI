@@ -22,9 +22,9 @@ Navigate to **Azure Web App -> Settings -> Configuration**:
 
 ### A. General Settings -> Startup Command:
 ```bash
-gunicorn --bind=0.0.0.0 --workers=4 --worker-class=uvicorn.workers.UvicornWorker app.main:app
+bash startup.sh
 ```
-*(Alternative lightweight command: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`)*
+*(Or explicit Gunicorn command: `gunicorn --bind=0.0.0.0:${PORT:-8000} --workers=4 --worker-class uvicorn.workers.UvicornWorker app.main:app`)*
 
 ### B. Application Settings (Environment Variables):
 Add the following keys under **Configuration -> Application Settings**:

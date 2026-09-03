@@ -120,8 +120,9 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    # Database connected via MONGODB_URI
-    return {"status": "healthy", "environment": settings.APP_ENV}
+    db = get_db()
+    db_status = "connected" if db is not None else "connecting"
+    return {"status": "healthy", "database": db_status, "environment": settings.APP_ENV}
 
 @app.get("/ready")
 async def readiness_probe():

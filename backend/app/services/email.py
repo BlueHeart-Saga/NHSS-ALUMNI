@@ -82,7 +82,7 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") 
 
             <div class="footer">
                 <p>This email was sent automatically by <strong>{settings.EMAILS_FROM_NAME}</strong>.<br>If you did not request this code, please ignore this email.</p>
-                <p>© 2026 JustGatherNow Alumni Platform. All rights reserved.</p>
+                <p>© 2026 NHSS ALUMNI PLATFORM. All rights reserved.</p>
             </div>
         </div>
     </body>
@@ -142,7 +142,7 @@ def send_school_admin_invite_email(to_email: str, admin_name: str, school_name: 
 
             <div class="footer">
                 <p>This invitation was sent automatically by <strong>{settings.EMAILS_FROM_NAME}</strong> Platform Developers.</p>
-                <p>© 2026 JustGatherNow Alumni Platform. All rights reserved.</p>
+                <p>© 2026 NHSS Alumni Platform. All rights reserved.</p>
             </div>
         </div>
     </body>
@@ -198,7 +198,7 @@ def send_contact_thank_you_email(to_email: str, sender_name: str, message_text: 
 
             <div class="footer">
                 <p>This automated reply was sent by <strong>{settings.EMAILS_FROM_NAME}</strong>.</p>
-                <p>© 2026 JustGatherNow Alumni Platform. All rights reserved.</p>
+                <p>© 2026 NHSS Alumni Platform. All rights reserved.</p>
             </div>
         </div>
     </body>

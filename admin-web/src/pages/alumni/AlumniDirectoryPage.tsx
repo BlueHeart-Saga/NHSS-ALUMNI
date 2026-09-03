@@ -5,8 +5,10 @@ import {
 import Swal from 'sweetalert2';
 import { api } from '../../services/api';
 import { AlumniProfile } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AlumniDirectoryPage: React.FC = () => {
+  const { language } = useLanguage();
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -44,7 +46,7 @@ export const AlumniDirectoryPage: React.FC = () => {
     return matchSearch && matchBatch && matchCity && matchProf;
   });
 
-  const uniqueBatches = Array.from(new Set(alumniList.map(a => a.passing_year).filter(Boolean))).sort((a, b) => b - a);
+  const uniqueBatches = Array.from(new Set(alumniList.map(a => a.passing_year).filter(Boolean))).sort((a, b) => (b as number) - (a as number));
   const uniqueCities = Array.from(new Set(alumniList.map(a => a.current_city).filter(Boolean))).sort();
   const uniqueProfessions = Array.from(new Set(alumniList.map(a => a.profession).filter(Boolean))).sort();
 
@@ -61,14 +63,20 @@ export const AlumniDirectoryPage: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[#111111]">Global Alumni Directory</h2>
-            <p className="text-xs text-[#6B7280]">Connect with verified alumni across batches, companies, and cities worldwide</p>
+            <h2 className="text-xl font-bold text-[#111111]">
+              {language === 'ta' ? 'பழைய மாணவர்கள் முகவரி' : 'Global Alumni Directory'}
+            </h2>
+            <p className="text-xs text-[#6B7280]">
+              {language === 'ta'
+                ? 'அனைத்து வகுப்பு ஆண்டுகள் மற்றும் நிறுவனங்களில் பணிபுரியும் பழைய மாணவர்களைத் தேடி இணையுங்கள்'
+                : 'Connect with verified alumni across batches, companies, and cities worldwide'}
+            </p>
           </div>
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, company, profession..."
+              placeholder={language === 'ta' ? 'பெயர், நிறுவனம், தொழில் தேடுக...' : 'Search by name, company, profession...'}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-9 pr-8 py-2 text-xs focus:outline-none focus:border-[#F4C542]"
@@ -86,7 +94,7 @@ export const AlumniDirectoryPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center space-x-1.5 text-gray-500 font-semibold">
               <Filter className="w-3.5 h-3.5 text-amber-700" />
-              <span>Filter By:</span>
+              <span>{language === 'ta' ? 'வடிகட்டுக:' : 'Filter By:'}</span>
             </div>
 
             <select
@@ -94,9 +102,9 @@ export const AlumniDirectoryPage: React.FC = () => {
               onChange={e => setBatchFilter(e.target.value)}
               className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
-              <option value="ALL">All Batches ({uniqueBatches.length})</option>
+              <option value="ALL">{language === 'ta' ? `அனைத்து வகுப்புகள் (${uniqueBatches.length})` : `All Batches (${uniqueBatches.length})`}</option>
               {uniqueBatches.map(b => (
-                <option key={b} value={b?.toString()}>Class of {b}</option>
+                <option key={b} value={b?.toString()}>{language === 'ta' ? `வகுப்பு ${b}` : `Class of ${b}`}</option>
               ))}
             </select>
 
@@ -105,7 +113,7 @@ export const AlumniDirectoryPage: React.FC = () => {
               onChange={e => setCityFilter(e.target.value)}
               className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
-              <option value="ALL">All Cities ({uniqueCities.length})</option>
+              <option value="ALL">{language === 'ta' ? `அனைத்து நகரங்கள் (${uniqueCities.length})` : `All Cities (${uniqueCities.length})`}</option>
               {uniqueCities.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -116,7 +124,7 @@ export const AlumniDirectoryPage: React.FC = () => {
               onChange={e => setProfessionFilter(e.target.value)}
               className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
-              <option value="ALL">All Professions ({uniqueProfessions.length})</option>
+              <option value="ALL">{language === 'ta' ? `அனைத்து தொழில்கள் (${uniqueProfessions.length})` : `All Professions (${uniqueProfessions.length})`}</option>
               {uniqueProfessions.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}

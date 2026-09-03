@@ -4,8 +4,10 @@ import { BookOpen, Users, UserCheck, MessageSquare, ChevronRight, User, X, Mail,
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
 import { AlumniProfile, Announcement } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AlumniBatchesPage: React.FC = () => {
+  const { language } = useLanguage();
   const { user } = useOutletContext<AlumniContextType>();
   const [batchSubTab, setBatchSubTab] = useState<'info' | 'members' | 'classmates' | 'updates'>('info');
   const [batchMembers, setBatchMembers] = useState<AlumniProfile[]>([]);
@@ -36,13 +38,15 @@ export const AlumniBatchesPage: React.FC = () => {
       <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-stone-900 text-white p-6 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
         <div className="relative z-10">
           <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400 bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30">
-            Batch of {user?.passing_year || 'Alumni'}
+            {language === 'ta' ? `வகுப்பு ${user?.passing_year || ''}` : `Batch of ${user?.passing_year || 'Alumni'}`}
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold mt-3">
-            Class of {user?.passing_year || ''} Hub
+            {language === 'ta' ? `${user?.passing_year || ''} வகுப்பு தோழர்கள் தளம்` : `Class of ${user?.passing_year || ''} Hub`}
           </h2>
           <p className="text-xs sm:text-sm text-amber-200 mt-2 max-w-xl">
-            Stay connected with your classmates, view batch committee leaders, and check real-time batch messages.
+            {language === 'ta'
+              ? 'உங்கள் வகுப்புத் தோழர்களுடன் தொடர்பில் இருங்கள், வகுப்புப் பொறுப்பாளர்களைத் தெரிந்துகொள்ளுங்கள்.'
+              : 'Stay connected with your classmates, view batch committee leaders, and check real-time batch messages.'}
           </p>
         </div>
       </div>
@@ -50,10 +54,10 @@ export const AlumniBatchesPage: React.FC = () => {
       {/* Sub Tabs */}
       <div className="flex overflow-x-auto gap-2 border-b border-[#E5E7EB] pb-2 text-xs font-bold scrollbar-none">
         {[
-          { id: 'info', label: 'Batch Information', icon: BookOpen },
-          { id: 'members', label: `Batch Members (${batchMembers.length})`, icon: Users },
-          { id: 'classmates', label: 'Classmates', icon: UserCheck },
-          { id: 'updates', label: `Batch Notice Board (${batchNotices.length})`, icon: MessageSquare }
+          { id: 'info', label: language === 'ta' ? 'வகுப்பு விவரங்கள்' : 'Batch Information', icon: BookOpen },
+          { id: 'members', label: language === 'ta' ? `உறுப்பினர்கள் (${batchMembers.length})` : `Batch Members (${batchMembers.length})`, icon: Users },
+          { id: 'classmates', label: language === 'ta' ? 'வகுப்புத் தோழர்கள்' : 'Classmates', icon: UserCheck },
+          { id: 'updates', label: language === 'ta' ? `அறிவிப்புப் பலகை (${batchNotices.length})` : `Batch Notice Board (${batchNotices.length})`, icon: MessageSquare }
         ].map(tab => (
           <button
             key={tab.id}
@@ -74,7 +78,9 @@ export const AlumniBatchesPage: React.FC = () => {
       {batchSubTab === 'info' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm md:col-span-2 space-y-4">
-            <h3 className="font-bold text-base text-[#111111]">Batch Overview & Committee</h3>
+            <h3 className="font-bold text-base text-[#111111]">
+              {language === 'ta' ? 'வகுப்பு கண்ணோட்டம் & குழுத் தலைவர்கள்' : 'Batch Overview & Committee'}
+            </h3>
             <p className="text-xs text-[#4B5563] leading-relaxed">
               The batch of {user?.passing_year} consists of {batchMembers.length} verified alumni across {uniqueSections.length || 1} section(s). The batch committee coordinates class reunions, student scholarship drives, and regional chapter meetups.
             </p>
