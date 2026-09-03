@@ -75,43 +75,14 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
 
   const yearOptions = batches.length > 0
     ? batches.map(b => b.passing_year).sort((a, b) => b - a)
-    : Array.from({ length: 30 }, (_, i) => 2025 - i);
+    : [];
 
-  // Dynamic Year-Specific Alumni Member Generator (Unique per Batch Year)
+  // Show only real alumni profiles returned from backend API
   const getBatchMembersList = (batch: BatchItem): SampleMember[] => {
-    const existing = batch.sample_members || [];
-    if (existing.length >= 5) return existing.slice(0, 5);
-
-    const yr = batch.passing_year;
-    // Year-specific pool of names & professions
-    const pool = [
-      { name: language === 'ta' ? `கே. ரமேஷ்` : 'K. Ramesh', prof: language === 'ta' ? 'மென்பொருள் பொறியாளர்' : 'Software Architect', city: 'Chennai' },
-      { name: language === 'ta' ? `எஸ். சுந்தரி` : 'S. Sundari', prof: language === 'ta' ? 'மருத்துவர்' : 'Doctor & Surgeon', city: 'Kovilpatti' },
-      { name: language === 'ta' ? `எம். சண்முகம்` : 'M. Shanmugam', prof: language === 'ta' ? 'சிவில் பொறியாளர்' : 'Civil Engineer', city: 'Madurai' },
-      { name: language === 'ta' ? `பி. ரேவதி` : 'P. Revathi', prof: language === 'ta' ? 'ஆசிரியை' : 'High School Teacher', city: 'Ettayapuram' },
-      { name: language === 'ta' ? `டி. கார்த்திக்` : 'T. Karthik', prof: language === 'ta' ? 'வழக்கறிஞர்' : 'Advocate', city: 'Coimbatore' },
-      { name: language === 'ta' ? `வி. பாலாஜி` : 'V. Balaji', prof: language === 'ta' ? 'தொழிலதிபர்' : 'Entrepreneur', city: 'Sattur' },
-      { name: language === 'ta' ? `ஏ. கவிதா` : 'A. Kavitha', prof: language === 'ta' ? 'பேராசிரியர்' : 'Professor', city: 'Sankarankovil' }
-    ];
-
-    const merged = [...existing];
-    // Seed index based on passing_year to vary fallback names per year
-    const startIndex = (yr * 3) % pool.length;
-    for (let i = 0; i < pool.length; i++) {
-      if (merged.length >= 5) break;
-      const item = pool[(startIndex + i) % pool.length];
-      if (!merged.some(m => m.full_name === item.name)) {
-        merged.push({
-          id: `gen-${yr}-${i}`,
-          full_name: item.name,
-          profession: item.prof,
-          current_city: item.city,
-          passing_year: yr
-        });
-      }
-    }
-    return merged.slice(0, 5);
+    return batch.sample_members || [];
   };
+
+  const currentMembersList = activeResult ? getBatchMembersList(activeResult) : [];
 
   return (
     <section id="find-your-batch" className="py-20 sm:py-24 bg-white border-b border-[#E5E7EB]">
@@ -154,21 +125,6 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
           </div>
         </form>
 
-        {/* UNSELECTED EMPTY STATE PROMPT */}
-        {/* {!activeResult && (
-          <div className="py-10 sm:py-12 px-5 sm:px-6 border-2 border-dashed border-gray-200 rounded-3xl max-w-xl mx-auto text-center space-y-3 bg-gray-50/50">
-            <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto" />
-            <h3 className="text-base sm:text-lg font-bold text-gray-700">
-              {language === 'ta' ? 'வகுப்பு ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select a Graduation Year Above'}
-            </h3>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              {language === 'ta'
-                ? 'வகுப்பு உறுப்பினர்களின் விவரங்களையும் தகவல்களையும் காண மேலே உள்ள பட்டியலில் உங்கள் ஆண்டைத் தேர்ந்தெடுக்கவும்.'
-                : 'Choose a batch year from the dropdown above to explore batch members and statistics.'}
-            </p>
-          </div>
-        )} */}
-
         {/* OPEN RESULTS DISPLAY */}
         {activeResult && (
           <div className="space-y-8 sm:space-y-10 animate-fadeIn pt-4">
@@ -180,45 +136,61 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
             </div>
 
             {/* CIRCULAR DP PROFILE IMAGES */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-8 justify-items-center max-w-4xl mx-auto pt-2">
-              {getBatchMembersList(activeResult).map((member, idx) => {
-                const photoSrc = getAssetUrl(member.profile_photo_url) ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=F3F4F6&color=111111`;
+            {currentMembersList.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-8 justify-items-center max-w-4xl mx-auto pt-2">
+                {currentMembersList.map((member, idx) => {
+                  const photoSrc = getAssetUrl(member.profile_photo_url) ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=F3F4F6&color=111111`;
 
-                return (
-                  <div
-                    key={member.id || idx}
-                    onClick={() => setPreviewMember(member)}
-                    className="flex flex-col items-center space-y-2 cursor-pointer group transform hover:-translate-y-1.5 transition-all"
-                  >
-                    {/* Big Circular DP Image with Clean Neutral Border */}
-                    <div className="relative">
-                      <img
-                        src={photoSrc}
-                        alt={member.full_name}
-                        className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-gray-200 p-0.5 bg-white object-cover shadow-md group-hover:border-[#111111] group-hover:scale-105 transition-all duration-300"
-                      />
-                    </div>
+                  return (
+                    <div
+                      key={member.id || idx}
+                      onClick={() => setPreviewMember(member)}
+                      className="flex flex-col items-center space-y-2 cursor-pointer group transform hover:-translate-y-1.5 transition-all"
+                    >
+                      {/* Big Circular DP Image with Clean Neutral Border */}
+                      <div className="relative">
+                        <img
+                          src={photoSrc}
+                          alt={member.full_name}
+                          className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-gray-200 p-0.5 bg-white object-cover shadow-md group-hover:border-[#111111] group-hover:scale-105 transition-all duration-300"
+                        />
+                      </div>
 
-                    {/* Name & Profession */}
-                    <div className="text-center">
-                      <h4 className="font-bold text-xs sm:text-base text-[#111111] group-hover:text-black transition-colors leading-tight line-clamp-1">
-                        {member.full_name}
-                      </h4>
-                      <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 line-clamp-1">
-                        {member.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}
-                      </p>
+                      {/* Name & Profession */}
+                      <div className="text-center">
+                        <h4 className="font-bold text-xs sm:text-base text-[#111111] group-hover:text-black transition-colors leading-tight line-clamp-1">
+                          {member.full_name}
+                        </h4>
+                        <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 line-clamp-1">
+                          {member.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 px-6 bg-gray-50 border border-gray-200 rounded-3xl max-w-lg mx-auto text-center space-y-2">
+                <Users className="w-10 h-10 text-gray-400 mx-auto" />
+                <h4 className="font-bold text-sm text-gray-800">
+                  {language === 'ta'
+                    ? `${activeResult.passing_year} ஆம் ஆண்டு வகுப்பில் இன்னும் பதிவு செய்யப்பட்ட உறுப்பினர்கள் இல்லை`
+                    : `No verified alumni profiles found for Class of ${activeResult.passing_year} yet`}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  {language === 'ta'
+                    ? 'நீங்களும் இந்த வகுப்பில் படித்திருந்தால் இன்றே பதிவு செய்து உங்களை இணைத்துக் கொள்ளுங்கள்!'
+                    : 'Are you from this batch? Register today to connect with your classmates!'}
+                </p>
+              </div>
+            )}
 
             {/* OPEN STATS (MEMBERS COUNT, CITIES COUNT, EVENTS COUNT) */}
             <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto pt-8 border-t border-gray-200 text-center">
               <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
-                  {activeResult.total_members || 12}+
+                  {activeResult.total_members || 0}
                 </div>
                 <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'உறுப்பினர்கள்' : 'Members'}
@@ -227,7 +199,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
 
               <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
-                  {activeResult.cities_count || 4}
+                  {activeResult.cities_count || 0}
                 </div>
                 <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'நகரங்கள்' : 'Cities'}
@@ -236,7 +208,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
 
               <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
-                  {activeResult.upcoming_events_count || 1}
+                  {activeResult.upcoming_events_count || 0}
                 </div>
                 <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'நிகழ்வுகள்' : 'Events'}
@@ -296,7 +268,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                   <Briefcase className="w-4 h-4 text-gray-700" />
                   <span>{language === 'ta' ? 'தொழில் / பணி' : 'Profession'}:</span>
                 </span>
-                <span className="font-bold text-[#111111]">{previewMember.profession || 'Alumnus'}</span>
+                <span className="font-bold text-[#111111]">{previewMember.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}</span>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-200">
@@ -304,7 +276,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                   <MapPin className="w-4 h-4 text-gray-700" />
                   <span>{language === 'ta' ? 'வாழும் இடம்' : 'Location'}:</span>
                 </span>
-                <span className="font-bold text-[#111111]">{previewMember.current_city || 'Kovilpatti'}</span>
+                <span className="font-bold text-[#111111]">{previewMember.current_city || (language === 'ta' ? 'குறிப்பிடப்படவில்லை' : 'Not Specified')}</span>
               </div>
             </div>
 
@@ -327,4 +299,5 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
       )}
     </section>
   );
+
 };
