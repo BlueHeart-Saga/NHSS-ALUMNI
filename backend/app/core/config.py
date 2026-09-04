@@ -13,10 +13,9 @@ BACKEND_DIR = os.path.dirname(APP_DIR)
 ROOT_DIR = os.path.dirname(BACKEND_DIR)
 
 env_files = [
-    os.path.join(BACKEND_DIR, ".env"),
     os.path.join(ROOT_DIR, ".env"),
     os.path.join(ROOT_DIR, ".env.development"),
-    os.path.join(ROOT_DIR, ".env.production"),
+    os.path.join(BACKEND_DIR, ".env"),
 ]
 
 existing_env_files = [f for f in env_files if os.path.isfile(f)]
