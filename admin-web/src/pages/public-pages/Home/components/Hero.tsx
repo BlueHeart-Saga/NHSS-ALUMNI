@@ -10,6 +10,7 @@ interface HeroProps {
   schoolCode?: string;
   coverUrl?: string;
   onJoinClick: () => void;
+  onLoginClick?: () => void;
   onExploreClick?: () => void;
 }
 
@@ -17,7 +18,8 @@ export const Hero: React.FC<HeroProps> = ({
   schoolName,
   schoolCode,
   coverUrl,
-  onJoinClick
+  onJoinClick,
+  onLoginClick
 }) => {
   const { t, language } = useLanguage();
   const campusImg = getAssetUrl('/school-images/school-door.png');
@@ -78,15 +80,24 @@ export const Hero: React.FC<HeroProps> = ({
               {t('hero_subtitle')}
             </p>
 
-            {/* Primary Action Button */}
-            <div className="pt-2 sm:pt-3">
+            {/* Primary Action Buttons */}
+            <div className="pt-2 sm:pt-3 flex flex-col sm:flex-row items-center gap-3">
               <button
                 onClick={onJoinClick}
-                className="w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-sm sm:text-lg rounded-2xl sm:rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center justify-center space-x-3 border border-[#E0B238] cursor-pointer"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-sm sm:text-base rounded-2xl sm:rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center justify-center space-x-2 border border-[#E0B238] cursor-pointer"
               >
                 <span>{t('join_network_btn')}</span>
                 <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
+
+              {onLoginClick && (
+                <button
+                  onClick={onLoginClick}
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white hover:bg-gray-50 text-[#111111] font-semibold text-sm sm:text-base rounded-2xl sm:rounded-full shadow-md hover:shadow-lg transition-all border-2 border-gray-300 hover:border-[#111111] cursor-pointer inline-flex items-center justify-center"
+                >
+                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Alumni Login'}</span>
+                </button>
+              )}
             </div>
           </div>
 

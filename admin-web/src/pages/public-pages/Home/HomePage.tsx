@@ -150,7 +150,8 @@ export const HomePage: React.FC = () => {
         schoolName={stats.school_name}
         schoolCode={stats.school_code}
         coverUrl={stats.cover_url}
-        onJoinClick={() => setIsRegisterModalOpen(true)}
+        onJoinClick={() => navigate('/register')}
+        onLoginClick={() => navigate('/login')}
         onExploreClick={scrollToExplore}
       />
 
