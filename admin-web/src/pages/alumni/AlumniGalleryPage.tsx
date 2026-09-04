@@ -53,9 +53,9 @@ export const AlumniGalleryPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">
+          <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
             {language === 'ta' ? 'புகைப்பட கேலரி & நினைவுகள்' : 'Photo Gallery & Memories'}
           </h2>
           <p className="text-xs text-[#6B7280]">
@@ -66,18 +66,18 @@ export const AlumniGalleryPage: React.FC = () => {
         </div>
         <button
           onClick={() => setShowUploadMemoryModal(true)}
-          className="px-5 py-2.5 bg-[#111111] text-white hover:bg-gray-800 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-2"
+          className="w-full sm:w-auto px-5 py-2.5 bg-[#111111] text-white hover:bg-gray-800 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center space-x-2 shrink-0"
         >
           <Upload className="w-4 h-4" />
           <span>{language === 'ta' ? 'புகைப்படம் பதிவேற்று' : 'Submit Memory Photo'}</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {memories.length > 0 ? (
           memories.map(mem => (
-            <div key={mem.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-              <img src={mem.image_url} alt={mem.title} className="w-full h-48 object-cover" />
+            <div key={mem.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col justify-between">
+              <img src={mem.image_url} alt={mem.title} className="w-full h-44 sm:h-48 object-cover" />
               <div className="p-4 space-y-1">
                 <h4 className="font-bold text-xs text-[#111111]">{mem.title}</h4>
                 <p className="text-[11px] text-gray-500">{language === 'ta' ? `பதிவேற்றியவர் ${mem.uploader_name}` : `Uploaded by ${mem.uploader_name}`}</p>
@@ -85,7 +85,7 @@ export const AlumniGalleryPage: React.FC = () => {
             </div>
           ))
         ) : (
-          <div className="col-span-1 sm:col-span-2 md:col-span-3 p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center shadow-sm">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-8 sm:p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center shadow-sm">
             <p className="text-xs text-[#6B7280]">{language === 'ta' ? 'புகைப்படங்கள் எதுவும் பதிவேற்றப்படவில்லை.' : 'No photo memories uploaded to gallery yet.'}</p>
           </div>
         )}
@@ -94,7 +94,7 @@ export const AlumniGalleryPage: React.FC = () => {
       {/* Submit Memory Modal */}
       {showUploadMemoryModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleUploadMemorySubmit} className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-xs">
+          <form onSubmit={handleUploadMemorySubmit} className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-xs max-h-[90vh] overflow-y-auto">
             <button type="button" onClick={() => setShowUploadMemoryModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-[#111111]">
               <X className="w-5 h-5" />
             </button>

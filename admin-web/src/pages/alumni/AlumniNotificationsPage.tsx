@@ -145,9 +145,9 @@ export const AlumniNotificationsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">
+          <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
             {language === 'ta' ? 'நேரலை அறிவிப்புகள்' : 'Live Notifications & Activity Stream'}
           </h2>
           <p className="text-xs text-[#6B7280]">
@@ -156,17 +156,17 @@ export const AlumniNotificationsPage: React.FC = () => {
               : 'Real-time alerts for school announcements, event invitations, and document requisition updates'}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={fetchLiveNotifications}
-            className="p-2 bg-[#FAFAFA] hover:bg-[#F3F4F6] text-[#111111] rounded-xl border border-[#E5E7EB] transition-all"
+            className="p-2.5 bg-[#FAFAFA] hover:bg-[#F3F4F6] text-[#111111] rounded-xl border border-[#E5E7EB] transition-all shrink-0"
             title={language === 'ta' ? 'புதுப்பிக்க' : 'Refresh Live Notifications'}
           >
             <RotateCcw className="w-4 h-4 text-amber-700" />
           </button>
           <button
             onClick={handleMarkAllRead}
-            className="px-4 py-2 bg-[#111111] text-white hover:bg-black text-xs font-bold rounded-xl transition-all shadow-sm"
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#111111] text-white hover:bg-black text-xs font-bold rounded-xl transition-all shadow-sm text-center"
           >
             {language === 'ta' ? 'அனைத்தையும் படித்ததாகக் குறிக்க' : 'Mark All as Read'}
           </button>
@@ -197,9 +197,9 @@ export const AlumniNotificationsPage: React.FC = () => {
       </div>
 
       {/* Notification Stream Card */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-3">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-3">
         {loading ? (
-          <div className="p-12 text-center space-y-3">
+          <div className="p-8 sm:p-12 text-center space-y-3">
             <Loader2 className="w-8 h-8 text-[#854D0E] animate-spin mx-auto" />
             <p className="text-xs text-gray-500 font-medium">Synthesizing real-time alumni notifications...</p>
           </div>
@@ -215,7 +215,7 @@ export const AlumniNotificationsPage: React.FC = () => {
                 {getCategoryIcon(n.category)}
               </div>
               <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-2">
                   <h4 className="font-bold text-sm text-[#111111] truncate">{n.title}</h4>
                   <div className="flex items-center space-x-2 shrink-0">
                     {n.statusTag && (
@@ -240,7 +240,7 @@ export const AlumniNotificationsPage: React.FC = () => {
             </div>
           ))
         ) : (
-          <div className="p-12 border border-dashed border-gray-200 rounded-2xl text-center space-y-3">
+          <div className="p-8 sm:p-12 border border-dashed border-gray-200 rounded-2xl text-center space-y-3">
             <Bell className="w-8 h-8 text-gray-400 mx-auto" />
             <h4 className="font-bold text-xs text-[#111111]">No Notifications Found</h4>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">

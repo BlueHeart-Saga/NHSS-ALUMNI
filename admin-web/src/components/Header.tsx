@@ -10,15 +10,15 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ user, title }) => {
   return (
-    <header className="bg-white border-b border-[#E5E7EB] px-6 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-20">
-      <div>
-        <h2 className="text-lg sm:text-xl font-bold text-[#111111]">{title}</h2>
-        <p className="text-xs text-[#6B7280]">School Alumni Management System</p>
+    <header className="bg-white border-b border-[#E5E7EB] px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-20">
+      <div className="min-w-0 flex-1 pr-3">
+        <h2 className="text-base sm:text-xl font-bold text-[#111111] truncate">{title}</h2>
+        <p className="text-[11px] sm:text-xs text-[#6B7280] truncate">School Alumni Management System</p>
       </div>
 
-      <div className="flex items-center space-x-3 sm:space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
         {/* Search Input */}
-        <div className="relative hidden md:block w-56 lg:w-64">
+        <div className="relative hidden md:block w-48 lg:w-64">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
           <input
             type="text"
@@ -32,20 +32,20 @@ export const Header: React.FC<HeaderProps> = ({ user, title }) => {
 
         {/* Status Chip */}
         <div className="hidden sm:flex items-center space-x-1.5 bg-[#FFF7D6] border border-[#F4C542]/50 text-[#854D0E] px-3 py-1.5 rounded-full text-xs font-semibold">
-          <ShieldCheck className="w-3.5 h-3.5" />
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
           <span>School Admin</span>
         </div>
 
         {/* User Avatar */}
-        <div className="flex items-center space-x-3 pl-2 border-l border-[#E5E7EB]">
+        <div className="flex items-center space-x-2 sm:space-x-3 pl-2 border-l border-[#E5E7EB]">
           <img
             src={user?.profile_photo_url || `https://ui-avatars.com/api/?name=${user?.full_name || 'Admin'}&background=111111&color=ffffff`}
             alt="Avatar"
-            className="w-9 h-9 rounded-full object-cover border border-[#E5E7EB]"
+            className="w-8 sm:w-9 h-8 sm:h-9 rounded-full object-cover border border-[#E5E7EB] shrink-0"
           />
           <div className="hidden lg:block text-left">
-            <div className="text-xs font-bold text-[#111111]">{user?.full_name || "School Admin"}</div>
-            <div className="text-[11px] text-[#6B7280]">{user?.email || user?.mobile || "Administrator"}</div>
+            <div className="text-xs font-bold text-[#111111] truncate">{user?.full_name || "School Admin"}</div>
+            <div className="text-[11px] text-[#6B7280] truncate">{user?.email || user?.mobile || "Administrator"}</div>
           </div>
         </div>
       </div>

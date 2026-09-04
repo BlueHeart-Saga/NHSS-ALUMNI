@@ -110,7 +110,10 @@ async def update_school_profile(
 
 # --- School Staff / Person Management ---
 @router.get("/staff", response_model=List[SchoolStaffResponse])
-async def list_school_staff(current_user: dict = Depends(get_current_user)):
+async def list_school_staff(
+    staff_type: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
     db = get_db()
     school_id = current_user.get("school_id")
 
@@ -118,24 +121,39 @@ async def list_school_staff(current_user: dict = Depends(get_current_user)):
     if school_id:
         query["school_id"] = school_id
 
+    if staff_type:
+        query["staff_type"] = staff_type.upper()
+
     staff_cursor = db.school_staff.find(query).sort("created_at", -1)
-    staff_list = await staff_cursor.to_list(length=200)
+    staff_list = await staff_cursor.to_list(length=300)
 
     res = []
     for s in staff_list:
+        sType = s.get("staff_type") or ("PAST" if s.get("is_former") else "CURRENT")
         res.append(SchoolStaffResponse(
             id=str(s["_id"]),
             school_id=s.get("school_id", school_id or ""),
             full_name=s["full_name"],
-            email=s["email"],
-            mobile=s["mobile"],
+            full_name_ta=s.get("full_name_ta"),
+            email=s.get("email"),
+            mobile=s.get("mobile"),
             school_position=s.get("school_position", "Teacher"),
+            school_position_ta=s.get("school_position_ta"),
             department=s.get("department"),
+            department_ta=s.get("department_ta"),
             designation=s.get("designation"),
+            designation_ta=s.get("designation_ta"),
             staff_id=s.get("staff_id"),
             profile_photo_url=s.get("profile_photo_url"),
+            staff_type=sType,
+            service_start_year=s.get("service_start_year"),
+            service_end_year=s.get("service_end_year"),
+            achievements=s.get("achievements"),
+            achievements_ta=s.get("achievements_ta"),
+            is_former=bool(s.get("is_former") or sType == "PAST"),
             status=s.get("status", "ACTIVE"),
             notes=s.get("notes"),
+            notes_ta=s.get("notes_ta"),
             created_at=s.get("created_at", datetime.now(timezone.utc))
         ))
     return res
@@ -149,18 +167,31 @@ async def create_school_staff(
     school_id = current_user.get("school_id")
     now = datetime.now(timezone.utc)
 
+    s_type = (request.staff_type or ("PAST" if request.is_former else "CURRENT")).upper()
+
     doc = {
         "school_id": school_id,
         "full_name": request.full_name,
+        "full_name_ta": request.full_name_ta,
         "email": request.email,
         "mobile": request.mobile,
         "school_position": request.school_position,
+        "school_position_ta": request.school_position_ta,
         "department": request.department,
+        "department_ta": request.department_ta,
         "designation": request.designation,
+        "designation_ta": request.designation_ta,
         "staff_id": request.staff_id,
         "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=FFF7D6&color=854D0E",
+        "staff_type": s_type,
+        "service_start_year": request.service_start_year,
+        "service_end_year": request.service_end_year,
+        "achievements": request.achievements,
+        "achievements_ta": request.achievements_ta,
+        "is_former": bool(request.is_former or s_type == "PAST"),
         "status": request.status or "ACTIVE",
         "notes": request.notes,
+        "notes_ta": request.notes_ta,
         "created_at": now
     }
 
@@ -171,15 +202,26 @@ async def create_school_staff(
         id=s_id,
         school_id=school_id or "",
         full_name=doc["full_name"],
+        full_name_ta=doc.get("full_name_ta"),
         email=doc["email"],
         mobile=doc["mobile"],
         school_position=doc["school_position"],
+        school_position_ta=doc.get("school_position_ta"),
         department=doc["department"],
+        department_ta=doc.get("department_ta"),
         designation=doc["designation"],
+        designation_ta=doc.get("designation_ta"),
         staff_id=doc["staff_id"],
         profile_photo_url=doc["profile_photo_url"],
+        staff_type=doc["staff_type"],
+        service_start_year=doc["service_start_year"],
+        service_end_year=doc["service_end_year"],
+        achievements=doc["achievements"],
+        achievements_ta=doc.get("achievements_ta"),
+        is_former=doc["is_former"],
         status=doc["status"],
         notes=doc["notes"],
+        notes_ta=doc.get("notes_ta"),
         created_at=now
     )
 
@@ -197,23 +239,43 @@ async def update_school_staff(
         raise HTTPException(status_code=404, detail="Staff member not found")
 
     update_fields = {k: v for k, v in request.model_dump().items() if v is not None}
+    if "staff_type" in update_fields and update_fields["staff_type"]:
+        update_fields["staff_type"] = update_fields["staff_type"].upper()
+        if update_fields["staff_type"] == "PAST":
+            update_fields["is_former"] = True
+        elif update_fields["staff_type"] == "CURRENT":
+            update_fields["is_former"] = False
+
     if update_fields:
         await db.school_staff.update_one({"_id": ObjectId(staff_id)}, {"$set": update_fields})
 
     updated = await db.school_staff.find_one({"_id": ObjectId(staff_id)})
+    sType = updated.get("staff_type") or ("PAST" if updated.get("is_former") else "CURRENT")
+
     return SchoolStaffResponse(
         id=str(updated["_id"]),
         school_id=updated.get("school_id", school_id or ""),
         full_name=updated["full_name"],
-        email=updated["email"],
-        mobile=updated["mobile"],
+        full_name_ta=updated.get("full_name_ta"),
+        email=updated.get("email"),
+        mobile=updated.get("mobile"),
         school_position=updated.get("school_position", "Teacher"),
+        school_position_ta=updated.get("school_position_ta"),
         department=updated.get("department"),
+        department_ta=updated.get("department_ta"),
         designation=updated.get("designation"),
+        designation_ta=updated.get("designation_ta"),
         staff_id=updated.get("staff_id"),
         profile_photo_url=updated.get("profile_photo_url"),
+        staff_type=sType,
+        service_start_year=updated.get("service_start_year"),
+        service_end_year=updated.get("service_end_year"),
+        achievements=updated.get("achievements"),
+        achievements_ta=updated.get("achievements_ta"),
+        is_former=bool(updated.get("is_former") or sType == "PAST"),
         status=updated.get("status", "ACTIVE"),
         notes=updated.get("notes"),
+        notes_ta=updated.get("notes_ta"),
         created_at=updated.get("created_at", datetime.now(timezone.utc))
     )
 

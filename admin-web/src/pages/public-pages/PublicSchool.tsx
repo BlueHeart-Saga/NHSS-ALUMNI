@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Calendar, 
-  GraduationCap, 
-  ShieldCheck, 
-  X, 
-  ExternalLink, 
-  ArrowRight, 
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Mail,
+  Calendar,
+  GraduationCap,
+  ShieldCheck,
+  X,
+  ExternalLink,
+  ArrowRight,
   Image as ImageIcon,
   BookOpen,
   Award,
@@ -23,6 +23,8 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { CurrentStaffSection } from './components/CurrentStaffSection';
+import { OldStaffsSection } from './components/OldStaffsSection';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
@@ -205,8 +207,8 @@ export const PublicSchool: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#111111] animate-fadeIn font-sans">
-      
-      {/* 1. HERO — எங்கள் பள்ளி */}
+
+      {/* 1. HERO — நமது பள்ளி */}
       <div className="relative h-72 sm:h-96 lg:h-[440px] overflow-hidden bg-gray-900">
         <img
           src={(profile.cover_url && profile.cover_url.trim() !== '') ? profile.cover_url : realCampusBanner}
@@ -227,7 +229,7 @@ export const PublicSchool: React.FC = () => {
               className="h-14 sm:h-20 w-auto object-contain flex-shrink-0 drop-shadow-md"
             />
             <div className="space-y-1">
-              
+
               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight drop-shadow-md">
                 {profile.name}
               </h1>
@@ -249,7 +251,7 @@ export const PublicSchool: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
 
-        {/* 2. எங்கள் பள்ளியைப் பற்றி (ABOUT OUR SCHOOL) */}
+        {/* 2. நமது பள்ளியைப் பற்றி (ABOUT OUR SCHOOL) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center space-x-2 text-xs font-bold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-full uppercase tracking-wider">
@@ -259,7 +261,7 @@ export const PublicSchool: React.FC = () => {
 
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111] leading-tight">
               {language === 'ta'
-                ? 'எங்கள் பள்ளியைப் பற்றி'
+                ? 'நமது பள்ளியைப் பற்றி'
                 : 'About Our School'}
             </h2>
 
@@ -271,8 +273,8 @@ export const PublicSchool: React.FC = () => {
               </p>
               <p>
                 {language === 'ta'
-                  ? 'பள்ளியில் பயின்ற மாணவர்கள் நல்ஆசிரியர்களாகவும், IIT போன்ற உயர்கல்வி நிறுவனங்களில் பயின்று பேராசிரியர்களாகவும், விஞ்ஞானிகளாகவும், மருத்துவர்களாகவும், வழக்கறிஞர்களாகவும், நீதிபதிகளாகவும் உயர உயர உலகம் முழுக்க பயணிக்க உருவாக்கியது நம் பள்ளி. அதற்கு முதன்மைக்காரணம் பள்ளியின் மேன்மைமிகு நிர்வாகிகளின் திறமையும்... சேவை உள்ளம் கொண்ட ஆசிரியர்களுமே ஆகும்.'
-                  : 'Our alumni have scaled great heights as noble teachers, professors at premier institutions like IITs, scientists, doctors, lawyers, and judges, serving around the globe. This legacy is owed to the visionary leadership of our management and the dedicated service of our teachers.'}
+                  ? 'பள்ளியில் பயின்ற மாணவர்கள் நல்லாசிரியர்களாகவும், IIT போன்ற உயர்கல்வி நிறுவனங்களில் பயின்று பேராசிரியர்களாகவும், விஞ்ஞானிகளாகவும், மருத்துவர்களாகவும், பொறியாளர்களாகவும், வழக்கறிஞர்களாகவும், நீதிபதிகளாகவும், சிறந்த விவசாயப் பெருமக்களாகவும் அனைத்துத் துறைகளிலும் உயர்ந்து உலகம் முழுக்கப் பெருமையுடன் சேவையாற்றி வருகின்றனர். அதற்கு முதன்மைக்காரணம் பள்ளியின் மேன்மைமிகு நிர்வாகிகளின் திறமையும்... சேவை உள்ளம் கொண்ட ஆசிரியர்களுமே ஆகும்.'
+                  : 'Our alumni have achieved remarkable success across all walks of life — as noble teachers, professors at premier institutions like IITs, scientists, doctors, engineers, lawyers, judges, and progressive agricultural leaders/farmers, serving with honor around the globe. This legacy is owed to the visionary leadership of our management and the dedicated service of our teachers.'}
               </p>
               <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/60 rounded-2xl space-y-2 text-[#854D0E] font-medium text-xs sm:text-sm">
                 <p>
@@ -290,8 +292,8 @@ export const PublicSchool: React.FC = () => {
               </div>
               <p>
                 {language === 'ta'
-                  ? 'கல்வித்தரத்திலும், விளையாட்டுத்துறையிலும், ஒழுக்கத்திலும், சுற்றுப்புறச் சூழலிலும் கோவில்பட்டி கல்வி மாவட்டத்தில் முதன்மையானதாக இருந்தது நமது பள்ளி. இந்த பள்ளியில் பயின்றதால் நாங்கள் அறிவிலும், ஒழுக்கத்திலும், நற்பண்புகளிலும் இன்றளவும் சிறந்து விளங்குகிறோம்.'
-                  : 'Recognized as the premier institution in Kovilpatti Educational District for academic standard, sports, discipline, and environmental care, our school instills wisdom, character, and values.'}
+                  ? 'கல்வித்தரத்திலும், விளையாட்டுத்துறையிலும், ஒழுக்கத்திலும், சுற்றுப்புறச் சூழலிலும் தூத்துக்குடி கல்வி மாவட்டத்தில் முதன்மையானதாக இருந்தது நமது பள்ளி. இந்த பள்ளியில் பயின்றதால் நாங்கள் அறிவிலும், ஒழுக்கத்திலும், நற்பண்புகளிலும் இன்றளவும் சிறந்து விளங்குகிறோம்.'
+                  : 'Recognized as the premier institution in Thoothukudi Educational District for academic standard, sports, discipline, and environmental care, our school instills wisdom, character, and values.'}
               </p>
               <p className="text-xs sm:text-sm bg-gray-50 p-3 rounded-xl border border-gray-200 text-gray-800 font-medium">
                 {language === 'ta'
@@ -301,73 +303,105 @@ export const PublicSchool: React.FC = () => {
             </div>
           </div>
 
-          {/* Sticky Quick Stats & Contact Sidebar Card */}
-          <div className="lg:col-span-5 bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-6 sm:p-8 shadow-[8px_8px_0px_0px_#F4C542] space-y-6 lg:sticky lg:top-44 self-start transition-all">
-            <h3 className="text-xl font-bold text-[#111111] border-b border-gray-200 pb-3 flex items-center justify-between">
-              <span>{language === 'ta' ? 'பள்ளி அளவீடுகள்' : 'School Key Stats'}</span>
-              <Award className="w-5 h-5 text-[#854D0E]" />
-            </h3>
-
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl font-extrabold text-[#111111]">{profile.total_alumni}+</div>
-                <div className="text-[11px] text-gray-500 font-semibold mt-1">
-                  {language === 'ta' ? 'முன்னாள் மாணவர்கள்' : 'Alumni'}
-                </div>
+          {/* Sticky Friendly Support & Contact Card */}
+          <div className="lg:col-span-5 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 lg:sticky lg:top-44 self-start transition-all relative">
+            {/* Header Badge */}
+            <div className="flex items-center space-x-3 border-b border-gray-100 pb-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center text-[#854D0E] shrink-0">
+                <HeartHandshake className="w-5 h-5 text-[#854D0E]" />
               </div>
-              <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl font-extrabold text-[#854D0E]">{profile.active_batches}</div>
-                <div className="text-[11px] text-gray-500 font-semibold mt-1">
-                  {language === 'ta' ? 'வகுப்புகள்' : 'Batches'}
-                </div>
-              </div>
-              <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl font-extrabold text-[#111111]">{profile.upcoming_events}</div>
-                <div className="text-[11px] text-gray-500 font-semibold mt-1">
-                  {language === 'ta' ? 'நிகழ்வுகள்' : 'Events'}
-                </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight">
+                  {language === 'ta' ? 'உதவி & தொடர்பு' : 'Friendly Support & Contact'}
+                </h3>
+                <p className="text-xs text-gray-500 font-medium">
+                  {language === 'ta' ? 'எப்போதும் உங்களுக்கு உதவ தயாராக உள்ளோம்' : 'We are here to help you anytime'}
+                </p>
               </div>
             </div>
 
-            <div className="space-y-3 pt-4 text-xs text-gray-800 font-semibold border-t border-gray-200">
-              <div className="flex items-start space-x-3 bg-white p-3 rounded-2xl border border-gray-200">
-                <MapPin className="w-4 h-4 text-[#854D0E] flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block font-bold mb-0.5">
-                    {language === 'ta' ? 'இடம்' : 'Location'}
-                  </span>
-                  <span>{profile.address || 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, கோவில்பட்டி'}</span>
-                </div>
-              </div>
+            {/* Friendly Welcome Note */}
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal bg-gray-50 border border-gray-200 p-4 rounded-2xl">
+              {language === 'ta'
+                ? 'ஏதேனும் கேள்விகள், சந்தேகங்கள் அல்லது பள்ளி பற்றிய தகவல்கள் தேவையா? கீழே உள்ள வாட்ஸ்அப் அல்லது மின்னஞ்சல் வழியாக எங்களை உடனே தொடர்பு கொள்ளலாம்!'
+                : 'Have questions, need help, or want to connect with your school network? Send us a quick text or email — we will assist you right away!'}
+            </p>
 
-              <div className="flex items-center space-x-3 bg-white p-3 rounded-2xl border border-gray-200">
-                <Phone className="w-4 h-4 text-[#854D0E] flex-shrink-0" />
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block font-bold mb-0.5">
-                    {language === 'ta' ? 'தொலைபேசி' : 'Phone'}
-                  </span>
-                  <span>{profile.phone || '+91 98765 43210'}</span>
+            {/* Contact Methods (Plain & Simple White Card Styling) */}
+            <div className="space-y-3">
+              {/* WhatsApp Support Button */}
+              <a
+                href={`https://wa.me/${(profile.phone || '918825905771').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                  language === 'ta'
+                    ? 'வணக்கம்! எனக்கு NHSS பள்ளி பற்றிய விவரங்கள் தேவை.'
+                    : 'Hello! I need information regarding NHSS Alumni.'
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white hover:bg-emerald-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-emerald-500 transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <Phone className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
+                      {language === 'ta' ? 'வாட்ஸ்அப் மெசேஜ் / அழைப்பு' : 'WhatsApp / Call Support'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
+                      {profile.phone || '+91 88259 05771'}
+                    </span>
+                  </div>
                 </div>
-              </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+              </a>
 
-              <div className="flex items-center space-x-3 bg-white p-3 rounded-2xl border border-gray-200">
-                <Mail className="w-4 h-4 text-[#854D0E] flex-shrink-0" />
+              {/* Email Support Button */}
+              <a
+                href={`mailto:${profile.email || 'info@nhssalumni.com'}?subject=${encodeURIComponent(
+                  language === 'ta' ? 'பள்ளித் தகவல் அறிய தொடர்பு' : 'Inquiry & Support Request'
+                )}`}
+                className="w-full bg-white hover:bg-amber-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-[#F4C542] transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#854D0E] flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-[#854D0E]" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
+                      {language === 'ta' ? 'மின்னஞ்சல் அனுப்ப' : 'Send an Email'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
+                      {profile.email || 'info@nhssalumni.com'}
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#854D0E] transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+              </a>
+            </div>
+
+            {/* School Location Box */}
+            <div className="pt-1 border-t border-gray-100">
+              <div className="flex items-start space-x-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 text-xs text-gray-800">
+                <MapPin className="w-4 h-4 text-[#854D0E] shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-500 block font-bold mb-0.5">
-                    {language === 'ta' ? 'மின்னஞ்சல்' : 'Email'}
+                    {language === 'ta' ? 'பள்ளி முகவரி' : 'School Location'}
                   </span>
-                  <span>{profile.email || 'info@nhssalumni.com'}</span>
+                  <span className="font-semibold text-[#111111] leading-tight block">
+                    {profile.address || 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. எங்கள் நோக்கம் (OUR PURPOSE: கல்வி | ஒழுக்கம் | சம வாய்ப்பு) */}
+        {/* 3. நமதுநோக்கம் (OUR PURPOSE: கல்வி | ஒழுக்கம் | சம வாய்ப்பு) */}
         <div className="space-y-8">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3.5 py-1 rounded-full uppercase tracking-wider">
-              {language === 'ta' ? 'எங்கள் நோக்கம்' : 'Our Triad Purpose'}
+              {language === 'ta' ? 'நமதுநோக்கம்' : 'Our Triad Purpose'}
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111]">
               {language === 'ta' ? 'கல்வி • ஒழுக்கம் • சம வாய்ப்பு' : 'Education • Discipline • Equal Opportunity'}
@@ -425,7 +459,7 @@ export const PublicSchool: React.FC = () => {
         {/* 4. பள்ளியின் சிறப்புகள் (SCHOOL HIGHLIGHTS) */}
         <div className="space-y-8">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
-           
+
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111]">
               {language === 'ta' ? 'சிறந்த கற்றல் கட்டமைப்பு வசதிகள்' : 'Modern Academic Infrastructure'}
             </h2>
@@ -447,10 +481,10 @@ export const PublicSchool: React.FC = () => {
           </div>
         </div>
 
-        {/* 5. எங்கள் சாதனைகள் (OUR ACHIEVEMENTS) */}
+        {/* 5. நமதுசாதனைகள் (OUR ACHIEVEMENTS) */}
         <div className="bg-[#111111] text-white border-2 border-[#F4C542] rounded-3xl p-8 sm:p-12 space-y-8 shadow-2xl">
           <div className="text-center space-y-2">
-           
+
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#F4C542]">
               {language === 'ta' ? 'கல்வியிலும் விளையாட்டிலும் சாதனைப் பயணம்' : 'Milestones & Achievements'}
             </h2>
@@ -476,11 +510,11 @@ export const PublicSchool: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. எங்கள் வளாகம் (PHOTO GALLERY) */}
+        {/* 6. நமதுவளாகம் (PHOTO GALLERY) */}
         <div className="space-y-6 pt-6 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-             
+
               <h3 className="text-xl sm:text-3xl font-extrabold text-[#111111] mt-2">
                 {language === 'ta' ? 'பள்ளி வளாகம் மற்றும் வரலாற்றுத் தருணங்கள்' : 'Glimpses of Our Campus & Traditions'}
               </h3>
@@ -522,7 +556,7 @@ export const PublicSchool: React.FC = () => {
         {/* 7. மாணவர் முன்னேற்றம் (STUDENT PROGRESS & CAREER SUPPORT) */}
         <div className="bg-[#FFF7D6]/40 border-2 border-[#F4C542]/60 rounded-3xl p-8 sm:p-12 space-y-6">
           <div className="space-y-2">
-           
+
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111]">
               {language === 'ta' ? 'உயர்கல்வி மற்றும் எதிர்கால வளர்ச்சி வழிகாட்டுதல்' : 'Higher Education & Career Counseling'}
             </h2>
@@ -545,9 +579,9 @@ export const PublicSchool: React.FC = () => {
         </div>
 
         {/* 8. முன்னாள் மாணவர் இணைப்பு (ALUMNI SYNERGY) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-8 sm:p-12 shadow-[8px_8px_0px_0px_#111111]">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-8 sm:p-12 shadow-[8px_8px_0px_0px_#111111]">
           <div className="lg:col-span-8 space-y-4">
-           
+
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111]">
               {language === 'ta' ? 'பள்ளி மற்றும் முன்னாள் மாணவர்களின் இணக்கமான சங்கமம்' : 'Bridging Alumni Legacy with Future Generations'}
             </h2>
@@ -566,12 +600,18 @@ export const PublicSchool: React.FC = () => {
               <ArrowRight className="w-4 h-4 text-[#F4C542]" />
             </button>
           </div>
-        </div>
+        </div> */}
 
-        {/* 9. CTA — "எங்கள் பள்ளியுடன் இணைந்திருங்கள்" */}
+        {/* 9. CURRENT SCHOOL STAFF & MANAGEMENT */}
+        <CurrentStaffSection />
+
+        {/* 10. HONOURED FORMER STAFF & LEGENDARY TEACHERS */}
+        <OldStaffsSection />
+
+        {/* 11. CTA — "நமது பள்ளியுடன் இணைந்திருங்கள்" */}
         <div className="bg-[#111111] text-white border-2 border-[#F4C542] rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl">
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#F4C542] leading-tight">
-            {language === 'ta' ? 'எங்கள் பள்ளியுடன் இணைந்திருங்கள்' : 'Stay Connected with Our School'}
+            {language === 'ta' ? 'நமது பள்ளியுடன் இணைந்திருங்கள்' : 'Stay Connected with Our School'}
           </h2>
           <p className="text-sm sm:text-lg text-gray-300 max-w-2xl mx-auto font-normal">
             {language === 'ta'

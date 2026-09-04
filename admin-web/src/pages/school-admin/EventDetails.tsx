@@ -52,40 +52,40 @@ export const EventDetails: React.FC = () => {
       </button>
 
       {/* Hero Header */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div>
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="text-xs font-semibold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/60 px-3 py-1 rounded-full">
               {eventItem.batch_name || 'School-wide Event'}
             </span>
             <Badge status={eventItem.status} />
           </div>
-          <h2 className="text-3xl font-bold text-[#111111]">{eventItem.title}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#111111]">{eventItem.title}</h2>
           <p className="text-sm text-[#6B7280] mt-1 max-w-2xl">{eventItem.description}</p>
 
-          <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-semibold text-[#111111]">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 text-xs font-semibold text-[#111111]">
             <span>📅 {eventItem.event_date} ({eventItem.start_time} - {eventItem.end_time})</span>
             <span>📍 {eventItem.venue} ({eventItem.address})</span>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <Button variant="secondary" onClick={() => navigate(`/school-admin/events/${eventId}/edit`)}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+          <Button variant="secondary" onClick={() => navigate(`/school-admin/events/${eventId}/edit`)} className="w-full sm:w-auto justify-center">
             <Edit3 className="w-4 h-4 mr-1.5" />
             Edit Event
           </Button>
-          <Button onClick={() => setIsQRModalOpen(true)}>
+          <Button onClick={() => setIsQRModalOpen(true)} className="w-full sm:w-auto justify-center">
             <CheckCircle2 className="w-4 h-4 mr-1.5" />
             Open QR Check-in Terminal
           </Button>
-          <Button variant="secondary" onClick={() => navigate(`/school-admin/events/${eventId}/attendance`)}>
+          <Button variant="secondary" onClick={() => navigate(`/school-admin/events/${eventId}/attendance`)} className="w-full sm:w-auto justify-center">
             <UserCheck className="w-4 h-4 mr-1.5" />
             View Attendance Roster
           </Button>
           <a
             href={api.getAttendanceCSVExportUrl(eventId!)}
             download
-            className="inline-flex items-center px-4 py-2.5 bg-white hover:bg-gray-50 text-[#111111] font-semibold text-sm rounded-xl border border-[#E5E7EB]"
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-white hover:bg-gray-50 text-[#111111] font-semibold text-sm rounded-xl border border-[#E5E7EB] w-full sm:w-auto"
           >
             <Download className="w-4 h-4 mr-1.5" />
             Export CSV

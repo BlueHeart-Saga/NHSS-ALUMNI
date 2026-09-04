@@ -162,7 +162,7 @@ export const CreateEditEvent: React.FC = () => {
         </p>
       </div>
 
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xs space-y-6">
         {/* Bilingual Titles Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
@@ -335,19 +335,19 @@ export const CreateEditEvent: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-[#E5E7EB]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 space-x-0 sm:space-x-3 pt-6 border-t border-[#E5E7EB]">
           {isEditMode ? (
-            <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting}>
+            <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-1.5" />
               Save Changes
             </Button>
           ) : (
             <>
-              <Button type="button" variant="secondary" onClick={() => handleSubmit(false)} isLoading={submitting}>
+              <Button type="button" variant="secondary" onClick={() => handleSubmit(false)} isLoading={submitting} className="w-full sm:w-auto">
                 <Save className="w-4 h-4 mr-1.5" />
                 Save as Draft
               </Button>
-              <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting}>
+              <Button type="button" onClick={() => handleSubmit(true)} isLoading={submitting} className="w-full sm:w-auto">
                 <Send className="w-4 h-4 mr-1.5" />
                 Publish Event Immediately
               </Button>

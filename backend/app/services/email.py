@@ -96,6 +96,60 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") 
 
     return send_email_smtp(to_email, subject, html_content, text_content)
 
+def send_alumni_verified_email(to_email: str, alumni_name: str, school_name: str = "NHSS SCHOOL") -> bool:
+    """
+    Sends an automated verification approval confirmation email to the alumnus when approved by school admin.
+    """
+    subject = f"🎉 Congratulations! Your Alumni Account at {school_name} is Verified"
+    login_url = f"{settings.FRONTEND_URL}/login"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAFAFA; margin: 0; padding: 20px; color: #111111; }}
+            .container {{ max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 2px solid #111111; border-radius: 20px; padding: 32px; box-shadow: 6px 6px 0px #111111; }}
+            .header {{ text-align: center; border-bottom: 2px solid #F4C542; padding-bottom: 20px; margin-bottom: 24px; }}
+            .badge {{ display: inline-block; background-color: #FFF7D6; border: 1px solid #F4C542; color: #854D0E; font-weight: 800; font-size: 11px; padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            .title {{ font-size: 24px; font-weight: 800; color: #111111; margin-top: 16px; margin-bottom: 6px; text-align: center; }}
+            .subtitle {{ font-size: 14px; color: #4B5563; text-align: center; margin-bottom: 24px; line-height: 1.5; }}
+            .success-box {{ background-color: #F0FDF4; border-radius: 14px; padding: 20px; text-align: center; margin: 20px 0; border: 1px solid #86EFAC; }}
+            .success-text {{ font-size: 15px; font-weight: 700; color: #166534; margin: 0; line-height: 1.6; }}
+            .btn {{ display: inline-block; background-color: #111111; color: #F4C542; font-weight: 800; font-size: 14px; padding: 14px 28px; text-decoration: none; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 16px; border: 2px solid #F4C542; }}
+            .footer {{ border-top: 1px solid #E5E7EB; margin-top: 32px; padding-top: 20px; font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.5; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <span class="badge">{school_name} Alumni Portal</span>
+                <h1 class="title">You are Verified! 🎉</h1>
+                <p class="subtitle">Dear <strong>{alumni_name}</strong>, your alumni registration application has been reviewed and officially approved by the school administration.</p>
+            </div>
+            
+            <div class="success-box">
+                <p class="success-text">Your profile is now verified! Please check your profile details and log in to explore alumni reunions, batch events, member directory search, and memory galleries.</p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{login_url}" class="btn" target="_blank">Login to Explore Portal →</a>
+            </div>
+
+            <div class="footer">
+                <p>This email was sent automatically by <strong>{settings.EMAILS_FROM_NAME}</strong>.<br>Thank you for staying connected with {school_name}.</p>
+                <p>© 2026 {school_name} Alumni Association. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_content = f"Congratulations {alumni_name}! Your alumni registration at {school_name} has been verified. Login now to explore: {login_url}"
+
+    return send_email_smtp(to_email, subject, html_content, text_content)
+
 def send_school_admin_invite_email(to_email: str, admin_name: str, school_name: str) -> bool:
     """
     Sends an invitation email to a newly provisioned School Admin with a link to complete setup and set password.
@@ -276,3 +330,62 @@ def send_contact_admin_notification_email(sender_name: str, sender_email: str, s
     text_content = f"New Contact Inquiry from {sender_name} ({sender_email}, {sender_mobile}):\n\n{message_text}"
 
     return send_email_smtp(admin_email, subject, html_content, text_content)
+
+def send_registration_thank_you_email(to_email: str, alumni_name: str, school_name: str = "NHSS SCHOOL") -> bool:
+    """
+    Sends an automated registration thank-you & acknowledgment email to the alumnus upon completing their registration form.
+    Informs them that their application is pending school administration verification.
+    """
+    subject = f"Thank You for Registering with {school_name} Alumni Portal"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAFAFA; margin: 0; padding: 20px; color: #111111; }}
+            .container {{ max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 2px solid #111111; border-radius: 20px; padding: 32px; box-shadow: 6px 6px 0px #111111; }}
+            .header {{ text-align: center; border-bottom: 2px solid #F4C542; padding-bottom: 20px; margin-bottom: 24px; }}
+            .badge {{ display: inline-block; background-color: #FFF7D6; border: 1px solid #F4C542; color: #854D0E; font-weight: 800; font-size: 11px; padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            .title {{ font-size: 24px; font-weight: 800; color: #111111; margin-top: 16px; margin-bottom: 6px; text-align: center; }}
+            .subtitle {{ font-size: 14px; color: #4B5563; text-align: center; margin-bottom: 24px; line-height: 1.5; }}
+            .info-box {{ background-color: #FFF7D6; border-radius: 14px; padding: 20px; text-align: center; margin: 20px 0; border: 1px solid #F4C542; }}
+            .info-text {{ font-size: 14px; font-weight: 700; color: #854D0E; margin: 0; line-height: 1.6; }}
+            .steps {{ font-size: 13px; color: #374151; line-height: 1.7; background-color: #F9FAFB; padding: 16px 20px; border-radius: 12px; border: 1px solid #E5E7EB; margin: 20px 0; }}
+            .footer {{ border-top: 1px solid #E5E7EB; margin-top: 32px; padding-top: 20px; font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.5; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <span class="badge">{school_name} Alumni Portal</span>
+                <h1 class="title">Thank You for Registering!</h1>
+                <p class="subtitle">Dear <strong>{alumni_name}</strong>, thank you for completing your alumni registration application.</p>
+            </div>
+            
+            <div class="info-box">
+                <p class="info-text">⏳ Your application has been successfully submitted and is currently awaiting verification by the school administration team.</p>
+            </div>
+
+            <div class="steps">
+                <strong>What happens next?</strong>
+                <ol style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+                    <li>Our school admin team will review your admission details and graduation record.</li>
+                    <li>As soon as your application is verified, you will receive an official approval email notification.</li>
+                    <li>Once verified, you will get full access to batch get-togethers, alumni directory, and events.</li>
+                </ol>
+            </div>
+
+            <div class="footer">
+                <p>This email was sent automatically by <strong>{settings.EMAILS_FROM_NAME}</strong>.<br>Thank you for registering with {school_name}.</p>
+                <p>© 2026 {school_name} Alumni Association. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_content = f"Thank you for registering with {school_name} Alumni Portal, {alumni_name}! Your application is currently awaiting school management verification. You will receive an email once your profile is verified."
+
+    return send_email_smtp(to_email, subject, html_content, text_content)

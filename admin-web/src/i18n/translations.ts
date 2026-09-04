@@ -39,8 +39,8 @@ export const translations: Record<Language, Record<string, string>> = {
     school_admin_request_title: "Are You a School Administrator?",
     school_admin_request_desc: "Register your school to manage alumni records, organize batch reunions, publish announcements, and track community engagement.",
     register_school_btn: "REGISTER YOUR SCHOOL",
-    find_batch_title: "FIND YOUR BATCH COHORT",
-    find_batch_desc: "Search and connect with your classmates by graduation year and section.",
+    find_batch_title: "FIND YOUR FRIENDS & BATCHMATES",
+    find_batch_desc: "Search and reconnect with your school friends and batchmates by graduation year and section.",
 
     // School Profile
     school_profile_title: "SCHOOL PROFILE & HISTORY",
@@ -183,8 +183,8 @@ export const translations: Record<Language, Record<string, string>> = {
     school_admin_request_title: "நீங்கள் பள்ளி நிர்வாகியா?",
     school_admin_request_desc: "பழைய மாணவர்களை நிர்வகிக்க, வகுப்புகளை உருவாக்க, மறுசந்திப்புகளை ஏற்பாடு செய்ய உங்கள் பள்ளியைப் பதிவு செய்யுங்கள்.",
     register_school_btn: "உங்கள் பள்ளியைப் பதிவு செய்க",
-    find_batch_title: "உங்கள் வகுப்பைக் கண்டறியவும்",
-    find_batch_desc: "தேர்ச்சி பெற்ற ஆண்டு மற்றும் பிரிவு மூலம் உங்கள் வகுப்பு தோழர்களைத் தேடி இணையுங்கள்.",
+    find_batch_title: "பள்ளி நண்பர்களைக் கண்டறிய 😊",
+    find_batch_desc: "தேர்ச்சி பெற்ற ஆண்டு மற்றும் பிரிவு மூலம் உங்கள் தோழர்களைத் தேடி இணையுங்கள்.",
 
     // School Profile
     school_profile_title: "பள்ளி விவரம் மற்றும் வரலாறு",
@@ -287,6 +287,6 @@ export const translations: Record<Language, Record<string, string>> = {
     footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
     copyright: "காப்புரிமை © 2026. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. Devopstrio மூலம் வழங்கப்படுகிறது.",
     developer_portal: "டெவலப்பர் போர்டல்",
-    school_admin_login: "நிர்வாக போர்டல்",
+    school_admin_login: "சங்க நிர்வாகம்",
   }
 };

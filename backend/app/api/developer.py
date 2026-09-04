@@ -60,17 +60,24 @@ async def list_all_schools():
     schools_cursor = db.schools.find({}).sort("created_at", -1)
     schools_list = await schools_cursor.to_list(length=100)
 
-    res = []
-    for s in schools_list:
-        s_id = str(s["_id"])
-        admin_count = await db.users.count_documents({
-            "school_id": s_id,
-            "roles": "SCHOOL_ADMIN"
-        })
-        alumni_count = await db.alumni.count_documents({"school_id": s_id})
-        batches_count = await db.batches.count_documents({"school_id": s_id})
-        events_count = await db.events.count_documents({"school_id": s_id})
+    if not schools_list:
+        return []
 
+    tasks = [
+        asyncio.gather(
+            db.users.count_documents({"school_id": str(s["_id"]), "roles": "SCHOOL_ADMIN"}),
+            db.alumni.count_documents({"school_id": str(s["_id"])}),
+            db.batches.count_documents({"school_id": str(s["_id"])}),
+            db.events.count_documents({"school_id": str(s["_id"])})
+        )
+        for s in schools_list
+    ]
+
+    counts_results = await asyncio.gather(*tasks)
+
+    res = []
+    for s, (admin_count, alumni_count, batches_count, events_count) in zip(schools_list, counts_results):
+        s_id = str(s["_id"])
         res.append({
             "id": s_id,
             "name": s.get("name"),

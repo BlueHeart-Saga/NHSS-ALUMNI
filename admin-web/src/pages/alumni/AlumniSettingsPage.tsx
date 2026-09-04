@@ -172,22 +172,22 @@ export const AlumniSettingsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">Account & Security Settings</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-[#111111]">Account & Security Settings</h2>
           <p className="text-xs text-[#6B7280]">Manage authentication credentials, OTP security verification, and portal preferences</p>
         </div>
-        <div className="flex items-center space-x-2 text-xs font-bold bg-[#FFF7D6] text-amber-900 px-3 py-1.5 rounded-xl border border-[#F4C542]/40">
+        <div className="flex items-center space-x-2 text-xs font-bold bg-[#FFF7D6] text-amber-900 px-3 py-1.5 rounded-xl border border-[#F4C542]/40 shrink-0">
           <ShieldCheck className="w-4 h-4 text-amber-700" />
           <span>Account Verified ({user?.passing_year ? `Batch of ${user.passing_year}` : 'Alumni Member'})</span>
         </div>
       </div>
 
       {/* Tabs Sub-Navigation */}
-      <div className="flex border-b border-[#E5E7EB] gap-2 text-xs font-bold pb-2">
+      <div className="flex overflow-x-auto border-b border-[#E5E7EB] gap-2 text-xs font-bold pb-2 scrollbar-none">
         <button
           onClick={() => setActiveTab('SECURITY')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
             activeTab === 'SECURITY'
               ? 'bg-[#111111] text-white shadow-sm'
               : 'bg-white border border-[#E5E7EB] text-gray-600 hover:text-[#111111]'
@@ -197,7 +197,7 @@ export const AlumniSettingsPage: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('OTP_RESET')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
             activeTab === 'OTP_RESET'
               ? 'bg-[#111111] text-white shadow-sm'
               : 'bg-white border border-[#E5E7EB] text-gray-600 hover:text-[#111111]'
@@ -207,7 +207,7 @@ export const AlumniSettingsPage: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('PREFERENCES')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
             activeTab === 'PREFERENCES'
               ? 'bg-[#111111] text-white shadow-sm'
               : 'bg-white border border-[#E5E7EB] text-gray-600 hover:text-[#111111]'
@@ -219,9 +219,9 @@ export const AlumniSettingsPage: React.FC = () => {
 
       {/* TAB 1: DIRECT PASSWORD CHANGE */}
       {activeTab === 'SECURITY' && (
-        <form onSubmit={handleUpdatePassword} className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
+        <form onSubmit={handleUpdatePassword} className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-[#E5E7EB]">
-            <KeyRound className="w-5 h-5 text-amber-700" />
+            <KeyRound className="w-5 h-5 text-amber-700 shrink-0" />
             <div>
               <h3 className="font-bold text-sm text-[#111111]">Update Account Password</h3>
               <p className="text-gray-500">Update your current password to secure your alumni portal account</p>
@@ -270,7 +270,7 @@ export const AlumniSettingsPage: React.FC = () => {
             <button
               type="submit"
               disabled={updatingPassword}
-              className="px-5 py-2.5 bg-[#111111] text-white font-bold rounded-xl hover:bg-black disabled:bg-gray-400 shadow-sm transition-all flex items-center space-x-2"
+              className="w-full sm:w-auto px-5 py-2.5 bg-[#111111] text-white font-bold rounded-xl hover:bg-black disabled:bg-gray-400 shadow-sm transition-all flex items-center justify-center space-x-2"
             >
               {updatingPassword ? (
                 <>
@@ -287,9 +287,9 @@ export const AlumniSettingsPage: React.FC = () => {
 
       {/* TAB 2: OTP VERIFICATION & FORGOT PASSWORD */}
       {activeTab === 'OTP_RESET' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-[#E5E7EB]">
-            <ShieldCheck className="w-5 h-5 text-amber-700" />
+            <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0" />
             <div>
               <h3 className="font-bold text-sm text-[#111111]">Reset Password via OTP Code</h3>
               <p className="text-gray-500">Send a 6-digit OTP verification code to your registered email or mobile to reset password</p>
@@ -391,7 +391,7 @@ export const AlumniSettingsPage: React.FC = () => {
 
       {/* TAB 3: PORTAL PREFERENCES */}
       {activeTab === 'PREFERENCES' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-5 text-xs">
           <h3 className="font-bold text-sm text-[#111111]">Portal Language & Localization</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, BarChart3, Users, CheckCircle2, Calendar } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
-import { LoadingState } from '../../components/EmptyState';
+import { LoadingState, StatsGridSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { DashboardReport } from '../../types';
@@ -15,7 +15,13 @@ export const ReportsDashboard: React.FC = () => {
     api.getDashboardReport().then(setReport).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-fadeIn">
+        <StatsGridSkeleton count={4} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -32,11 +38,11 @@ export const ReportsDashboard: React.FC = () => {
       </div>
 
       {/* CSV Export Center */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xs space-y-6">
         <h3 className="text-lg font-bold text-[#111111]">CSV Roster & Analytics Export Center</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 bg-[#FAFAFA] border border-[#E5E7EB] rounded-2xl flex items-center justify-between">
+          <div className="p-5 sm:p-6 bg-[#FAFAFA] border border-[#E5E7EB] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h4 className="font-bold text-[#111111] text-base">Full Alumni Roster CSV</h4>
               <p className="text-xs text-[#6B7280] mt-1">Export all alumni contact details, admission numbers, and statuses</p>
@@ -44,19 +50,19 @@ export const ReportsDashboard: React.FC = () => {
             <a
               href={api.getAlumniCSVExportUrl()}
               download
-              className="inline-flex items-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-sm rounded-xl border border-[#F4C542]"
+              className="inline-flex items-center justify-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-sm rounded-xl border border-[#F4C542] w-full sm:w-auto"
             >
               <Download className="w-4 h-4 mr-1.5" />
               Export Roster
             </a>
           </div>
 
-          <div className="p-6 bg-[#FAFAFA] border border-[#E5E7EB] rounded-2xl flex items-center justify-between">
+          <div className="p-5 sm:p-6 bg-[#FAFAFA] border border-[#E5E7EB] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h4 className="font-bold text-[#111111] text-base">Get-Together Attendance Report</h4>
               <p className="text-xs text-[#6B7280] mt-1">Export event RSVP lists, guest counts, and check-in times</p>
             </div>
-            <Button variant="secondary" onClick={() => alertService.showInfo('Select Event to Export', 'Please navigate to the Events Management tab and select a specific event to download its detailed attendance CSV report.')}>
+            <Button variant="secondary" onClick={() => alertService.showInfo('Select Event to Export', 'Please navigate to the Events Management tab and select a specific event to download its detailed attendance CSV report.')} className="w-full sm:w-auto">
               Select Event
             </Button>
           </div>

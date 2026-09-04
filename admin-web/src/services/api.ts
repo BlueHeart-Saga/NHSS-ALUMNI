@@ -1,7 +1,7 @@
 import { 
   SchoolProfile, AlumniProfile, Batch, EventItem, SchoolEventItem, AttendanceDashboard, 
   AttendanceRosterItem, CheckinResult, Announcement, Memory, DashboardReport,
-  BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder
+  BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder, SchoolStaff
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -736,6 +736,14 @@ class ApiClient {
 
   async getPublicAssociationTeam() {
     return this.request<AssociationTeamMember[]>('/public/association-team');
+  }
+
+  async getPublicSchoolStaff() {
+    return this.request<SchoolStaff[]>('/public/school-staff');
+  }
+
+  async getPublicOldStaff() {
+    return this.request<SchoolStaff[]>('/public/old-staff');
   }
 
   // --- Document Requests API ---

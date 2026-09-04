@@ -233,7 +233,7 @@ export const RankHoldersManager: React.FC = () => {
           <p className="text-xs text-[#6B7280]">Showcase students & alumni who achieved top academic rank excellence</p>
         </div>
 
-        <Button onClick={handleOpenCreateModal}>
+        <Button onClick={handleOpenCreateModal} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1.5" />
           Add Rank Holder
         </Button>
@@ -403,7 +403,7 @@ export const RankHoldersManager: React.FC = () => {
               </div>
 
               {/* Student / Alumni Name */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Student / Alumni Name *"
                   placeholder="e.g. Arun Kumar"
@@ -420,7 +420,7 @@ export const RankHoldersManager: React.FC = () => {
               </div>
 
               {/* Academic Year & Class Standard */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   label="Academic Year *"
                   value={academicYear}
@@ -437,7 +437,7 @@ export const RankHoldersManager: React.FC = () => {
               </div>
 
               {/* Rank & Exam Type */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   label="Rank *"
                   value={rank}
@@ -454,7 +454,7 @@ export const RankHoldersManager: React.FC = () => {
               </div>
 
               {/* Student Marks & Score Details */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Input
                   label="Total Score / Marks *"
                   placeholder="e.g. 485 or 1150"

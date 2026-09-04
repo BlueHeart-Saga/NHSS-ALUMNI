@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  ShieldCheck, 
-  Sparkles, 
-  ArrowRight, 
-  X, 
-  ExternalLink, 
-  GraduationCap, 
-  BookOpen, 
-  Compass, 
-  Building2, 
-  Briefcase, 
-  HeartHandshake, 
-  Users, 
-  Quote, 
+import {
+  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  X,
+  ExternalLink,
+  GraduationCap,
+  BookOpen,
+  Compass,
+  Building2,
+  Briefcase,
+  HeartHandshake,
+  Users,
+  Quote,
   Award,
   ChevronRight,
   BookMarked,
@@ -39,6 +39,15 @@ export const PublicAbout: React.FC = () => {
   useEffect(() => {
     api.getPublicStats().then(setStats).catch(console.error);
     api.getPublicMemories().then(setMemories).catch(() => setMemories([]));
+
+    if (window.location.hash === '#association-team') {
+      setTimeout(() => {
+        const el = document.getElementById('association-team');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
+    }
   }, []);
 
   const missionPointsTa = [
@@ -128,7 +137,7 @@ export const PublicAbout: React.FC = () => {
 
   return (
     <div className="bg-white text-[#111111] animate-fadeIn font-sans">
-      
+
       {/* 1. HERO HEADER */}
       <div className="bg-white text-[#111111] py-10 sm:py-16 border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -138,7 +147,7 @@ export const PublicAbout: React.FC = () => {
             </h1>
             <p className="text-base sm:text-xl text-gray-600 font-normal leading-relaxed">
               {language === 'ta'
-                ? 'எங்கள் முன்னாள் மாணவர் சங்கம் என்பது, எங்கள் பள்ளியின் மீது கொண்ட அன்பையும், நன்றியையும், பொறுப்புணர்வையும் அடிப்படையாகக் கொண்டு ஒன்றிணைந்த வலுவான அமைப்பாகும்.'
+                ? 'நமது முன்னாள் மாணவர் சங்கம் என்பது, நமது பள்ளியின் மீது கொண்ட அன்பையும், நன்றியையும், பொறுப்புணர்வையும் அடிப்படையாகக் கொண்டு ஒன்றிணைந்த வலுவான அமைப்பாகும்.'
                 : 'Connecting past and present students to empower the next generation through education, unity, and community service.'}
             </p>
           </div>
@@ -147,12 +156,12 @@ export const PublicAbout: React.FC = () => {
 
       {/* 2. ABOUT US INTRODUCTION SECTION */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center space-x-2 text-xs font-bold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-full uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-[#854D0E]" />
-              <span>{language === 'ta' ? 'எங்கள் அடிப்படை நோக்கம்' : 'Our Foundational Philosophy'}</span>
+              <span>{language === 'ta' ? 'நமதுஅடிப்படை நோக்கம்' : 'Our Foundational Philosophy'}</span>
             </div>
 
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111] leading-tight">
@@ -164,7 +173,7 @@ export const PublicAbout: React.FC = () => {
             <div className="space-y-4 text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
               <p>
                 {language === 'ta'
-                  ? 'எங்கள் பள்ளியில் பெற்ற கல்வி, ஒழுக்கம் மற்றும் வாழ்க்கைப் பாடங்களை அடுத்த தலைமுறைக்கும் கொண்டு செல்வதே எங்கள் அடிப்படை நோக்கம்.'
+                  ? 'நமது பள்ளியில் பெற்ற கல்வி, ஒழுக்கம் மற்றும் வாழ்க்கைப் பாடங்களை அடுத்த தலைமுறைக்கும் கொண்டு செல்வதே நமதுஅடிப்படை நோக்கம்.'
                   : 'Our core purpose is to carry forward the quality education, discipline, and life lessons we received at school to the upcoming generation of students.'}
               </p>
               <p>
@@ -174,14 +183,14 @@ export const PublicAbout: React.FC = () => {
               </p>
               <p>
                 {language === 'ta'
-                  ? 'அதே நேரத்தில், எங்கள் பள்ளியையும், அதைச் சுற்றியுள்ள சமூகத்தையும் கல்வி, ஒற்றுமை மற்றும் சேவை வழியாக தொடர்ந்து முன்னேற்றுவதற்காக ஒன்றிணைந்து செயல்படுகிறோம்.'
+                  ? 'அதே நேரத்தில், நமது பள்ளியையும், அதைச் சுற்றியுள்ள சமூகத்தையும் கல்வி, ஒற்றுமை மற்றும் சேவை வழியாக தொடர்ந்து முன்னேற்றுவதற்காக ஒன்றிணைந்து செயல்படுகிறோம்.'
                   : 'Simultaneously, we work together to continuously elevate our school infrastructure and support our local community through education, unity, and active service.'}
               </p>
             </div>
           </div>
 
           {/* Quick Stats Highlight Card */}
-          <div className="lg:col-span-5 bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-8 shadow-[8px_8px_0px_0px_#F4C542] space-y-6">
+          <div className="lg:col-span-5 bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-5 sm:p-8 shadow-[8px_8px_0px_0px_#F4C542] space-y-6">
             <h3 className="text-xl font-bold text-[#111111] border-b border-gray-200 pb-3 flex items-center justify-between">
               <span>{language === 'ta' ? 'சமூகத் தாக்கம்' : 'Impact Metrics'}</span>
               <Award className="w-5 h-5 text-[#854D0E]" />
@@ -223,13 +232,13 @@ export const PublicAbout: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. VISION CARD (எங்கள் தொலைநோக்கு) */}
+        {/* 3. VISION CARD (நமதுதொலைநோக்கு) */}
         <div className="bg-gradient-to-br from-[#FFF7D6] via-[#FEF3C7] to-[#FFF7D6] border-2 border-[#F4C542] rounded-3xl p-8 sm:p-12 shadow-lg relative overflow-hidden text-center">
           <Quote className="w-16 h-16 text-[#F4C542]/40 absolute top-4 right-4 pointer-events-none" />
-          
+
           <div className="max-w-4xl mx-auto space-y-4 relative z-10 text-center">
             <h2 className="text-xl sm:text-2xl font-extrabold text-[#854D0E] uppercase tracking-wider">
-              {language === 'ta' ? 'எங்கள் தொலைநோக்கு' : 'Our Vision'}
+              {language === 'ta' ? 'நமதுதொலைநோக்கு' : 'Our Vision'}
             </h2>
 
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight">
@@ -244,7 +253,7 @@ export const PublicAbout: React.FC = () => {
         <div className="space-y-8 overflow-hidden">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3.5 py-1 rounded-full uppercase tracking-wider">
-              {language === 'ta' ? 'எங்கள் பணிநோக்கம்' : 'Our Mission Pillars'}
+              {language === 'ta' ? 'நமதுபணிநோக்கம்' : 'Our Mission Pillars'}
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111]">
               {language === 'ta' ? 'நாங்கள் செயல்படும் 7 முக்கிய வழிகள்' : '7 Strategic Pathways of Execution'}
@@ -297,11 +306,11 @@ export const PublicAbout: React.FC = () => {
           </div>
         </div>
 
-        {/* 5. KEY ACTIVITIES HIGHLIGHTS (எங்கள் செயல்பாடுகள்) */}
+        {/* 5. KEY ACTIVITIES HIGHLIGHTS (நமதுசெயல்பாடுகள்) */}
         <div className="bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-8 sm:p-12 space-y-8 shadow-[8px_8px_0px_0px_#111111]">
           <div className="text-center space-y-2">
             <h3 className="text-xl sm:text-3xl font-extrabold text-[#111111]">
-              {language === 'ta' ? 'எங்கள் முதன்மைச் செயல்பாடுகள்' : 'Key Domains of Activity'}
+              {language === 'ta' ? 'நமதுமுதன்மைச் செயல்பாடுகள்' : 'Key Domains of Activity'}
             </h3>
             <p className="text-xs sm:text-sm text-gray-600">
               {language === 'ta' ? 'மாணவர்கள் மற்றும் சமூக மேம்பாட்டிற்கான முதன்மைத் தளங்கள்' : 'Core initiatives driving student & community advancement'}
@@ -324,10 +333,10 @@ export const PublicAbout: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. OUR PROMISE / MOTTO FOOTER BANNER (எங்கள் உறுதி) */}
+        {/* 6. OUR PROMISE / MOTTO FOOTER BANNER (நமதுஉறுதி) */}
         <div className="bg-[#111111] text-white border-2 border-[#F4C542] rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-xl">
           <span className="text-xs font-bold bg-[#F4C542] text-[#111111] px-4 py-1.5 rounded-full uppercase tracking-wider inline-block">
-            {language === 'ta' ? 'எங்கள் உறுதி' : 'Our Solemn Pledge'}
+            {language === 'ta' ? 'நமதுஉறுதி' : 'Our Solemn Pledge'}
           </span>
 
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#F4C542] leading-tight">
@@ -347,18 +356,15 @@ export const PublicAbout: React.FC = () => {
           </div>
         </div>
 
-        {/* 7. ASSOCIATION LEADERSHIP BOARD */}
-        <AlumniAssociationSection />
-
-        {/* 8. MEMORIES PHOTO SHOWCASE */}
+        {/* 7. MEMORIES PHOTO SHOWCASE */}
         <div className="space-y-6 sm:space-y-8 pt-6 border-t border-gray-200">
           <div className="text-center space-y-2">
             <h3 className="text-xl sm:text-3xl font-bold text-[#111111]">
-              {language === 'ta' ? 'எங்கள் பள்ளி வாழ்க்கையின் வரலாற்றுத் தருணங்கள்' : 'Glimpses of Our School History & Alumni Traditions'}
+              {language === 'ta' ? 'நமது பள்ளி வாழ்க்கையின் வரலாற்றுத் தருணங்கள்' : 'Glimpses of Our School History & Alumni Traditions'}
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {memories.map((photo) => (
               <div
                 key={photo.id}
@@ -387,6 +393,9 @@ export const PublicAbout: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* 8. ALL ASSOCIATION LEADERSHIP BOARD & OFFICE BEARERS (Paginated) */}
+        <AlumniAssociationSection isHomePage={false} pageSize={8} />
 
       </div>
 

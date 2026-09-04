@@ -76,7 +76,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
           
           {/* LEFT SIDE HERO / ANNOUNCEMENT FEATURE BLOCK WITH mic.png BACKGROUND GRAPHIC */}
-          <div className="lg:col-span-4 relative bg-gradient-to-br from-[#111111] via-[#1c1917] to-[#854D0E] text-white rounded-3xl p-6 sm:p-8 overflow-hidden border-2 border-[#111111] shadow-[8px_8px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all flex flex-col justify-between min-h-[380px] group">
+          <div className="lg:col-span-4 relative bg-gradient-to-br from-[#111111] via-[#1c1917] to-[#854D0E] text-white rounded-3xl p-6 sm:p-8 overflow-hidden border-2 border-[#111111] shadow-[8px_8px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all flex flex-col justify-between min-h-[300px] sm:min-h-[380px] group">
             {/* Background Megaphone Graphic (mic.png) */}
             <div className="absolute -right-8 -bottom-8 w-64 sm:w-76 h-64 sm:h-76 opacity-30 sm:opacity-40 pointer-events-none transform rotate-12 group-hover:scale-105 transition-transform duration-500">
               <img

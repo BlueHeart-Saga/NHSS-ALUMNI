@@ -59,10 +59,10 @@ export const AlumniSchoolEventsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#111111] via-[#1E1E1E] to-[#2A2A2A] text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#111111] via-[#1E1E1E] to-[#2A2A2A] text-white p-5 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-2">
           
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
             {language === 'ta' ? 'பள்ளி விழாக்கள் & கொண்டாட்டங்கள்' : 'School Events & Celebrations'}
           </h2>
           <p className="text-xs sm:text-sm text-gray-300 max-w-2xl">
@@ -100,7 +100,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
           </p>
         </div>
       ) : filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredEvents.map(event => {
             const displayTitle = language === 'ta' ? (event.title_ta || event.title) : event.title;
             const displayDesc = language === 'ta' ? (event.description_ta || event.description) : event.description;
@@ -109,7 +109,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
             return (
               <div key={event.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-all group">
                 <div>
-                  <div className="h-44 bg-[#FFF7D6] relative overflow-hidden">
+                  <div className="h-40 sm:h-44 bg-[#FFF7D6] relative overflow-hidden">
                     <img
                       src={coverImg || '/school-images/banner.png'}
                       alt={displayTitle}
@@ -125,7 +125,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-5 space-y-3">
+                  <div className="p-4 sm:p-5 space-y-3">
                     <h3 className="font-extrabold text-sm text-[#111111] group-hover:text-amber-800 transition-colors line-clamp-2">
                       {displayTitle}
                     </h3>
@@ -160,7 +160,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-5 pt-0">
+                <div className="p-4 sm:p-5 pt-0">
                   <button
                     onClick={() => setSelectedEvent(event)}
                     className="w-full py-2.5 bg-[#FAFAFA] hover:bg-[#F3F4F6] text-[#111111] font-bold text-xs rounded-xl border border-[#E5E7EB] transition-all flex items-center justify-center space-x-1.5"
@@ -174,7 +174,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E5E7EB] text-center space-y-3">
+        <div className="bg-white p-8 sm:p-12 rounded-2xl border border-dashed border-[#E5E7EB] text-center space-y-3">
           <Calendar className="w-10 h-10 text-gray-400 mx-auto" />
           <h3 className="font-bold text-sm text-[#111111]">{language === 'ta' ? 'பள்ளி விழாக்கள் எதுவும் இல்லை' : 'No School Events Found'}</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto">
@@ -192,7 +192,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
       {/* Event Detail View Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-none">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-none">
             <button
               onClick={() => setSelectedEvent(null)}
               className="absolute top-5 right-5 text-gray-400 hover:text-[#111111] p-1 rounded-full hover:bg-gray-100 transition-all"
@@ -200,7 +200,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="h-48 rounded-2xl overflow-hidden bg-[#FFF7D6] relative border border-gray-200">
+            <div className="h-44 sm:h-48 rounded-2xl overflow-hidden bg-[#FFF7D6] relative border border-gray-200">
               <img
                 src={(language === 'ta' ? selectedEvent.cover_image_url_ta : selectedEvent.cover_image_url) || selectedEvent.cover_image_url || '/school-images/banner.png'}
                 alt={selectedEvent.title}
@@ -212,11 +212,11 @@ export const AlumniSchoolEventsPage: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-extrabold text-lg text-[#111111]">
+              <h3 className="font-extrabold text-base sm:text-lg text-[#111111]">
                 {language === 'ta' ? (selectedEvent.title_ta || selectedEvent.title) : selectedEvent.title}
               </h3>
 
-              <div className="grid grid-cols-2 gap-3 text-xs bg-[#FAFAFA] p-3.5 rounded-2xl border border-[#E5E7EB]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#FAFAFA] p-3.5 rounded-2xl border border-[#E5E7EB]">
                 <div>
                   <span className="text-gray-500 font-semibold block text-[10px]">{language === 'ta' ? 'தேதி' : 'EVENT DATE'}</span>
                   <span className="font-bold text-[#111111]">{selectedEvent.event_date}</span>
@@ -255,7 +255,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
                     <ImageIcon className="w-4 h-4 text-amber-700" />
                     <span>{language === 'ta' ? 'புகைப்படங்கள்' : 'Event Photo Highlights'}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {selectedEvent.gallery_urls.map((img, i) => (
                       <img key={i} src={img} alt="Event highlight" className="h-20 w-full object-cover rounded-xl border border-gray-200" />
                     ))}

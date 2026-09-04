@@ -187,30 +187,30 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
             )}
 
             {/* OPEN STATS (MEMBERS COUNT, CITIES COUNT, EVENTS COUNT) */}
-            <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto pt-8 border-t border-gray-200 text-center">
-              <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-6 max-w-2xl mx-auto pt-6 sm:pt-8 border-t border-gray-200 text-center">
+              <div className="p-2.5 sm:p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="text-xl sm:text-3xl font-extrabold text-[#111111]">
                   {activeResult.total_members || 0}
                 </div>
-                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
+                <div className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'உறுப்பினர்கள்' : 'Members'}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
+              <div className="p-2.5 sm:p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="text-xl sm:text-3xl font-extrabold text-[#111111]">
                   {activeResult.cities_count || 0}
                 </div>
-                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
+                <div className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'நகரங்கள்' : 'Cities'}
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111111]">
+              <div className="p-2.5 sm:p-4 bg-gray-50/80 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="text-xl sm:text-3xl font-extrabold text-[#111111]">
                   {activeResult.upcoming_events_count || 0}
                 </div>
-                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
+                <div className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider mt-1">
                   {language === 'ta' ? 'நிகழ்வுகள்' : 'Events'}
                 </div>
               </div>
@@ -221,7 +221,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
               <button
                 type="button"
                 onClick={() => onSelectBatch(activeResult.passing_year)}
-                className="inline-flex items-center space-x-3 py-4 px-10 bg-[#111111] hover:bg-black text-white font-bold text-sm uppercase tracking-wider rounded-2xl shadow-xl transition-all border border-gray-800 cursor-pointer transform hover:-translate-y-0.5"
+                className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 sm:space-x-3 py-3.5 sm:py-4 px-6 sm:px-10 bg-[#111111] hover:bg-black text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-xl transition-all border border-gray-800 cursor-pointer transform hover:-translate-y-0.5"
               >
                 <span>{language === 'ta' ? `${activeResult.passing_year} ஆம் ஆண்டு மாணவர்கள் பட்டியல் பார்க்க` : `View All ${activeResult.passing_year} Batch Members`}</span>
                 <ArrowRight className="w-4 h-4 text-white" />

@@ -569,10 +569,10 @@ export const AlumniRegister: React.FC = () => {
 
       await api.register(payload);
       await alertService.showSuccess(
-        language === 'ta' ? 'பதிவு வெற்றிகரமாகச் சமர்ப்பிக்கப்பட்டது!' : 'Registration Submitted Successfully!',
+        language === 'ta' ? 'பதிவு முடிந்தது & மின்னஞ்சல் அனுப்பப்பட்டது! 📧' : 'Registration Submitted & Confirmation Email Sent! 📧',
         language === 'ta'
-          ? 'உங்கள் பழைய மாணவர் விவரங்கள் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகியின் அனுமதிக்காகக் காத்திருக்கிறது.'
-          : 'Your alumni profile has been registered and submitted for School Admin verification. Redirecting to portal...'
+          ? 'நன்றி! உங்கள் பதிவு பெறப்பட்டது. உறுதிப்படுத்தல் மின்னஞ்சல் அனுப்பப்பட்டுள்ளது. பள்ளி நிர்வாகத்தின் சரிபார்ப்புக்காகக் காத்திருக்கவும். சரிபார்க்கப்பட்டதும் மின்னஞ்சல் அறிவிப்பு மற்றும் போர்டல் அணுகல் வழங்கப்படும்.'
+          : 'Thank you for registering! A confirmation email has been sent. Your profile is now awaiting School Admin verification. Once verified, you will receive an approval email and full portal access.'
       );
       navigate('/alumni');
     } catch (err: any) {
@@ -632,12 +632,35 @@ export const AlumniRegister: React.FC = () => {
 
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
+
+        {/* Mobile Compact Progress Header (Visible on Mobile & Tablet < 1024px) */}
+        <div className="lg:hidden bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-sm space-y-3 mb-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 min-w-0">
+              <span className="text-xs font-extrabold uppercase tracking-wider bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-2.5 py-1 rounded-full shrink-0">
+                {language === 'ta' ? `படி ${step} / 6` : `Step ${step} of 6`}
+              </span>
+              <span className="text-xs font-bold text-[#111111] truncate">{stepsList[step - 1].label}</span>
+            </div>
+            <div className="shrink-0">
+              <LanguageSelector />
+            </div>
+          </div>
+          
+          {/* Mobile Progress Bar Line */}
+          <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+            <div 
+              className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
+              style={{ width: `${(step / 6) * 100}%` }}
+            />
+          </div>
+        </div>
+
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-
-          {/* LEFT SIDEBAR: Navigation Progress Tracker */}
-          <div className="lg:col-span-4 sticky top-6 space-y-6">
+          {/* LEFT SIDEBAR: Navigation Progress Tracker (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-4 sticky top-6 space-y-6">
             <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 gap-2">
                 <div className="flex items-center space-x-3 min-w-0">
@@ -653,9 +676,9 @@ export const AlumniRegister: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="shrink-0">
+                {/* <div className="shrink-0">
                   <LanguageSelector />
-                </div>
+                </div> */}
               </div>
 
 
@@ -1628,8 +1651,8 @@ export const AlumniRegister: React.FC = () => {
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <Button type="button" variant="secondary" onClick={() => goToStep(5)}>
+                  <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-gray-100">
+                    <Button type="button" variant="secondary" onClick={() => goToStep(5)} className="w-full sm:w-auto">
                       <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'திருத்த பின்செல்ல' : 'Back to Edit'}
                     </Button>
                     <Button
@@ -1637,7 +1660,7 @@ export const AlumniRegister: React.FC = () => {
                       onClick={handleFinalRegister}
                       isLoading={loading}
                       disabled={!agreeTerms}
-                      className="font-bold py-3 px-8"
+                      className="w-full sm:w-auto font-bold py-3 px-8"
                     >
                       <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பதிவைச் சமர்ப்பிக்கவும்' : 'Submit Official Registration'}</span>
                       <ShieldCheck className="w-4 h-4 ml-2" />

@@ -817,6 +817,24 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         "timestamp": now
     })
 
+    # Dispatch Registration Thank-You Email asynchronously in background
+    reg_email = str(request.email) if request.email else alumni.get("email")
+    if reg_email:
+        import asyncio
+        from app.services.email import send_registration_thank_you_email
+        alumni_name = alumni.get("full_name", "Alumnus")
+        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHSS SCHOOL")
+
+        if school_id:
+            try:
+                s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
+                if s_doc and s_doc.get("name"):
+                    school_name = s_doc["name"]
+            except Exception:
+                pass
+
+        asyncio.create_task(asyncio.to_thread(send_registration_thank_you_email, reg_email, alumni_name, school_name))
+
     return UserProfileResponse(
         id=str(alumni["_id"]),
         user_id=user_id,

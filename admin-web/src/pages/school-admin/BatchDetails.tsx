@@ -195,7 +195,7 @@ export const BatchDetails: React.FC = () => {
       </button>
 
       {/* Batch Hero Header */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div>
           <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full border border-[#F4C542]/60">
             CLASS OF {batch.passing_year} COHORT
@@ -204,8 +204,8 @@ export const BatchDetails: React.FC = () => {
           <p className="text-xs text-[#6B7280] mt-1">{batch.description || 'Verified Batch Cohort'}</p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <Button onClick={() => openAssignModalForAlumni()}>
+        <div className="flex items-center w-full sm:w-auto">
+          <Button onClick={() => openAssignModalForAlumni()} className="w-full sm:w-auto">
             <ShieldCheck className="w-4 h-4 mr-1.5" />
             Assign Committee Position
           </Button>
@@ -213,7 +213,7 @@ export const BatchDetails: React.FC = () => {
       </div>
 
       {/* BATCH COMMITTEE STRUCTURE OVERVIEW (15 POSITIONS) */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-4 sm:p-8 space-y-6 shadow-xs">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
           <div>
             <div className="flex items-center space-x-2">

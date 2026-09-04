@@ -53,9 +53,8 @@ const EventImage: React.FC<{
           setError(true);
           setLoaded(true);
         }}
-        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
-          loaded ? 'opacity-100' : 'opacity-0'
-        } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${loaded ? 'opacity-100' : 'opacity-0'
+          } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
       />
     </div>
   );
@@ -68,7 +67,7 @@ export const PublicEvents: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
   const [pastEvents, setPastEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'UPCOMING' | 'PAST'>('ALL');
@@ -90,7 +89,7 @@ export const PublicEvents: React.FC = () => {
           setLoading(false);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -101,7 +100,7 @@ export const PublicEvents: React.FC = () => {
           setPastEvents(pastData);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       active = false;
@@ -139,7 +138,7 @@ export const PublicEvents: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#111111] animate-fadeIn font-sans">
-      
+
       {/* 1. HERO HEADER */}
       <div className="py-12 sm:py-20 bg-white border-b border-[#E5E7EB] relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5 relative z-10">
@@ -154,7 +153,7 @@ export const PublicEvents: React.FC = () => {
 
           <p className="text-base sm:text-xl text-gray-600 font-normal max-w-2xl mx-auto leading-relaxed">
             {language === 'ta'
-              ? 'எங்கள் பள்ளியின் வரலாற்றுச் சிறப்புமிக்க விழாக்கள், வகுப்பு மறுசந்திப்புகள் மற்றும் சிறப்பு நிகழ்வுகளில் பங்கேற்கவும்.'
+              ? 'நமது பள்ளியின் வரலாற்றுச் சிறப்புமிக்க விழாக்கள், வகுப்பு மறுசந்திப்புகள் மற்றும் சிறப்பு நிகழ்வுகளில் பங்கேற்கவும்.'
               : 'Discover upcoming alumni reunions, centenary celebrations, and past event recaps of Natarajan Higher Secondary School.'}
           </p>
 
@@ -175,33 +174,30 @@ export const PublicEvents: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('ALL')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'ALL'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'ALL'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta' ? `அனைத்தும் (${allCombined.length})` : `All (${allCombined.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('UPCOMING')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'UPCOMING'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'UPCOMING'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta' ? `வரவிருப்பவை (${upcomingEvents.length})` : `Upcoming (${upcomingEvents.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('PAST')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'PAST'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'PAST'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta' ? `கடந்தகாலவை (${pastEvents.length})` : `Past Events (${pastEvents.length})`}
               </button>
@@ -278,11 +274,10 @@ export const PublicEvents: React.FC = () => {
 
                       {/* Status Badge Tag */}
                       <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
-                        <span className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${
-                          event.isPast
+                        <span className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${event.isPast
                             ? 'bg-gray-900 text-gray-300 border-gray-700'
                             : 'bg-[#111111] text-[#F4C542] border-[#F4C542]'
-                        }`}>
+                          }`}>
                           {event.isPast ? (language === 'ta' ? 'கடந்த நிகழ்ச்சி' : 'Past Event') : (language === 'ta' ? 'வரவிருக்கும் நிகழ்ச்சி' : 'Upcoming Event')}
                         </span>
                       </div>

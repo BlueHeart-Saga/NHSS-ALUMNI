@@ -31,10 +31,10 @@ export const BatchCirclesSkeleton: React.FC = () => (
 );
 
 export const HighlightsSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-pulse">
     {[1, 2, 3, 4].map((i) => (
       <div key={i} className="bg-gray-100 border border-gray-200 rounded-3xl p-5 space-y-4 text-center flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-gray-200" />
+        <div className="w-24 h-24 rounded-full bg-gray-200" />
         <div className="h-5 bg-gray-200 rounded-md w-3/4" />
         <div className="h-4 bg-gray-200 rounded-md w-1/2" />
         <div className="h-3 bg-gray-200 rounded-md w-2/3" />
@@ -44,15 +44,15 @@ export const HighlightsSkeleton: React.FC = () => (
 );
 
 export const MemoriesSkeleton: React.FC = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 animate-pulse">
-    {[1, 2, 3, 4, 5, 6].map((i) => (
-      <div key={i} className="h-44 sm:h-52 bg-gray-200 rounded-2xl border border-gray-300" />
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 animate-pulse">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="h-60 sm:h-72 bg-gray-200 rounded-2xl border border-gray-300" />
     ))}
   </div>
 );
 
 export const NewsSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-pulse">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 animate-pulse">
     {[1, 2, 3].map((i) => (
       <div key={i} className="bg-gray-100 border border-gray-200 rounded-3xl p-6 space-y-4">
         <div className="h-4 bg-gray-200 rounded-md w-1/4" />
@@ -64,9 +64,9 @@ export const NewsSkeleton: React.FC = () => (
 );
 
 export const StatsSkeleton: React.FC = () => (
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 animate-pulse">
     {[1, 2, 3, 4].map((i) => (
-      <div key={i} className="bg-gray-100 border border-gray-200 rounded-3xl p-6 text-center space-y-2">
+      <div key={i} className="bg-gray-100 border border-gray-200 rounded-3xl p-4 text-center space-y-2">
         <div className="h-8 bg-gray-200 rounded-md w-1/2 mx-auto" />
         <div className="h-4 bg-gray-200 rounded-md w-3/4 mx-auto" />
       </div>

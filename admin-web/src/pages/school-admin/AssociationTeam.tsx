@@ -22,6 +22,28 @@ const COMMON_POSITIONS = [
   'Other'
 ];
 
+const POSITION_TA_HINTS: Record<string, string> = {
+  'President': 'President (தலைவர்)',
+  'Vice President': 'Vice President (துணைத் தலைவர்)',
+  'Secretary': 'Secretary (செயலாளர்)',
+  'Joint Secretary': 'Joint Secretary (இணைச் செயலாளர்)',
+  'Treasurer': 'Treasurer (பொருளாளர்)',
+  'Executive Committee Member': 'Executive Committee Member (செயற்குழு உறுப்பினர்)',
+  'Other': 'Other (உறுப்பினர் பொறுப்பு)'
+};
+
+const getPositionDisplayWithTa = (position: string) => {
+  if (!position) return '';
+  const lower = position.toLowerCase();
+  if (lower.includes('president') || lower.includes('thalaivar')) return `${position} (தலைவர்)`;
+  if (lower.includes('vice president')) return `${position} (துணைத் தலைவர்)`;
+  if (lower.includes('secretary') || lower.includes('seyalalar')) return `${position} (செயலாளர்)`;
+  if (lower.includes('joint secretary')) return `${position} (இணைச் செயலாளர்)`;
+  if (lower.includes('treasurer') || lower.includes('porulalar')) return `${position} (பொருளாளர்)`;
+  if (lower.includes('committee') || lower.includes('member')) return `${position} (செயற்குழு)`;
+  return position;
+};
+
 export const AssociationTeam: React.FC = () => {
   const [teamList, setTeamList] = useState<AssociationTeamMember[]>([]);
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
@@ -283,7 +305,7 @@ export const AssociationTeam: React.FC = () => {
       accessor: (row: AssociationTeamMember) => (
         <div>
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-3 py-1 rounded-full inline-block">
-            {row.position}
+            {getPositionDisplayWithTa(row.position)}
           </span>
           {row.responsibility && <div className="text-xs text-[#6B7280] mt-1">{row.responsibility}</div>}
         </div>
@@ -302,7 +324,7 @@ export const AssociationTeam: React.FC = () => {
       accessor: (row: AssociationTeamMember) => (
         <div className="text-xs space-y-0.5">
           <div className="font-medium text-[#111111]">{row.mobile || row.email || 'N/A'}</div>
-          <div className="text-[#6B7280]">{row.location || 'Kovilpatti'}</div>
+          <div className="text-[#6B7280]">{row.location || 'Thoothukudi'}</div>
         </div>
       )
     },
@@ -364,14 +386,14 @@ export const AssociationTeam: React.FC = () => {
           </p>
         </div>
 
-        <Button onClick={openAddModal}>
+        <Button onClick={openAddModal} className="w-full sm:w-auto">
           <UserPlus className="w-4 h-4 mr-1.5" />
           + Add Team Member
         </Button>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 flex items-center space-x-4 shadow-xs">
           <div className="p-3 bg-[#FFF7D6] rounded-xl text-[#854D0E]">
             <Crown className="w-6 h-6" />
@@ -420,7 +442,7 @@ export const AssociationTeam: React.FC = () => {
       </div>
 
       {/* Directory Table Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-4 sm:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
           <h3 className="font-bold text-lg text-[#111111]">Association Leadership Directory ({filteredTeam.length})</h3>
 
@@ -533,7 +555,7 @@ export const AssociationTeam: React.FC = () => {
                         />
                         <div>
                           <div className="text-xs font-bold text-[#111111]">{a.full_name}</div>
-                          <div className="text-[10px] text-gray-500">Batch {a.passing_year} • {a.current_city || 'Kovilpatti'}</div>
+                          <div className="text-[10px] text-gray-500">Batch {a.passing_year} • {a.current_city || 'Thoothukudi'}</div>
                         </div>
                       </div>
                       <button
@@ -580,7 +602,7 @@ export const AssociationTeam: React.FC = () => {
               />
               <Input
                 label="Current Location / City"
-                placeholder="e.g. Kovilpatti / Chennai"
+                placeholder="e.g. Thoothukudi / Chennai"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -648,7 +670,7 @@ export const AssociationTeam: React.FC = () => {
                 >
                   {COMMON_POSITIONS.map((pos) => (
                     <option key={pos} value={pos}>
-                      {pos}
+                      {POSITION_TA_HINTS[pos] || pos}
                     </option>
                   ))}
                 </select>

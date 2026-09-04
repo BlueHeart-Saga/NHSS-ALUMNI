@@ -73,14 +73,14 @@ export const Batches: React.FC = () => {
           <p className="text-xs text-[#6B7280]">School passing year cohorts and assigned batch coordinators</p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <Input
             placeholder="🔍 Search batch year or name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
-          <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+          <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto shrink-0">
             <Plus className="w-4 h-4 mr-1.5" />
             Create New Batch
           </Button>

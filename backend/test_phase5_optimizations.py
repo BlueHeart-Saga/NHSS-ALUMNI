@@ -97,7 +97,7 @@ async def test_batches_optimizations():
                 "full_name": m.get("full_name", "Alumnus"),
                 "profile_photo_url": m.get("profile_photo_url"),
                 "profession": m.get("profession") or "Alumnus",
-                "current_city": m.get("current_city") or "Kovilpatti",
+                "current_city": m.get("current_city") or "Thoothukudi",
                 "passing_year": yr
             })
 

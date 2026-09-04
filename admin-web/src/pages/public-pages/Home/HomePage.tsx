@@ -9,7 +9,7 @@ import { AlumniHighlights } from './components/AlumniHighlights';
 import { MemoriesPreview } from './components/MemoriesPreview';
 import { SchoolNews } from './components/SchoolNews';
 import { SchoolAchieversSection } from './components/SchoolAchieversSection';
-// import { AlumniAssociationSection } from '../components/AlumniAssociationSection';
+import { AlumniAssociationSection } from '../components/AlumniAssociationSection';
 // import { JoinCTA } from './components/JoinCTA';
 
 import { Modal } from '../../../components/Modal';
@@ -166,13 +166,16 @@ export const HomePage: React.FC = () => {
         onSelectBatch={(year) => setIsRegisterModalOpen(true)}
       />
 
-      {/* 4. ALUMNI HIGHLIGHTS */}
+      {/* 4. ALUMNI ASSOCIATION TEAM (Top 3 Office Bearers: Thalaivar, Seyalalar, Porulalar) */}
+      <AlumniAssociationSection isHomePage={true} />
+
+      {/* 5. ALUMNI HIGHLIGHTS */}
       <AlumniHighlights
         highlights={highlights}
         loading={loadingHighlights}
       />
 
-      {/* 5. MEMORIES GALLERY */}
+      {/* 6. MEMORIES GALLERY */}
       <MemoriesPreview
         memories={memories}
         loading={loadingMemories}
@@ -180,14 +183,14 @@ export const HomePage: React.FC = () => {
         onSelectMemory={(memory) => setSelectedMemory(memory)}
       />
 
-      {/* 6. FROM OUR SCHOOL (News & Announcements) */}
+      {/* 7. FROM OUR SCHOOL (News & Announcements) */}
       <SchoolNews
         announcements={announcements}
         loading={loadingNews}
         onSelectNews={(news) => setSelectedNews(news)}
       />
 
-      {/* 7. COMMUNITY STATISTICS (MongoDB Powered - Moved to Last) */}
+      {/* 8. COMMUNITY STATISTICS (MongoDB Powered - Moved to Last) */}
       <CommunityStats
         totalAlumni={stats.total_alumni}
         totalBatches={stats.total_batches}

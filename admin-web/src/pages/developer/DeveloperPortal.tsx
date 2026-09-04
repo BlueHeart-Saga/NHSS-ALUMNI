@@ -4,7 +4,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Badge } from '../../components/Badge';
-import { LoadingState } from '../../components/EmptyState';
+import { LoadingState, StatsGridSkeleton, TableSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { AlumniProfile } from '../../types';
 
@@ -269,7 +269,14 @@ export const DeveloperPortal: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <StatsGridSkeleton count={4} />
+        <TableSkeleton rows={6} />
+      </div>
+    );
+  }
 
   const totalAdmins = schoolsList.reduce((acc, s) => acc + (s.admin_count || 0), 0);
   const totalAlumni = schoolsList.reduce((acc, s) => acc + (s.alumni_count || 0), 0);

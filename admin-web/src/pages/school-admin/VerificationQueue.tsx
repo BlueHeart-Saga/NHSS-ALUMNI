@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { UserCheck, Check, X, ShieldAlert } from 'lucide-react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import { EmptyState, LoadingState } from '../../components/EmptyState';
+import { EmptyState, LoadingState, TableSkeleton } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
 import { api } from '../../services/api';
@@ -42,8 +42,8 @@ export const VerificationQueue: React.FC = () => {
     try {
       await api.verifyAlumni(selectedAlumni.id, reviewAction, notes);
       alertService.showSuccess(
-        reviewAction === 'APPROVED' ? 'Alumni Approved' : 'Application Rejected',
-        `Alumni registration for ${selectedAlumni.full_name} has been ${reviewAction === 'APPROVED' ? 'approved' : 'rejected'} successfully.`
+        reviewAction === 'APPROVED' ? 'Alumni Approved & Verification Email Sent' : 'Application Rejected',
+        `Alumni registration for ${selectedAlumni.full_name} has been ${reviewAction === 'APPROVED' ? 'approved and notification email dispatched' : 'rejected'} successfully.`
       );
       setSelectedAlumni(null);
       setReviewAction(null);
@@ -56,7 +56,7 @@ export const VerificationQueue: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingState />;
+  if (loading) return <TableSkeleton rows={6} />;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -95,9 +95,9 @@ export const VerificationQueue: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 pt-2 border-t border-[#E5E7EB]">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-[#E5E7EB]">
                 <Button
-                  className="flex-1"
+                  className="flex-1 w-full sm:w-auto"
                   onClick={() => {
                     setSelectedAlumni(item);
                     setReviewAction('APPROVED');
@@ -109,7 +109,7 @@ export const VerificationQueue: React.FC = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                  className="text-rose-600 hover:bg-rose-50 border-rose-200 w-full sm:w-auto"
                   onClick={() => {
                     setSelectedAlumni(item);
                     setReviewAction('REJECTED');

@@ -128,15 +128,15 @@ export const AlumniProfilePage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans text-[#111111]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-[#111111]">My Alumni Profile</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-[#111111]">My Alumni Profile</h2>
           <p className="text-xs text-[#6B7280]">Manage your personal, education, employment details and privacy settings</p>
         </div>
         <button
           onClick={handleSaveProfile}
           disabled={isSaving}
-          className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+          className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-xl text-xs font-bold shadow-sm transition-all shrink-0"
         >
           {isSaving ? (
             <>
@@ -176,8 +176,8 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 1: PERSONAL INFORMATION */}
       {profileSubTab === 'personal' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-6">
-          <div className="flex items-center space-x-5">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5">
             <div className="w-20 h-20 rounded-full bg-[#FFF7D6] border-2 border-[#F4C542] overflow-hidden flex items-center justify-center shrink-0 relative">
               {profileForm.profile_photo_url ? (
                 <img src={profileForm.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
@@ -278,7 +278,7 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 2: EDUCATION / SCHOOL DETAILS */}
       {profileSubTab === 'education' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-[#374151] mb-1">School Name</label>
@@ -348,7 +348,7 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 3: CURRENT EMPLOYMENT */}
       {profileSubTab === 'employment' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-[#374151] mb-1">Current Profession / Title</label>
@@ -398,10 +398,10 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 4: SKILLS & INTERESTS */}
       {profileSubTab === 'skills' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-6 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-6 text-xs">
           <div>
             <label className="block font-semibold text-[#374151] mb-2">Technical & Professional Skills</label>
-            <div className="flex items-center space-x-2 mb-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3">
               <input
                 type="text"
                 value={newSkillInput}
@@ -413,7 +413,7 @@ export const AlumniProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddSkill}
-                className="px-4 py-2.5 bg-[#111111] text-white font-bold rounded-xl hover:bg-gray-800"
+                className="w-full sm:w-auto px-4 py-2.5 bg-[#111111] text-white font-bold rounded-xl hover:bg-gray-800 shrink-0 text-center"
               >
                 Add Skill
               </button>
@@ -434,7 +434,7 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 5: SOCIAL / PROFESSIONAL LINKS */}
       {profileSubTab === 'social' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
           <div>
             <label className="block font-semibold text-[#374151] mb-1">LinkedIn Profile URL</label>
             <input
@@ -460,7 +460,7 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 6: PROFILE VISIBILITY */}
       {profileSubTab === 'visibility' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
           <div className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-xl border border-[#E5E7EB]">
             <div>
               <h4 className="font-bold text-[#111111]">Make Email Address Visible to Alumni</h4>

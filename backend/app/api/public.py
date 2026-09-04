@@ -309,7 +309,7 @@ async def get_public_batches(response: Response):
                 "full_name": m.get("full_name", "Alumnus"),
                 "profile_photo_url": m.get("profile_photo_url"),
                 "profession": m.get("profession") or "Alumnus",
-                "current_city": m.get("current_city") or "Kovilpatti",
+                "current_city": m.get("current_city") or "Thoothukudi",
                 "passing_year": yr
             })
 
@@ -542,5 +542,79 @@ async def get_public_rank_holders():
             "photograph": d.get("photograph"),
             "description": d.get("description"),
             "status": d.get("status", "Active")
+        })
+    return res
+
+@router.get("/school-staff")
+async def get_public_school_staff():
+    """Public endpoint to fetch active current school staff and management hierarchy."""
+    db = get_db()
+    cursor = db.school_staff.find({
+        "$or": [
+            {"staff_type": "CURRENT"},
+            {"is_former": False},
+            {"staff_type": {"$exists": False}}
+        ],
+        "status": {"$ne": "INACTIVE"}
+    }).sort("created_at", -1)
+    docs = await cursor.to_list(length=200)
+
+    res = []
+    for s in docs:
+        res.append({
+            "id": str(s["_id"]),
+            "full_name": s.get("full_name"),
+            "full_name_ta": s.get("full_name_ta"),
+            "school_position": s.get("school_position", "Teacher"),
+            "school_position_ta": s.get("school_position_ta"),
+            "department": s.get("department"),
+            "department_ta": s.get("department_ta"),
+            "designation": s.get("designation"),
+            "designation_ta": s.get("designation_ta"),
+            "staff_id": s.get("staff_id"),
+            "profile_photo_url": s.get("profile_photo_url"),
+            "staff_type": "CURRENT",
+            "service_start_year": s.get("service_start_year"),
+            "service_end_year": s.get("service_end_year"),
+            "achievements": s.get("achievements"),
+            "achievements_ta": s.get("achievements_ta"),
+            "notes": s.get("notes"),
+            "notes_ta": s.get("notes_ta")
+        })
+    return res
+
+@router.get("/old-staff")
+async def get_public_old_staff():
+    """Public endpoint to fetch honoured former/old school staff & legendary teachers."""
+    db = get_db()
+    cursor = db.school_staff.find({
+        "$or": [
+            {"staff_type": "PAST"},
+            {"is_former": True}
+        ]
+    }).sort([("service_end_year", -1), ("created_at", -1)])
+    docs = await cursor.to_list(length=200)
+
+    res = []
+    for s in docs:
+        res.append({
+            "id": str(s["_id"]),
+            "full_name": s.get("full_name"),
+            "full_name_ta": s.get("full_name_ta"),
+            "school_position": s.get("school_position", "Former Teacher"),
+            "school_position_ta": s.get("school_position_ta"),
+            "department": s.get("department"),
+            "department_ta": s.get("department_ta"),
+            "designation": s.get("designation"),
+            "designation_ta": s.get("designation_ta"),
+            "staff_id": s.get("staff_id"),
+            "profile_photo_url": s.get("profile_photo_url"),
+            "staff_type": "PAST",
+            "service_start_year": s.get("service_start_year"),
+            "service_end_year": s.get("service_end_year"),
+            "achievements": s.get("achievements"),
+            "achievements_ta": s.get("achievements_ta"),
+            "notes": s.get("notes"),
+            "notes_ta": s.get("notes_ta")
         })
     return res

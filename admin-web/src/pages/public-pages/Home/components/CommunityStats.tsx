@@ -65,7 +65,7 @@ export const CommunityStats: React.FC<StatsProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
+                className="bg-white p-3.5 sm:p-8 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group"
               >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-[#F4C542]/20 flex items-center justify-center text-[#854D0E] group-hover:bg-[#F4C542] group-hover:text-[#111111] transition-colors shrink-0">

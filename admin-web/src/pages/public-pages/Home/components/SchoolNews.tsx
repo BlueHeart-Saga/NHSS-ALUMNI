@@ -31,7 +31,7 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, 
         {loading ? (
           <NewsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
           {announcements.map((item) => (
             <div
               key={item.id}

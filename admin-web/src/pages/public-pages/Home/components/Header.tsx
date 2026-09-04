@@ -79,11 +79,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* DIRECT INLINE LANGUAGE TOGGLE SWITCH */}
-          <div className="inline-flex items-center bg-gray-100 p-1 rounded-2xl border-2 border-[#E5E7EB] shadow-2xs">
+          <div className="inline-flex items-center bg-gray-100 p-0.5 sm:p-1 rounded-2xl border-2 border-[#E5E7EB] shadow-2xs">
             <button
               type="button"
               onClick={() => setLanguage('ta')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                 language === 'ta'
                   ? 'bg-[#111111] text-[#F4C542] shadow-sm border border-[#F4C542]/50 scale-[1.02]'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                 language === 'en'
                   ? 'bg-[#111111] text-[#F4C542] shadow-sm border border-[#F4C542]/50 scale-[1.02]'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'

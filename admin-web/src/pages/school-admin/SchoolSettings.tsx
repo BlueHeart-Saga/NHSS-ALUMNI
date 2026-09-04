@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Save, School, Shield, Users, UserPlus, Image as ImageIcon, Upload, 
-  ToggleLeft, ToggleRight, Trash2, Edit, CheckCircle2, ChevronRight, Crown, Briefcase 
+  ToggleLeft, ToggleRight, Trash2, Edit, CheckCircle2, ChevronRight, Crown, Briefcase,
+  UserCheck, Award, History, UserX
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input, Select } from '../../components/Input';
@@ -77,20 +78,30 @@ export const SchoolSettings: React.FC = () => {
   const [eventReg, setEventReg] = useState(true);
   const [announcementNotif, setAnnouncementNotif] = useState(true);
 
-  // Staff Modal States
+  // Staff Modal & Filter States
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [staffTypeTab, setStaffTypeTab] = useState<'CURRENT' | 'PAST' | 'ALL'>('CURRENT');
+  const [staffTypeSelect, setStaffTypeSelect] = useState<'CURRENT' | 'PAST'>('CURRENT');
   const [staffFullName, setStaffFullName] = useState('');
+  const [staffFullNameTa, setStaffFullNameTa] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffMobile, setStaffMobile] = useState('');
   const [staffPositionSelect, setStaffPositionSelect] = useState<string>('Principal');
+  const [staffPositionTa, setStaffPositionTa] = useState('');
   const [customPositionTitle, setCustomPositionTitle] = useState('');
   const [staffDepartment, setStaffDepartment] = useState('');
+  const [staffDepartmentTa, setStaffDepartmentTa] = useState('');
   const [staffDesignation, setStaffDesignation] = useState('');
   const [staffEmployeeId, setStaffEmployeeId] = useState('');
   const [staffPhotoUrl, setStaffPhotoUrl] = useState('');
+  const [staffServiceStartYear, setStaffServiceStartYear] = useState<number | ''>('');
+  const [staffServiceEndYear, setStaffServiceEndYear] = useState<number | ''>('');
+  const [staffAchievements, setStaffAchievements] = useState('');
+  const [staffAchievementsTa, setStaffAchievementsTa] = useState('');
   const [staffStatus, setStaffStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [staffNotes, setStaffNotes] = useState('');
+  const [staffNotesTa, setStaffNotesTa] = useState('');
   const [savingStaff, setSavingStaff] = useState(false);
 
   useEffect(() => {
@@ -224,49 +235,67 @@ export const SchoolSettings: React.FC = () => {
     }
   };
 
-  const openAddStaffModal = () => {
+  const openAddStaffModal = (defaultType: 'CURRENT' | 'PAST' = 'CURRENT') => {
     setEditingStaffId(null);
+    setStaffTypeSelect(defaultType);
     setStaffFullName('');
+    setStaffFullNameTa('');
     setStaffEmail('');
     setStaffMobile('');
     setStaffPositionSelect('Principal');
+    setStaffPositionTa('');
     setCustomPositionTitle('');
     setStaffDepartment('');
+    setStaffDepartmentTa('');
     setStaffDesignation('');
     setStaffEmployeeId('');
     setStaffPhotoUrl('');
+    setStaffServiceStartYear('');
+    setStaffServiceEndYear('');
+    setStaffAchievements('');
+    setStaffAchievementsTa('');
     setStaffStatus('ACTIVE');
     setStaffNotes('');
+    setStaffNotesTa('');
     setIsStaffModalOpen(true);
   };
 
-  const openEditStaffModal = (s: SchoolStaffMember) => {
+  const openEditStaffModal = (s: any) => {
     setEditingStaffId(s.id);
-    setStaffFullName(s.full_name);
-    setStaffEmail(s.email);
-    setStaffMobile(s.mobile);
+    setStaffTypeSelect((s.staff_type || (s.is_former ? 'PAST' : 'CURRENT')).toUpperCase() as 'CURRENT' | 'PAST');
+    setStaffFullName(s.full_name || '');
+    setStaffFullNameTa(s.full_name_ta || '');
+    setStaffEmail(s.email || '');
+    setStaffMobile(s.mobile || '');
 
     if (STANDARD_POSITIONS.includes(s.school_position)) {
       setStaffPositionSelect(s.school_position);
       setCustomPositionTitle('');
     } else {
       setStaffPositionSelect('Other');
-      setCustomPositionTitle(s.school_position);
+      setCustomPositionTitle(s.school_position || '');
     }
+    setStaffPositionTa(s.school_position_ta || '');
 
     setStaffDepartment(s.department || '');
+    setStaffDepartmentTa(s.department_ta || '');
     setStaffDesignation(s.designation || '');
     setStaffEmployeeId(s.staff_id || '');
     setStaffPhotoUrl(s.profile_photo_url || '');
-    setStaffStatus(s.status);
+    setStaffServiceStartYear(s.service_start_year || '');
+    setStaffServiceEndYear(s.service_end_year || '');
+    setStaffAchievements(s.achievements || '');
+    setStaffAchievementsTa(s.achievements_ta || '');
+    setStaffStatus(s.status || 'ACTIVE');
     setStaffNotes(s.notes || '');
+    setStaffNotesTa(s.notes_ta || '');
     setIsStaffModalOpen(true);
   };
 
   const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffFullName || !staffEmail || !staffMobile) {
-      alertService.showWarning('Required Fields', 'Please complete all required fields (*).');
+    if (!staffFullName) {
+      alertService.showWarning('Required Field', 'Please enter Full Name.');
       return;
     }
 
@@ -276,38 +305,65 @@ export const SchoolSettings: React.FC = () => {
 
     setSavingStaff(true);
     try {
-      const payload: Partial<SchoolStaffMember> = {
+      const payload: any = {
         full_name: staffFullName,
-        email: staffEmail,
-        mobile: staffMobile,
-        school_position: finalPosition as SchoolPositionType,
-        department: staffDepartment,
-        designation: staffDesignation,
-        staff_id: staffEmployeeId,
-        profile_photo_url: staffPhotoUrl,
+        full_name_ta: staffFullNameTa || undefined,
+        email: staffEmail || undefined,
+        mobile: staffMobile || undefined,
+        school_position: finalPosition,
+        school_position_ta: staffPositionTa || undefined,
+        department: staffDepartment || undefined,
+        department_ta: staffDepartmentTa || undefined,
+        designation: staffDesignation || undefined,
+        staff_id: staffEmployeeId || undefined,
+        profile_photo_url: staffPhotoUrl || undefined,
+        staff_type: staffTypeSelect,
+        service_start_year: staffServiceStartYear ? Number(staffServiceStartYear) : undefined,
+        service_end_year: staffServiceEndYear ? Number(staffServiceEndYear) : undefined,
+        achievements: staffAchievements || undefined,
+        achievements_ta: staffAchievementsTa || undefined,
+        is_former: staffTypeSelect === 'PAST',
         status: staffStatus,
-        notes: staffNotes
+        notes: staffNotes || undefined,
+        notes_ta: staffNotesTa || undefined
       };
 
       if (editingStaffId) {
         await api.updateSchoolStaff(editingStaffId, payload);
-        alertService.showSuccess('Staff Updated', `${staffFullName} profile details updated.`);
+        alertService.showSuccess('Staff Record Updated', `${staffFullName} details updated.`);
       } else {
         await api.createSchoolStaff(payload);
-        alertService.showSuccess('School Person Added', `${staffFullName} added as ${finalPosition}.`);
+        alertService.showSuccess('Staff Added', `${staffFullName} added to ${staffTypeSelect === 'PAST' ? 'Former Staff Records' : 'Current Management'}.`);
       }
 
       setIsStaffModalOpen(false);
       loadAllData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to save school staff person.');
+      alertService.handleApiError(err, 'Failed to save staff record.');
     } finally {
       setSavingStaff(false);
     }
   };
 
+  const handleToggleStaffType = async (s: any) => {
+    const newType = (s.staff_type === 'PAST' || s.is_former) ? 'CURRENT' : 'PAST';
+    const targetLabel = newType === 'PAST' ? 'Former / Old Staff' : 'Current Active Staff';
+    if (!window.confirm(`Are you sure you want to move ${s.full_name} to ${targetLabel}?`)) return;
+
+    try {
+      await api.updateSchoolStaff(s.id, {
+        staff_type: newType,
+        is_former: newType === 'PAST'
+      });
+      alertService.showSuccess('Staff Status Moved', `${s.full_name} moved to ${targetLabel}.`);
+      loadAllData();
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to update staff status.');
+    }
+  };
+
   const handleDeleteStaff = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${name} from school management staff?`)) return;
+    if (!window.confirm(`Are you sure you want to remove ${name} from school staff records?`)) return;
     try {
       await api.deleteSchoolStaff(id);
       alertService.showSuccess('Staff Removed', `${name} removed successfully.`);
@@ -322,7 +378,7 @@ export const SchoolSettings: React.FC = () => {
   const staffColumns = [
     {
       header: 'School Person / Staff Member',
-      accessor: (row: SchoolStaffMember) => (
+      accessor: (row: any) => (
         <div className="flex items-center space-x-3">
           <img 
             src={row.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.full_name)}&background=FFF7D6&color=854D0E`} 
@@ -338,7 +394,7 @@ export const SchoolSettings: React.FC = () => {
     },
     {
       header: 'Designation / Position',
-      accessor: (row: SchoolStaffMember) => (
+      accessor: (row: any) => (
         <div>
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-3 py-1 rounded-full inline-block">
             {row.school_position}
@@ -348,25 +404,38 @@ export const SchoolSettings: React.FC = () => {
       )
     },
     {
+      header: 'Staff Category & Tenure',
+      accessor: (row: any) => {
+        const isPast = row.staff_type === 'PAST' || row.is_former;
+        return (
+          <div className="space-y-1">
+            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border inline-block ${
+              isPast 
+                ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                : 'bg-blue-100 text-blue-900 border-blue-300'
+            }`}>
+              {isPast ? 'Honoured Former Staff' : 'Current Staff'}
+            </span>
+            {(row.service_start_year || row.service_end_year) && (
+              <div className="text-[11px] font-semibold text-gray-600">
+                Service: {row.service_start_year || '?'} - {row.service_end_year || (isPast ? 'Retired' : 'Present')}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
       header: 'Department',
-      accessor: (row: SchoolStaffMember) => (
+      accessor: (row: any) => (
         <div className="text-xs font-semibold text-[#111111]">
           {row.department || 'General Administration'}
         </div>
       )
     },
     {
-      header: 'Contact Information',
-      accessor: (row: SchoolStaffMember) => (
-        <div className="text-xs space-y-0.5">
-          <div className="font-medium text-[#111111]">{row.email}</div>
-          <div className="text-[#6B7280]">{row.mobile}</div>
-        </div>
-      )
-    },
-    {
       header: 'Status',
-      accessor: (row: SchoolStaffMember) => (
+      accessor: (row: any) => (
         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
           row.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'
         }`}>
@@ -376,8 +445,15 @@ export const SchoolSettings: React.FC = () => {
     },
     {
       header: 'Action',
-      accessor: (row: SchoolStaffMember) => (
+      accessor: (row: any) => (
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => handleToggleStaffType(row)}
+            className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+            title={(row.staff_type === 'PAST' || row.is_former) ? "Restore to Current Staff" : "Move to Former Staff Records"}
+          >
+            <UserCheck className="w-4 h-4" />
+          </button>
           <button
             onClick={() => openEditStaffModal(row)}
             className="p-1.5 text-gray-600 hover:text-[#111111] hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
@@ -388,7 +464,7 @@ export const SchoolSettings: React.FC = () => {
           <button
             onClick={() => handleDeleteStaff(row.id, row.full_name)}
             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-            title="Delete Staff Person"
+            title="Delete Staff Record"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -408,10 +484,10 @@ export const SchoolSettings: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-[#E5E7EB] space-x-2 sm:space-x-4 bg-white p-2 rounded-2xl border shadow-xs">
+      <div className="flex flex-col sm:flex-row gap-2 border-b border-[#E5E7EB] bg-white p-2 rounded-2xl border shadow-xs">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer w-full sm:w-auto ${
             activeTab === 'profile'
               ? 'bg-[#F4C542] text-[#111111] shadow-xs'
               : 'text-[#6B7280] hover:text-[#111111] hover:bg-gray-50'
@@ -423,7 +499,7 @@ export const SchoolSettings: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('controls')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer w-full sm:w-auto ${
             activeTab === 'controls'
               ? 'bg-[#F4C542] text-[#111111] shadow-xs'
               : 'text-[#6B7280] hover:text-[#111111] hover:bg-gray-50'
@@ -435,7 +511,7 @@ export const SchoolSettings: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('staff')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer w-full sm:w-auto ${
             activeTab === 'staff'
               ? 'bg-[#F4C542] text-[#111111] shadow-xs'
               : 'text-[#6B7280] hover:text-[#111111] hover:bg-gray-50'
@@ -747,103 +823,193 @@ export const SchoolSettings: React.FC = () => {
         </form>
       )}
 
-      {/* TAB 3: MANAGEMENT & STAFF HIERARCHY */}
+      {/* TAB 3: MANAGEMENT & STAFF HIERARCHY (CURRENT & FORMER STAFF) */}
       {activeTab === 'staff' && (
         <div className="space-y-6">
-          {/* Organizational Hierarchy Overview */}
+          {/* Sub-Filter Bar & Action Header */}
           <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
               <div>
                 <div className="flex items-center space-x-2">
                   <Crown className="w-5 h-5 text-[#854D0E]" />
-                  <h3 className="font-bold text-lg text-[#111111]">School Management Hierarchy</h3>
+                  <h3 className="font-bold text-lg text-[#111111]">School Management &amp; Staff Records</h3>
                 </div>
-                <p className="text-xs text-[#6B7280]">Institutional authority structure and delegated staff roles</p>
+                <p className="text-xs text-[#6B7280]">Manage current active staff hierarchy and record honoured former educators</p>
               </div>
 
-              <Button onClick={openAddStaffModal}>
-                <UserPlus className="w-4 h-4 mr-1.5" />
-                Add School Person / Staff
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button onClick={() => openAddStaffModal('CURRENT')}>
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                  Add Current Staff
+                </Button>
+                <Button variant="secondary" onClick={() => openAddStaffModal('PAST')}>
+                  <Award className="w-4 h-4 mr-1.5 text-amber-700" />
+                  Add Former / Old Staff
+                </Button>
+              </div>
             </div>
 
-            {/* Hierarchy Tree Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {SCHOOL_POSITION_OPTIONS.map((pos) => {
-                const assigned = staffList.filter((s) => s.school_position === pos.value);
-                return (
-                  <div key={pos.value} className="p-4 bg-gray-50/70 border border-[#E5E7EB] rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-2.5 py-0.5 rounded-full border border-[#F4C542]/60">
-                        {pos.label}
-                      </span>
-                      <span className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-0.5 rounded-md">
-                        {assigned.length} Appointed
-                      </span>
-                    </div>
+            {/* Sub-Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStaffTypeTab('CURRENT')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  staffTypeTab === 'CURRENT'
+                    ? 'bg-[#111111] text-[#F4C542] shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Current Staff ({staffList.filter(s => s.staff_type !== 'PAST' && !s.is_former).length})
+              </button>
 
-                    <p className="text-[11px] text-[#6B7280] line-clamp-2">{pos.responsibility}</p>
+              <button
+                type="button"
+                onClick={() => setStaffTypeTab('PAST')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  staffTypeTab === 'PAST'
+                    ? 'bg-[#111111] text-[#F4C542] shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Honoured Former / Old Staff ({staffList.filter(s => s.staff_type === 'PAST' || s.is_former).length})
+              </button>
 
-                    {assigned.length > 0 && (
-                      <div className="pt-2 border-t border-gray-200 space-y-1">
-                        {assigned.map((a) => (
-                          <div key={a.id} className="text-xs font-bold text-[#111111] flex items-center justify-between">
-                            <span className="truncate">{a.full_name}</span>
-                            <span className="text-[10px] text-gray-400">{a.staff_id}</span>
-                          </div>
-                        ))}
+              <button
+                type="button"
+                onClick={() => setStaffTypeTab('ALL')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  staffTypeTab === 'ALL'
+                    ? 'bg-[#111111] text-[#F4C542] shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Staff ({staffList.length})
+              </button>
+            </div>
+
+            {/* Hierarchy Tree Cards (Only shown on Current view or All) */}
+            {staffTypeTab !== 'PAST' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                {SCHOOL_POSITION_OPTIONS.map((pos) => {
+                  const assigned = staffList.filter((s) => s.school_position === pos.value && s.staff_type !== 'PAST' && !s.is_former);
+                  return (
+                    <div key={pos.value} className="p-4 bg-gray-50/70 border border-[#E5E7EB] rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-2.5 py-0.5 rounded-full border border-[#F4C542]/60">
+                          {pos.label}
+                        </span>
+                        <span className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-0.5 rounded-md">
+                          {assigned.length} Appointed
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+
+                      <p className="text-[11px] text-[#6B7280] line-clamp-2">{pos.responsibility}</p>
+
+                      {assigned.length > 0 && (
+                        <div className="pt-2 border-t border-gray-200 space-y-1">
+                          {assigned.map((a) => (
+                            <div key={a.id} className="text-xs font-bold text-[#111111] flex items-center justify-between">
+                              <span className="truncate">{a.full_name}</span>
+                              <span className="text-[10px] text-gray-400">{a.staff_id || 'Staff'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Staff Directory Table */}
           <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-              <h3 className="font-bold text-lg text-[#111111]">School Staff Persons Directory ({staffList.length})</h3>
+              <h3 className="font-bold text-lg text-[#111111]">
+                {staffTypeTab === 'PAST' 
+                  ? 'Honoured Former / Old Staff Directory' 
+                  : staffTypeTab === 'CURRENT' 
+                    ? 'Current School Management & Active Staff' 
+                    : 'Complete Staff Directory'}
+              </h3>
             </div>
-            <Table columns={staffColumns} data={staffList} keyExtractor={(item) => item.id} defaultPageSize={10} />
+
+            <Table 
+              columns={staffColumns} 
+              data={
+                staffTypeTab === 'CURRENT'
+                  ? staffList.filter(s => s.staff_type !== 'PAST' && !s.is_former)
+                  : staffTypeTab === 'PAST'
+                    ? staffList.filter(s => s.staff_type === 'PAST' || s.is_former)
+                    : staffList
+              } 
+              keyExtractor={(item) => item.id} 
+              defaultPageSize={10} 
+            />
           </div>
         </div>
       )}
 
       {/* Add / Edit School Person Modal */}
-      <Modal isOpen={isStaffModalOpen} onClose={() => setIsStaffModalOpen(false)} title={editingStaffId ? "Edit School Person / Staff" : "Add School Current Person / Staff"}>
+      <Modal isOpen={isStaffModalOpen} onClose={() => setIsStaffModalOpen(false)} title={editingStaffId ? "Edit School Staff Record" : (staffTypeSelect === 'PAST' ? "Add Honoured Former / Old Staff Member" : "Add Current School Staff Member")}>
         <form onSubmit={handleSaveStaff} className="space-y-4">
-          <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E]">
-            Add or update active school staff members and assign their designation position in the school management hierarchy.
+          <div className="p-3.5 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] space-y-1">
+            <div className="font-bold uppercase tracking-wider">
+              {staffTypeSelect === 'PAST' ? 'Former / Old Staff Record' : 'Current Active Staff Member'}
+            </div>
+            <div>
+              {staffTypeSelect === 'PAST' 
+                ? 'Record past headmasters, veteran teachers, and former employees to display in the school legacy archive.'
+                : 'Add or update active school staff members and assign their designation position in the school management hierarchy.'}
+            </div>
+          </div>
+
+          {/* Staff Record Type Radio Selection */}
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-around">
+            <label className="flex items-center space-x-2 text-xs font-bold text-[#111111] cursor-pointer">
+              <input
+                type="radio"
+                name="staff_type_select"
+                value="CURRENT"
+                checked={staffTypeSelect === 'CURRENT'}
+                onChange={() => setStaffTypeSelect('CURRENT')}
+                className="text-[#F4C542] focus:ring-[#F4C542]"
+              />
+              <span>Current Active Staff</span>
+            </label>
+
+            <label className="flex items-center space-x-2 text-xs font-bold text-[#111111] cursor-pointer">
+              <input
+                type="radio"
+                name="staff_type_select"
+                value="PAST"
+                checked={staffTypeSelect === 'PAST'}
+                onChange={() => setStaffTypeSelect('PAST')}
+                className="text-[#F4C542] focus:ring-[#F4C542]"
+              />
+              <span>Honoured Former / Old Staff</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Full Name *"
+              label="Full Name (English) *"
               placeholder="e.g. Dr. S. Ramesh"
               value={staffFullName}
               onChange={(e) => setStaffFullName(e.target.value)}
               required
             />
+
             <Input
-              label="Official Email *"
-              type="email"
-              placeholder="email@school.edu.in"
-              value={staffEmail}
-              onChange={(e) => setStaffEmail(e.target.value)}
-              required
+              label="Full Name (Tamil / தமிழ் பெயர்)"
+              placeholder="எ.கா. டாக்டர் எஸ். ரமேஷ்"
+              value={staffFullNameTa}
+              onChange={(e) => setStaffFullNameTa(e.target.value)}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Mobile Number *"
-              placeholder="+91 98765 43210"
-              value={staffMobile}
-              onChange={(e) => setStaffMobile(e.target.value)}
-              required
-            />
-
             <div>
               <label className="block text-xs font-bold text-[#111111] mb-1.5">
                 Designation / School Position *
@@ -861,14 +1027,21 @@ export const SchoolSettings: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            <Input
+              label="Position Title (Tamil / தமிழ் பதவி)"
+              placeholder="எ.கா. தலைமை ஆசிரியர் / மூத்த ஆசிரியர்"
+              value={staffPositionTa}
+              onChange={(e) => setStaffPositionTa(e.target.value)}
+            />
           </div>
 
           {/* Write-in Custom Position text box if Other is selected */}
           {staffPositionSelect === 'Other' && (
             <div>
               <Input
-                label="Custom Designation / Position Title *"
-                placeholder="e.g. Academic Coordinator, Examination Controller, Warden, IT Manager"
+                label="Custom Designation / Position Title (English) *"
+                placeholder="e.g. Academic Coordinator, Former Senior Teacher, Former Warden"
                 value={customPositionTitle}
                 onChange={(e) => setCustomPositionTitle(e.target.value)}
                 required
@@ -878,16 +1051,51 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Department"
-              placeholder="e.g. Science / Computer Science"
+              label="Service Start Year"
+              type="number"
+              placeholder="e.g. 1985"
+              value={staffServiceStartYear}
+              onChange={(e) => setStaffServiceStartYear(e.target.value ? Number(e.target.value) : '')}
+            />
+
+            <Input
+              label={staffTypeSelect === 'PAST' ? "Service End Year / Retirement" : "Service End Year (Optional)"}
+              type="number"
+              placeholder="e.g. 2012"
+              value={staffServiceEndYear}
+              onChange={(e) => setStaffServiceEndYear(e.target.value ? Number(e.target.value) : '')}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Department (English)"
+              placeholder="e.g. Science / Mathematics / Tamil"
               value={staffDepartment}
               onChange={(e) => setStaffDepartment(e.target.value)}
             />
             <Input
-              label="Designation Detail / Title"
-              placeholder="e.g. P.G. Assistant Physics"
-              value={staffDesignation}
-              onChange={(e) => setStaffDesignation(e.target.value)}
+              label="Department (Tamil / தமிழ் துறை)"
+              placeholder="எ.கா. கணிதத் துறை / அறிவியல் துறை"
+              value={staffDepartmentTa}
+              onChange={(e) => setStaffDepartmentTa(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Official Email"
+              type="email"
+              placeholder="email@school.edu.in"
+              value={staffEmail}
+              onChange={(e) => setStaffEmail(e.target.value)}
+            />
+
+            <Input
+              label="Mobile Number"
+              placeholder="+91 98765 43210"
+              value={staffMobile}
+              onChange={(e) => setStaffMobile(e.target.value)}
             />
           </div>
 
@@ -929,6 +1137,21 @@ export const SchoolSettings: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Achievements & Awards (English)"
+              placeholder="e.g. State Best Teacher Awardee (1998)"
+              value={staffAchievements}
+              onChange={(e) => setStaffAchievements(e.target.value)}
+            />
+            <Input
+              label="Achievements (Tamil / தமிழ் சாதனைகள்)"
+              placeholder="எ.கா. மாநில சிறந்த ஆசிரியர் விருது"
+              value={staffAchievementsTa}
+              onChange={(e) => setStaffAchievementsTa(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-[#111111] mb-1.5">Status</label>
               <select
@@ -942,10 +1165,16 @@ export const SchoolSettings: React.FC = () => {
             </div>
 
             <Input
-              label="Notes / Remarks"
+              label="Notes (English)"
               placeholder="Role responsibilities..."
               value={staffNotes}
               onChange={(e) => setStaffNotes(e.target.value)}
+            />
+            <Input
+              label="Notes (Tamil / தமிழ் குறிப்புகள்)"
+              placeholder="பங்களிப்பு குறிப்புகள்..."
+              value={staffNotesTa}
+              onChange={(e) => setStaffNotesTa(e.target.value)}
             />
           </div>
 
@@ -954,7 +1183,7 @@ export const SchoolSettings: React.FC = () => {
               Cancel
             </Button>
             <Button type="submit" isLoading={savingStaff}>
-              {editingStaffId ? 'Save Changes' : 'Add School Person'}
+              {editingStaffId ? 'Save Changes' : (staffTypeSelect === 'PAST' ? 'Add Former Staff' : 'Add Current Staff')}
             </Button>
           </div>
         </form>

@@ -39,7 +39,7 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
         {loading ? (
           <HighlightsSkeleton />
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {highlights.map((alumnus) => (
             <div
               key={alumnus.id}
@@ -67,11 +67,11 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
                       `https://ui-avatars.com/api/?name=${encodeURIComponent(alumnus.full_name)}&background=F4C542&color=111111`
                     }
                     alt={alumnus.full_name}
-                    className="w-20 h-20 sm:w-32 sm:h-32 rounded-full object-cover shadow-md hover:shadow-xl hover:brightness-105 transition-all"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover shadow-md hover:shadow-xl hover:brightness-105 transition-all"
                   />
                 </div>
 
-                <h3 className="text-sm sm:text-lg font-bold text-[#111111] group-hover:text-[#854D0E] transition-colors mb-1 line-clamp-1">
+                <h3 className="text-base sm:text-lg font-bold text-[#111111] group-hover:text-[#854D0E] transition-colors mb-1 line-clamp-1">
                   {alumnus.full_name}
                 </h3>
 
@@ -79,7 +79,7 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
                   {alumnus.profession && (
                     <div className="flex items-center justify-center space-x-1 bg-gray-50/80 border border-gray-100 py-0.5 sm:py-1 px-2 sm:px-3 rounded-full">
                       <Briefcase className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#854D0E] shrink-0" />
-                      <span className="truncate max-w-[120px] sm:max-w-[160px] font-semibold text-[#111111]">{alumnus.profession}</span>
+                      <span className="truncate max-w-[140px] sm:max-w-[160px] font-semibold text-[#111111]">{alumnus.profession}</span>
                     </div>
                   )}
                   {alumnus.current_city && (
@@ -96,10 +96,10 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
         )}
 
         {/* View More Students Button Section */}
-        <div className="mt-12 text-center">
+        <div className="mt-8 sm:mt-12 text-center">
           <Link
             to="/login"
-            className="inline-flex items-center justify-center space-x-2 py-4 px-8 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border border-[#F4C542]/40 cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 py-3.5 sm:py-4 px-6 sm:px-8 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border border-[#F4C542]/40 cursor-pointer"
           >
             <span>{language === 'ta' ? 'மேலும் மாணவர்களைக் காண' : 'View More Students'}</span>
             <ArrowRight className="w-4 h-4 text-[#F4C542]" />

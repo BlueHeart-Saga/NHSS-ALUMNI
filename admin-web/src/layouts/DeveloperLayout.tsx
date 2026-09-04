@@ -37,8 +37,8 @@ export const DeveloperLayout: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#FAFAFA] text-[#111111]">
       <DeveloperSidebar onLogout={handleLogout} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 p-8">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen pt-14 lg:pt-0">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

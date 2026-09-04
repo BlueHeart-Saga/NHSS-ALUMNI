@@ -3,7 +3,7 @@ import { Users, UserCheck, GraduationCap, Calendar, CheckCircle2, ArrowRight } f
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
-import { LoadingState } from '../../components/EmptyState';
+import { LoadingState, StatsGridSkeleton, TableSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { DashboardReport, AlumniProfile, EventItem } from '../../types';
@@ -41,14 +41,21 @@ export const Dashboard: React.FC = () => {
   const handleApproveQuick = async (alumniId: string) => {
     try {
       await api.verifyAlumni(alumniId, 'APPROVED', 'Quick approved from dashboard');
-      alertService.showSuccess('Alumni Approved', 'Alumni registration application has been approved.');
+      alertService.showSuccess('Alumni Approved & Verification Email Sent', 'Alumni registration application has been approved and confirmation email dispatched.');
       loadDashboardData();
     } catch (err: any) {
       alertService.handleApiError(err, 'Quick approval failed.');
     }
   };
 
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-fadeIn">
+        <StatsGridSkeleton count={5} />
+        <TableSkeleton rows={5} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -88,7 +95,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Hero Upcoming Event Banner */}
       {upcomingEvent && (
-        <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-xs">
+        <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden shadow-xs">
           <div className="absolute top-0 right-0 w-48 h-48 bg-[#FFF7D6] rounded-full blur-3xl -z-10"></div>
           <div>
             <div className="inline-flex items-center space-x-2 bg-[#FFF7D6] border border-[#F4C542]/60 text-[#854D0E] px-3 py-1 rounded-full text-xs font-semibold mb-3">
@@ -97,7 +104,7 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-2xl font-bold text-[#111111]">{upcomingEvent.title}</h2>
             <p className="text-sm text-[#6B7280] mt-1 max-w-2xl">{upcomingEvent.description}</p>
 
-            <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-semibold text-[#111111]">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 text-xs font-semibold text-[#111111]">
               <span className="bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
                 📅 {upcomingEvent.event_date} ({upcomingEvent.start_time})
               </span>
@@ -110,8 +117,8 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <Button onClick={() => navigate(`/school-admin/events/${upcomingEvent.id}`)}>
+          <div className="flex items-center w-full sm:w-auto">
+            <Button onClick={() => navigate(`/school-admin/events/${upcomingEvent.id}`)} className="w-full sm:w-auto">
               View RSVP Roster
             </Button>
           </div>
@@ -119,13 +126,13 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Pending Applications Review Widget */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-xs">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
             <h3 className="font-bold text-lg text-[#111111]">Pending Alumni Verification Queue</h3>
             <p className="text-xs text-[#6B7280]">Recent applications requiring school admin verification</p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/school-admin/verification')}>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/school-admin/verification')} className="w-full sm:w-auto">
             <span>View All ({report?.pending_alumni || 0})</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
@@ -138,9 +145,9 @@ export const Dashboard: React.FC = () => {
         ) : (
           <div className="divide-y divide-[#E5E7EB]">
             {pendingList.map((a) => (
-              <div key={a.id} className="py-3.5 flex items-center justify-between hover:bg-[#FAFAFA] px-2 rounded-xl transition-colors">
+              <div key={a.id} className="py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 hover:bg-[#FAFAFA] px-2 rounded-xl transition-colors">
                 <div className="flex items-center space-x-3">
-                  <img src={a.profile_photo_url} alt="" className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover" />
+                  <img src={a.profile_photo_url} alt="" className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0" />
                   <div>
                     <div className="text-sm font-bold text-[#111111]">{a.full_name}</div>
                     <div className="text-xs text-[#6B7280]">
@@ -149,7 +156,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                   <Badge status={a.verification_status} />
                   <Button size="sm" onClick={() => handleApproveQuick(a.id)}>
                     Approve

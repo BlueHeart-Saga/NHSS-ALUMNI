@@ -65,16 +65,16 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Right Column: Welcome Text & Primary CTA Button */}
           <div className="lg:col-span-5 space-y-4 sm:space-y-7">
             <div>
-              <div className="text-2xl xs:text-3xl sm:text-4xl text-[#111111] font-semibold tracking-tight">
+              <div className="text-xl xs:text-2xl sm:text-4xl text-[#111111] font-semibold tracking-tight">
                 {language === 'ta' ? 'அன்புடன் வரவேற்கிறது' : 'Welcome to'}
               </div>
-              <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-1 sm:mt-2">
+              <h1 className="text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-1 sm:mt-2">
                 {language === 'ta' ? 'பழைய மாணவர்கள் சங்கம்' : 'The Alumni Portal'}
               </h1>
             </div>
 
             {/* Description Text */}
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 font-normal leading-relaxed max-w-xl">
+            <p className="text-sm sm:text-lg lg:text-xl text-gray-600 font-normal leading-relaxed max-w-xl">
               {t('hero_subtitle')}
             </p>
 
@@ -82,7 +82,7 @@ export const Hero: React.FC<HeroProps> = ({
             <div className="pt-2 sm:pt-3">
               <button
                 onClick={onJoinClick}
-                className="w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-base sm:text-lg rounded-2xl sm:rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center justify-center space-x-3 border border-[#E0B238] cursor-pointer"
+                className="w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-4 bg-[#F4C542] hover:bg-[#E0B238] text-[#111111] font-semibold text-sm sm:text-lg rounded-2xl sm:rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center justify-center space-x-3 border border-[#E0B238] cursor-pointer"
               >
                 <span>{t('join_network_btn')}</span>
                 <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />

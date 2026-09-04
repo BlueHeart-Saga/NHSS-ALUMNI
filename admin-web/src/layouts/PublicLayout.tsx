@@ -62,42 +62,42 @@ export const PublicLayout: React.FC = () => {
     <div className="min-h-screen bg-white text-[#111111] flex flex-col font-sans selection:bg-[#F4C542] selection:text-[#111111]">
       {/* Brand Header */}
       <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-4 flex items-center justify-between gap-2">
           {/* Logo & Brand Title */}
-          <Link to="/" className="flex items-center space-x-2.5 sm:space-x-4 min-w-0">
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-4 min-w-0">
             <img
               src={logoUrl}
               alt={school?.name || "School Logo"}
-              className="h-10 sm:h-14 lg:h-16 w-auto object-contain flex-shrink-0 rounded-xl"
+              className="h-9 sm:h-14 lg:h-16 w-auto object-contain flex-shrink-0 rounded-xl"
             />
             <div className="min-w-0">
-              <h1 className="text-base sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-[#111111] leading-snug truncate max-w-[150px] xs:max-w-[220px] sm:max-w-md lg:max-w-none">
+              <h1 className="text-sm sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-[#111111] leading-snug truncate max-w-[130px] xs:max-w-[200px] sm:max-w-md lg:max-w-none">
                 {t('app_title')}
               </h1>
-              <span className="text-[10px] sm:text-xs lg:text-sm text-[#854D0E] font-bold tracking-wide block truncate mt-0.5">
+              <span className="text-[9px] sm:text-xs lg:text-sm text-[#854D0E] font-bold tracking-wide block truncate mt-0.5">
                 {t('tagline')}
               </span>
             </div>
           </Link>
 
           {/* Auth Actions & Language Selector */}
-          <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-4 shrink-0">
             {user ? (
-              <div className="flex items-center space-x-2 text-xs sm:text-base font-semibold tracking-widest text-gray-700 uppercase">
-                <span className="text-[#111111] font-semibold py-1 lowercase hidden md:inline">
+              <div className="flex items-center space-x-1.5 text-xs sm:text-sm font-semibold tracking-wider text-gray-700 uppercase">
+                <span className="text-[#111111] font-semibold py-1 lowercase hidden md:inline truncate max-w-[150px]">
                   {user.email || user.full_name}
                 </span>
                 <span className="text-[#F4C542] font-semibold px-1 hidden md:inline">||</span>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="hover:text-[#111111] transition-colors py-1 cursor-pointer uppercase font-medium"
+                  className="hover:text-[#111111] transition-colors py-1 cursor-pointer uppercase font-semibold text-xs sm:text-sm"
                 >
                   {t('nav_logout')}
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs sm:text-base font-semibold tracking-widest text-gray-700 uppercase">
+              <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold tracking-wider text-gray-700 uppercase">
                 <Link
                   to="/register"
                   className="hover:text-[#111111] transition-colors py-1 whitespace-nowrap"
@@ -120,16 +120,16 @@ export const PublicLayout: React.FC = () => {
         </div>
 
         {/* Sub-Navigation Bar: Full Height Links and GET MOBILE APP Button */}
-        <div className="bg-[#F4C542] text-[#111111] shadow-sm h-12 sm:h-14">
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-2">
-            <nav className="flex items-center h-full overflow-x-auto scrollbar-none text-sm sm:text-base font-semibold uppercase tracking-wider space-x-0.5 sm:space-x-1 flex-1">
+        <div className="bg-[#F4C542] text-[#111111] shadow-2xs h-11 sm:h-14">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-1.5 sm:gap-2">
+            <nav className="flex items-center h-full overflow-x-auto scrollbar-none text-xs sm:text-base font-semibold uppercase tracking-wider space-x-0.5 sm:space-x-1 flex-1">
               {navLinks.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="relative h-full flex items-center px-2.5 sm:px-3.5 overflow-hidden whitespace-nowrap group transition-colors focus:outline-none shrink-0"
+                    className="relative h-full flex items-center px-2 sm:px-3.5 overflow-hidden whitespace-nowrap group transition-colors focus:outline-none shrink-0"
                   >
                     {/* Dark Yellow Bottom-to-Top Slide Fill Hover Overlay */}
                     <div
@@ -144,7 +144,7 @@ export const PublicLayout: React.FC = () => {
                     )}
 
                     {/* Link Text */}
-                    <span className={`relative z-10 text-sm sm:text-base transition-colors ${isActive ? 'font-bold text-[#111111]' : 'font-semibold text-[#111111]/90 group-hover:text-[#111111]'}`}>
+                    <span className={`relative z-10 text-xs sm:text-base transition-colors ${isActive ? 'font-bold text-[#111111]' : 'font-semibold text-[#111111]/90 group-hover:text-[#111111]'}`}>
                       {item.label}
                     </span>
                   </Link>
@@ -156,7 +156,7 @@ export const PublicLayout: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAppModalOpen(true)}
-              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-[10px] sm:text-xs uppercase tracking-wider rounded-xl transition-all shadow-md border border-[#F4C542]/40 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 ml-1"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-[10px] sm:text-xs uppercase tracking-wider rounded-xl transition-all shadow-md border border-[#F4C542]/40 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 ml-1"
             >
               <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4C542]" />
               <span className="hidden xs:inline">{t('nav_get_mobile_app')}</span>
@@ -172,11 +172,11 @@ export const PublicLayout: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-[#E5E7EB] py-10 text-sm text-gray-600 font-normal mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+      <footer className="bg-white border-t border-[#E5E7EB] py-8 sm:py-10 text-sm text-gray-600 font-normal mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
           <div>
-            <div className="font-semibold text-[#111111] text-base sm:text-lg">{t('app_title')}</div>
-            <div className="mt-1.5 text-sm text-gray-500 font-medium flex flex-wrap items-center justify-center md:justify-start gap-2">
+            <div className="font-bold text-[#111111] text-base sm:text-lg">{t('app_title')}</div>
+            <div className="mt-1.5 text-xs sm:text-sm text-gray-500 font-medium flex flex-wrap items-center justify-center md:justify-start gap-2">
               <span>{t('copyright')}</span>
               <span className="text-gray-300 hidden sm:inline">•</span>
               <Link
@@ -189,7 +189,7 @@ export const PublicLayout: React.FC = () => {
               </Link>
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-x-6 sm:gap-x-8 gap-y-2 text-sm sm:text-base font-semibold text-[#111111] py-1">
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-x-4 sm:gap-x-8 gap-y-2 text-xs sm:text-base font-semibold text-[#111111] py-1">
             <Link to="/about" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_about')}</Link>
             <Link to="/school" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_school_profile')}</Link>
             <Link to="/batches" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_batches')}</Link>

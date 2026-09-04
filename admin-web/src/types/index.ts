@@ -46,15 +46,26 @@ export interface SchoolStaffMember {
   id: string;
   school_id: string;
   full_name: string;
-  email: string;
-  mobile: string;
+  full_name_ta?: string;
+  email?: string;
+  mobile?: string;
   school_position: SchoolPositionType;
+  school_position_ta?: string;
   department?: string;
+  department_ta?: string;
   designation?: string;
+  designation_ta?: string;
   staff_id?: string;
   profile_photo_url?: string;
   status: 'ACTIVE' | 'INACTIVE';
   notes?: string;
+  notes_ta?: string;
+  staff_type?: 'CURRENT' | 'PAST';
+  service_start_year?: number;
+  service_end_year?: number;
+  achievements?: string;
+  achievements_ta?: string;
+  is_former?: boolean;
   created_at: string;
 }
 
@@ -333,5 +344,32 @@ export interface RankHolder {
   photograph?: string;
   description?: string;
   status: 'Active' | 'Inactive';
+  created_at?: string;
+}
+
+export interface SchoolStaff {
+  id: string;
+  school_id?: string;
+  full_name: string;
+  full_name_ta?: string;
+  email?: string;
+  mobile?: string;
+  school_position: string;
+  school_position_ta?: string;
+  department?: string;
+  department_ta?: string;
+  designation?: string;
+  designation_ta?: string;
+  staff_id?: string;
+  profile_photo_url?: string;
+  staff_type?: 'CURRENT' | 'PAST' | 'FORMER';
+  service_start_year?: number;
+  service_end_year?: number;
+  achievements?: string;
+  achievements_ta?: string;
+  is_former?: boolean;
+  status: 'ACTIVE' | 'INACTIVE';
+  notes?: string;
+  notes_ta?: string;
   created_at?: string;
 }

@@ -55,9 +55,11 @@ export const SchoolAdminLayout: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#FAFAFA]">
       <Sidebar onLogout={handleLogout} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header user={user} title={getPageTitle(location.pathname)} />
-        <main className="flex-1 p-8">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        <div className="pt-14 lg:pt-0">
+          <Header user={user} title={getPageTitle(location.pathname)} />
+        </div>
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8">
           <Outlet context={{ user }} />
         </main>
       </div>

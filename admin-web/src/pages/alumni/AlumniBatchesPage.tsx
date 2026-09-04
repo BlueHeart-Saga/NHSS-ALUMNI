@@ -35,12 +35,12 @@ export const AlumniBatchesPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-stone-900 text-white p-6 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-stone-900 text-white p-5 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
         <div className="relative z-10">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400 bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400 bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30 inline-block">
             {language === 'ta' ? `வகுப்பு ${user?.passing_year || ''}` : `Batch of ${user?.passing_year || 'Alumni'}`}
           </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold mt-3">
+          <h2 className="text-xl sm:text-3xl font-extrabold mt-3">
             {language === 'ta' ? `${user?.passing_year || ''} வகுப்பு தோழர்கள் தளம்` : `Class of ${user?.passing_year || ''} Hub`}
           </h2>
           <p className="text-xs sm:text-sm text-amber-200 mt-2 max-w-xl">
@@ -77,7 +77,7 @@ export const AlumniBatchesPage: React.FC = () => {
       {/* BATCH INFO */}
       {batchSubTab === 'info' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm md:col-span-2 space-y-4">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm md:col-span-2 space-y-4">
             <h3 className="font-bold text-base text-[#111111]">
               {language === 'ta' ? 'வகுப்பு கண்ணோட்டம் & குழுத் தலைவர்கள்' : 'Batch Overview & Committee'}
             </h3>
@@ -115,7 +115,7 @@ export const AlumniBatchesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
             <h3 className="font-bold text-sm text-[#111111]">Batch Quick Facts</h3>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between py-2 border-b border-[#E5E7EB]">
@@ -143,9 +143,9 @@ export const AlumniBatchesPage: React.FC = () => {
       {(batchSubTab === 'members' || batchSubTab === 'classmates') && (
         <div className="space-y-4">
           {batchMembers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {batchMembers.map(a => (
-                <div key={a.id || a.mobile} className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-start space-x-4">
+                <div key={a.id || a.mobile} className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-start space-x-3.5">
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-[#E5E7EB] bg-[#FFF7D6] flex items-center justify-center shrink-0">
                     {a.profile_photo_url ? (
                       <img src={a.profile_photo_url} alt={a.full_name} className="w-full h-full object-cover" />
@@ -183,13 +183,13 @@ export const AlumniBatchesPage: React.FC = () => {
 
       {/* BATCH UPDATES */}
       {batchSubTab === 'updates' && (
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
           <h3 className="font-bold text-base text-[#111111]">Batch Notice Board</h3>
           {batchNotices.length > 0 ? (
             <div className="space-y-3">
               {batchNotices.map(notice => (
                 <div key={notice.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] space-y-2">
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-gray-500 gap-1 sm:gap-0">
                     <span className="font-bold text-[#111111]">{notice.title}</span>
                     <span>{new Date(notice.created_at).toLocaleDateString()}</span>
                   </div>
@@ -209,7 +209,7 @@ export const AlumniBatchesPage: React.FC = () => {
       {/* Profile Detail Modal */}
       {selectedAlumni && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-xs max-h-[90vh] overflow-y-auto">
             <button onClick={() => setSelectedAlumni(null)} className="absolute top-5 right-5 text-gray-400 hover:text-[#111111]">
               <X className="w-5 h-5" />
             </button>

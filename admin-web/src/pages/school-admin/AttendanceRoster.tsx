@@ -80,7 +80,7 @@ export const AttendanceRoster: React.FC = () => {
         Back to Event Details
       </button>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#111111]">Event Attendance Roster</h2>
           <p className="text-xs text-[#6B7280]">Detailed list of alumni RSVPs, guest counts, and check-in logs</p>
@@ -89,7 +89,7 @@ export const AttendanceRoster: React.FC = () => {
         <a
           href={api.getAttendanceCSVExportUrl(eventId!)}
           download
-          className="inline-flex items-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-sm rounded-xl border border-[#F4C542]"
+          className="inline-flex items-center justify-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-semibold text-sm rounded-xl border border-[#F4C542] w-full sm:w-auto"
         >
           <Download className="w-4 h-4 mr-1.5" />
           Export Attendance CSV

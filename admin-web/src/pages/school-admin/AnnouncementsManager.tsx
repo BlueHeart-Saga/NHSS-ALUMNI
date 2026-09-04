@@ -66,13 +66,13 @@ export const AnnouncementsManager: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#111111]">Announcements Manager</h2>
           <p className="text-xs text-[#6B7280]">Broadcast official school notices & batch-specific updates</p>
         </div>
 
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1.5" />
           Compose Broadcast
         </Button>
@@ -80,12 +80,12 @@ export const AnnouncementsManager: React.FC = () => {
 
       <div className="space-y-4">
         {announcements.map((item) => (
-          <div key={item.id} className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex items-start space-x-4">
+          <div key={item.id} className="bg-white border border-[#E5E7EB] rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
             <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center flex-shrink-0 text-[#111111]">
               <Megaphone className="w-5 h-5" />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
+            <div className="flex-1 w-full">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-[11px] font-semibold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/60 px-2.5 py-0.5 rounded-full">
                   {item.target === 'SCHOOL' ? 'School-wide Broadcast' : 'Batch Targeted'}
                 </span>

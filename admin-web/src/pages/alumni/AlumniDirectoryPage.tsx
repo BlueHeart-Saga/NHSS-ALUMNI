@@ -60,10 +60,10 @@ export const AlumniDirectoryPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       {/* Header & Search Bar */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[#111111]">
+            <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
               {language === 'ta' ? 'பழைய மாணவர்கள் முகவரி' : 'Global Alumni Directory'}
             </h2>
             <p className="text-xs text-[#6B7280]">
@@ -90,8 +90,8 @@ export const AlumniDirectoryPage: React.FC = () => {
         </div>
 
         {/* Filters bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E5E7EB] text-xs">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-[#E5E7EB] text-xs">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center space-x-1.5 text-gray-500 font-semibold">
               <Filter className="w-3.5 h-3.5 text-amber-700" />
               <span>{language === 'ta' ? 'வடிகட்டுக:' : 'Filter By:'}</span>
@@ -100,7 +100,7 @@ export const AlumniDirectoryPage: React.FC = () => {
             <select
               value={batchFilter}
               onChange={e => setBatchFilter(e.target.value)}
-              className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து வகுப்புகள் (${uniqueBatches.length})` : `All Batches (${uniqueBatches.length})`}</option>
               {uniqueBatches.map(b => (
@@ -111,7 +111,7 @@ export const AlumniDirectoryPage: React.FC = () => {
             <select
               value={cityFilter}
               onChange={e => setCityFilter(e.target.value)}
-              className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து நகரங்கள் (${uniqueCities.length})` : `All Cities (${uniqueCities.length})`}</option>
               {uniqueCities.map(c => (
@@ -122,7 +122,7 @@ export const AlumniDirectoryPage: React.FC = () => {
             <select
               value={professionFilter}
               onChange={e => setProfessionFilter(e.target.value)}
-              className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து தொழில்கள் (${uniqueProfessions.length})` : `All Professions (${uniqueProfessions.length})`}</option>
               {uniqueProfessions.map(p => (
@@ -154,19 +154,19 @@ export const AlumniDirectoryPage: React.FC = () => {
           <p className="text-xs text-gray-500 font-medium">Loading verified alumni directory...</p>
         </div>
       ) : filteredAlumni.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredAlumni.map(a => (
-            <div key={a.id || a.mobile} className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md hover:border-amber-300 transition-all">
-              <div className="flex items-start space-x-4">
-                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#F4C542] bg-[#FFF7D6] flex items-center justify-center shrink-0">
+            <div key={a.id || a.mobile} className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md hover:border-amber-300 transition-all">
+              <div className="flex items-start space-x-3.5">
+                <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-full overflow-hidden border-2 border-[#F4C542] bg-[#FFF7D6] flex items-center justify-center shrink-0">
                   {a.profile_photo_url ? (
                     <img src={a.profile_photo_url} alt={a.full_name} className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-8 h-8 text-[#854D0E]" />
+                    <User className="w-7 sm:w-8 h-7 sm:h-8 text-[#854D0E]" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-sm text-[#111111] truncate">{a.full_name}</h4>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#111111] truncate">{a.full_name}</h4>
                   <span className="text-[10px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block mt-1 border border-[#F4C542]/30">
                     Class of {a.passing_year} {a.section ? `(${a.section})` : ''}
                   </span>
@@ -196,7 +196,7 @@ export const AlumniDirectoryPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setConnectModalAlumni(a)}
-                  className="px-3.5 py-2 text-xs font-bold text-white bg-[#111111] hover:bg-gray-800 rounded-xl transition-all flex items-center justify-center space-x-1.5"
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-[#111111] hover:bg-gray-800 rounded-xl transition-all flex items-center justify-center space-x-1.5 shrink-0"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Connect</span>

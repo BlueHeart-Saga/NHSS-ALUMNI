@@ -17,17 +17,17 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   accentColor = '#F4C542'
 }) => {
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-6 flex items-start justify-between shadow-sm hover:border-gray-300 transition-all">
-      <div>
-        <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">{title}</span>
-        <div className="text-3xl font-bold text-[#111111] mt-2 mb-1">{value}</div>
-        {subtitle && <span className="text-xs text-[#6B7280]">{subtitle}</span>}
+    <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-4 sm:p-6 flex items-start justify-between gap-3 shadow-2xs hover:border-gray-300 transition-all min-w-0">
+      <div className="min-w-0 flex-1">
+        <span className="text-[11px] sm:text-xs font-bold text-[#6B7280] uppercase tracking-wider block truncate">{title}</span>
+        <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] mt-1.5 sm:mt-2 mb-0.5 sm:mb-1 tracking-tight break-all">{value}</div>
+        {subtitle && <span className="text-[11px] sm:text-xs text-[#6B7280] leading-tight block truncate">{subtitle}</span>}
       </div>
       <div 
-        className="w-12 h-12 rounded-2xl flex items-center justify-center border border-[#E5E7EB]"
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center border border-[#E5E7EB] shrink-0"
         style={{ backgroundColor: '#FFF7D6' }}
       >
-        <Icon className="w-6 h-6 text-[#111111]" />
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#111111]" />
       </div>
     </div>
   );

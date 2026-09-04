@@ -274,41 +274,74 @@ class UpdateSchoolRequest(BaseModel):
 
 class CreateSchoolStaffRequest(BaseModel):
     full_name: str = Field(..., example="Dr. S. Ramesh")
-    email: EmailStr = Field(..., example="principal@school.edu.in")
-    mobile: str = Field(..., example="+919876543210")
+    full_name_ta: Optional[str] = Field(None, example="டாக்டர் எஸ். ரமேஷ்")
+    email: Optional[EmailStr] = Field(None, example="principal@school.edu.in")
+    mobile: Optional[str] = Field(None, example="+919876543210")
     school_position: str = Field(..., example="Principal")
+    school_position_ta: Optional[str] = Field(None, example="முதல்வர் / தலைமை ஆசிரியர்")
     department: Optional[str] = None
+    department_ta: Optional[str] = None
     designation: Optional[str] = None
+    designation_ta: Optional[str] = None
     staff_id: Optional[str] = None
     profile_photo_url: Optional[str] = None
+    staff_type: Optional[str] = "CURRENT" # CURRENT, PAST, FORMER
+    service_start_year: Optional[int] = None
+    service_end_year: Optional[int] = None
+    achievements: Optional[str] = None
+    achievements_ta: Optional[str] = None
+    is_former: Optional[bool] = False
     status: Optional[str] = "ACTIVE"
     notes: Optional[str] = None
+    notes_ta: Optional[str] = None
 
 class UpdateSchoolStaffRequest(BaseModel):
     full_name: Optional[str] = None
+    full_name_ta: Optional[str] = None
     email: Optional[EmailStr] = None
     mobile: Optional[str] = None
     school_position: Optional[str] = None
+    school_position_ta: Optional[str] = None
     department: Optional[str] = None
+    department_ta: Optional[str] = None
     designation: Optional[str] = None
+    designation_ta: Optional[str] = None
     staff_id: Optional[str] = None
     profile_photo_url: Optional[str] = None
+    staff_type: Optional[str] = None
+    service_start_year: Optional[int] = None
+    service_end_year: Optional[int] = None
+    achievements: Optional[str] = None
+    achievements_ta: Optional[str] = None
+    is_former: Optional[bool] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    notes_ta: Optional[str] = None
 
 class SchoolStaffResponse(BaseModel):
     id: str
     school_id: str
     full_name: str
-    email: str
-    mobile: str
+    full_name_ta: Optional[str] = None
+    email: Optional[str] = None
+    mobile: Optional[str] = None
     school_position: str
+    school_position_ta: Optional[str] = None
     department: Optional[str] = None
+    department_ta: Optional[str] = None
     designation: Optional[str] = None
+    designation_ta: Optional[str] = None
     staff_id: Optional[str] = None
     profile_photo_url: Optional[str] = None
+    staff_type: str = "CURRENT"
+    service_start_year: Optional[int] = None
+    service_end_year: Optional[int] = None
+    achievements: Optional[str] = None
+    achievements_ta: Optional[str] = None
+    is_former: bool = False
     status: str = "ACTIVE"
     notes: Optional[str] = None
+    notes_ta: Optional[str] = None
     created_at: datetime
 
 # --- Batch Schemas ---

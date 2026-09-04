@@ -32,35 +32,76 @@ async def list_events(
     cursor = db.events.find(query).sort("event_date", -1)
     events_list = await cursor.to_list(length=100)
 
+    if not events_list:
+        return []
+
+    event_ids = [str(e["_id"]) for e in events_list]
+    batch_ids = []
+    for e in events_list:
+        if e.get("batch_id"):
+            try:
+                batch_ids.append(ObjectId(e["batch_id"]))
+            except Exception:
+                batch_ids.append(e["batch_id"])
+
+    # Batch Query 1: Single query for batch lookup
+    batch_map = {}
+    if batch_ids:
+        batches_docs = await db.batches.find({"_id": {"$in": batch_ids}}).to_list(length=len(batch_ids))
+        for b in batches_docs:
+            batch_map[str(b["_id"])] = b.get("name") or f"Batch of {b.get('passing_year', '')}"
+
+    # Batch Query 2: Single aggregation pipeline for RSVP counts & guest totals
+    att_map = {}
+    if event_ids:
+        pipeline = [
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {
+                "_id": {"event_id": "$event_id", "status": "$rsvp_status"},
+                "count": {"$sum": 1},
+                "total_adults": {"$sum": {"$ifNull": ["$adults_count", 1]}},
+                "total_children": {"$sum": {"$ifNull": ["$children_count", 0]}}
+            }}
+        ]
+        agg_docs = await db.event_attendance.aggregate(pipeline).to_list(length=500)
+        for doc in agg_docs:
+            ev_id = doc["_id"]["event_id"]
+            st = doc["_id"].get("status", "ATTENDING")
+            cnt = doc.get("count", 0)
+            adults = doc.get("total_adults", 0)
+            children = doc.get("total_children", 0)
+            
+            if ev_id not in att_map:
+                att_map[ev_id] = {"attending": 0, "maybe": 0, "declined": 0, "guests": 0}
+            
+            if st == "ATTENDING":
+                att_map[ev_id]["attending"] = cnt
+                att_map[ev_id]["guests"] = adults + children
+            elif st == "MAYBE":
+                att_map[ev_id]["maybe"] = cnt
+            elif st == "DECLINED":
+                att_map[ev_id]["declined"] = cnt
+
     res = []
     for e in events_list:
         e_id = str(e["_id"])
-        batch = await db.batches.find_one({"_id": ObjectId(e["batch_id"])}) if e.get("batch_id") else None
-
-        # Calculate attendance counts
-        attending = await db.event_attendance.count_documents({"event_id": e_id, "rsvp_status": "ATTENDING"})
-        maybe = await db.event_attendance.count_documents({"event_id": e_id, "rsvp_status": "MAYBE"})
-        declined = await db.event_attendance.count_documents({"event_id": e_id, "rsvp_status": "DECLINED"})
-
-        # Calculate total guest count
-        cursor_att = db.event_attendance.find({"event_id": e_id, "rsvp_status": "ATTENDING"})
-        att_docs = await cursor_att.to_list(length=1000)
-        total_guests = sum(a.get("adults_count", 1) + a.get("children_count", 0) for a in att_docs)
+        b_name = batch_map.get(str(e.get("batch_id")), "School-wide") if e.get("batch_id") else "School-wide"
+        counts = att_map.get(e_id, {"attending": 0, "maybe": 0, "declined": 0, "guests": 0})
 
         res.append(EventResponse(
             id=e_id,
             school_id=school_id,
             batch_id=str(e["batch_id"]) if e.get("batch_id") else None,
-            batch_name=(batch.get("name") or f"Batch of {batch.get('passing_year', '')}") if batch else "School-wide",
+            batch_name=b_name,
             title=e["title"],
             title_ta=e.get("title_ta"),
             description=e["description"],
             description_ta=e.get("description_ta"),
             event_date=e["event_date"],
             start_time=e["start_time"],
-            end_time=e["end_time"],
+            end_time=e.get("end_time"),
             venue=e["venue"],
-            address=e["address"],
+            address=e.get("address"),
             map_coordinates=MapCoordinates(**e["map_coordinates"]) if e.get("map_coordinates") else None,
             registration_deadline=e.get("registration_deadline"),
             guest_allowed=e.get("guest_allowed", True),

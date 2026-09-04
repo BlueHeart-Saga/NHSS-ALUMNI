@@ -46,11 +46,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="QR Check-in Terminal">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Visual Scanner Area */}
-        <div className="bg-[#FAFAFA] border-2 border-dashed border-[#F4C542] rounded-2xl p-8 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center mb-3">
-            <QrCode className="w-8 h-8 text-[#111111]" />
+        <div className="bg-[#FAFAFA] border-2 border-dashed border-[#F4C542] rounded-2xl p-5 sm:p-8 text-center flex flex-col items-center justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center mb-3">
+            <QrCode className="w-7 h-7 sm:w-8 sm:h-8 text-[#111111]" />
           </div>
           <p className="text-sm font-semibold text-[#111111]">Point camera or scan event ticket</p>
           <span className="text-xs text-[#6B7280]">Supports optical QR scanners & digital tickets</span>
@@ -58,8 +58,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
         {/* Success Alert */}
         {result && (
-          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 flex items-start space-x-3 animate-fadeIn">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 sm:p-4 flex items-start space-x-3 animate-fadeIn">
+            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-bold text-emerald-900 text-sm">{result.message}</h4>
               <p className="text-xs text-emerald-700 mt-0.5 font-medium">
@@ -74,7 +74,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start space-x-3 animate-fadeIn">
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 sm:p-4 flex items-start space-x-3 animate-fadeIn">
             <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-bold text-rose-900 text-sm">Check-in Rejected</h4>
@@ -93,11 +93,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             autoFocus
           />
 
-          <div className="flex justify-end space-x-3 pt-2">
-            <Button type="button" variant="secondary" onClick={onClose}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={onClose} fullWidth className="sm:w-auto">
               Close Terminal
             </Button>
-            <Button type="submit" isLoading={loading}>
+            <Button type="submit" isLoading={loading} fullWidth className="sm:w-auto">
               <Search className="w-4 h-4 mr-1" />
               Verify & Check In
             </Button>

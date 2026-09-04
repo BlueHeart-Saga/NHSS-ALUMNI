@@ -61,17 +61,17 @@ export const AlumniMentorshipPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans text-[#111111]">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[#111111]">Alumni Mentorship Network</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-[#111111]">Alumni Mentorship Network</h2>
             <p className="text-xs text-[#6B7280]">Connect with senior alumni for career advice, higher education, or offer guidance to juniors</p>
           </div>
 
-          <div className="flex p-1 bg-[#F3F4F6] rounded-xl text-xs font-bold">
+          <div className="w-full sm:w-auto flex p-1 bg-[#F3F4F6] rounded-xl text-xs font-bold shrink-0">
             <button
               onClick={() => setMentorshipMode('find')}
-              className={`px-4 py-1.5 rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition-all text-center ${
                 mentorshipMode === 'find' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6B7280]'
               }`}
             >
@@ -79,7 +79,7 @@ export const AlumniMentorshipPage: React.FC = () => {
             </button>
             <button
               onClick={() => setMentorshipMode('become')}
-              className={`px-4 py-1.5 rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition-all text-center ${
                 mentorshipMode === 'become' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6B7280]'
               }`}
             >
@@ -91,13 +91,13 @@ export const AlumniMentorshipPage: React.FC = () => {
 
       {/* FIND MENTORS MODE */}
       {mentorshipMode === 'find' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {mentorsList.length > 0 ? (
             mentorsList.map(mentor => (
-              <div key={mentor.id} className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between space-y-4">
+              <div key={mentor.id} className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center justify-center text-sm border border-amber-300">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center justify-center text-sm border border-amber-300 shrink-0">
                       {mentor.name[0]}
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
@@ -133,14 +133,14 @@ export const AlumniMentorshipPage: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-1 md:col-span-3 p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center shadow-sm">
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-8 sm:p-12 bg-white rounded-2xl border border-[#E5E7EB] text-center shadow-sm">
               <p className="text-xs text-[#6B7280]">No mentors available yet. Click 'Become a Mentor' to volunteer!</p>
             </div>
           )}
         </div>
       ) : (
         /* BECOME A MENTOR MODE */
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs max-w-2xl mx-auto">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs max-w-2xl mx-auto">
           <h3 className="font-bold text-base text-[#111111]">Register as an Alumni Mentor</h3>
           <p className="text-gray-500">Help shape the future of junior batchmates by giving 1-2 hours per month.</p>
 
@@ -185,7 +185,7 @@ export const AlumniMentorshipPage: React.FC = () => {
       {/* Mentorship Request Modal */}
       {selectedMentor && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleSendMentorshipRequest} className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-xs">
+          <form onSubmit={handleSendMentorshipRequest} className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-xs max-h-[90vh] overflow-y-auto">
             <button type="button" onClick={() => setSelectedMentor(null)} className="absolute top-5 right-5 text-gray-400 hover:text-[#111111]">
               <X className="w-5 h-5" />
             </button>

@@ -66,17 +66,17 @@ export const EventsList: React.FC = () => {
           <p className="text-xs text-[#6B7280]">School reunions, batch get-togethers, and attendance rosters</p>
         </div>
 
-        <Button onClick={() => navigate('/school-admin/events/create')}>
+        <Button onClick={() => navigate('/school-admin/events/create')} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1.5" />
           Create Get-Together
         </Button>
       </div>
 
       {/* Date-Based Category Tabs (Upcoming vs Past Events) */}
-      <div className="flex items-center space-x-3 border-b border-gray-200 pb-2">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-b border-gray-200 pb-2">
         <button
           onClick={() => setActiveTab('UPCOMING')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+          className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-2 ${
             activeTab === 'UPCOMING'
               ? 'bg-[#111111] text-[#F4C542] shadow-sm'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -88,7 +88,7 @@ export const EventsList: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('PAST')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+          className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-2 ${
             activeTab === 'PAST'
               ? 'bg-[#111111] text-[#F4C542] shadow-sm'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

@@ -286,13 +286,13 @@ export const MemoriesModeration: React.FC = () => {
     <div className="space-y-6 animate-fadeIn font-sans text-[#111111]">
       
       {/* Top Header & Primary Action Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 border border-[#E5E7EB] rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 border border-[#E5E7EB] rounded-3xl shadow-sm">
         <div className="flex items-start space-x-4">
           <div className="w-12 h-12 bg-[#FFF7D6] text-[#854D0E] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center shrink-0">
             <ImageIcon className="w-6 h-6 text-[#854D0E]" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-bold text-[#111111]">Memories, Video &amp; Photo Albums</h2>
               <span className="px-2.5 py-0.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] text-[11px] font-extrabold rounded-full uppercase tracking-wider">
                 Multi-Album Module
@@ -304,8 +304,8 @@ export const MemoriesModeration: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 shrink-0">
-          <Button onClick={() => setIsCreateModalOpen(true)}>
+        <div className="w-full sm:w-auto flex items-center shrink-0">
+          <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-1.5" />
             <span>Create Album / Upload Media</span>
           </Button>

@@ -1,11 +1,14 @@
 import csv
 import io
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
 from typing import List, Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 from app.core.database import get_db
+from app.core.config import settings
+from app.services.email import send_alumni_verified_email
 from app.schemas.models import (
     UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest
 )
@@ -100,6 +103,22 @@ async def verify_alumni(
         await db.alumni.update_one({"_id": ObjectId(alumni_id)}, {"$set": update_data})
     except Exception:
         await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
+
+    # Dispatch Email Notification asynchronously on Approval
+    if request.status == "APPROVED" and alumni.get("email"):
+        alumni_email = alumni["email"]
+        alumni_name = alumni.get("full_name", "Alumnus")
+        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHSS SCHOOL")
+
+        if school_id:
+            try:
+                s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
+                if s_doc and s_doc.get("name"):
+                    school_name = s_doc["name"]
+            except Exception:
+                pass
+
+        asyncio.create_task(asyncio.to_thread(send_alumni_verified_email, alumni_email, alumni_name, school_name))
 
     # Log audit
     await db.audit_logs.insert_one({

@@ -267,20 +267,20 @@ export const AlumniLogin: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* LEFT COLUMN: Sticky School Branding & Value Props */}
-          <div className="lg:col-span-6 sticky top-28 space-y-6 pr-0 lg:pr-6">
+          <div className="lg:col-span-6 order-2 lg:order-1 lg:sticky top-28 space-y-6 pr-0 lg:pr-6 mt-6 lg:mt-0">
             
             {/* Header Branding */}
             <div className="flex items-center space-x-4">
               <img
                 src={logoUrl}
                 alt="School Crest"
-                className="h-16 w-auto object-contain shrink-0"
+                className="h-14 sm:h-16 w-auto object-contain shrink-0"
               />
               <div>
-                <h1 className="text-2xl sm:text-3xl font-medium text-[#111111] tracking-tight leading-tight">
+                <h1 className="text-xl sm:text-3xl font-medium text-[#111111] tracking-tight leading-tight">
                   {t('app_title')}
                 </h1>
-                <p className="text-sm text-gray-500 font-normal mt-0.5">
+                <p className="text-xs sm:text-sm text-gray-500 font-normal mt-0.5">
                   {language === 'ta' ? 'இணைந்திருப்போம். முன்னேறுவோம்.' : 'Stay Connected. Stay Together.'}
                 </p>
               </div>
@@ -291,10 +291,10 @@ export const AlumniLogin: React.FC = () => {
 
             {/* Welcome Heading */}
             <div className="space-y-2">
-              <h2 className="text-3xl sm:text-4xl font-normal text-[#111111] tracking-tight">
+              <h2 className="text-2xl sm:text-4xl font-normal text-[#111111] tracking-tight">
                 {language === 'ta' ? 'அன்போடு வரவேற்கிறோம்!' : 'Welcome Back!'}
               </h2>
-              <p className="text-base text-gray-600 font-normal leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
                 {language === 'ta' ? 'உங்கள் பழைய பள்ளி தோழர்களுடன் மீண்டும் இணைய இப்போதே உள்நுழையுங்கள்.' : 'Login to your account and continue your journey with your alumni community.'}
               </p>
             </div>
@@ -347,7 +347,7 @@ export const AlumniLogin: React.FC = () => {
           </div>
 
           {/* RIGHT COLUMN: 2-Step Login Form Card */}
-          <div className="lg:col-span-6 bg-white border border-[#E5E7EB] rounded-xl p-7 sm:p-10 shadow-lg space-y-6">
+          <div className="lg:col-span-6 order-1 lg:order-2 bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 lg:p-10 shadow-lg space-y-6">
             
             {/* Card Title Header with Language Selector Toggle */}
             <div className="border-b border-[#E5E7EB] pb-4 flex items-center justify-between gap-3">

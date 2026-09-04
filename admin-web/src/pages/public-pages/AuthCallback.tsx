@@ -70,7 +70,7 @@ export const AuthCallback: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-4">
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-8 shadow-lg max-w-md w-full text-center space-y-4">
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 sm:p-8 shadow-lg max-w-md w-full text-center space-y-4">
         <Loader2 className="w-12 h-12 text-[#F4C542] animate-spin mx-auto" />
         <h2 className="text-xl font-normal text-[#111111] tracking-tight">Authenticating with Google...</h2>
         <p className="text-sm text-gray-500 font-normal">

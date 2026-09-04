@@ -24,7 +24,7 @@ export const Footer: React.FC<FooterProps> = ({ schoolName, logoUrl: propLogoUrl
           </div>
 
           {/* Quick Navigation Links */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-7 text-xs sm:text-sm font-semibold text-gray-600">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-7 text-xs sm:text-sm font-semibold text-gray-600">
             <a href="#community-stats" className="hover:text-[#111111] transition-colors py-1">About</a>
             <a href="#upcoming-events" className="hover:text-[#111111] transition-colors py-1">Events</a>
             <a href="#alumni-highlights" className="hover:text-[#111111] transition-colors py-1">Alumni</a>

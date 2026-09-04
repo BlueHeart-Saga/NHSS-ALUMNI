@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../services/api';
+import { FAQSection } from './components/FAQSection';
 
 export const PublicContact: React.FC = () => {
   const { t, language } = useLanguage();
@@ -38,7 +39,7 @@ export const PublicContact: React.FC = () => {
       {/* Header Banner */}
       <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
-          
+
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {t('contact_title')}
           </h1>
@@ -58,7 +59,7 @@ export const PublicContact: React.FC = () => {
               </h2>
               <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
                 {language === 'ta'
-                  ? 'வகுப்புச் சரிபார்ப்பு, மறுசந்திப்புகளைத் திட்டமிடுதல் மற்றும் பிற தகவல்களுக்கு எங்கள் சங்கப் பிரதிநிதிகள் உதவி புரிவர்.'
+                  ? 'வகுப்புச் சரிபார்ப்பு, மறுசந்திப்புகளைத் திட்டமிடுதல் மற்றும் பிற தகவல்களுக்கு நமதுசங்கப் பிரதிநிதிகள் உதவி புரிவர்.'
                   : 'Our alumni relationship officers are available Monday to Saturday to assist graduates with batch verification, get-together organizing, and credential updates.'}
               </p>
 
@@ -69,7 +70,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('location')}</strong>
-                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, கோவில்பட்டி' : 'NHSS School Building, Kaattunayakkanpatti,Kovilpatti Tamil Nadu'}</span>
+                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி' : 'NHSS School Building, Kaattunayakkanpatti,Thoothukudi Tamil Nadu'}</span>
                   </div>
                 </div>
 
@@ -79,7 +80,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('phone_label')}</strong>
-                    <span className="font-semibold text-sm sm:text-base">+91 98765 43210</span>
+                    <span className="font-semibold text-sm sm:text-base">+91 88259 05771</span>
                   </div>
                 </div>
 
@@ -106,7 +107,7 @@ export const PublicContact: React.FC = () => {
                 </h3>
                 <p className="text-gray-600 font-medium max-w-md mx-auto leading-relaxed">
                   {language === 'ta'
-                    ? `நன்றி ${name}! உங்கள் மின்னஞ்சலுக்கு (${email}) உறுதிப்படுத்தல் செய்தி அனுப்பப்பட்டுள்ளது. எங்கள் குழு விரைவில் உங்களை தொடர்பு கொள்ளும்.`
+                    ? `நன்றி ${name}! உங்கள் மின்னஞ்சலுக்கு (${email}) உறுதிப்படுத்தல் செய்தி அனுப்பப்பட்டுள்ளது. நமதுகுழு விரைவில் உங்களை தொடர்பு கொள்ளும்.`
                     : `Thank you ${name}! An automated confirmation email was sent to ${email}. Our admin team will review your inquiry and get back to you shortly.`}
                 </p>
                 <button
@@ -204,6 +205,9 @@ export const PublicContact: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* FAQ / Doubts Section */}
+      <FAQSection />
     </div>
   );
 };
