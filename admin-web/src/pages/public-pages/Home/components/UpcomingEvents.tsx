@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, MapPin, ArrowRight, ExternalLink, Clock, Users, X, QrCode, ShieldCheck, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar, MapPin, ArrowRight, ExternalLink, Clock, Users, X, QrCode, ShieldCheck, Info, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { EventsSkeleton } from './SkeletonLoaders';
 import { getAssetUrl } from '../../../../utils/asset';
@@ -33,6 +33,53 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
   const { t, language } = useLanguage();
   const [selectedPreviewEvent, setSelectedPreviewEvent] = useState<EventItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isModalImageLoaded, setIsModalImageLoaded] = useState(false);
+  const [qrLoaded, setQrLoaded] = useState(false);
+
+  // Touch Swipe Handlers for mobile & tablet screens
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const minSwipeDistance = 40;
+
+  const safeIndex = currentIndex < events.length ? currentIndex : 0;
+  const currentEvent = events[safeIndex];
+
+  const getEventCoverImage = (ev: EventItem) => {
+    if (!ev) return getAssetUrl('/school-images/banner.png');
+    if (language === 'ta') {
+      return getAssetUrl(ev.cover_image_url_ta) || getAssetUrl(ev.cover_image_url) || getAssetUrl('/school-images/banner.png');
+    }
+    return getAssetUrl(ev.cover_image_url) || getAssetUrl(ev.cover_image_url_ta) || getAssetUrl('/school-images/banner.png');
+  };
+
+  // Eagerly Preload ALL Event Cover Images into memory cache on mount/update for instant switching
+  useEffect(() => {
+    if (events && events.length > 0) {
+      events.forEach((ev) => {
+        const img = new Image();
+        img.src = getEventCoverImage(ev);
+      });
+      // Preload decorative assets
+      const micImg = new Image();
+      micImg.src = getAssetUrl('/assets/components/mic.png');
+      const fallbackImg = new Image();
+      fallbackImg.src = getAssetUrl('/school-images/banner.png');
+    }
+  }, [events, language]);
+
+  // Reset loading state when active index or language changes
+  useEffect(() => {
+    setIsImageLoaded(false);
+  }, [currentIndex, language]);
+
+  // Reset modal image load states on modal open
+  useEffect(() => {
+    if (selectedPreviewEvent) {
+      setIsModalImageLoaded(false);
+      setQrLoaded(false);
+    }
+  }, [selectedPreviewEvent]);
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev === 0 ? events.length - 1 : prev - 1));
@@ -43,17 +90,34 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
   };
 
   const handleCardClick = (event: EventItem) => {
+    if (onSelectEvent) {
+      onSelectEvent(event);
+    }
     setSelectedPreviewEvent(event);
   };
 
-  const safeIndex = currentIndex < events.length ? currentIndex : 0;
-  const currentEvent = events[safeIndex];
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = getAssetUrl('/school-images/banner.png');
+  };
 
-  const getEventCoverImage = (ev: EventItem) => {
-    if (language === 'ta') {
-      return getAssetUrl(ev.cover_image_url_ta) || getAssetUrl(ev.cover_image_url) || getAssetUrl("/school-images/banner.png");
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > minSwipeDistance) {
+      handleNext();
+    } else if (distance < -minSwipeDistance) {
+      handlePrev();
     }
-    return getAssetUrl(ev.cover_image_url) || getAssetUrl(ev.cover_image_url_ta) || getAssetUrl("/school-images/banner.png");
   };
 
   const getEventTitle = (ev: EventItem) => {
@@ -82,6 +146,9 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               <img
                 src={getAssetUrl('/assets/components/mic.png')}
                 alt="Events Announcement Megaphone"
+                loading="eager"
+                decoding="async"
+                onError={handleImageError}
                 className="w-full h-full object-contain filter drop-shadow-2xl"
               />
             </div>
@@ -137,14 +204,32 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                 {/* Carousel Controls Bar (Shown if multiple events exist) */}
                 {events.length > 1 && (
                   <div className="flex items-center justify-between bg-gray-50 p-3 px-5 rounded-2xl border border-gray-200">
-                    <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">
-                      {language === 'ta' ? `நிகழ்வு ${safeIndex + 1} / ${events.length}` : `Event ${safeIndex + 1} of ${events.length}`}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">
+                        {language === 'ta' ? `நிகழ்வு ${safeIndex + 1} / ${events.length}` : `Event ${safeIndex + 1} of ${events.length}`}
+                      </span>
+                      {/* Dots pagination for fast jumping */}
+                      <div className="hidden sm:flex items-center space-x-1.5 ml-3">
+                        {events.map((ev, idx) => (
+                          <button
+                            key={ev.id || idx}
+                            type="button"
+                            onClick={() => setCurrentIndex(idx)}
+                            className={`w-2.5 h-2.5 rounded-full transition-all ${
+                              idx === safeIndex
+                                ? 'bg-[#854D0E] w-6'
+                                : 'bg-gray-300 hover:bg-gray-400'
+                            }`}
+                            aria-label={`Go to event ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex items-center space-x-2">
                       <button
                         type="button"
                         onClick={handlePrev}
-                        className="p-2 rounded-xl bg-white border border-gray-300 text-gray-800 hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all shadow-xs"
+                        className="p-2 rounded-xl bg-white border border-gray-300 text-gray-800 hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all shadow-xs active:scale-95"
                         aria-label="Previous Event"
                       >
                         <ChevronLeft className="w-4 h-4" />
@@ -152,7 +237,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                       <button
                         type="button"
                         onClick={handleNext}
-                        className="p-2 rounded-xl bg-white border border-gray-300 text-gray-800 hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all shadow-xs"
+                        className="p-2 rounded-xl bg-white border border-gray-300 text-gray-800 hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all shadow-xs active:scale-95"
                         aria-label="Next Event"
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -161,26 +246,39 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                   </div>
                 )}
 
-                {/* SINGLE CAROUSEL CARD SLOT */}
+                {/* SINGLE CAROUSEL CARD SLOT WITH TOUCH SWIPE & FAST SKELETON */}
                 {currentEvent && (
                   <div
                     key={currentEvent.id}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                     className="bg-white rounded-3xl overflow-hidden border-2 border-[#111111] shadow-[6px_6px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all duration-300 group transform hover:-translate-y-1 flex flex-col justify-between relative"
                   >
-                    {/* CLEAN FULL-SIZE COVER IMAGE */}
+                    {/* OPTIMIZED FULL-SIZE COVER IMAGE WITH FAST SKELETON & FADE-IN */}
                     <div
                       onClick={() => handleCardClick(currentEvent)}
-                      className="relative h-56 sm:h-72 w-full overflow-hidden bg-gray-100 cursor-pointer border-b-2 border-[#111111]"
+                      className="relative h-56 sm:h-72 w-full overflow-hidden bg-gray-200 cursor-pointer border-b-2 border-[#111111]"
                     >
+                      {/* Loading Shimmer Overlay while image fetches */}
+                      {!isImageLoaded && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse flex items-center justify-center">
+                          <ImageIcon className="w-10 h-10 text-gray-300 animate-bounce" />
+                        </div>
+                      )}
+
                       <img
                         src={getEventCoverImage(currentEvent)}
                         alt={getEventTitle(currentEvent)}
                         loading="eager"
                         fetchPriority="high"
                         decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onLoad={() => setIsImageLoaded(true)}
+                        onError={handleImageError}
+                        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
+                          isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                        }`}
                       />
-
 
                       {/* Overlay Arrows on Top of Image for Quick Swiping */}
                       {events.length > 1 && (
@@ -191,7 +289,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                               e.stopPropagation();
                               handlePrev();
                             }}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white border border-white/30 flex items-center justify-center backdrop-blur-md shadow-lg transition-all"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white border border-white/30 flex items-center justify-center backdrop-blur-md shadow-lg transition-all active:scale-90"
                           >
                             <ChevronLeft className="w-5 h-5 text-white" />
                           </button>
@@ -201,7 +299,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                               e.stopPropagation();
                               handleNext();
                             }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white border border-white/30 flex items-center justify-center backdrop-blur-md shadow-lg transition-all"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white border border-white/30 flex items-center justify-center backdrop-blur-md shadow-lg transition-all active:scale-90"
                           >
                             <ChevronRight className="w-5 h-5 text-white" />
                           </button>
@@ -237,7 +335,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
                       {/* ACTION & REGISTRATION LINK BUTTONS */}
                       <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                        {/* <button
+                        <button
                           type="button"
                           onClick={() => handleCardClick(currentEvent)}
                           className="w-full sm:w-auto px-6 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:shadow-xl transition-all border-2 border-[#F4C542] flex items-center justify-center space-x-2 cursor-pointer active:scale-95 group/btn"
@@ -245,7 +343,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                           <QrCode className="w-4 h-4 text-[#F4C542] group-hover/btn:rotate-12 transition-transform" />
                           <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட் பெற' : 'View Details & RSVP Ticket'}</span>
                           <ArrowRight className="w-4 h-4 text-[#F4C542] group-hover/btn:translate-x-1 transition-transform" />
-                        </button> */}
+                        </button>
 
                         {currentEvent.registration_url && (
                           <a
@@ -282,14 +380,25 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               <X className="w-5 h-5" />
             </button>
 
-            {/* TOP WIDE BANNER IMAGE WITH INSIDE TITLE & BATCH BADGE */}
+            {/* TOP WIDE BANNER IMAGE WITH SKELETON & INSIDE TITLE & BATCH BADGE */}
             <div className="h-60 sm:h-72 w-full relative bg-gray-900 shrink-0 overflow-hidden">
+              {!isModalImageLoaded && (
+                <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
+                  <ImageIcon className="w-12 h-12 text-gray-600 animate-bounce" />
+                </div>
+              )}
               <img
                 src={getEventCoverImage(selectedPreviewEvent)}
                 alt={getEventTitle(selectedPreviewEvent)}
-                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                onLoad={() => setIsModalImageLoaded(true)}
+                onError={handleImageError}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                  isModalImageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none" />
 
               <div className="absolute top-4 left-5 z-10">
                 <span className="text-xs font-extrabold bg-[#111111] text-[#F4C542] px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-[#F4C542]">
@@ -358,14 +467,23 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                   </p>
                 </div>
 
-                {/* Auto-Generated Scannable QR Code Image */}
-                <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0">
+                {/* Auto-Generated Scannable QR Code Image with Loading Fallback */}
+                <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0 relative min-w-[144px] min-h-[144px] flex flex-col items-center justify-center">
+                  {!qrLoaded && (
+                    <div className="absolute inset-0 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
+                      <QrCode className="w-8 h-8 text-gray-400 animate-spin" />
+                    </div>
+                  )}
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
                       selectedPreviewEvent.registration_url || `${window.location.origin}/login`
                     )}`}
                     alt="Event QR Barcode"
-                    className="w-32 h-32 object-contain"
+                    loading="eager"
+                    onLoad={() => setQrLoaded(true)}
+                    className={`w-32 h-32 object-contain transition-opacity duration-300 ${
+                      qrLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
                   />
                   <div className="text-[10px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
                     SCAN QR

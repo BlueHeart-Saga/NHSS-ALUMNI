@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, MapPin, ArrowRight, Clock, Users, QrCode, Search, Sparkles, Filter, ExternalLink, X, CheckCircle2, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Clock, Users, QrCode, Search, Sparkles, Filter, ExternalLink, X, CheckCircle2, ChevronDown, Image as ImageIcon, ShieldCheck } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,6 +23,7 @@ interface EventItem {
   cover_image_url_ta?: string;
   registration_url?: string;
   status?: string;
+  isPast?: boolean;
 }
 
 // Progressive Image Component with Instant Skeleton & Smooth Fade-In
@@ -45,16 +46,17 @@ const EventImage: React.FC<{
       <img
         src={error ? getAssetUrl('/school-images/banner.png') : src}
         alt={alt}
-        loading={isAboveTheFold ? "eager" : "lazy"}
+        loading={isAboveTheFold ? 'eager' : 'lazy'}
         decoding="async"
-        {...(isAboveTheFold ? { fetchPriority: "high" } : {})}
+        {...(isAboveTheFold ? { fetchPriority: 'high' } : {})}
         onLoad={() => setLoaded(true)}
         onError={() => {
           setError(true);
           setLoaded(true);
         }}
-        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${loaded ? 'opacity-100' : 'opacity-0'
-          } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
       />
     </div>
   );
@@ -77,47 +79,69 @@ export const PublicEvents: React.FC = () => {
 
   // Preview Modal State
   const [selectedPreviewEvent, setSelectedPreviewEvent] = useState<EventItem | null>(null);
+  const [qrLoaded, setQrLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     // Parallel fetching with progressive rendering
-    api.getPublicEvents()
-      .then(upData => {
+    api
+      .getPublicEvents()
+      .then((upData) => {
         if (active && upData) {
           setUpcomingEvents(upData);
           setLoading(false);
         }
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         if (active) setLoading(false);
       });
 
-    api.getPublicPastEvents()
-      .then(pastData => {
+    api
+      .getPublicPastEvents()
+      .then((pastData) => {
         if (active && pastData) {
           setPastEvents(pastData);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
 
     return () => {
       active = false;
     };
   }, []);
 
+  // Combine events list
+  const allCombined: EventItem[] = [
+    ...upcomingEvents.map((e) => ({ ...e, isPast: false })),
+    ...pastEvents.map((e) => ({ ...e, isPast: true })),
+  ];
+
+  // Eagerly preload all event images in background into browser cache for instant tab/pagination switching
+  useEffect(() => {
+    if (allCombined.length > 0) {
+      allCombined.forEach((ev) => {
+        const coverUrl =
+          language === 'ta'
+            ? getAssetUrl(ev.cover_image_url_ta) || getAssetUrl(ev.cover_image_url)
+            : getAssetUrl(ev.cover_image_url) || getAssetUrl(ev.cover_image_url_ta);
+        if (coverUrl) {
+          const img = new Image();
+          img.src = coverUrl;
+        }
+      });
+      const fallbackImg = new Image();
+      fallbackImg.src = getAssetUrl('/school-images/banner.png');
+    }
+  }, [upcomingEvents, pastEvents, language]);
+
   // Reset batch count on filter or tab change for fast view switching
   useEffect(() => {
     setVisibleCount(ITEMS_PER_BATCH);
   }, [activeTab, searchQuery]);
 
-  // Combine & filter events based on active tab and search query
-  const allCombined = [
-    ...upcomingEvents.map(e => ({ ...e, isPast: false })),
-    ...pastEvents.map(e => ({ ...e, isPast: true }))
-  ];
-
+  // Filter events based on active tab and search query
   const filteredEvents = allCombined.filter((ev) => {
     if (activeTab === 'UPCOMING' && ev.isPast) return false;
     if (activeTab === 'PAST' && !ev.isPast) return false;
@@ -136,15 +160,33 @@ export const PublicEvents: React.FC = () => {
   const hasMore = visibleCount < filteredEvents.length;
   const remainingCount = filteredEvents.length - visibleCount;
 
+  const getCoverImageUrl = (ev: EventItem) => {
+    if (language === 'ta') {
+      return (
+        getAssetUrl(ev.cover_image_url_ta) ||
+        getAssetUrl(ev.cover_image_url) ||
+        getAssetUrl('/school-images/banner.png')
+      );
+    }
+    return (
+      getAssetUrl(ev.cover_image_url) ||
+      getAssetUrl(ev.cover_image_url_ta) ||
+      getAssetUrl('/school-images/banner.png')
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#111111] animate-fadeIn font-sans">
-
       {/* 1. HERO HEADER */}
       <div className="py-12 sm:py-20 bg-white border-b border-[#E5E7EB] relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5 relative z-10">
           <div className="inline-flex items-center space-x-2 text-xs font-extrabold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
             <Sparkles className="w-4 h-4 text-[#854D0E]" />
-            <span>{language === 'ta' ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு' : 'School Reunions & Celebrations'}</span>
+            <span>
+              {language === 'ta'
+                ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு'
+                : 'School Reunions & Celebrations'}
+            </span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#111111] tracking-tight leading-tight">
@@ -165,41 +207,62 @@ export const PublicEvents: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'ta' ? 'நிகழ்வின் தலைப்பு அல்லது இடத்தைத் தேடுக...' : 'Search event name, venue, or details...'}
-                className="w-full pl-12 pr-4 py-3.5 bg-[#FAFAFA] border-2 border-[#E5E7EB] rounded-2xl focus:outline-none focus:border-[#F4C542] text-sm font-medium transition-all shadow-xs"
+                placeholder={
+                  language === 'ta'
+                    ? 'நிகழ்வின் தலைப்பு அல்லது இடத்தைத் தேடுக...'
+                    : 'Search event name, venue, or details...'
+                }
+                className="w-full pl-12 pr-10 py-3.5 bg-[#FAFAFA] border-2 border-[#E5E7EB] rounded-2xl focus:outline-none focus:border-[#F4C542] text-sm font-medium transition-all shadow-xs"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-200 transition-all"
+                  aria-label="Clear Search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             <div className="flex border-2 border-[#E5E7EB] bg-gray-50 p-1.5 rounded-2xl w-full sm:w-auto shrink-0 justify-center">
               <button
                 type="button"
                 onClick={() => setActiveTab('ALL')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'ALL'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                  activeTab === 'ALL'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                  }`}
+                }`}
               >
                 {language === 'ta' ? `அனைத்தும் (${allCombined.length})` : `All (${allCombined.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('UPCOMING')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'UPCOMING'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                  activeTab === 'UPCOMING'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                  }`}
+                }`}
               >
-                {language === 'ta' ? `வரவிருப்பவை (${upcomingEvents.length})` : `Upcoming (${upcomingEvents.length})`}
+                {language === 'ta'
+                  ? `வரவிருப்பவை (${upcomingEvents.length})`
+                  : `Upcoming (${upcomingEvents.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('PAST')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'PAST'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                  activeTab === 'PAST'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                  }`}
+                }`}
               >
-                {language === 'ta' ? `கடந்தகாலவை (${pastEvents.length})` : `Past Events (${pastEvents.length})`}
+                {language === 'ta'
+                  ? `கடந்தகாலவை (${pastEvents.length})`
+                  : `Past Events (${pastEvents.length})`}
               </button>
             </div>
           </div>
@@ -211,7 +274,10 @@ export const PublicEvents: React.FC = () => {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between h-[420px] animate-pulse">
+              <div
+                key={n}
+                className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between h-[420px] animate-pulse"
+              >
                 <div className="h-52 sm:h-60 bg-gray-200 w-full" />
                 <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-3">
@@ -234,24 +300,25 @@ export const PublicEvents: React.FC = () => {
               {language === 'ta' ? 'எந்த நிகழ்வுகளும் கிடைக்கவில்லை.' : 'No events found matching your filter.'}
             </p>
             <p className="text-xs text-gray-500">
-              {language === 'ta' ? 'வெவ்வேறு தேடல் சொற்களை முயற்சி செய்து பாருங்கள்.' : 'Try searching for different keywords or clear search filters.'}
+              {language === 'ta'
+                ? 'வெவ்வேறு தேடல் சொற்களை முயற்சி செய்து பாருங்கள்.'
+                : 'Try searching for different keywords or clear search filters.'}
             </p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {visibleEvents.map((event, idx) => {
-                const coverImage = (language === 'ta'
-                  ? (getAssetUrl(event.cover_image_url_ta) || getAssetUrl(event.cover_image_url))
-                  : (getAssetUrl(event.cover_image_url) || getAssetUrl(event.cover_image_url_ta))) || getAssetUrl('/school-images/banner.png') || '/school-images/banner.png';
+                const coverImage = getCoverImageUrl(event);
 
-                const displayTitle = (language === 'ta'
-                  ? (event.title_ta || event.title)
-                  : (event.title || event.title_ta)) || 'Event';
+                const displayTitle =
+                  (language === 'ta' ? event.title_ta || event.title : event.title || event.title_ta) ||
+                  'Event';
 
-                const displayDescription = language === 'ta'
-                  ? (event.description_ta || event.description)
-                  : (event.description || event.description_ta);
+                const displayDescription =
+                  language === 'ta'
+                    ? event.description_ta || event.description
+                    : event.description || event.description_ta;
 
                 const isAboveTheFold = idx < 3;
 
@@ -274,11 +341,20 @@ export const PublicEvents: React.FC = () => {
 
                       {/* Status Badge Tag */}
                       <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
-                        <span className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${event.isPast
-                            ? 'bg-gray-900 text-gray-300 border-gray-700'
-                            : 'bg-[#111111] text-[#F4C542] border-[#F4C542]'
-                          }`}>
-                          {event.isPast ? (language === 'ta' ? 'கடந்த நிகழ்ச்சி' : 'Past Event') : (language === 'ta' ? 'வரவிருக்கும் நிகழ்ச்சி' : 'Upcoming Event')}
+                        <span
+                          className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${
+                            event.isPast
+                              ? 'bg-gray-900 text-gray-300 border-gray-700'
+                              : 'bg-[#111111] text-[#F4C542] border-[#F4C542]'
+                          }`}
+                        >
+                          {event.isPast
+                            ? language === 'ta'
+                              ? 'கடந்த நிகழ்ச்சி'
+                              : 'Past Event'
+                            : language === 'ta'
+                            ? 'வரவிருக்கும் நிகழ்ச்சி'
+                            : 'Upcoming Event'}
                         </span>
                       </div>
 
@@ -322,6 +398,14 @@ export const PublicEvents: React.FC = () => {
 
                       {/* CARD FOOTER BUTTONS */}
                       <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPreviewEvent(event)}
+                          className="w-full py-2.5 px-4 bg-[#111111] hover:bg-black text-[#F4C542] hover:text-white font-bold text-xs uppercase tracking-wider rounded-2xl border-2 border-[#F4C542] transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-95"
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-[#F4C542]" />
+                          <span>{language === 'ta' ? 'விவரங்கள் & QR பார்ஃகோட்' : 'View Details & QR Pass'}</span>
+                        </button>
                         {event.registration_url && (
                           <a
                             href={event.registration_url}
@@ -361,10 +445,10 @@ export const PublicEvents: React.FC = () => {
         )}
       </div>
 
-      {/* DETAILED PREVIEW MODAL */}
+      {/* DETAILED PREVIEW MODAL WITH QR BARCODE & SKELETON */}
       {selectedPreviewEvent && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-2xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col">
             {/* Close Button */}
             <button
               onClick={() => setSelectedPreviewEvent(null)}
@@ -373,42 +457,50 @@ export const PublicEvents: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Banner Header Image */}
+            {/* Banner Header Image with Progressive Loading */}
             <div className="h-56 sm:h-64 w-full relative bg-gray-900 shrink-0 overflow-hidden">
-              <img
-                src={
-                  language === 'ta'
-                    ? (getAssetUrl(selectedPreviewEvent.cover_image_url_ta) || getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl('/school-images/banner.png'))
-                    : (getAssetUrl(selectedPreviewEvent.cover_image_url) || getAssetUrl(selectedPreviewEvent.cover_image_url_ta) || getAssetUrl('/school-images/banner.png'))
-                }
+              <EventImage
+                src={getCoverImageUrl(selectedPreviewEvent)}
                 alt={
-                  language === 'ta'
-                    ? (selectedPreviewEvent.title_ta || selectedPreviewEvent.title)
-                    : (selectedPreviewEvent.title || selectedPreviewEvent.title_ta)
+                  (language === 'ta'
+                    ? selectedPreviewEvent.title_ta || selectedPreviewEvent.title
+                    : selectedPreviewEvent.title || selectedPreviewEvent.title_ta) || 'Event'
                 }
-                className="w-full h-full object-cover"
+                isPast={selectedPreviewEvent.isPast}
+                isAboveTheFold={true}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none" />
+
+              <div className="absolute top-4 left-5 z-10">
+                {selectedPreviewEvent.batch_name && (
+                  <span className="text-xs font-extrabold bg-[#111111] text-[#F4C542] px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-[#F4C542]">
+                    {selectedPreviewEvent.batch_name}
+                  </span>
+                )}
+              </div>
 
               <div className="absolute bottom-5 left-6 right-6 z-10 text-white">
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow-lg">
                   {language === 'ta'
-                    ? (selectedPreviewEvent.title_ta || selectedPreviewEvent.title)
-                    : (selectedPreviewEvent.title || selectedPreviewEvent.title_ta)}
+                    ? selectedPreviewEvent.title_ta || selectedPreviewEvent.title
+                    : selectedPreviewEvent.title || selectedPreviewEvent.title_ta}
                 </h2>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-5 overflow-y-auto text-xs sm:text-sm">
+            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs sm:text-sm text-left flex-1">
               <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1.5 rounded-xl">
+                <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3.5 py-1.5 rounded-xl">
                   <Calendar className="w-4 h-4 text-[#854D0E]" />
-                  <span>{selectedPreviewEvent.event_date} {selectedPreviewEvent.start_time && `• ${selectedPreviewEvent.start_time}`}</span>
+                  <span>
+                    {selectedPreviewEvent.event_date}{' '}
+                    {selectedPreviewEvent.start_time && `• ${selectedPreviewEvent.start_time}`}
+                  </span>
                 </div>
 
                 {selectedPreviewEvent.venue && (
-                  <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3.5 py-1.5 rounded-xl">
                     <MapPin className="w-4 h-4 text-[#854D0E]" />
                     <span>{selectedPreviewEvent.venue}</span>
                   </div>
@@ -416,25 +508,75 @@ export const PublicEvents: React.FC = () => {
               </div>
 
               <div>
-                <h4 className="font-bold text-gray-900 mb-1">{language === 'ta' ? 'நிகழ்ச்சி விவரங்கள் & நிகழ்ச்சி நிரல்:' : 'Event Description & Agenda:'}</h4>
+                <h4 className="font-bold text-[#854D0E] uppercase tracking-wider text-xs mb-2">
+                  {language === 'ta' ? 'நிகழ்ச்சி விவரங்கள் & நிகழ்ச்சி நிரல்:' : 'About This Event:'}
+                </h4>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-2xl border border-gray-200">
                   {language === 'ta'
-                    ? (selectedPreviewEvent.description_ta || selectedPreviewEvent.description)
-                    : (selectedPreviewEvent.description || selectedPreviewEvent.description_ta)}
+                    ? selectedPreviewEvent.description_ta || selectedPreviewEvent.description
+                    : selectedPreviewEvent.description || selectedPreviewEvent.description_ta}
                 </p>
               </div>
 
               {selectedPreviewEvent.address && (
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-1">{language === 'ta' ? 'முழு இடம்:' : 'Full Address:'}</h4>
-                  <p className="text-gray-700 font-mono text-xs">{selectedPreviewEvent.address}</p>
+                  <h4 className="font-bold text-[#854D0E] uppercase tracking-wider text-xs mb-1">
+                    {language === 'ta' ? 'முழு இடம்:' : 'Full Address:'}
+                  </h4>
+                  <p className="text-gray-700 font-mono text-xs p-3 bg-gray-50 rounded-xl border border-gray-200">{selectedPreviewEvent.address}</p>
                 </div>
               )}
 
+              {/* REAL AUTO-GENERATED QR CODE BARCODE SECTION */}
+              <div className="p-5 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-3xl border-2 border-[#F4C542] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
+                <div className="space-y-1.5 text-center sm:text-left flex-1">
+                  <div className="inline-flex items-center space-x-2 text-[11px] font-bold text-[#F4C542] bg-[#F4C542]/20 px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>{language === 'ta' ? 'மொபைல் QR ஸ்கேன்' : 'Mobile Scan & RSVP'}</span>
+                  </div>
+                  <h4 className="text-base font-bold text-white">
+                    {language === 'ta' ? 'மொபைல் கேமரா மூலம் ஸ்கேன் செய்க' : 'Scan QR Code with Mobile Phone'}
+                  </h4>
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {language === 'ta'
+                      ? 'உங்கள் மொபைல் கேமரா மூலம் இந்த QR பார்ஃகோடை ஸ்கேன் செய்து நேரடியாக பதிவு படிவத்தைத் திறக்கலாம்.'
+                      : 'Scan this live QR Code barcode with your smartphone camera to open the event registration & RSVP page.'}
+                  </p>
+                </div>
+
+                {/* Auto-Generated Scannable QR Code Image with Loading Fallback */}
+                <div className="p-2.5 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0 relative min-w-[130px] min-h-[130px] flex flex-col items-center justify-center">
+                  {!qrLoaded && (
+                    <div className="absolute inset-0 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
+                      <QrCode className="w-6 h-6 text-gray-400 animate-spin" />
+                    </div>
+                  )}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                      selectedPreviewEvent.registration_url || `${window.location.origin}/login`
+                    )}`}
+                    alt="Event QR Barcode"
+                    loading="eager"
+                    onLoad={() => setQrLoaded(true)}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = getAssetUrl('/school-images/banner.png');
+                    }}
+                    className={`w-28 h-28 object-contain transition-opacity duration-300 ${
+                      qrLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                  <div className="text-[9px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
+                    SCAN QR
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
               <div className="pt-4 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
                 <Link
                   to="/login"
-                  className="flex-1 py-3 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md text-center border-2 border-[#F4C542]"
+                  className="flex-1 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md text-center border-2 border-[#F4C542] transition-all"
                 >
                   {language === 'ta' ? 'உள்நுழைந்து RSVP டிக்கெட் பெறுக' : 'Login to Claim RSVP Pass'}
                 </Link>
@@ -443,9 +585,10 @@ export const PublicEvents: React.FC = () => {
                     href={selectedPreviewEvent.registration_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-3 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] font-extrabold text-xs uppercase tracking-wider rounded-xl text-center border border-[#F4C542]"
+                    className="flex-1 py-3.5 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] hover:text-[#111111] font-extrabold text-xs uppercase tracking-wider rounded-xl text-center border border-[#F4C542] transition-all flex items-center justify-center space-x-1.5"
                   >
-                    {language === 'ta' ? 'வெளிப்புற பதிவு படிவம்' : 'External Register'}
+                    <span>{language === 'ta' ? 'வெளிப்புற பதிவு படிவம்' : 'External Register'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
               </div>

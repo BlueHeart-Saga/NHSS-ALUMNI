@@ -90,14 +90,14 @@ export const Hero: React.FC<HeroProps> = ({
                 <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
-              {onLoginClick && (
+              {/* {onLoginClick && (
                 <button
                   onClick={onLoginClick}
                   className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white hover:bg-gray-50 text-[#111111] font-semibold text-sm sm:text-base rounded-2xl sm:rounded-full shadow-md hover:shadow-lg transition-all border-2 border-gray-300 hover:border-[#111111] cursor-pointer inline-flex items-center justify-center"
                 >
                   <span>{language === 'ta' ? 'உள்நுழைக' : 'Alumni Login'}</span>
                 </button>
-              )}
+              )} */}
             </div>
           </div>
 
