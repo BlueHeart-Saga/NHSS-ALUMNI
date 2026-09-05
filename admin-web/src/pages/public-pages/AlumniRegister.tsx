@@ -857,7 +857,7 @@ export const AlumniRegister: React.FC = () => {
                       )}
 
                       <Button type="submit" className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer" isLoading={loading}>
-                        <span>{language === 'ta' ? '6-இலக்க OTP சரிபார்ப்புக் குறியீட்டை அனுப்பவும்' : 'Send 6-Digit Verification Code'}</span>
+                        <span>{language === 'ta' ? 'சமர்ப்பித்து தொடரவும்' : 'Submit & Continue'}</span>
                         <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
                       </Button>
 

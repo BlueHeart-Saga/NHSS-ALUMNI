@@ -12,7 +12,7 @@ export const SchoolAdminLayout: React.FC = () => {
 
   const handleLogout = () => {
     api.clearToken();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   useEffect(() => {
@@ -22,7 +22,8 @@ export const SchoolAdminLayout: React.FC = () => {
     }
     api.getMe()
       .then((u) => {
-        if (!u.roles?.includes('SCHOOL_ADMIN') && !u.roles?.includes('SUPER_ADMIN')) {
+        const upperRoles = (u.roles || []).map((r) => String(r).toUpperCase());
+        if (!upperRoles.includes('SCHOOL_ADMIN') && !upperRoles.includes('SUPER_ADMIN')) {
           console.warn('Unauthorized access: User does not have School Admin role');
           handleLogout();
         } else {

@@ -26,11 +26,18 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       api.getMe()
         .then((u) => {
           if (u && u.roles) {
-            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
-            navigate(target);
+            const upperRoles = (u.roles || []).map((r: string) => String(r).toUpperCase());
+            if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
+              navigate('/school-admin');
+            } else {
+              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+              navigate(target);
+            }
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          api.clearToken();
+        });
     }
   }, [navigate]);
 
@@ -73,7 +80,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       // Step 2: Verify 6-Digit OTP code and issue JWT token
       const res = await api.verifyAdminOTP(email.trim(), otp.trim());
-      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
+        targetPath = '/school-admin';
+      }
 
       if (targetPath === '/developer') {
         alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');

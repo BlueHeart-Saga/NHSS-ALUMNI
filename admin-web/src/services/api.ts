@@ -7,7 +7,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
-  private token: string | null = sessionStorage.getItem('alumni_access_token');
+  private token: string | null = sessionStorage.getItem('alumni_access_token') || localStorage.getItem('alumni_access_token');
   private cacheMap = new Map<string, { data: any; timestamp: number; ttl: number }>();
   private pendingPromises = new Map<string, Promise<any>>();
   private defaultCacheTTL = 20000; // 20 seconds default TTL
@@ -15,7 +15,7 @@ class ApiClient {
   setToken(token: string) {
     this.token = token;
     sessionStorage.setItem('alumni_access_token', token);
-    localStorage.removeItem('alumni_access_token');
+    localStorage.setItem('alumni_access_token', token);
     this.clearCache();
   }
 
@@ -32,7 +32,7 @@ class ApiClient {
   }
 
   getToken(): string | null {
-    return this.token || sessionStorage.getItem('alumni_access_token');
+    return this.token || sessionStorage.getItem('alumni_access_token') || localStorage.getItem('alumni_access_token');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -74,6 +74,9 @@ class ApiClient {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            this.clearToken();
+          }
           const errorBody = await response.json().catch(() => ({ detail: 'An unexpected error occurred' }));
           let detailMsg = 'An unexpected error occurred';
           if (typeof errorBody.detail === 'string') {

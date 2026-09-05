@@ -23,11 +23,22 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
       api.getMe()
         .then((u) => {
           if (u && u.roles) {
-            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
-            navigate(target);
+            const upperRoles = (u.roles || []).map((r: string) => String(r).toUpperCase());
+            if (
+              upperRoles.includes('SUPER_ADMIN') ||
+              upperRoles.includes('DEVELOPER') ||
+              upperRoles.includes('PLATFORM_DEVELOPER')
+            ) {
+              navigate('/developer');
+            } else {
+              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+              navigate(target);
+            }
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          api.clearToken();
+        });
     }
   }, [navigate]);
 
@@ -74,7 +85,15 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
     try {
       const res = await api.verifyOTP(email.trim().toLowerCase(), otp.trim());
       if (email) localStorage.setItem('developer_email', email.trim().toLowerCase());
-      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      if (
+        upperRoles.includes('SUPER_ADMIN') ||
+        upperRoles.includes('DEVELOPER') ||
+        upperRoles.includes('PLATFORM_DEVELOPER')
+      ) {
+        targetPath = '/developer';
+      }
 
       if (targetPath === '/developer') {
         alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');

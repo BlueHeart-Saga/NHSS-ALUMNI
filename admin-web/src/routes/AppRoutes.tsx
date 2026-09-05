@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 // Layouts
 import { PublicLayout } from '../layouts/PublicLayout';
@@ -67,6 +67,7 @@ const PageFallback = () => (
 );
 
 export const AppRoutes: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
@@ -86,10 +87,10 @@ export const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Admin & Developer Logins & Access Requests */}
-      <Route path="/admin/login" element={<Login onLoginSuccess={(path) => window.location.href = path || '/school-admin'} />} />
+      <Route path="/admin/login" element={<Login onLoginSuccess={(path) => navigate(path || '/school-admin')} />} />
       <Route path="/admin/request-access" element={<SchoolAdminRequest />} />
       <Route path="/admin/setup-password" element={<AdminSetupPassword />} />
-      <Route path="/developer/login" element={<DeveloperLogin onLoginSuccess={(path) => window.location.href = path || '/developer'} />} />
+      <Route path="/developer/login" element={<DeveloperLogin onLoginSuccess={(path) => navigate(path || '/developer')} />} />
 
       {/* 2. ALUMNI STUDENT ROUTES */}
       <Route path="/alumni" element={<AlumniLayout />}>
