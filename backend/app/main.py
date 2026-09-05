@@ -39,11 +39,20 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # CORS Middleware Configuration (Supporting Production & Local Origins)
+# CORS Middleware Configuration
 cors_origins_set = list(set([
-    o.rstrip('/') for o in settings.CORS_ORIGINS if o and o != "*"
+    o.rstrip("/")
+    for o in settings.CORS_ORIGINS
+    if o and o != "*"
 ]))
 
-cors_origin_regex = r"https://.*\.nhssalumni\.com|https://.*\.azurewebsites\.net|http://localhost:.*|http://127\.0\.0\.1:.*"
+cors_origin_regex = (
+    r"^https://nhssalumni\.com$"
+    r"|^https://www\.nhssalumni\.com$"
+    r"|^https://.*\.azurewebsites\.net$"
+    r"|^http://localhost(:\d+)?$"
+    r"|^http://127\.0\.0\.1(:\d+)?$"
+)
 
 app.add_middleware(
     CORSMiddleware,
