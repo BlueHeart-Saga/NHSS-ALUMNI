@@ -31,8 +31,8 @@ const FAQ_LIST: FAQItem[] = [
     category_en: 'Membership & Eligibility',
     question_ta: 'யார் இந்த முன்னாள் மாணவர் சங்கத்தில் இணையலாம்?',
     question_en: 'Who is eligible to join the NHSS Alumni Network?',
-    answer_ta: 'NHSS பள்ளியில் பயின்ற அனைத்து முன்னாள் மாணவர்களும், முன்னாள் தலைமை ஆசிரியர்கள், ஆசிரியர்கள் மற்றும் அமைப்பின் ஆதரவாளர்களும் இந்த இணைய அமைப்பில் இணையத் தகுதியானவர்கள்.',
-    answer_en: 'All former students who studied at NHSS school, current and retired teachers, and institutional well-wishers are welcome to join.'
+    answer_ta: 'NHS பள்ளியில் பயின்ற அனைத்து முன்னாள் மாணவர்களும், முன்னாள் தலைமை ஆசிரியர்கள், ஆசிரியர்கள் மற்றும் அமைப்பின் ஆதரவாளர்களும் இந்த இணைய அமைப்பில் இணையத் தகுதியானவர்கள்.',
+    answer_en: 'All former students who studied at NHS school, current and retired teachers, and institutional well-wishers are welcome to join.'
   },
   {
     id: 'faq-3',

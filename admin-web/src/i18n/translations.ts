@@ -3,7 +3,7 @@ export type Language = 'en' | 'ta';
 export const translations: Record<Language, Record<string, string>> = {
   en: {
     // Navbar & Common
-    app_title: "NHSS SCHOOL",
+    app_title: "NHS SCHOOL",
     tagline: "Official School Alumni Association",
     nav_home: "Home",
     nav_about: "About Us",

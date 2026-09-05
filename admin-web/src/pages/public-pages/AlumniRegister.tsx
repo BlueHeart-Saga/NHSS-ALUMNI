@@ -156,7 +156,7 @@ export const AlumniRegister: React.FC = () => {
   const [mobile, setMobile] = useState('');
 
   // Step 3 — School Details
-  const [schoolName, setSchoolName] = useState('NHSS School');
+  const [schoolName, setSchoolName] = useState('NHS School');
   const [joiningYear, setJoiningYear] = useState('2010');
   const [passingYear, setPassingYear] = useState('2015');
   const [leavingClass, setLeavingClass] = useState('10th');

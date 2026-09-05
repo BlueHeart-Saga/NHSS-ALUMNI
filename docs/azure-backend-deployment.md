@@ -37,8 +37,11 @@ Add the following keys under **Configuration -> Application Settings**:
 | `MONGODB_URI` | `mongodb+srv://<user>:<password>@<cluster>.mongodb.net` |
 | `MONGODB_DATABASE` | `school_alumni_db` |
 | `JWT_SECRET` | `<your-32-character-secret-key>` |
-| `FRONTEND_URL` | `https://nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net` |
-| `CORS_ORIGINS` | `["https://nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net"]` |
+| `FRONTEND_URL` | `https://nhssalumni.com` |
+| `CORS_ORIGINS` | `["https://nhssalumni.com","https://www.nhssalumni.com","https://nhss-alumni-backend-b7a8a8dffcrp6abha.southindia-01.azurewebsites.net","https://nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net"]` |
+| `GOOGLE_CLIENT_ID` | `<your-google-oauth-client-id>` |
+| `GOOGLE_CLIENT_SECRET` | `<your-google-oauth-client-secret>` |
+| `GOOGLE_REDIRECT_URI` | `https://nhss-alumni-backend-b7a8a8dffcrp6abha.southindia-01.azurewebsites.net/api/v1/auth/google/callback` |
 | `SMTP_SERVER` | `smtp.gmail.com` |
 | `SMTP_PORT` | `587` |
 | `SMTP_USER` | `devopstrioglobal@gmail.com` |

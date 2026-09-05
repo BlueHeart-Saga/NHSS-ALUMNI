@@ -70,7 +70,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('location')}</strong>
-                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி' : 'NHSS School Building, Kaattunayakkanpatti,Thoothukudi Tamil Nadu'}</span>
+                    <span className="font-semibold text-sm sm:text-base">{language === 'ta' ? 'NHS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி' : 'NHS School Building, Kaattunayakkanpatti,Thoothukudi Tamil Nadu'}</span>
                   </div>
                 </div>
 

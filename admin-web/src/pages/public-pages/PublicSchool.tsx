@@ -79,7 +79,7 @@ export const PublicSchool: React.FC = () => {
     // 1. Fetch Dynamic School Stats from Backend API
     api.getPublicStats()
       .then((s: any) => setProfile({
-        name: s.school_name || (language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHSS SCHOOL'),
+        name: s.school_name || (language === 'ta' ? 'நடராஜன் மேல்நிலைப் பள்ளி' : 'NHS SCHOOL'),
         code: s.school_code || 'NHSS',
         established_year: s.established_year || s.est_year || 1965,
         total_alumni: s.total_alumni || 0,
@@ -333,7 +333,7 @@ export const PublicSchool: React.FC = () => {
               <a
                 href={`https://wa.me/${(profile.phone || '918825905771').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                   language === 'ta'
-                    ? 'வணக்கம்! எனக்கு NHSS பள்ளி பற்றிய விவரங்கள் தேவை.'
+                    ? 'வணக்கம்! எனக்கு NHS பள்ளி பற்றிய விவரங்கள் தேவை.'
                     : 'Hello! I need information regarding NHSS Alumni.'
                 )}`}
                 target="_blank"
@@ -389,7 +389,7 @@ export const PublicSchool: React.FC = () => {
                     {language === 'ta' ? 'பள்ளி முகவரி' : 'School Location'}
                   </span>
                   <span className="font-semibold text-[#111111] leading-tight block">
-                    {profile.address || 'NHSS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி'}
+                    {profile.address || 'NHS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி'}
                   </span>
                 </div>
               </div>

@@ -41,11 +41,6 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # CORS Middleware Configuration (Supporting Production & Local Origins)
 cors_origins_set = list(set([
     o.rstrip('/') for o in settings.CORS_ORIGINS if o and o != "*"
-] + [
-    "https://nhssalumni.com",
-    "https://www.nhssalumni.com",
-    "https://nhss-alumni-backend-b7a8a8dfcrg6abha.southindia-01.azurewebsites.net",
-    "https://nhss-alumni-hucjandcaedncnhj.southindia-01.azurewebsites.net"
 ]))
 
 cors_origin_regex = r"https://.*\.nhssalumni\.com|https://.*\.azurewebsites\.net|http://localhost:.*|http://127\.0\.0\.1:.*"
