@@ -89,14 +89,9 @@ export const DeveloperPortal: React.FC = () => {
 
   const fetchEnquiriesData = async () => {
     try {
-      const res = await fetch(`/api/v1/developer/enquiries?status_filter=${statusFilter}`, {
-        headers: { 'Authorization': `Bearer ${api.getToken()}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEnquiriesList(data.enquiries || []);
-        setEnquiryMetrics(data.metrics || { pending: 0, contacted: 0, approved: 0, rejected: 0, total: 0 });
-      }
+      const data = await api.getAdminEnquiries(statusFilter);
+      setEnquiriesList(data.enquiries || []);
+      setEnquiryMetrics(data.metrics || { pending: 0, contacted: 0, approved: 0, rejected: 0, total: 0 });
     } catch (err) {
       console.error('Failed to fetch admin enquiries:', err);
     }
@@ -105,17 +100,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleUpdateEnquiryStatus = async (id: string, newStatus: string) => {
     try {
       setSubmitting(true);
-      const res = await fetch(`/api/v1/developer/enquiries/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${api.getToken()}`
-        },
-        body: JSON.stringify({ status: newStatus, notes: enquiryNotes, school_id: enquirySelectedSchoolId || undefined })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to update status');
-
+      await api.updateEnquiryStatus(id, newStatus, enquiryNotes, enquirySelectedSchoolId || undefined);
       setSuccessMessage(`Enquiry request status set to ${newStatus}!`);
       setEnquiryModalOpen(false);
       setSelectedEnquiry(null);

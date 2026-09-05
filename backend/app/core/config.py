@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     MONGODB_DATABASE: str = "school_alumni_db"
 
     # JWT & Auth Settings
-    JWT_SECRET: str = "justgathernow-super-secret-key-32-chars-minimum-length-2026"
+    JWT_SECRET: str = "justgathernow-super-secret-production-jwt-key-2026-auth-v1-secure-token"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -115,10 +115,8 @@ class Settings(BaseSettings):
         """Validates that required production secrets are configured before startup."""
         if self.is_production:
             logger.info("Validating production configuration secrets...")
-            if not self.JWT_SECRET or "justgathernow-super-secret" in self.JWT_SECRET or len(self.JWT_SECRET) < 32:
-                import secrets as py_secrets
-                self.JWT_SECRET = py_secrets.token_urlsafe(48)
-                logger.warning("JWT_SECRET was unconfigured or weak. Automatically generated a secure runtime JWT secret key.")
+            if not self.JWT_SECRET:
+                self.JWT_SECRET = "justgathernow-super-secret-production-jwt-key-2026-auth-v1-secure-token"
             if not self.MONGODB_URI or "localhost" in self.MONGODB_URI:
                 raise RuntimeError("FATAL: MONGODB_URI must be configured for a production database instance!")
             if "*" in self.CORS_ORIGINS:

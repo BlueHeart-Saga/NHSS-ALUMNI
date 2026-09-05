@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { alertService } from '../../services/alertService';
+import { api } from '../../services/api';
 import { ShieldCheck, Building2, User, Mail, Phone, Briefcase, MapPin, MessageSquare, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 
 export const SchoolAdminRequest: React.FC = () => {
@@ -32,26 +33,17 @@ export const SchoolAdminRequest: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/v1/public/school-admin-enquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: fullName,
-          email: email,
-          mobile: fullMobile,
-          responsibility: responsibility,
-          school_name: schoolName,
-          city: city,
-          state: state,
-          country: country,
-          message: message
-        })
+      await api.submitSchoolAdminEnquiry({
+        full_name: fullName,
+        email: email,
+        mobile: fullMobile,
+        responsibility: responsibility,
+        school_name: schoolName,
+        city: city,
+        state: state,
+        country: country,
+        message: message
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to submit enquiry request.');
-      }
 
       setIsSuccess(true);
       alertService.showSuccess(

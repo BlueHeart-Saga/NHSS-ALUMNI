@@ -787,6 +787,25 @@ class ApiClient {
       body: JSON.stringify({ email, mobile, otp, new_password }),
     });
   }
+
+  // --- Developer Portal & School Admin Enquiries API ---
+  async submitSchoolAdminEnquiry(data: Record<string, any>) {
+    return this.request<{ success: boolean; message: string }>('/public/school-admin-enquiry', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAdminEnquiries(statusFilter: string = 'ALL') {
+    return this.request<{ enquiries: any[]; metrics: any }>(`/developer/enquiries?status_filter=${encodeURIComponent(statusFilter)}`);
+  }
+
+  async updateEnquiryStatus(id: string, status: string, notes?: string, school_id?: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/enquiries/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, notes, school_id }),
+    });
+  }
 }
 
 export const api = new ApiClient();
