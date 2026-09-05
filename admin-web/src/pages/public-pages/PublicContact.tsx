@@ -55,7 +55,7 @@ export const PublicContact: React.FC = () => {
           <div className="space-y-6 sm:space-y-8 bg-gray-50/90 border-2 border-[#E5E7EB] rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-md relative overflow-hidden group">
             <div className="relative z-10 space-y-5 sm:space-y-6">
               <h2 className="text-xl sm:text-3xl font-semibold text-[#111111]">
-                {language === 'ta' ? 'பழைய மாணவர்கள் செயலகம்' : 'Alumni Secretariat Desk'}
+                {language === 'ta' ? 'முன்னாள் மாணவர்கள் செயலகம்' : 'Alumni Secretariat Desk'}
               </h2>
               <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
                 {language === 'ta'

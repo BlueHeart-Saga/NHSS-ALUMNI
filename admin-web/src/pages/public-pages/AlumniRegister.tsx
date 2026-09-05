@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { 
-  ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin, 
-  KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase, 
+import {
+  ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
+  KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase,
   BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown
 } from 'lucide-react';
 import { api } from '../../services/api';
@@ -191,7 +191,7 @@ export const AlumniRegister: React.FC = () => {
   const bloodGroupOptions = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const leavingClassOptions = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
   const degreeOptions = [
-    "B.E.", "B.Tech.", "M.E.", "M.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA", 
+    "B.E.", "B.Tech.", "M.E.", "M.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA",
     "BBA", "MBA", "B.Com.", "M.Com.", "BA", "MA", "Diploma", "Ph.D.", "Other - write something"
   ];
   const employmentStatusOptions = [
@@ -204,7 +204,7 @@ export const AlumniRegister: React.FC = () => {
       .then(stats => {
         if (stats && stats.school_name) setSchoolName(stats.school_name);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     if (location.state?.email) {
       setEmail(location.state.email);
@@ -255,7 +255,7 @@ export const AlumniRegister: React.FC = () => {
             setMaxStepReached(6);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // Restore local draft fallback
@@ -276,7 +276,7 @@ export const AlumniRegister: React.FC = () => {
         if (d.instagramUrl) setInstagramUrl(d.instagramUrl);
         if (d.whatsappNumber) setWhatsappNumber(d.whatsappNumber);
         if (d.websiteUrl) setWebsiteUrl(d.websiteUrl);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [location.state]);
 
@@ -676,10 +676,10 @@ export const AlumniRegister: React.FC = () => {
               <LanguageSelector />
             </div>
           </div>
-          
+
           {/* Mobile Progress Bar Line */}
           <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-            <div 
+            <div
               className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
               style={{ width: `${(step / 6) * 100}%` }}
             />
@@ -701,7 +701,7 @@ export const AlumniRegister: React.FC = () => {
                   {language === 'ta' ? 'கணக்கு உருவாக்கம்' : 'Create Account'}
                 </h2>
                 <p className="text-xs text-gray-500 font-medium mt-1">
-                  {language === 'ta' ? 'அதிகாரப்பூர்வ பழைய மாணவர்கள் பதிவு' : 'Official Alumni Member Registration'}
+                  {language === 'ta' ? 'அதிகாரப்பூர்வ முன்னாள் மாணவர்கள் பதிவு' : 'Official Alumni Member Registration'}
                 </p>
               </div>
 
@@ -732,39 +732,36 @@ export const AlumniRegister: React.FC = () => {
                               );
                             }
                           }}
-                          className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all cursor-pointer ${
-                            isCompleted
+                          className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all cursor-pointer ${isCompleted
                               ? 'bg-[#10B981] text-white shadow-xs'
                               : isActive
-                              ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
-                              : 'bg-gray-100 border border-gray-300 text-gray-400'
-                          }`}
+                                ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
+                                : 'bg-gray-100 border border-gray-300 text-gray-400'
+                            }`}
                         >
                           {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
                         </button>
 
                         {/* Perfectly Centered Vertical Connecting Line */}
                         {!isLast && (
-                          <div 
-                            className={`absolute top-8 -bottom-7 w-0.5 left-1/2 -translate-x-1/2 z-0 transition-colors ${
-                              isCompleted ? 'bg-[#10B981]' : 'bg-gray-200'
-                            }`} 
+                          <div
+                            className={`absolute top-8 -bottom-7 w-0.5 left-1/2 -translate-x-1/2 z-0 transition-colors ${isCompleted ? 'bg-[#10B981]' : 'bg-gray-200'
+                              }`}
                           />
                         )}
                       </div>
 
                       {/* Step Text Label */}
-                      <div 
+                      <div
                         onClick={() => isUnlocked && goToStep(s.num as any)}
                         className={`min-w-0 flex-1 pt-0.5 ${isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                       >
-                        <div className={`text-sm leading-tight transition-colors ${
-                          isActive 
-                            ? 'font-extrabold text-[#111111]' 
-                            : isCompleted 
-                            ? 'font-bold text-gray-800 hover:text-[#111111]' 
-                            : 'font-semibold text-gray-400'
-                        }`}>
+                        <div className={`text-sm leading-tight transition-colors ${isActive
+                            ? 'font-extrabold text-[#111111]'
+                            : isCompleted
+                              ? 'font-bold text-gray-800 hover:text-[#111111]'
+                              : 'font-semibold text-gray-400'
+                          }`}>
                           {s.label}
                         </div>
                         <div className="text-xs text-gray-400 font-medium truncate mt-0.5">{s.sub}</div>
@@ -781,7 +778,7 @@ export const AlumniRegister: React.FC = () => {
                   <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
                     style={{ width: `${(step / 6) * 100}%` }}
                   />
@@ -802,7 +799,7 @@ export const AlumniRegister: React.FC = () => {
 
           <div className="lg:col-span-8">
             <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
-              
+
               {/* STEP 1: Sign Up & Email Verification */}
               {step === 1 && (
                 <div className="space-y-6 animate-fadeIn">
@@ -813,7 +810,7 @@ export const AlumniRegister: React.FC = () => {
                       </h2>
                       <p className="text-xs text-gray-500 mt-1">
                         {language === 'ta'
-                          ? 'உங்கள் பழைய மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்'
+                          ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்'
                           : 'Verify your primary email address to begin your alumni registration'}
                       </p>
                     </div>
@@ -1033,11 +1030,10 @@ export const AlumniRegister: React.FC = () => {
                             key={bg}
                             type="button"
                             onClick={() => setBloodGroup(bg)}
-                            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                              bloodGroup === bg
+                            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${bloodGroup === bg
                                 ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {bg}
                           </button>
@@ -1280,11 +1276,10 @@ export const AlumniRegister: React.FC = () => {
                             key={cls}
                             type="button"
                             onClick={() => setLeavingClass(cls)}
-                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                              leavingClass === cls
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${leavingClass === cls
                                 ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {cls} {language === 'ta' ? 'வகுப்பு' : 'Std'}
                           </button>
@@ -1389,11 +1384,10 @@ export const AlumniRegister: React.FC = () => {
                               key={deg}
                               type="button"
                               onClick={() => setDegree(deg)}
-                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                                degree === deg
+                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${degree === deg
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                              }`}
+                                }`}
                             >
                               {deg}
                             </button>
@@ -1562,11 +1556,10 @@ export const AlumniRegister: React.FC = () => {
                             key={opt.key}
                             type="button"
                             onClick={() => setEmploymentStatus(opt.key)}
-                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                              employmentStatus === opt.key
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${employmentStatus === opt.key
                                 ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {language === 'ta' ? opt.labelTa : opt.labelEn}
                           </button>
@@ -1630,11 +1623,10 @@ export const AlumniRegister: React.FC = () => {
                               key={exp}
                               type="button"
                               onClick={() => setTotalExperience(exp)}
-                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                                totalExperience === exp
+                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${totalExperience === exp
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                              }`}
+                                }`}
                             >
                               {exp}
                             </button>
@@ -1930,7 +1922,7 @@ export const AlumniRegister: React.FC = () => {
                     />
                     <label htmlFor="agreeTerms" className="text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed cursor-pointer select-none">
                       {language === 'ta'
-                        ? 'இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். பழைய மாணவர்கள் சங்க விதிகளுக்கு உடன்படுகிறேன்.'
+                        ? 'இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். முன்னாள் மாணவர்கள் சங்க விதிகளுக்கு உடன்படுகிறேன்.'
                         : 'I confirm that all information provided in this registration form is accurate. I agree to the Alumni Terms of Association and Privacy Guidelines.'}
                     </label>
                   </div>

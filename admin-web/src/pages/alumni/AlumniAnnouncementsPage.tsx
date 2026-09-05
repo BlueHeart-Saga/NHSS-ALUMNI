@@ -21,10 +21,10 @@ export const AlumniAnnouncementsPage: React.FC = () => {
         </h2>
         <p className="text-xs text-[#6B7280]">
           {language === 'ta'
-            ? 'பள்ளி நிர்வாகம் மற்றும் பழைய மாணவர்கள் சங்கத்தின் அதிகாரப்பூர்வ அறிவிப்புகள்'
+            ? 'பள்ளி நிர்வாகம் மற்றும் முன்னாள் மாணவர்கள் சங்கத்தின் அதிகாரப்பூர்வ அறிவிப்புகள்'
             : 'Official announcements from school management and the alumni association'}
         </p>
-        
+
         <div className="space-y-3 pt-2">
           {announcements.length > 0 ? (
             announcements.map(ann => (

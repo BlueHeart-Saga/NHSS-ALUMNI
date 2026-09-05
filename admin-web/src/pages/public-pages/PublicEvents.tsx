@@ -54,9 +54,8 @@ const EventImage: React.FC<{
           setError(true);
           setLoaded(true);
         }}
-        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
-          loaded ? 'opacity-100' : 'opacity-0'
-        } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${loaded ? 'opacity-100' : 'opacity-0'
+          } ${isPast ? 'grayscale contrast-125 group-hover:grayscale-0' : ''}`}
       />
     </div>
   );
@@ -93,7 +92,7 @@ export const PublicEvents: React.FC = () => {
           setLoading(false);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -105,7 +104,7 @@ export const PublicEvents: React.FC = () => {
           setPastEvents(pastData);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       active = false;
@@ -184,7 +183,7 @@ export const PublicEvents: React.FC = () => {
             <Sparkles className="w-4 h-4 text-[#854D0E]" />
             <span>
               {language === 'ta'
-                ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு'
+                ? 'பள்ளி விழாக்கள் & முன்னாள் மாணவர்கள் சந்திப்பு'
                 : 'School Reunions & Celebrations'}
             </span>
           </div> */}
@@ -230,22 +229,20 @@ export const PublicEvents: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('ALL')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'ALL'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'ALL'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta' ? `அனைத்தும் (${allCombined.length})` : `All (${allCombined.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('UPCOMING')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'UPCOMING'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'UPCOMING'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta'
                   ? `வரவிருப்பவை (${upcomingEvents.length})`
@@ -254,11 +251,10 @@ export const PublicEvents: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('PAST')}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeTab === 'PAST'
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'PAST'
                     ? 'bg-[#111111] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#111111]'
-                }`}
+                  }`}
               >
                 {language === 'ta'
                   ? `கடந்தகாலவை (${pastEvents.length})`
@@ -342,19 +338,18 @@ export const PublicEvents: React.FC = () => {
                       {/* Status Badge Tag */}
                       <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
                         <span
-                          className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${
-                            event.isPast
+                          className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-md uppercase tracking-wider border ${event.isPast
                               ? 'bg-gray-900 text-gray-300 border-gray-700'
                               : 'bg-[#111111] text-[#F4C542] border-[#F4C542]'
-                          }`}
+                            }`}
                         >
                           {event.isPast
                             ? language === 'ta'
                               ? 'கடந்த நிகழ்ச்சி'
                               : 'Past Event'
                             : language === 'ta'
-                            ? 'வரவிருக்கும் நிகழ்ச்சி'
-                            : 'Upcoming Event'}
+                              ? 'வரவிருக்கும் நிகழ்ச்சி'
+                              : 'Upcoming Event'}
                         </span>
                       </div>
 
@@ -562,9 +557,8 @@ export const PublicEvents: React.FC = () => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = getAssetUrl('/school-images/banner.png');
                     }}
-                    className={`w-28 h-28 object-contain transition-opacity duration-300 ${
-                      qrLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
+                    className={`w-28 h-28 object-contain transition-opacity duration-300 ${qrLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
                   />
                   <div className="text-[9px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
                     SCAN QR

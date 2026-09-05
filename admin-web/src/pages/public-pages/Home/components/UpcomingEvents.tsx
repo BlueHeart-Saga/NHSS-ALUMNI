@@ -138,7 +138,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
     <section id="upcoming-events" className="py-12 sm:py-24 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
-          
+
           {/* LEFT SIDE HERO / ANNOUNCEMENT FEATURE BLOCK WITH mic.png BACKGROUND GRAPHIC */}
           <div className="lg:col-span-4 relative bg-gradient-to-br from-[#111111] via-[#1c1917] to-[#854D0E] text-white rounded-3xl p-6 sm:p-8 overflow-hidden border-2 border-[#111111] shadow-[8px_8px_0px_0px_#111111] hover:shadow-[10px_10px_0px_0px_#F4C542] transition-all flex flex-col justify-between min-h-[300px] sm:min-h-[380px] group">
             {/* Background Megaphone Graphic (mic.png) */}
@@ -162,13 +162,13 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
                 {language === 'ta'
-                  ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு'
+                  ? 'பள்ளி விழாக்கள் & முன்னாள் மாணவர்கள் சந்திப்பு'
                   : 'Reunions & School Celebrations'}
               </h2>
 
               <p className="text-xs sm:text-sm text-gray-300 font-normal leading-relaxed">
                 {language === 'ta'
-                  ? 'உங்கள் வகுப்புத் தோழர்களைச் சந்திக்கவும் பழைய நினைவுகளைப் பகிர்ந்து கொள்ளவும் ஏற்பாடு செய்யப்பட்டுள்ள விழாக்கள்.'
+                  ? 'உங்கள் வகுப்புத் தோழர்களைச் சந்திக்கவும் முன்னாள் நினைவுகளைப் பகிர்ந்து கொள்ளவும் ஏற்பாடு செய்யப்பட்டுள்ள விழாக்கள்.'
                   : 'Reconnect with school batchmates, share nostalgic memories, and participate in upcoming reunions.'}
               </p>
             </div>
@@ -182,7 +182,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                 </span>
               </div>
               <p className="text-[11px] text-gray-400">
-                {language === 'ta' ? 'அனைத்துப் பழைய மாணவர்களும் பங்கேற்க வரவேற்கப்படுகிறார்கள்.' : 'Open for all batch alumni members & guests.'}
+                {language === 'ta' ? 'அனைத்துப் முன்னாள் மாணவர்களும் பங்கேற்க வரவேற்கப்படுகிறார்கள்.' : 'Open for all batch alumni members & guests.'}
               </p>
             </div>
           </div>
@@ -215,11 +215,10 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                             key={ev.id || idx}
                             type="button"
                             onClick={() => setCurrentIndex(idx)}
-                            className={`w-2.5 h-2.5 rounded-full transition-all ${
-                              idx === safeIndex
+                            className={`w-2.5 h-2.5 rounded-full transition-all ${idx === safeIndex
                                 ? 'bg-[#854D0E] w-6'
                                 : 'bg-gray-300 hover:bg-gray-400'
-                            }`}
+                              }`}
                             aria-label={`Go to event ${idx + 1}`}
                           />
                         ))}
@@ -275,9 +274,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                         decoding="async"
                         onLoad={() => setIsImageLoaded(true)}
                         onError={handleImageError}
-                        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
-                          isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                        }`}
+                        className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                          }`}
                       />
 
                       {/* Overlay Arrows on Top of Image for Quick Swiping */}
@@ -394,9 +392,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                 decoding="async"
                 onLoad={() => setIsModalImageLoaded(true)}
                 onError={handleImageError}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
-                  isModalImageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${isModalImageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none" />
 
@@ -481,9 +478,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                     alt="Event QR Barcode"
                     loading="eager"
                     onLoad={() => setQrLoaded(true)}
-                    className={`w-32 h-32 object-contain transition-opacity duration-300 ${
-                      qrLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
+                    className={`w-32 h-32 object-contain transition-opacity duration-300 ${qrLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
                   />
                   <div className="text-[10px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
                     SCAN QR
@@ -507,7 +503,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               ) : (
                 <div className="text-xs text-gray-500 font-semibold flex items-center space-x-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பள்ளி பழைய மாணவர்கள் விழா' : 'Official Verified School Reunion Event'}</span>
+                  <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பள்ளி முன்னாள் மாணவர்கள் விழா' : 'Official Verified School Reunion Event'}</span>
                 </div>
               )}
 

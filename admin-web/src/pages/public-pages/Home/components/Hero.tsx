@@ -39,7 +39,7 @@ export const Hero: React.FC<HeroProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 lg:gap-16 items-center">
-          
+
           {/* Left Column: Single School Photo Card */}
           <div className="lg:col-span-7">
             <div className="p-1.5 sm:p-2.5 bg-white rounded-2xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-300 relative group">
@@ -55,7 +55,7 @@ export const Hero: React.FC<HeroProps> = ({
                   }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 block"
                 />
-                
+
                 {/* Overlay Text Badge at Bottom Left */}
                 <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-black/80 backdrop-blur-md text-white font-bold text-xs sm:text-base lg:text-lg px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl border border-white/20 tracking-widest uppercase shadow-xl">
                   {badgeText}
@@ -71,7 +71,7 @@ export const Hero: React.FC<HeroProps> = ({
                 {language === 'ta' ? 'அன்புடன் வரவேற்கிறது' : 'Welcome to'}
               </div>
               <h1 className="text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-semibold text-[#111111] tracking-tight leading-tight mt-1 sm:mt-2">
-                {language === 'ta' ? 'பழைய மாணவர்கள் சங்கம்' : 'The Alumni Portal'}
+                {language === 'ta' ? 'முன்னாள் மாணவர்கள் சங்கம்' : 'The Alumni Portal'}
               </h1>
             </div>
 

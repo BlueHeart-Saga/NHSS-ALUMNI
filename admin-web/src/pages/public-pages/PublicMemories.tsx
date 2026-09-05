@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  ArrowRight, Image as ImageIcon, X, Trophy, Medal, Search, Video, 
-  Plus, Info, Award, Film, Play, Layers, ChevronLeft, ChevronRight, Upload, CheckCircle2, User 
+import {
+  ArrowRight, Image as ImageIcon, X, Trophy, Medal, Search, Video,
+  Plus, Info, Award, Film, Play, Layers, ChevronLeft, ChevronRight, Upload, CheckCircle2, User
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -66,7 +66,7 @@ export const PublicMemories: React.FC = () => {
           setUploaderName(u.full_name || '');
           if (u.passing_year) setBatchYear(String(u.passing_year));
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, []);
 
@@ -182,7 +182,7 @@ export const PublicMemories: React.FC = () => {
       {/* Header Banner */}
       <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
-          
+
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#111111] tracking-tight">
             {t('memories_page_title')}
           </h1>
@@ -195,7 +195,7 @@ export const PublicMemories: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12 sm:space-y-16">
-        
+
         {/* ========================================================================= */}
         {/* SECTION 1: SCHOOL RANK HOLDERS & ACHIEVERS */}
         {/* ========================================================================= */}
@@ -316,7 +316,7 @@ export const PublicMemories: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               {visibleCount < filteredRankHolders.length && (
                 <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
                   <button
@@ -350,9 +350,8 @@ export const PublicMemories: React.FC = () => {
                   <button
                     key={mt}
                     onClick={() => setMediaFilter(mt as any)}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      mediaFilter === mt ? 'bg-[#111111] text-[#F4C542]' : 'text-gray-600 hover:text-[#111111]'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${mediaFilter === mt ? 'bg-[#111111] text-[#F4C542]' : 'text-gray-600 hover:text-[#111111]'
+                      }`}
                   >
                     {mt === 'ALL' ? 'All Media' : mt === 'IMAGE' ? 'Photos' : mt === 'VIDEO' ? 'Videos' : 'Albums'}
                   </button>
@@ -472,7 +471,7 @@ export const PublicMemories: React.FC = () => {
               {language === 'ta' ? 'பள்ளி பருவ புகைப்படங்கள் அல்லது வீடியோக்கள் உள்ளதா?' : 'Have photos or videos from your school days?'}
             </h3>
             <p className="text-sm text-gray-600 font-normal">
-              {language === 'ta' ? 'உங்கள் நினைவுகள் மற்றும் ஆல்பங்களை பழைய வகுப்புத் தோழர்களுடன் இப்போதே பகிருங்கள்.' : 'Upload your photo albums and celebration videos to preserve our school heritage.'}
+              {language === 'ta' ? 'உங்கள் நினைவுகள் மற்றும் ஆல்பங்களை முன்னாள் வகுப்புத் தோழர்களுடன் இப்போதே பகிருங்கள்.' : 'Upload your photo albums and celebration videos to preserve our school heritage.'}
             </p>
             <button
               onClick={handleOpenUploadModal}
@@ -511,9 +510,8 @@ export const PublicMemories: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMediaType('IMAGE')}
-                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${
-                      mediaType === 'IMAGE' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
-                    }`}
+                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${mediaType === 'IMAGE' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
+                      }`}
                   >
                     <ImageIcon className="w-5 h-5" />
                     <span>Photo</span>
@@ -522,9 +520,8 @@ export const PublicMemories: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMediaType('ALBUM')}
-                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${
-                      mediaType === 'ALBUM' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
-                    }`}
+                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${mediaType === 'ALBUM' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
+                      }`}
                   >
                     <Layers className="w-5 h-5" />
                     <span>Photo Album</span>
@@ -533,9 +530,8 @@ export const PublicMemories: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMediaType('VIDEO')}
-                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${
-                      mediaType === 'VIDEO' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
-                    }`}
+                    className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center space-y-1 transition-all ${mediaType === 'VIDEO' ? 'bg-[#FFF7D6] border-[#F4C542] text-[#854D0E]' : 'border-gray-200 text-gray-600'
+                      }`}
                   >
                     <Video className="w-5 h-5" />
                     <span>Video</span>

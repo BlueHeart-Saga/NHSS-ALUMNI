@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Search, Filter, Building2, MapPin, User, UserPlus, X, Mail, Phone, ExternalLink, Award, Globe, RotateCcw, Loader2 
+import {
+  Search, Filter, Building2, MapPin, User, UserPlus, X, Mail, Phone, ExternalLink, Award, Globe, RotateCcw, Loader2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { api } from '../../services/api';
@@ -33,16 +33,16 @@ export const AlumniDirectoryPage: React.FC = () => {
   }, []);
 
   const filteredAlumni = alumniList.filter(a => {
-    const matchSearch = search === '' || 
+    const matchSearch = search === '' ||
       a.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       a.profession?.toLowerCase().includes(search.toLowerCase()) ||
       a.company?.toLowerCase().includes(search.toLowerCase()) ||
       a.current_city?.toLowerCase().includes(search.toLowerCase());
-    
+
     const matchBatch = batchFilter === 'ALL' || a.passing_year?.toString() === batchFilter;
     const matchCity = cityFilter === 'ALL' || (a.current_city && a.current_city.toLowerCase().includes(cityFilter.toLowerCase()));
     const matchProf = professionFilter === 'ALL' || (a.profession && a.profession.toLowerCase().includes(professionFilter.toLowerCase()));
-    
+
     return matchSearch && matchBatch && matchCity && matchProf;
   });
 
@@ -64,11 +64,11 @@ export const AlumniDirectoryPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
-              {language === 'ta' ? 'பழைய மாணவர்கள் முகவரி' : 'Global Alumni Directory'}
+              {language === 'ta' ? 'முன்னாள் மாணவர்கள் முகவரி' : 'Global Alumni Directory'}
             </h2>
             <p className="text-xs text-[#6B7280]">
               {language === 'ta'
-                ? 'அனைத்து வகுப்பு ஆண்டுகள் மற்றும் நிறுவனங்களில் பணிபுரியும் பழைய மாணவர்களைத் தேடி இணையுங்கள்'
+                ? 'அனைத்து வகுப்பு ஆண்டுகள் மற்றும் நிறுவனங்களில் பணிபுரியும் முன்னாள் மாணவர்களைத் தேடி இணையுங்கள்'
                 : 'Connect with verified alumni across batches, companies, and cities worldwide'}
             </p>
           </div>
@@ -225,8 +225,8 @@ export const AlumniDirectoryPage: React.FC = () => {
       {selectedAlumni && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-none">
-            <button 
-              onClick={() => setSelectedAlumni(null)} 
+            <button
+              onClick={() => setSelectedAlumni(null)}
               className="absolute top-5 right-5 text-gray-400 hover:text-[#111111] p-1 rounded-full hover:bg-gray-100 transition-all"
             >
               <X className="w-5 h-5" />

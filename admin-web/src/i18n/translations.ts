@@ -148,7 +148,7 @@ export const translations: Record<Language, Record<string, string>> = {
   ta: {
     // Navbar & Common
     app_title: "நடராஜன் மேல்நிலைப் பள்ளி",
-    tagline: "பள்ளி பழைய மாணவர்கள் சங்கம்",
+    tagline: "பள்ளி முன்னாள் மாணவர்கள் சங்கம்",
     nav_home: "முகப்பு",
     nav_about: "எங்களைப் பற்றி",
     nav_school_profile: "நமது பள்ளி",
@@ -163,14 +163,14 @@ export const translations: Record<Language, Record<string, string>> = {
     language_name: "தமிழ்",
 
     // Hero & Home Page
-    hero_badge: "பழைய மாணவர்கள் வலைப்பின்னல்",
+    hero_badge: "முன்னாள் மாணவர்கள் வலைப்பின்னல்",
     hero_title_1: "கடந்த காலத்தையும் நிகழ்காலத்தையும் இணைக்கிறது",
-    hero_title_2: "பழைய மாணவர்கள் சங்கம்",
-    hero_subtitle: "பழைய வகுப்பு தோழர்களுடன் மீண்டும் இணையுங்கள், நினைவுகளைப் பகிர்ந்து கொள்ளுங்கள், நிகழ்வுகளில் பங்கேற்கவும், தாய் பள்ளிக்கு ஆதரவளிக்கவும்.",
+    hero_title_2: "முன்னாள் மாணவர்கள் சங்கம்",
+    hero_subtitle: "முன்னாள் வகுப்பு தோழர்களுடன் மீண்டும் இணையுங்கள், நினைவுகளைப் பகிர்ந்து கொள்ளுங்கள், நிகழ்வுகளில் பங்கேற்கவும், தாய் பள்ளிக்கு ஆதரவளிக்கவும்.",
     join_network_btn: "சங்கத்தில் சேரவும்",
     explore_events_btn: "நிகழ்வுகளைப் பார்க்க",
     community_stats_title: "நமது சமூகத்தின் பலம்",
-    stat_alumni: "பதிவுசெய்த பழைய மாணவர்கள்",
+    stat_alumni: "பதிவுசெய்த முன்னாள் மாணவர்கள்",
     stat_batches: "செயலில் உள்ள வகுப்புகள்",
     stat_events: "நடத்தப்பட்ட நிகழ்வுகள்",
     stat_memories: "பகிரப்பட்ட நினைவுகள்",
@@ -181,7 +181,7 @@ export const translations: Record<Language, Record<string, string>> = {
     view_all_memories: "கேலரியைப் பார்க்க",
     no_memories_yet: "நினைவுகள் எதுவும் இன்னும் பதிவேற்றப்படவில்லை. முதன்முதலில் பகிரவும்!",
     school_admin_request_title: "நீங்கள் பள்ளி நிர்வாகியா?",
-    school_admin_request_desc: "பழைய மாணவர்களை நிர்வகிக்க, வகுப்புகளை உருவாக்க, மறுசந்திப்புகளை ஏற்பாடு செய்ய உங்கள் பள்ளியைப் பதிவு செய்யுங்கள்.",
+    school_admin_request_desc: "முன்னாள் மாணவர்களை நிர்வகிக்க, வகுப்புகளை உருவாக்க, மறுசந்திப்புகளை ஏற்பாடு செய்ய உங்கள் பள்ளியைப் பதிவு செய்யுங்கள்.",
     register_school_btn: "உங்கள் பள்ளியைப் பதிவு செய்க",
     find_batch_title: "பள்ளி நண்பர்களைக் கண்டறிய 😊",
     find_batch_desc: "தேர்ச்சி பெற்ற ஆண்டு மற்றும் பிரிவு மூலம் உங்கள் தோழர்களைத் தேடி இணையுங்கள்.",
@@ -192,12 +192,12 @@ export const translations: Record<Language, Record<string, string>> = {
     established: "நிறுவப்பட்டது",
     location: "இடம்",
     principal_message: "முதல்வரின் செய்தி",
-    total_alumni: "மொத்த பழைய மாணவர்கள்",
+    total_alumni: "மொத்த முன்னாள் மாணவர்கள்",
     active_batches: "பதிவு செய்யப்பட்ட வகுப்புகள்",
     contact_info: "தொடர்பு விவரங்கள்",
 
     // Batches Page
-    batches_title: "பழைய மாணவர்கள் வகுப்புகள்",
+    batches_title: "முன்னாள் மாணவர்கள் வகுப்புகள்",
     search_batches_placeholder: "வகுப்பு ஆண்டு அல்லது பிரிவை தேடுக...",
     view_batch_members: "உறுப்பினர்களைப் பார்க்க",
     no_batches_found: "உங்கள் தேடலுக்கு ஏற்ற வகுப்புகள் எதுவும் கிடைக்கவில்லை.",
@@ -212,7 +212,7 @@ export const translations: Record<Language, Record<string, string>> = {
     spots_remaining: "இடங்கள் உள்ளன",
 
     // Memories Page
-    memories_page_title: "பழைய மாணவர்கள் நினைவுகள் சுவர்",
+    memories_page_title: "முன்னாள் மாணவர்கள் நினைவுகள் சுவர்",
     share_memory_btn: "நினைவைப் பகிரவும்",
     batch_year: "வகுப்பு ஆண்டு",
     uploaded_by: "பகிர்ந்தவர்",
@@ -220,12 +220,12 @@ export const translations: Record<Language, Record<string, string>> = {
     caption_placeholder: "நினைவு பற்றிய சிறு குறிப்பை எழுதுங்கள்...",
 
     // About Page
-    about_title: "நமது பழைய மாணவர்கள் சங்கத்தைப் பற்றி",
+    about_title: "நமது முன்னாள் மாணவர்கள் சங்கத்தைப் பற்றி",
     about_subtitle: "வாழ்நாள் தொடர்புகளை வளர்ப்பது, பள்ளி வரலாற்றைக் கொண்டாடுவது மற்றும் எதிர்கால தலைமுறையினரை ஊக்குவிப்பது.",
     our_mission_title: "நமது நோக்கம்",
-    our_mission_desc: "தலைமுறை தலைமுறையாக பழைய மாணவர்களை ஒன்றுபடுத்துதல், பள்ளி வரலாற்றைப் பாதுகாத்தல் மற்றும் புதிய மாணவர்களுக்கு வாய்ப்புகளை உருவாக்குதல்.",
+    our_mission_desc: "தலைமுறை தலைமுறையாக முன்னாள் மாணவர்களை ஒன்றுபடுத்துதல், பள்ளி வரலாற்றைப் பாதுகாத்தல் மற்றும் புதிய மாணவர்களுக்கு வாய்ப்புகளை உருவாக்குதல்.",
     our_vision_title: "நமது தொலைநோக்கு",
-    our_vision_desc: "உலகளாவிய துடிப்பான பழைய மாணவர்கள் சமூகமாக விளங்கி, கல்விச் சிறப்பை மேம்படுத்துவது.",
+    our_vision_desc: "உலகளாவிய துடிப்பான முன்னாள் மாணவர்கள் சமூகமாக விளங்கி, கல்விச் சிறப்பை மேம்படுத்துவது.",
 
     // Contact Page
     contact_title: "எங்களைத் தொடர்பு கொள்ளவும்",
@@ -239,25 +239,25 @@ export const translations: Record<Language, Record<string, string>> = {
     send_message_btn: "செய்தி அனுப்பவும்",
 
     // Auth Pages (Login & Register)
-    auth_alumni_login: "பழைய மாணவர்கள் உள்நுழைவு",
+    auth_alumni_login: "முன்னாள் மாணவர்கள் உள்நுழைவு",
     mobile_label: "மொபைல் எண்",
     otp_label: "6 இலக்க OTP ஐ உள்ளிடவும்",
     send_otp_btn: "OTP அனுப்புக",
     verify_otp_btn: "சரிபார்த்து உள்நுழைக",
-    register_title: "பழைய மாணவர்கள் பதிவு",
+    register_title: "முன்னாள் மாணவர்கள் பதிவு",
     batch_year_label: "தேர்ச்சி பெற்ற ஆண்டு",
     submit_registration: "பதிவைச் சமர்ப்பிக்கவும்",
 
     // School Admin Navigation
     admin_dashboard: "டாஷ்போர்டு",
     admin_verification: "சரிபார்ப்பு வரிசை",
-    admin_alumni_directory: "பழைய மாணவர்கள் முகவரி",
+    admin_alumni_directory: "முன்னாள் மாணவர்கள் முகவரி",
     admin_batches: "வகுப்புகள்",
     admin_events: "நிகழ்வுகள் & மறுசந்திப்புகள்",
     admin_school_events: "பள்ளி விழாக்கள்",
     admin_announcements: "அறிவிப்புகள்",
     admin_memories: "நினைவுகள் நிர்வகிப்பு",
-    admin_association_team: "பழைய மாணவர்கள் சங்கம்",
+    admin_association_team: "முன்னாள் மாணவர்கள் சங்கம்",
     admin_rank_holders: "தரவரிசை சாதனையாளர்கள்",
     admin_reports: "அறிக்கைகள் & ஏற்றுமதி",
     admin_settings: "பள்ளி அமைப்புகள்",
@@ -271,7 +271,7 @@ export const translations: Record<Language, Record<string, string>> = {
     alumni_nav_dashboard: "டாஷ்போர்டு",
     alumni_nav_profile: "என் சுயவிவரம்",
     alumni_nav_batches: "என் வகுப்புகள்",
-    alumni_nav_directory: "பழைய மாணவர்கள் முகவரி",
+    alumni_nav_directory: "முன்னாள் மாணவர்கள் முகவரி",
     alumni_nav_school_events: "பள்ளி விழாக்கள்",
     alumni_nav_events: "நிகழ்வுகள்",
     alumni_nav_announcements: "அறிவிப்புகள்",
@@ -284,7 +284,7 @@ export const translations: Record<Language, Record<string, string>> = {
     alumni_class_of: "வகுப்பு",
 
     // Footer
-    footer_tagline: "பள்ளிகள் மற்றும் பழைய மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
+    footer_tagline: "பள்ளிகள் மற்றும் முன்னாள் மாணவர்களுக்கான வாழ்நாள் தொடர்புகளை உருவாக்குகிறது.",
     copyright: "காப்புரிமை © 2026. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. Devopstrio மூலம் வழங்கப்படுகிறது.",
     developer_portal: "டெவலப்பர் போர்டல்",
     school_admin_login: "சங்க நிர்வாகம்",

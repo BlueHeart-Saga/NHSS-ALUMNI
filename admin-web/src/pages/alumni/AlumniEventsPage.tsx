@@ -50,7 +50,7 @@ export const AlumniEventsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
-            {language === 'ta' ? 'பழைய மாணவர்கள் நிகழ்வுகள் & மறுசந்திப்புகள்' : 'Alumni Events & Reunions'}
+            {language === 'ta' ? 'முன்னாள் மாணவர்கள் நிகழ்வுகள் & மறுசந்திப்புகள்' : 'Alumni Events & Reunions'}
           </h2>
           <p className="text-xs text-[#6B7280]">
             {language === 'ta'
@@ -68,11 +68,10 @@ export const AlumniEventsPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setEventsSubTab(tab.id as any)}
-              className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
-                eventsSubTab === tab.id
+              className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${eventsSubTab === tab.id
                   ? 'bg-[#111111] text-white shadow-sm'
                   : 'bg-[#FAFAFA] text-[#6B7280] hover:text-[#111111]'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -97,7 +96,7 @@ export const AlumniEventsPage: React.FC = () => {
                     ) : (
                       <div className="w-full h-36 bg-gradient-to-r from-[#111111] to-[#2D2D2D] p-5 sm:p-6 text-white flex flex-col justify-end">
                         <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                          {language === 'ta' ? 'பழைய மாணவர்கள் சந்திப்பு' : 'ALUMNI GATHERING'}
+                          {language === 'ta' ? 'முன்னாள் மாணவர்கள் சந்திப்பு' : 'ALUMNI GATHERING'}
                         </span>
                         <h3 className="font-extrabold text-sm sm:text-base">{displayTitle}</h3>
                       </div>
@@ -216,9 +215,8 @@ export const AlumniEventsPage: React.FC = () => {
                       key={st}
                       type="button"
                       onClick={() => setRsvpStatus(st)}
-                      className={`py-2 rounded-xl border transition-all ${
-                        rsvpStatus === st ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FAFAFA] border-[#E5E7EB] text-[#4B5563]'
-                      }`}
+                      className={`py-2 rounded-xl border transition-all ${rsvpStatus === st ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FAFAFA] border-[#E5E7EB] text-[#4B5563]'
+                        }`}
                     >
                       {st}
                     </button>

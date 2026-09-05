@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ShieldCheck, Mail, Phone, KeyRound, ArrowRight, UserX, UserPlus, 
-  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft 
+import {
+  ShieldCheck, Mail, Phone, KeyRound, ArrowRight, UserX, UserPlus,
+  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -43,7 +43,7 @@ export const AlumniLogin: React.FC = () => {
         if (s.school_name) setSchoolName(s.school_name);
         if (s.logo_url) setSchoolLogo(s.logo_url);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // Auto-redirect if user is already authenticated
     if (api.getToken()) {
@@ -54,7 +54,7 @@ export const AlumniLogin: React.FC = () => {
             navigate(target);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [navigate]);
 
@@ -243,7 +243,7 @@ export const AlumniLogin: React.FC = () => {
 
   return (
     <div className="bg-[#FAFAFA] text-[#111111] pt-2 sm:pt-4 pb-2 animate-fadeIn font-normal relative overflow-hidden">
-      
+
       {/* Background Premium Dynamic Wave Design */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <svg className="absolute -top-10 -left-24 w-[650px] h-[650px] text-[#F4C542]/20 opacity-80" viewBox="0 0 1000 1000" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -265,10 +265,10 @@ export const AlumniLogin: React.FC = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* LEFT COLUMN: Sticky School Branding & Value Props */}
           <div className="lg:col-span-6 order-2 lg:order-1 lg:sticky top-28 space-y-6 pr-0 lg:pr-6 mt-6 lg:mt-0">
-            
+
             {/* Header Branding */}
             <div className="flex items-center space-x-4">
               <img
@@ -295,7 +295,7 @@ export const AlumniLogin: React.FC = () => {
                 {language === 'ta' ? 'அன்போடு வரவேற்கிறோம்!' : 'Welcome Back!'}
               </h2>
               <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed">
-                {language === 'ta' ? 'உங்கள் பழைய பள்ளி தோழர்களுடன் மீண்டும் இணைய இப்போதே உள்நுழையுங்கள்.' : 'Login to your account and continue your journey with your alumni community.'}
+                {language === 'ta' ? 'உங்கள் முன்னாள் பள்ளி தோழர்களுடன் மீண்டும் இணைய இப்போதே உள்நுழையுங்கள்.' : 'Login to your account and continue your journey with your alumni community.'}
               </p>
             </div>
 
@@ -348,20 +348,20 @@ export const AlumniLogin: React.FC = () => {
 
           {/* RIGHT COLUMN: 2-Step Login Form Card */}
           <div className="lg:col-span-6 order-1 lg:order-2 bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 lg:p-10 shadow-lg space-y-6">
-            
+
             {/* Card Title Header with Language Selector Toggle */}
             <div className="border-b border-[#E5E7EB] pb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-normal text-[#111111] tracking-tight">
                   {mode === 'FORGOT_PASSWORD'
-                    ? (forgotStep === 'EMAIL' 
-                        ? (language === 'ta' ? 'கடவுச்சொல் மறந்ததா?' : 'Forgot Password') 
-                        : forgotStep === 'OTP' 
-                        ? (language === 'ta' ? 'OTP சரிபார்க்க' : 'Verify Reset Code') 
+                    ? (forgotStep === 'EMAIL'
+                      ? (language === 'ta' ? 'கடவுச்சொல் மறந்ததா?' : 'Forgot Password')
+                      : forgotStep === 'OTP'
+                        ? (language === 'ta' ? 'OTP சரிபார்க்க' : 'Verify Reset Code')
                         : (language === 'ta' ? 'புதிய கடவுச்சொல்' : 'Set New Password'))
-                    : (step === 'CREDENTIALS' 
-                        ? (language === 'ta' ? 'உள்நுழைவு' : 'Login to your account') 
-                        : (language === 'ta' ? 'OTP சரிபார்ப்பு' : 'Security OTP Verification'))}
+                    : (step === 'CREDENTIALS'
+                      ? (language === 'ta' ? 'உள்நுழைவு' : 'Login to your account')
+                      : (language === 'ta' ? 'OTP சரிபார்ப்பு' : 'Security OTP Verification'))}
                 </h2>
               </div>
 
@@ -441,7 +441,7 @@ export const AlumniLogin: React.FC = () => {
                   onClick={async () => {
                     try {
                       await api.sendOTP(email);
-                    } catch (e) {}
+                    } catch (e) { }
                     navigate('/register', {
                       state: {
                         email: email,

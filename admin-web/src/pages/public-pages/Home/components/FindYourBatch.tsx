@@ -131,7 +131,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
             {/* Header Title */}
             <div className="space-y-1">
               <h3 className="text-xl sm:text-3xl font-bold text-[#111111] pt-1">
-                {language === 'ta' ? 'வகுப்பு பழைய மாணவர்கள் (முன்னோட்டம்)' : 'Batch Alumni Profiles'}
+                {language === 'ta' ? 'வகுப்பு முன்னாள் மாணவர்கள் (முன்னோட்டம்)' : 'Batch Alumni Profiles'}
               </h3>
             </div>
 
@@ -163,7 +163,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                           {member.full_name}
                         </h4>
                         <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 line-clamp-1">
-                          {member.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}
+                          {member.profession || (language === 'ta' ? 'முன்னாள் மாணவர்' : 'Alumnus')}
                         </p>
                       </div>
                     </div>
@@ -268,7 +268,7 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                   <Briefcase className="w-4 h-4 text-gray-700" />
                   <span>{language === 'ta' ? 'தொழில் / பணி' : 'Profession'}:</span>
                 </span>
-                <span className="font-bold text-[#111111]">{previewMember.profession || (language === 'ta' ? 'பழைய மாணவர்' : 'Alumnus')}</span>
+                <span className="font-bold text-[#111111]">{previewMember.profession || (language === 'ta' ? 'முன்னாள் மாணவர்' : 'Alumnus')}</span>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-200">
