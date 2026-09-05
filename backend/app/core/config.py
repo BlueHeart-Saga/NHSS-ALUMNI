@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
 
     # Primary Developer & Platform Configuration
-    INITIAL_SCHOOL_NAME: str = "NHSS SCHOOL"
+    INITIAL_SCHOOL_NAME: str = "NHS SCHOOL"
     INITIAL_SCHOOL_CODE: str = "NHSS"
     INITIAL_ADMIN_MOBILE: str = "+917550375037"
 

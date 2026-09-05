@@ -24,7 +24,7 @@
 #     await db.schools.delete_many({})
 #     school_doc = {
 #         "_id": SCHOOL_OBJ_ID,
-#         "name": "NHSS SCHOOL",
+#         "name": "NHS SCHOOL",
 #         "code": "NHSS",
 #         "school_type": "Higher Secondary School",
 #         "portal_name": "NHSS Alumni Network",
@@ -38,7 +38,7 @@
 #         "updated_at": now
 #     }
 #     await db.schools.insert_one(school_doc)
-#     print(f"[OK] Preserved single target school: NHSS SCHOOL (_id: {SCHOOL_ID_STR})")
+#     print(f"[OK] Preserved single target school: NHS SCHOOL (_id: {SCHOOL_ID_STR})")
 
 #     # 2. Clean & Set Users Collection
 #     print("\n2. Resetting 'users' collection...")
@@ -73,7 +73,7 @@
 #     # Insert / Restore School Admin user admin@nhss.com
 #     school_admin_user = {
 #         "email": "admin@nhss.com",
-#         "full_name": "NHSS School Admin",
+#         "full_name": "NHS School Admin",
 #         "mobile": "9876543210",
 #         "school_id": SCHOOL_ID_STR,
 #         "roles": ["SCHOOL_ADMIN"],

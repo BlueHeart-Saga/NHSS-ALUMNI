@@ -180,14 +180,14 @@ export const PublicEvents: React.FC = () => {
       {/* 1. HERO HEADER */}
       <div className="py-12 sm:py-20 bg-white border-b border-[#E5E7EB] relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5 relative z-10">
-          <div className="inline-flex items-center space-x-2 text-xs font-extrabold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
+          {/* <div className="inline-flex items-center space-x-2 text-xs font-extrabold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
             <Sparkles className="w-4 h-4 text-[#854D0E]" />
             <span>
               {language === 'ta'
                 ? 'பள்ளி விழாக்கள் & பழைய மாணவர்கள் சந்திப்பு'
                 : 'School Reunions & Celebrations'}
             </span>
-          </div>
+          </div> */}
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#111111] tracking-tight leading-tight">
             {t('events_page_title')}

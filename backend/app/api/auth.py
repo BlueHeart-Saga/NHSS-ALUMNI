@@ -723,6 +723,9 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
     extra_fields = {
         "gender": request.gender,
         "dob": request.dob,
+        "blood_group": request.blood_group,
+        "father_name": request.father_name,
+        "mother_name": request.mother_name,
         "country_code": request.country_code or "+91",
         "school_name": request.school_name,
         "joining_year": request.joining_year,
@@ -751,7 +754,10 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         "city": request.city or request.current_city,
         "state": request.state,
         "country": request.country or "India",
-        "linkedin_url": request.linkedin_url
+        "linkedin_url": request.linkedin_url,
+        "instagram_url": request.instagram_url,
+        "whatsapp_number": request.whatsapp_number,
+        "website_url": request.website_url
     }
 
     if pre_imported:
@@ -823,7 +829,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         import asyncio
         from app.services.email import send_registration_thank_you_email
         alumni_name = alumni.get("full_name", "Alumnus")
-        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHSS SCHOOL")
+        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
 
         if school_id:
             try:

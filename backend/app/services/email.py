@@ -96,7 +96,7 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") 
 
     return send_email_smtp(to_email, subject, html_content, text_content)
 
-def send_alumni_verified_email(to_email: str, alumni_name: str, school_name: str = "NHSS SCHOOL") -> bool:
+def send_alumni_verified_email(to_email: str, alumni_name: str, school_name: str = "NHS SCHOOL") -> bool:
     """
     Sends an automated verification approval confirmation email to the alumnus when approved by school admin.
     """
@@ -331,7 +331,7 @@ def send_contact_admin_notification_email(sender_name: str, sender_email: str, s
 
     return send_email_smtp(admin_email, subject, html_content, text_content)
 
-def send_registration_thank_you_email(to_email: str, alumni_name: str, school_name: str = "NHSS SCHOOL") -> bool:
+def send_registration_thank_you_email(to_email: str, alumni_name: str, school_name: str = "NHS SCHOOL") -> bool:
     """
     Sends an automated registration thank-you & acknowledgment email to the alumnus upon completing their registration form.
     Informs them that their application is pending school administration verification.

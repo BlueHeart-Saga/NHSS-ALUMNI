@@ -35,7 +35,7 @@ async def get_public_stats(response: Response):
     years_connected = max(1, 2026 - est_year)
 
     res = {
-        "school_name": school.get("name") or "NHSS SCHOOL",
+        "school_name": school.get("name") or "NHS SCHOOL",
         "school_code": school.get("code") or "NHSS",
         "established_year": est_year,
         "logo_url": school.get("logo_url") or "/assets/logo/logo_tamil.png",

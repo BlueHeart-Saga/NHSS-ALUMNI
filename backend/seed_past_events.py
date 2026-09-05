@@ -85,7 +85,7 @@ PAST_SCHOOL_EVENTS = [
         "description": "Guided walkthrough of the historic school building and renovated digital labs.",
         "event_date": "2023-06-12",
         "start_time": "09:00 AM",
-        "venue": "NHSS School Main Entrance",
+        "venue": "NHS School Main Entrance",
         "cover_image_url": "/school-images/school-door.png",
         "category": "SCHOOL_CELEBRATIONS",
         "status": "PUBLISHED"

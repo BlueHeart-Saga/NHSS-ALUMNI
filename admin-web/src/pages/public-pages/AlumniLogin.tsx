@@ -366,7 +366,7 @@ export const AlumniLogin: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2 shrink-0">
-                <LanguageSelector />
+                {/* <LanguageSelector /> */}
 
                 {(mode === 'FORGOT_PASSWORD' || step === 'OTP') && (
                   <button

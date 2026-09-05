@@ -108,7 +108,7 @@ async def verify_alumni(
     if request.status == "APPROVED" and alumni.get("email"):
         alumni_email = alumni["email"]
         alumni_name = alumni.get("full_name", "Alumnus")
-        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHSS SCHOOL")
+        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
 
         if school_id:
             try:
@@ -414,6 +414,9 @@ async def update_own_profile(
         mobile=alumni.get("mobile", ""),
         email=alumni.get("email", ""),
         profile_photo_url=alumni.get("profile_photo_url"),
+        blood_group=alumni.get("blood_group"),
+        father_name=alumni.get("father_name"),
+        mother_name=alumni.get("mother_name"),
         passing_year=alumni.get("passing_year", 2010),
         batch_id=str(alumni["batch_id"]) if alumni.get("batch_id") else None,
         admission_number=alumni.get("admission_number", ""),
@@ -429,6 +432,8 @@ async def update_own_profile(
         house=alumni.get("house"),
         stream=alumni.get("stream"),
         linkedin_url=alumni.get("linkedin_url"),
+        instagram_url=alumni.get("instagram_url"),
+        whatsapp_number=alumni.get("whatsapp_number"),
         github_url=alumni.get("github_url"),
         twitter_url=alumni.get("twitter_url"),
         website_url=alumni.get("website_url"),

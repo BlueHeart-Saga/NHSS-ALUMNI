@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin, 
   KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase, 
-  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare
+  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -148,6 +148,9 @@ export const AlumniRegister: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [dob, setDob] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [motherName, setMotherName] = useState('');
   const [profilePhotoUrl, setProfilePhotoUrl] = useState('');
   const [country, setCountry] = useState('India');
   const [state, setState] = useState('Tamil Nadu');
@@ -171,7 +174,7 @@ export const AlumniRegister: React.FC = () => {
   const [collegeJoiningYear, setCollegeJoiningYear] = useState('');
   const [collegePassingYear, setCollegePassingYear] = useState('');
 
-  // Step 5 — Current Professional Details
+  // Step 5 — Current Professional Details & Social Links
   const [employmentStatus, setEmploymentStatus] = useState('');
   const [company, setCompany] = useState('');
   const [position, setPosition] = useState('');
@@ -179,9 +182,13 @@ export const AlumniRegister: React.FC = () => {
   const [totalExperience, setTotalExperience] = useState('');
   const [skills, setSkills] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
 
   const currentYearNum = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYearNum - 1959 }, (_, i) => currentYearNum - i);
+  const bloodGroupOptions = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const leavingClassOptions = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
   const degreeOptions = [
     "B.E.", "B.Tech.", "M.E.", "M.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA", 
@@ -221,6 +228,9 @@ export const AlumniRegister: React.FC = () => {
             if (p.current_city || p.city) setCurrentCity(p.current_city || p.city);
             if (p.gender) setGender(p.gender);
             if (p.dob) setDob(p.dob);
+            if (p.blood_group) setBloodGroup(p.blood_group);
+            if (p.father_name) setFatherName(p.father_name);
+            if (p.mother_name) setMotherName(p.mother_name);
             if (p.school_name) setSchoolName(p.school_name);
             if (p.joining_year) setJoiningYear(String(p.joining_year));
             if (p.passing_year) setPassingYear(String(p.passing_year));
@@ -237,6 +247,9 @@ export const AlumniRegister: React.FC = () => {
             if (p.total_experience) setTotalExperience(p.total_experience);
             if (p.skills) setSkills(p.skills);
             if (p.linkedin_url) setLinkedinUrl(p.linkedin_url);
+            if (p.instagram_url) setInstagramUrl(p.instagram_url);
+            if (p.whatsapp_number) setWhatsappNumber(p.whatsapp_number);
+            if (p.website_url) setWebsiteUrl(p.website_url);
 
             // Unlock up to step 6 if user profile data exists
             setMaxStepReached(6);
@@ -254,9 +267,15 @@ export const AlumniRegister: React.FC = () => {
         if (d.mobile) setMobile(d.mobile);
         if (d.gender) setGender(d.gender);
         if (d.dob) setDob(d.dob);
+        if (d.bloodGroup) setBloodGroup(d.bloodGroup);
+        if (d.fatherName) setFatherName(d.fatherName);
+        if (d.motherName) setMotherName(d.motherName);
         if (d.currentCity) setCurrentCity(d.currentCity);
         if (d.passingYear) setPassingYear(d.passingYear);
         if (d.joiningYear) setJoiningYear(d.joiningYear);
+        if (d.instagramUrl) setInstagramUrl(d.instagramUrl);
+        if (d.whatsappNumber) setWhatsappNumber(d.whatsappNumber);
+        if (d.websiteUrl) setWebsiteUrl(d.websiteUrl);
       } catch (e) {}
     }
   }, [location.state]);
@@ -365,6 +384,9 @@ export const AlumniRegister: React.FC = () => {
       country_code: mobilePrefix,
       gender,
       dob,
+      blood_group: bloodGroup || undefined,
+      father_name: fatherName.trim() || undefined,
+      mother_name: motherName.trim() || undefined,
       profile_photo_url: profilePhotoUrl,
       current_city: currentCity.trim(),
       city: currentCity.trim(),
@@ -502,6 +524,9 @@ export const AlumniRegister: React.FC = () => {
       total_experience: totalExperience || undefined,
       skills: skills.trim() || undefined,
       linkedin_url: linkedinUrl.trim() || undefined,
+      instagram_url: instagramUrl.trim() || undefined,
+      whatsapp_number: whatsappNumber.trim() || undefined,
+      website_url: websiteUrl.trim() || undefined,
       current_city: currentCity.trim()
     });
 
@@ -533,6 +558,9 @@ export const AlumniRegister: React.FC = () => {
         full_name: fullName.trim(),
         gender: gender,
         dob: dob,
+        blood_group: bloodGroup || undefined,
+        father_name: fatherName.trim() || undefined,
+        mother_name: motherName.trim() || undefined,
         country_code: mobilePrefix,
         country: country,
         state: state.trim(),
@@ -556,7 +584,7 @@ export const AlumniRegister: React.FC = () => {
         college_joining_year: !noHigherEducation && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
         college_passing_year: !noHigherEducation && collegePassingYear ? parseInt(collegePassingYear) : undefined,
 
-        // Professional Details
+        // Professional & Social Contact Details
         employment_status: employmentStatus,
         company: company.trim() || undefined,
         position: position.trim() || undefined,
@@ -564,7 +592,10 @@ export const AlumniRegister: React.FC = () => {
         industry: industry.trim() || undefined,
         total_experience: totalExperience || undefined,
         skills: skills.trim() || undefined,
-        linkedin_url: linkedinUrl.trim() || undefined
+        linkedin_url: linkedinUrl.trim() || undefined,
+        instagram_url: instagramUrl.trim() || undefined,
+        whatsapp_number: whatsappNumber.trim() || undefined,
+        website_url: websiteUrl.trim() || undefined
       };
 
       await api.register(payload);
@@ -623,12 +654,11 @@ export const AlumniRegister: React.FC = () => {
     if (isNaN(num) || num >= 12 || num < 1) return yr;
     return yr + (12 - num);
   };
-
   const effectiveBatchYear = getEffectiveBatchYear(passingYear, leavingClass);
   const calculatedBatchName = passingYear ? `Batch of ${effectiveBatchYear}` : 'Select Passing Year';
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111111] py-8 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111111] pt-6 sm:pt-8 pb-16 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
 
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -659,89 +689,108 @@ export const AlumniRegister: React.FC = () => {
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* LEFT SIDEBAR: Navigation Progress Tracker (Desktop Only) */}
-          <div className="hidden lg:block lg:col-span-4 sticky top-6 space-y-6">
-            <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 gap-2">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center text-[#854D0E] shrink-0">
-                    <GraduationCap className="w-5 h-5 text-[#854D0E]" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base font-bold text-[#111111] truncate">
-                      {language === 'ta' ? 'பழைய மாணவர்கள் தளம்' : 'Alumni Portal'}
-                    </h2>
-                    <p className="text-[11px] text-gray-500 font-medium truncate">
-                      {language === 'ta' ? 'அதிகாரப்பூர்வ உறுப்பினர் பதிவு' : 'Official Member Registration'}
-                    </p>
-                  </div>
-                </div>
-                {/* <div className="shrink-0">
-                  <LanguageSelector />
+          {/* LEFT SIDEBAR: Sticky Scroll Premium Vertical Stepper UI (Anchored comfortably below header) */}
+          <div className="hidden lg:block lg:col-span-4 sticky top-[148px] self-start space-y-6">
+            <div className="bg-white/95 backdrop-blur-sm border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-md shadow-gray-200/50 transition-all">
+              <div className="mb-6 pb-4 border-b border-gray-100">
+                {/* <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#FFF7D6] text-[#854D0E] text-[11px] font-extrabold uppercase tracking-wider rounded-full border border-[#F4C542]/60 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                  <span>{language === 'ta' ? 'பதிவு வழிகாட்டி' : 'Registration Wizard'}</span>
                 </div> */}
+                <h2 className="text-xl font-extrabold text-[#111111] tracking-tight">
+                  {language === 'ta' ? 'கணக்கு உருவாக்கம்' : 'Create Account'}
+                </h2>
+                <p className="text-xs text-gray-500 font-medium mt-1">
+                  {language === 'ta' ? 'அதிகாரப்பூர்வ பழைய மாணவர்கள் பதிவு' : 'Official Alumni Member Registration'}
+                </p>
               </div>
 
-
-              {/* Steps Progress List - Backward & Forward Step Jump Enabled */}
-              <div className="space-y-4">
-                {stepsList.map((s) => {
+              {/* Continuous Vertical Line Stepper */}
+              <div className="relative">
+                {stepsList.map((s, index) => {
                   const isActive = step === s.num;
                   const isUnlocked = s.num <= maxStepReached || s.num <= step || (otpSent && s.num <= maxStepReached + 1);
                   const isCompleted = s.num < step || s.num < maxStepReached;
+                  const isLast = index === stepsList.length - 1;
 
                   return (
-                    <div
-                      key={s.num}
-                      onClick={() => {
-                        if (isUnlocked) {
-                          goToStep(s.num as any);
-                        } else {
-                          alertService.showWarning(
-                            language === 'ta' ? 'படி பூட்டப்பட்டுள்ளது' : 'Step Locked',
-                            language === 'ta'
-                              ? `படி ${s.num}-க்கு செல்லும் முன் படி ${step}-ஐ பூர்த்தி செய்ய வேண்டும்.`
-                              : `Please complete Step ${step} first before advancing to Step ${s.num}.`
-                          );
-                        }
-                      }}
-                      className={`flex items-center space-x-3.5 p-3 rounded-2xl transition-all ${
-                        isActive
-                          ? 'bg-[#FFF7D6] border border-[#F4C542] shadow-xs'
-                          : isUnlocked
-                          ? 'cursor-pointer hover:bg-gray-100/80'
-                          : 'opacity-50 cursor-not-allowed'
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-all ${
-                          isCompleted
-                            ? 'bg-[#10B981] text-white'
-                            : isActive
-                            ? 'bg-[#F4C542] text-[#111111]'
-                            : 'bg-gray-100 text-gray-400'
-                        }`}
-                      >
-                        {isCompleted ? <Check className="w-4 h-4" /> : s.num}
+                    <div key={s.num} className="relative flex items-start space-x-4 pb-7 last:pb-0 group">
+                      {/* Step Circle & Perfectly Centered Line Container */}
+                      <div className="relative flex flex-col items-center shrink-0 w-8">
+                        {/* Step Circle Node */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isUnlocked) {
+                              goToStep(s.num as any);
+                            } else {
+                              alertService.showWarning(
+                                language === 'ta' ? 'படி பூட்டப்பட்டுள்ளது' : 'Step Locked',
+                                language === 'ta'
+                                  ? `படி ${s.num}-க்கு செல்லும் முன் படி ${step}-ஐ பூர்த்தி செய்ய வேண்டும்.`
+                                  : `Please complete Step ${step} first before advancing to Step ${s.num}.`
+                              );
+                            }
+                          }}
+                          className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all cursor-pointer ${
+                            isCompleted
+                              ? 'bg-[#10B981] text-white shadow-xs'
+                              : isActive
+                              ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
+                              : 'bg-gray-100 border border-gray-300 text-gray-400'
+                          }`}
+                        >
+                          {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
+                        </button>
+
+                        {/* Perfectly Centered Vertical Connecting Line */}
+                        {!isLast && (
+                          <div 
+                            className={`absolute top-8 -bottom-7 w-0.5 left-1/2 -translate-x-1/2 z-0 transition-colors ${
+                              isCompleted ? 'bg-[#10B981]' : 'bg-gray-200'
+                            }`} 
+                          />
+                        )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className={`text-xs font-bold leading-tight ${isActive ? 'text-[#111111]' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
+
+                      {/* Step Text Label */}
+                      <div 
+                        onClick={() => isUnlocked && goToStep(s.num as any)}
+                        className={`min-w-0 flex-1 pt-0.5 ${isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                      >
+                        <div className={`text-sm leading-tight transition-colors ${
+                          isActive 
+                            ? 'font-extrabold text-[#111111]' 
+                            : isCompleted 
+                            ? 'font-bold text-gray-800 hover:text-[#111111]' 
+                            : 'font-semibold text-gray-400'
+                        }`}>
                           {s.label}
                         </div>
-                        <div className="text-[11px] text-gray-400 font-normal truncate mt-0.5">{s.sub}</div>
+                        <div className="text-xs text-gray-400 font-medium truncate mt-0.5">{s.sub}</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
-                <span>{language === 'ta' ? `படி ${step} / 6` : `Step ${step} of 6`}</span>
-                <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
+              {/* Progress Bar & Footer Info */}
+              <div className="mt-6 pt-4 border-t border-gray-100 space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
+                  <span>{language === 'ta' ? `படி ${step} / 6` : `Step ${step} of 6`}</span>
+                  <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${(step / 6) * 100}%` }}
+                  />
+                </div>
               </div>
             </div>
 
             {/* Existing User Login Prompt */}
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 text-center text-xs text-gray-600">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 text-center text-xs text-gray-600 shadow-xs">
               {language === 'ta' ? 'ஏற்கனவே சரிபார்க்கப்பட்ட கணக்கு உள்ளதா?' : 'Already have a verified alumni account?'}{' '}
               <Link to="/login" className="font-bold text-[#111111] underline hover:text-[#854D0E]">
                 {language === 'ta' ? 'இங்கே உள்நுழையவும்' : 'Log In Here'}
@@ -776,46 +825,46 @@ export const AlumniRegister: React.FC = () => {
                   </div>
 
                   {!otpSent ? (
-                    <form onSubmit={handleSendEmailOTP} className="space-y-5">
+                    <form onSubmit={handleSendEmailOTP} className="space-y-6">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                           {language === 'ta' ? 'மின்னஞ்சல் முகவரி' : 'Email Address'} <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
-                          <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="your.email@example.com"
-                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 transition-all font-normal"
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
                           />
+                          <Mail className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
 
                       {accountAlreadyExists && (
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-2">
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs sm:text-sm text-amber-800 space-y-2">
                           <p className="font-bold">
                             {language === 'ta'
                               ? 'இந்த மின்னஞ்சல் முகவரியில் ஏற்கனவே கணக்கு உள்ளது.'
                               : 'An account already exists with this email address.'}
                           </p>
-                          <Link to="/login" className="inline-block font-semibold text-[#111111] underline">
+                          <Link to="/login" className="inline-block font-bold text-[#111111] underline">
                             {language === 'ta' ? 'நேரடியாக உள்நுழைய இங்கே கிளிக் செய்யவும் →' : 'Click here to Log In directly →'}
                           </Link>
                         </div>
                       )}
 
-                      <Button type="submit" className="w-full py-3 font-bold cursor-pointer" isLoading={loading}>
+                      <Button type="submit" className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer" isLoading={loading}>
                         <span>{language === 'ta' ? '6-இலக்க OTP சரிபார்ப்புக் குறியீட்டை அனுப்பவும்' : 'Send 6-Digit Verification Code'}</span>
-                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                        <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
                       </Button>
 
                       {/* Divider */}
                       <div className="relative py-2 flex items-center justify-center">
-                        <div className="border-t border-[#E5E7EB] w-full" />
-                        <span className="bg-white px-3 text-xs font-normal text-gray-400 uppercase tracking-wider">
+                        <div className="border-t border-gray-200 w-full" />
+                        <span className="bg-white px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                           {language === 'ta' ? 'அல்லது' : 'OR'}
                         </span>
                       </div>
@@ -827,7 +876,7 @@ export const AlumniRegister: React.FC = () => {
                           const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1';
                           window.location.href = `${apiBase}/auth/google/login`;
                         }}
-                        className="w-full py-3 px-6 bg-white border border-[#E5E7EB] hover:border-[#111111] rounded-xl font-medium text-sm text-[#111111] flex items-center justify-center space-x-3 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                        className="w-full py-3.5 px-6 bg-white border border-gray-300 hover:border-[#111111] rounded-xl font-bold text-sm sm:text-base text-[#111111] flex items-center justify-center space-x-3 shadow-xs hover:shadow-md transition-all cursor-pointer"
                       >
                         <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -839,8 +888,8 @@ export const AlumniRegister: React.FC = () => {
                       </button>
                     </form>
                   ) : (
-                    <form onSubmit={handleVerifyOTP} className="space-y-5">
-                      <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] font-medium flex items-center justify-between">
+                    <form onSubmit={handleVerifyOTP} className="space-y-6">
+                      <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
                           <span>
@@ -848,13 +897,13 @@ export const AlumniRegister: React.FC = () => {
                             <strong>{email}</strong>
                           </span>
                         </div>
-                        <button type="button" onClick={() => setOtpSent(false)} className="text-[11px] font-bold text-[#854D0E] underline">
+                        <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-[#854D0E] underline">
                           {language === 'ta' ? 'மின்னஞ்சலை மாற்ற' : 'Change Email'}
                         </button>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                           {language === 'ta' ? '6-இலக்க சரிபார்ப்புக் குறியீடு (OTP)' : '6-Digit Verification Code'} <span className="text-rose-500">*</span>
                         </label>
                         <input
@@ -864,13 +913,13 @@ export const AlumniRegister: React.FC = () => {
                           value={otp}
                           onChange={(e) => setOtp(e.target.value)}
                           placeholder="123456"
-                          className="w-full px-4 py-3 bg-gray-50 border border-[#E5E7EB] rounded-xl text-center text-lg font-bold tracking-widest text-[#111111] focus:bg-white focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 transition-all"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-center text-xl font-bold tracking-widest text-[#111111] placeholder-gray-400"
                         />
                       </div>
 
-                      <Button type="submit" className="w-full py-3 font-bold" isLoading={loading}>
+                      <Button type="submit" className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer" isLoading={loading}>
                         <span>{language === 'ta' ? 'OTP சரிபார்த்துத் தொடரவும்' : 'Verify Security Code & Continue'}</span>
-                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                        <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
                       </Button>
                     </form>
                   )}
@@ -921,10 +970,10 @@ export const AlumniRegister: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Full Name */}
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'முழு பெயர் (சான்றிதழில் உள்ளது போல்)' : 'Full Name (As per school records)'} <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -933,32 +982,35 @@ export const AlumniRegister: React.FC = () => {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder={language === 'ta' ? 'உங்கள் அதிகாரப்பூர்வ முழு பெயரை உள்ளிடவும்' : 'Enter your full official name'}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
                     </div>
 
                     {/* Gender */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                         {language === 'ta' ? 'பாலினம்' : 'Gender'} <span className="text-rose-500">*</span>
                       </label>
-                      <select
-                        required
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
-                      >
-                        <option value="">{language === 'ta' ? 'பாலினத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Gender'}</option>
-                        <option value="Male">{language === 'ta' ? 'ஆண்' : 'Male'}</option>
-                        <option value="Female">{language === 'ta' ? 'பெண்' : 'Female'}</option>
-                        <option value="Other">{language === 'ta' ? 'மற்றவை' : 'Other'}</option>
-                        <option value="Prefer not to say">{language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say'}</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          required
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] appearance-none pr-8 cursor-pointer"
+                        >
+                          <option value="">{language === 'ta' ? 'பாலினத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Gender'}</option>
+                          <option value="Male">{language === 'ta' ? 'ஆண்' : 'Male'}</option>
+                          <option value="Female">{language === 'ta' ? 'பெண்' : 'Female'}</option>
+                          <option value="Other">{language === 'ta' ? 'மற்றவை' : 'Other'}</option>
+                          <option value="Prefer not to say">{language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say'}</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
 
                     {/* Date of Birth */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                         {language === 'ta' ? 'பிறந்த தேதி' : 'Date of Birth'} <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -966,35 +1018,89 @@ export const AlumniRegister: React.FC = () => {
                         required
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                        className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111]"
+                      />
+                    </div>
+
+                    {/* Blood Group */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+                        {language === 'ta' ? 'ரத்த வகை (Blood Group)' : 'Blood Group'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2 pt-0.5 mb-2">
+                        {bloodGroupOptions.map((bg) => (
+                          <button
+                            key={bg}
+                            type="button"
+                            onClick={() => setBloodGroup(bg)}
+                            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                              bloodGroup === bg
+                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            {bg}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Father's Name */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        {language === 'ta' ? 'தந்தையின் பெயர்' : "Father's Name"} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={fatherName}
+                        onChange={(e) => setFatherName(e.target.value)}
+                        placeholder={language === 'ta' ? 'தந்தையின் பெயர் உள்ளிடவும்' : "Enter father's full name"}
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
+                      />
+                    </div>
+
+                    {/* Mother's Name */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        {language === 'ta' ? 'தாயாரின் பெயர்' : "Mother's Name"} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={motherName}
+                        onChange={(e) => setMotherName(e.target.value)}
+                        placeholder={language === 'ta' ? 'தாயாரின் பெயர் உள்ளிடவும்' : "Enter mother's full name"}
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
                       />
                     </div>
 
                     {/* Mobile Number with Country Code */}
-                    <div className="sm:col-span-2 grid grid-cols-12 gap-3">
+                    <div className="sm:col-span-2 grid grid-cols-12 gap-4">
                       <div className="col-span-5 sm:col-span-4">
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'நாட்டு குறியீடு' : 'Country Code'} <span className="text-rose-500">*</span>
                         </label>
-                        <select
-                          value={mobilePrefix}
-                          onChange={(e) => {
-                            setMobilePrefix(e.target.value);
-                            const found = countries.find(c => c.dialCode === e.target.value);
-                            if (found) setCountry(found.name);
-                          }}
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all truncate"
-                        >
-                          {countries.map((c) => (
-                            <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
-                              {c.flag} {c.dialCode} ({c.name})
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={mobilePrefix}
+                            onChange={(e) => {
+                              setMobilePrefix(e.target.value);
+                              const found = countries.find(c => c.dialCode === e.target.value);
+                              if (found) setCountry(found.name);
+                            }}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] appearance-none pr-6 cursor-pointer truncate"
+                          >
+                            {countries.map((c) => (
+                              <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
+                                {c.flag} {c.dialCode} ({c.name})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
                       <div className="col-span-7 sm:col-span-8">
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'கைபேசி எண்' : 'Mobile Phone Number'} <span className="text-rose-500">*</span>
                         </label>
                         <input
@@ -1004,37 +1110,40 @@ export const AlumniRegister: React.FC = () => {
                           onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                           placeholder="9876543210"
                           maxLength={10}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
                     </div>
 
-                    {/* Country Dropdown (Defaults to India) */}
+                    {/* Country Dropdown */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'வசிக்கும் நாடு' : 'Country'} <span className="text-rose-500">*</span>
                       </label>
-                      <select
-                        required
-                        value={country}
-                        onChange={(e) => {
-                          setCountry(e.target.value);
-                          const found = countries.find(c => c.name === e.target.value);
-                          if (found) setMobilePrefix(found.dialCode);
-                        }}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
-                      >
-                        {countries.map((c) => (
-                          <option key={`${c.code}-${c.name}`} value={c.name}>
-                            {c.flag} {c.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          required
+                          value={country}
+                          onChange={(e) => {
+                            setCountry(e.target.value);
+                            const found = countries.find(c => c.name === e.target.value);
+                            if (found) setMobilePrefix(found.dialCode);
+                          }}
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                        >
+                          {countries.map((c) => (
+                            <option key={`${c.code}-${c.name}`} value={c.name}>
+                              {c.flag} {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
 
                     {/* Current State */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'தற்போதைய மாநிலம்' : 'Current State'} <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -1043,13 +1152,13 @@ export const AlumniRegister: React.FC = () => {
                         value={state}
                         onChange={(e) => setState(e.target.value)}
                         placeholder="e.g. Tamil Nadu"
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
                     </div>
 
                     {/* Current City */}
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'தற்போதைய நகரம்' : 'Current City'} <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -1058,7 +1167,7 @@ export const AlumniRegister: React.FC = () => {
                         value={currentCity}
                         onChange={(e) => setCurrentCity(e.target.value)}
                         placeholder="e.g. Chennai / Madurai"
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
                     </div>
                   </div>
@@ -1101,10 +1210,10 @@ export const AlumniRegister: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {/* School Name */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'பள்ளியின் பெயர்' : 'School Name'} <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -1112,64 +1221,75 @@ export const AlumniRegister: React.FC = () => {
                         required
                         value={schoolName}
                         onChange={(e) => setSchoolName(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-100 border border-[#E5E7EB] rounded-xl text-sm font-semibold text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-bold text-[#111111]"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {/* Admission / Joining Year */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'பள்ளியில் சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
                         </label>
-                        <select
-                          required
-                          value={joiningYear}
-                          onChange={(e) => setJoiningYear(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
-                        >
-                          <option value="">{language === 'ta' ? 'சேர்ந்த ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Joining Year'}</option>
-                          {yearOptions.map(y => (
-                            <option key={y} value={y}>{y}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            required
+                            value={joiningYear}
+                            onChange={(e) => setJoiningYear(e.target.value)}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                          >
+                            <option value="">{language === 'ta' ? 'சேர்ந்த ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Joining Year'}</option>
+                            {yearOptions.map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
                       {/* Leaving / Passing Year */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'பள்ளியை விட்டு வெளியேறிய / தேர்ச்சி பெற்ற ஆண்டு' : 'Leaving / Passing Year'} <span className="text-rose-500">*</span>
                         </label>
-                        <select
-                          required
-                          value={passingYear}
-                          onChange={(e) => setPassingYear(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
-                        >
-                          <option value="">{language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Year'}</option>
-                          {yearOptions.map(y => (
-                            <option key={y} value={y}>{y}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            required
+                            value={passingYear}
+                            onChange={(e) => setPassingYear(e.target.value)}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                          >
+                            <option value="">{language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Year'}</option>
+                            {yearOptions.map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Class / Standard at Leaving */}
+                    {/* Class / Standard at Leaving with Selection Chips */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         {language === 'ta' ? 'பள்ளி முடித்த போது இருந்த வகுப்பு' : 'Class / Standard at Leaving'} <span className="text-rose-500">*</span>
                       </label>
-                      <select
-                        required
-                        value={leavingClass}
-                        onChange={(e) => setLeavingClass(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
-                      >
-                        <option value="">{language === 'ta' ? 'வகுப்பைத் தேர்ந்தெடுக்கவும்' : 'Select Class at Leaving'}</option>
+                      <div className="flex flex-wrap gap-2 pt-1 mb-2">
                         {leavingClassOptions.map(cls => (
-                          <option key={cls} value={cls}>{cls} {language === 'ta' ? 'வகுப்பு' : 'Standard'}</option>
+                          <button
+                            key={cls}
+                            type="button"
+                            onClick={() => setLeavingClass(cls)}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                              leavingClass === cls
+                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            {cls} {language === 'ta' ? 'வகுப்பு' : 'Std'}
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
 
                     {/* Auto-generated Batch Preview Box */}
@@ -1242,10 +1362,10 @@ export const AlumniRegister: React.FC = () => {
                   </div>
 
                   {!noHigherEducation && (
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-6 pt-2">
                       {/* College / Institution Name */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'கல்லூரி / கல்வி நிறுவனத்தின் பெயர்' : 'College / Institution Name'} <span className="text-rose-500">*</span>
                         </label>
                         <input
@@ -1254,32 +1374,51 @@ export const AlumniRegister: React.FC = () => {
                           value={collegeName}
                           onChange={(e) => setCollegeName(e.target.value)}
                           placeholder="e.g. Anna University / IIT Madras / Loyola College"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
-                      {/* Degree / Course Dropdown */}
+                      {/* Degree / Course Dropdown & Chips */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                           {language === 'ta' ? 'பட்டப்படிப்பு / தகுதி' : 'Degree / Course'} <span className="text-rose-500">*</span>
                         </label>
-                        <select
-                          required={!noHigherEducation}
-                          value={degree}
-                          onChange={(e) => setDegree(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
-                        >
-                          <option value="">{language === 'ta' ? 'பட்டப்படிப்பைத் தேர்ந்தெடுக்கவும்' : 'Select Degree / Course'}</option>
-                          {degreeOptions.map(deg => (
-                            <option key={deg} value={deg}>{deg}</option>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {["B.E.", "B.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA", "BBA", "MBA", "B.Com.", "Diploma"].map(deg => (
+                            <button
+                              key={deg}
+                              type="button"
+                              onClick={() => setDegree(deg)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                                degree === deg
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                            >
+                              {deg}
+                            </button>
                           ))}
-                        </select>
+                        </div>
+                        <div className="relative">
+                          <select
+                            required={!noHigherEducation}
+                            value={degree}
+                            onChange={(e) => setDegree(e.target.value)}
+                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                          >
+                            <option value="">{language === 'ta' ? 'மற்ற பட்டப்படிப்பைக் தேர்ந்தெடுக்கவும்' : 'Or select another Degree...'}</option>
+                            {degreeOptions.map(deg => (
+                              <option key={deg} value={deg}>{deg}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
                       {/* Free-text input if "Other - write something" selected */}
                       {degree === 'Other - write something' && (
                         <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/40 rounded-xl space-y-1.5">
-                          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
                             {language === 'ta' ? 'பட்டப்படிப்பின் பெயரை உள்ளிடவும்' : 'Enter Degree / Qualification Name'} <span className="text-rose-500">*</span>
                           </label>
                           <input
@@ -1288,14 +1427,14 @@ export const AlumniRegister: React.FC = () => {
                             value={otherDegree}
                             onChange={(e) => setOtherDegree(e.target.value)}
                             placeholder="e.g. B.Des / B.Arch / MBBS"
-                            className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#111111] focus:border-[#F4C542]"
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                           />
                         </div>
                       )}
 
                       {/* Department / Stream */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'துறை / பாடப்பிரிவு' : 'Department / Stream / Major'} <span className="text-rose-500">*</span>
                         </label>
                         <input
@@ -1304,13 +1443,13 @@ export const AlumniRegister: React.FC = () => {
                           value={stream}
                           onChange={(e) => setStream(e.target.value)}
                           placeholder="e.g. Computer Science / Mechanical Engineering / Physics"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
                       {/* Register / Roll Number (Optional) */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'பதிவு எண்' : 'Register / Roll Number'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
@@ -1318,45 +1457,51 @@ export const AlumniRegister: React.FC = () => {
                           value={registerNumber}
                           onChange={(e) => setRegisterNumber(e.target.value)}
                           placeholder="e.g. 710015104001"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* College Joining Year */}
                         <div>
-                          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                             {language === 'ta' ? 'சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
                           </label>
-                          <select
-                            required={!noHigherEducation}
-                            value={collegeJoiningYear}
-                            onChange={(e) => setCollegeJoiningYear(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
-                          >
-                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
-                            {yearOptions.map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <select
+                              required={!noHigherEducation}
+                              value={collegeJoiningYear}
+                              onChange={(e) => setCollegeJoiningYear(e.target.value)}
+                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                            >
+                              <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
+                              {yearOptions.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
 
                         {/* College Passing Year */}
                         <div>
-                          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                             {language === 'ta' ? 'முடித்த ஆண்டு' : 'Graduation / Passing Year'} <span className="text-rose-500">*</span>
                           </label>
-                          <select
-                            required={!noHigherEducation}
-                            value={collegePassingYear}
-                            onChange={(e) => setCollegePassingYear(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
-                          >
-                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
-                            {yearOptions.map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <select
+                              required={!noHigherEducation}
+                              value={collegePassingYear}
+                              onChange={(e) => setCollegePassingYear(e.target.value)}
+                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                            >
+                              <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
+                              {yearOptions.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1399,31 +1544,40 @@ export const AlumniRegister: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="space-y-4">
-                    {/* Employment Status */}
+                  <div className="space-y-6">
+                    {/* Employment Status with Selection Chips */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         {language === 'ta' ? 'வேலை நிலை' : 'Employment Status'} <span className="text-rose-500">*</span>
                       </label>
-                      <select
-                        required
-                        value={employmentStatus}
-                        onChange={(e) => setEmploymentStatus(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all"
-                      >
-                        <option value="">{language === 'ta' ? 'வேலை நிலையைத் தேர்ந்தெடுக்கவும்' : 'Select Employment Status'}</option>
-                        <option value="Employed">{language === 'ta' ? 'பணியில் உள்ளவர் (Employed)' : 'Employed'}</option>
-                        <option value="Business / Self-Employed">{language === 'ta' ? 'சுயதொழில் / தொழில்முனைவோர் (Business / Self-Employed)' : 'Business / Self-Employed'}</option>
-                        <option value="Student">{language === 'ta' ? 'மாணவர் (Student)' : 'Student'}</option>
-                        <option value="Unemployed">{language === 'ta' ? 'வேலையில்லாதவர் (Unemployed)' : 'Unemployed'}</option>
-                        <option value="Retired">{language === 'ta' ? 'ஓய்வு பெற்றவர் (Retired)' : 'Retired'}</option>
-                      </select>
+                      <div className="flex flex-wrap gap-2 pt-1 mb-2">
+                        {[
+                          { key: "Employed", labelEn: "Employed", labelTa: "பணியில் உள்ளவர்" },
+                          { key: "Business / Self-Employed", labelEn: "Business / Self-Employed", labelTa: "சுயதொழில் / தொழில்முனைவோர்" },
+                          { key: "Student", labelEn: "Student", labelTa: "மாணவர்" },
+                          { key: "Unemployed", labelEn: "Unemployed", labelTa: "வேலையில்லாதவர்" },
+                          { key: "Retired", labelEn: "Retired", labelTa: "ஓய்வு பெற்றவர்" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setEmploymentStatus(opt.key)}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                              employmentStatus === opt.key
+                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            {language === 'ta' ? opt.labelTa : opt.labelEn}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {/* Company / Organization (Optional) */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'நிறுவனம் / அமைப்பு' : 'Company / Organization'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
@@ -1431,13 +1585,13 @@ export const AlumniRegister: React.FC = () => {
                           value={company}
                           onChange={(e) => setCompany(e.target.value)}
                           placeholder="e.g. Tata Consultancy Services / Google"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
                       {/* Position / Job Role (Optional) */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'பதவி / வேலை தலைப்பு' : 'Position / Job Role'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
@@ -1445,15 +1599,15 @@ export const AlumniRegister: React.FC = () => {
                           value={position}
                           onChange={(e) => setPosition(e.target.value)}
                           placeholder="e.g. Senior Software Engineer / Manager"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {/* Industry (Optional) */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'தொழில் துறை' : 'Industry'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
@@ -1461,33 +1615,37 @@ export const AlumniRegister: React.FC = () => {
                           value={industry}
                           onChange={(e) => setIndustry(e.target.value)}
                           placeholder="e.g. Information Technology / Healthcare"
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
-                      {/* Total Years of Experience (Optional) */}
+                      {/* Total Years of Experience (Optional Chips) */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                           {language === 'ta' ? 'மொத்த அனுபவம்' : 'Total Experience'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
-                        <select
-                          value={totalExperience}
-                          onChange={(e) => setTotalExperience(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542]"
-                        >
-                          <option value="">{language === 'ta' ? 'அனுபவத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Experience'}</option>
-                          <option value="0-1 Years">0-1 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
-                          <option value="1-3 Years">1-3 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
-                          <option value="3-5 Years">3-5 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
-                          <option value="5-10 Years">5-10 {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
-                          <option value="10+ Years">10+ {language === 'ta' ? 'ஆண்டுகள்' : 'Years'}</option>
-                        </select>
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          {["0-1 Years", "1-3 Years", "3-5 Years", "5-10 Years", "10+ Years"].map(exp => (
+                            <button
+                              key={exp}
+                              type="button"
+                              onClick={() => setTotalExperience(exp)}
+                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                                totalExperience === exp
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                            >
+                              {exp}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
                     {/* Professional Skills (Optional) */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'முக்கிய தொழில் திறன்கள்' : 'Professional Skills'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                       </label>
                       <input
@@ -1495,22 +1653,76 @@ export const AlumniRegister: React.FC = () => {
                         value={skills}
                         onChange={(e) => setSkills(e.target.value)}
                         placeholder="e.g. Python, React, Project Management, Sales"
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
                     </div>
 
-                    {/* LinkedIn Profile (Optional) */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                        {language === 'ta' ? 'லிங்க்ட்இன் சுயவிவர இணைப்பு' : 'LinkedIn Profile URL'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                      </label>
-                      <input
-                        type="url"
-                        value={linkedinUrl}
-                        onChange={(e) => setLinkedinUrl(e.target.value)}
-                        placeholder="https://linkedin.com/in/yourprofile"
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-[#E5E7EB] rounded-xl text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] transition-all font-normal"
-                      />
+                    {/* Social & Contact Share Links Section */}
+                    <div className="pt-4 border-t border-gray-100 space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Globe className="w-4 h-4 text-[#854D0E]" />
+                        <h3 className="text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          {language === 'ta' ? 'சமூக ஊடக & தொடர்பு பகிர்தல் இணைப்புகள்' : 'Social & Contact Share Links'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* LinkedIn Profile */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                            LinkedIn Profile
+                          </label>
+                          <input
+                            type="url"
+                            value={linkedinUrl}
+                            onChange={(e) => setLinkedinUrl(e.target.value)}
+                            placeholder="https://linkedin.com/in/username"
+                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
+                          />
+                        </div>
+
+                        {/* Instagram Profile */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                            Instagram Profile / Handle
+                          </label>
+                          <input
+                            type="text"
+                            value={instagramUrl}
+                            onChange={(e) => setInstagramUrl(e.target.value)}
+                            placeholder="https://instagram.com/username or @username"
+                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
+                          />
+                        </div>
+
+                        {/* WhatsApp Number */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                            WhatsApp Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            value={whatsappNumber}
+                            onChange={(e) => setWhatsappNumber(e.target.value)}
+                            placeholder="+919876543210"
+                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
+                          />
+                        </div>
+
+                        {/* Website URL */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                            Personal / Business Website
+                          </label>
+                          <input
+                            type="url"
+                            value={websiteUrl}
+                            onChange={(e) => setWebsiteUrl(e.target.value)}
+                            placeholder="https://yourwebsite.com"
+                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1545,106 +1757,178 @@ export const AlumniRegister: React.FC = () => {
                   </div>
 
                   {/* Summary Card Preview */}
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {/* Header profile section */}
-                    <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/50 rounded-2xl flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-2xl bg-white border border-[#F4C542] overflow-hidden shrink-0">
+                    <div className="p-4 sm:p-5 bg-[#FFF7D6]/60 border border-[#F4C542]/50 rounded-2xl flex items-center space-x-4">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-[#F4C542] overflow-hidden shrink-0 shadow-xs flex items-center justify-center">
                         {profilePhotoUrl ? (
                           <img src={profilePhotoUrl} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
-                          <User className="w-8 h-8 text-gray-400 m-4" />
+                          <User className="w-8 h-8 text-gray-400" />
                         )}
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-[#111111]">{fullName}</h3>
-                        <p className="text-xs text-[#854D0E] font-semibold">{calculatedBatchName} • {schoolName}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{email} • {mobilePrefix} {mobile}</p>
+                      <div className="space-y-0.5">
+                        <h3 className="text-lg sm:text-xl font-extrabold text-[#111111]">{fullName}</h3>
+                        <p className="text-xs sm:text-sm text-[#854D0E] font-bold">{calculatedBatchName} • {schoolName}</p>
+                        <p className="text-xs text-gray-600 font-medium">{email} • {mobilePrefix} {mobile}</p>
                       </div>
                     </div>
 
                     {/* Section 1: Personal Info */}
-                    <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <User className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'தனிப்பட்ட விவரங்கள்' : 'Personal Details'}
+                    <div className="border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-3 bg-white shadow-xs">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                        <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#111111] flex items-center">
+                          <User className="w-4 h-4 mr-2 text-[#854D0E]" /> {language === 'ta' ? 'தனிப்பட்ட விவரங்கள்' : 'Personal Details'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(2)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                        <button type="button" onClick={() => goToStep(2)} className="text-xs font-bold text-[#854D0E] hover:underline px-2.5 py-1 bg-[#FFF7D6] border border-[#F4C542]/50 rounded-lg cursor-pointer">
                           {language === 'ta' ? 'திருத்து' : 'Edit'}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பாலினம்:' : 'Gender:'}</span> <span className="font-semibold text-[#111111]">{gender || 'N/A'}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பிறந்த தேதி:' : 'Date of Birth:'}</span> <span className="font-semibold text-[#111111]">{dob || 'N/A'}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'இடம்:' : 'Location:'}</span> <span className="font-semibold text-[#111111]">{currentCity}, {state}, {country}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பாலினம்:' : 'Gender:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{gender || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பிறந்த தேதி:' : 'Date of Birth:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{dob || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'ரத்த வகை:' : 'Blood Group:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{bloodGroup || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தந்தையின் பெயர்:' : "Father's Name:"}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{fatherName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தாயாரின் பெயர்:' : "Mother's Name:"}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{motherName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'இடம்:' : 'Location:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{currentCity}, {state}, {country}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Section 2: School Details */}
-                    <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'பள்ளி கல்வி' : 'School Education'}
+                    <div className="border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-3 bg-white shadow-xs">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                        <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#111111] flex items-center">
+                          <GraduationCap className="w-4 h-4 mr-2 text-[#854D0E]" /> {language === 'ta' ? 'பள்ளி கல்வி' : 'School Education'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(3)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                        <button type="button" onClick={() => goToStep(3)} className="text-xs font-bold text-[#854D0E] hover:underline px-2.5 py-1 bg-[#FFF7D6] border border-[#F4C542]/50 rounded-lg cursor-pointer">
                           {language === 'ta' ? 'திருத்து' : 'Edit'}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பள்ளி:' : 'School:'}</span> <span className="font-semibold text-[#111111]">{schoolName}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'படித்த காலம்:' : 'Study Period:'}</span> <span className="font-semibold text-[#111111]">{joiningYear} – {passingYear}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'வெளியேறிய வகுப்பு:' : 'Class at Leaving:'}</span> <span className="font-semibold text-[#111111]">{leavingClass} {language === 'ta' ? 'வகுப்பு' : 'Standard'}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பள்ளி:' : 'School:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{schoolName}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'படித்த காலம்:' : 'Study Period:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{joiningYear} – {passingYear}</span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'வெளியேறிய வகுப்பு:' : 'Class at Leaving:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{leavingClass} {language === 'ta' ? 'வகுப்பு' : 'Standard'}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Section 3: Higher Education */}
-                    <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <BookOpen className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'உயர் கல்வி' : 'Higher Education'}
+                    <div className="border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-3 bg-white shadow-xs">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                        <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#111111] flex items-center">
+                          <BookOpen className="w-4 h-4 mr-2 text-[#854D0E]" /> {language === 'ta' ? 'உயர் கல்வி' : 'Higher Education'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(4)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                        <button type="button" onClick={() => goToStep(4)} className="text-xs font-bold text-[#854D0E] hover:underline px-2.5 py-1 bg-[#FFF7D6] border border-[#F4C542]/50 rounded-lg cursor-pointer">
                           {language === 'ta' ? 'திருத்து' : 'Edit'}
                         </button>
                       </div>
                       {noHigherEducation ? (
-                        <p className="text-xs text-gray-500 italic">{language === 'ta' ? 'உயர் கல்வி இல்லை / பொருந்தாது' : 'No higher education specified / Not applicable'}</p>
+                        <p className="text-sm text-gray-500 italic font-medium">{language === 'ta' ? 'உயர் கல்வி இல்லை / பொருந்தாது' : 'No higher education specified / Not applicable'}</p>
                       ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                          <div><span className="text-gray-400 block">{language === 'ta' ? 'கல்லூரி:' : 'College:'}</span> <span className="font-semibold text-[#111111]">{collegeName}</span></div>
-                          <div><span className="text-gray-400 block">{language === 'ta' ? 'பட்டப்படிப்பு & துறை:' : 'Degree & Stream:'}</span> <span className="font-semibold text-[#111111]">{degree === 'Other - write something' ? otherDegree : degree} ({stream})</span></div>
-                          <div><span className="text-gray-400 block">{language === 'ta' ? 'கல்லூரி காலம்:' : 'College Period:'}</span> <span className="font-semibold text-[#111111]">{collegeJoiningYear || 'N/A'} – {collegePassingYear || 'N/A'}</span></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'கல்லூரி:' : 'College:'}</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111]">{collegeName}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பட்டப்படிப்பு & துறை:' : 'Degree & Stream:'}</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111]">{degree === 'Other - write something' ? otherDegree : degree} ({stream})</span>
+                          </div>
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'கல்லூரி காலம்:' : 'College Period:'}</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111]">{collegeJoiningYear || 'N/A'} – {collegePassingYear || 'N/A'}</span>
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Section 4: Professional Details */}
-                    <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center">
-                          <Briefcase className="w-4 h-4 mr-1.5 text-[#854D0E]" /> {language === 'ta' ? 'தொழில்/பணி விவரம்' : 'Professional Status'}
+                    {/* Section 4: Professional & Social Details */}
+                    <div className="border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 bg-white shadow-xs">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h4 className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-[#111111] flex items-center">
+                          <Briefcase className="w-5 h-5 mr-2 text-[#854D0E]" /> {language === 'ta' ? 'தொழில் & சமூக விவரம்' : 'Professional & Social Links'}
                         </h4>
-                        <button type="button" onClick={() => goToStep(5)} className="text-xs font-semibold text-[#854D0E] hover:underline">
+                        <button type="button" onClick={() => goToStep(5)} className="text-xs sm:text-sm font-bold text-[#854D0E] hover:underline px-3 py-1 bg-[#FFF7D6] border border-[#F4C542]/50 rounded-lg cursor-pointer">
                           {language === 'ta' ? 'திருத்து' : 'Edit'}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'வேலை நிலை:' : 'Status:'}</span> <span className="font-semibold text-[#111111]">{employmentStatus}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span> <span className="font-semibold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span></div>
-                        <div><span className="text-gray-400 block">{language === 'ta' ? 'பணி அனுபவம்:' : 'Experience:'}</span> <span className="font-semibold text-[#111111]">{totalExperience || 'N/A'}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'வேலை நிலை:' : 'Status:'}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">{employmentStatus}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பணி அனுபவம்:' : 'Experience:'}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">{totalExperience || 'N/A'}</span>
+                        </div>
+                        {linkedinUrl && (
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">LinkedIn:</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{linkedinUrl}</span>
+                          </div>
+                        )}
+                        {instagramUrl && (
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Instagram:</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{instagramUrl}</span>
+                          </div>
+                        )}
+                        {whatsappNumber && (
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">WhatsApp:</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{whatsappNumber}</span>
+                          </div>
+                        )}
+                        {websiteUrl && (
+                          <div>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Website:</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{websiteUrl}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Terms & Conditions Acceptance */}
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-start space-x-3">
+                  <div className="p-4 sm:p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-start space-x-3">
                     <input
                       type="checkbox"
                       id="agreeTerms"
                       checked={agreeTerms}
                       onChange={(e) => setAgreeTerms(e.target.checked)}
-                      className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer mt-0.5"
+                      className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer mt-0.5 shrink-0"
                     />
-                    <label htmlFor="agreeTerms" className="text-xs text-gray-600 leading-relaxed cursor-pointer select-none">
+                    <label htmlFor="agreeTerms" className="text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed cursor-pointer select-none">
                       {language === 'ta'
                         ? 'இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். பழைய மாணவர்கள் சங்க விதிகளுக்கு உடன்படுகிறேன்.'
                         : 'I confirm that all information provided in this registration form is accurate. I agree to the Alumni Terms of Association and Privacy Guidelines.'}
@@ -1660,10 +1944,10 @@ export const AlumniRegister: React.FC = () => {
                       onClick={handleFinalRegister}
                       isLoading={loading}
                       disabled={!agreeTerms}
-                      className="w-full sm:w-auto font-bold py-3 px-8"
+                      className="w-full sm:w-auto bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold py-3.5 px-8 text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
                     >
                       <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பதிவைச் சமர்ப்பிக்கவும்' : 'Submit Official Registration'}</span>
-                      <ShieldCheck className="w-4 h-4 ml-2" />
+                      <ShieldCheck className="w-5 h-5 ml-1.5 stroke-[2.5]" />
                     </Button>
                   </div>
                 </div>

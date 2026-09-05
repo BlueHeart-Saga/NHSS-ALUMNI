@@ -52,6 +52,9 @@ class UserRegistrationRequest(BaseModel):
     email: EmailStr
     gender: Optional[str] = None
     dob: Optional[str] = None
+    blood_group: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     profile_photo_url: Optional[str] = None
     current_city: Optional[str] = None
     city: Optional[str] = None
@@ -89,6 +92,9 @@ class UserRegistrationRequest(BaseModel):
     industries: Optional[str] = None
     skills: Optional[str] = None
     linkedin_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    website_url: Optional[str] = None
     
     # Legacy fallbacks
     other_college: Optional[str] = None
@@ -112,6 +118,9 @@ class UserProfileResponse(BaseModel):
     mobile: Optional[str] = None
     email: Optional[str] = None
     profile_photo_url: Optional[str] = None
+    blood_group: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     passing_year: Optional[int] = None
     batch_id: Optional[str] = None
     admission_number: Optional[str] = None
@@ -127,6 +136,8 @@ class UserProfileResponse(BaseModel):
     house: Optional[str] = None
     stream: Optional[str] = None
     linkedin_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    whatsapp_number: Optional[str] = None
     github_url: Optional[str] = None
     twitter_url: Optional[str] = None
     website_url: Optional[str] = None
@@ -145,6 +156,9 @@ class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     mobile: Optional[str] = None
+    blood_group: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     current_city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
@@ -159,6 +173,8 @@ class UpdateProfileRequest(BaseModel):
     house: Optional[str] = None
     stream: Optional[str] = None
     linkedin_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    whatsapp_number: Optional[str] = None
     github_url: Optional[str] = None
     twitter_url: Optional[str] = None
     website_url: Optional[str] = None
