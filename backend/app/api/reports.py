@@ -46,33 +46,42 @@ async def get_dashboard_summary(
     school_id = current_user.get("school_id")
     base_filter = await build_school_filter(school_id)
 
-    total_alumni_query = dict(base_filter)
-    verified_alumni_query = {**base_filter, "verification_status": "APPROVED"}
-    pending_alumni_query = {**base_filter, "verification_status": "PENDING"}
-    
-    # Active batches count: handle documents where status is 'ACTIVE' or not explicitly set
+    # 1. Single aggregation pipeline on db.alumni to aggregate status counts without session explosion
+    alumni_pipeline = []
+    if base_filter:
+        alumni_pipeline.append({"$match": base_filter})
+    alumni_pipeline.append({
+        "$group": {
+            "_id": "$verification_status",
+            "count": {"$sum": 1}
+        }
+    })
+
+    alumni_counts = await db.alumni.aggregate(alumni_pipeline).to_list(length=100)
+
+    total_alumni = 0
+    verified_alumni = 0
+    pending_alumni = 0
+
+    for item in alumni_counts:
+        status_val = item.get("_id")
+        cnt = item.get("count", 0)
+        total_alumni += cnt
+        if status_val in ["APPROVED", "VERIFIED"]:
+            verified_alumni += cnt
+        elif status_val == "PENDING":
+            pending_alumni += cnt
+
+    # 2. Sequential count queries to prevent session overflow on Cosmos DB
     batch_query = {**base_filter}
     batch_query["$or"] = [{"status": "ACTIVE"}, {"status": {"$exists": False}}, {"status": None}]
 
     events_query = dict(base_filter)
     checkins_query = dict(base_filter)
 
-    import asyncio
-    (
-        total_alumni,
-        verified_alumni,
-        pending_alumni,
-        active_batches,
-        upcoming_events,
-        recent_checkins
-    ) = await asyncio.gather(
-        db.alumni.count_documents(total_alumni_query),
-        db.alumni.count_documents(verified_alumni_query),
-        db.alumni.count_documents(pending_alumni_query),
-        db.batches.count_documents(batch_query),
-        db.events.count_documents(events_query),
-        db.checkins.count_documents(checkins_query)
-    )
+    active_batches = await db.batches.count_documents(batch_query)
+    upcoming_events = await db.events.count_documents(events_query)
+    recent_checkins = await db.checkins.count_documents(checkins_query)
 
     turnout_pct = (recent_checkins / verified_alumni * 100) if verified_alumni > 0 else (100.0 if recent_checkins > 0 else 0.0)
 
@@ -103,7 +112,8 @@ async def export_alumni_csv(
     # Header
     writer.writerow([
         "Alumni ID", "Full Name", "Batch Year", "Admission Number", "Section",
-        "Mobile", "Email", "Current City", "Profession", "Verification Status"
+        "Mobile", "Email", "Blood Group", "Is Volunteer", "Willing to Donate",
+        "Current City", "Profession", "Verification Status"
     ])
 
     for a in alumni_list:
@@ -115,6 +125,9 @@ async def export_alumni_csv(
             a.get("section", ""),
             a.get("mobile", ""),
             a.get("email", ""),
+            a.get("blood_group", ""),
+            a.get("is_volunteer", "NO"),
+            a.get("willing_to_donate", "NO"),
             a.get("current_city", ""),
             a.get("profession", ""),
             a.get("verification_status", "")

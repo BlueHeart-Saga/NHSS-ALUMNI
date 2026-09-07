@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Search, Filter, Building2, MapPin, User, UserPlus, X, Mail, Phone, ExternalLink, Award, Globe, RotateCcw, Loader2
+  Search, Filter, Building2, MapPin, User, UserPlus, X, Mail, Phone, ExternalLink, Award, Globe, RotateCcw, Loader2,
+  Droplet, HandHeart, Heart
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { api } from '../../services/api';
@@ -15,6 +16,8 @@ export const AlumniDirectoryPage: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
   const [professionFilter, setProfessionFilter] = useState<string>('ALL');
+  const [bloodFilter, setBloodFilter] = useState<string>('ALL');
+  const [volunteerFilter, setVolunteerFilter] = useState<string>('ALL');
 
   const [selectedAlumni, setSelectedAlumni] = useState<AlumniProfile | null>(null);
   const [connectModalAlumni, setConnectModalAlumni] = useState<AlumniProfile | null>(null);
@@ -42,8 +45,10 @@ export const AlumniDirectoryPage: React.FC = () => {
     const matchBatch = batchFilter === 'ALL' || a.passing_year?.toString() === batchFilter;
     const matchCity = cityFilter === 'ALL' || (a.current_city && a.current_city.toLowerCase().includes(cityFilter.toLowerCase()));
     const matchProf = professionFilter === 'ALL' || (a.profession && a.profession.toLowerCase().includes(professionFilter.toLowerCase()));
+    const matchBlood = bloodFilter === 'ALL' || (a.blood_group && a.blood_group.toUpperCase() === bloodFilter.toUpperCase());
+    const matchVol = volunteerFilter === 'ALL' || (volunteerFilter === 'YES' ? a.is_volunteer === 'YES' : a.is_volunteer !== 'YES');
 
-    return matchSearch && matchBatch && matchCity && matchProf;
+    return matchSearch && matchBatch && matchCity && matchProf && matchBlood && matchVol;
   });
 
   const uniqueBatches = Array.from(new Set(alumniList.map(a => a.passing_year).filter(Boolean))).sort((a, b) => (b as number) - (a as number));
@@ -55,6 +60,8 @@ export const AlumniDirectoryPage: React.FC = () => {
     setBatchFilter('ALL');
     setCityFilter('ALL');
     setProfessionFilter('ALL');
+    setBloodFilter('ALL');
+    setVolunteerFilter('ALL');
   };
 
   return (
@@ -100,7 +107,7 @@ export const AlumniDirectoryPage: React.FC = () => {
             <select
               value={batchFilter}
               onChange={e => setBatchFilter(e.target.value)}
-              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium cursor-pointer"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து வகுப்புகள் (${uniqueBatches.length})` : `All Batches (${uniqueBatches.length})`}</option>
               {uniqueBatches.map(b => (
@@ -109,9 +116,29 @@ export const AlumniDirectoryPage: React.FC = () => {
             </select>
 
             <select
+              value={bloodFilter}
+              onChange={e => setBloodFilter(e.target.value)}
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium cursor-pointer text-rose-700 font-bold"
+            >
+              <option value="ALL">All Blood Groups</option>
+              {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
+                <option key={bg} value={bg}>{bg} Blood Group</option>
+              ))}
+            </select>
+
+            <select
+              value={volunteerFilter}
+              onChange={e => setVolunteerFilter(e.target.value)}
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium cursor-pointer"
+            >
+              <option value="ALL">All Volunteers</option>
+              <option value="YES">Volunteers Only (YES)</option>
+            </select>
+
+            <select
               value={cityFilter}
               onChange={e => setCityFilter(e.target.value)}
-              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium cursor-pointer"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து நகரங்கள் (${uniqueCities.length})` : `All Cities (${uniqueCities.length})`}</option>
               {uniqueCities.map(c => (
@@ -122,7 +149,7 @@ export const AlumniDirectoryPage: React.FC = () => {
             <select
               value={professionFilter}
               onChange={e => setProfessionFilter(e.target.value)}
-              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium"
+              className="w-full sm:w-auto bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F4C542] font-medium cursor-pointer"
             >
               <option value="ALL">{language === 'ta' ? `அனைத்து தொழில்கள் (${uniqueProfessions.length})` : `All Professions (${uniqueProfessions.length})`}</option>
               {uniqueProfessions.map(p => (
@@ -130,7 +157,7 @@ export const AlumniDirectoryPage: React.FC = () => {
               ))}
             </select>
 
-            {(batchFilter !== 'ALL' || cityFilter !== 'ALL' || professionFilter !== 'ALL' || search !== '') && (
+            {(batchFilter !== 'ALL' || bloodFilter !== 'ALL' || volunteerFilter !== 'ALL' || cityFilter !== 'ALL' || professionFilter !== 'ALL' || search !== '') && (
               <button
                 onClick={resetFilters}
                 className="inline-flex items-center space-x-1 text-xs text-amber-800 font-semibold hover:underline"
@@ -167,9 +194,23 @@ export const AlumniDirectoryPage: React.FC = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-bold text-xs sm:text-sm text-[#111111] truncate">{a.full_name}</h4>
-                  <span className="text-[10px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block mt-1 border border-[#F4C542]/30">
-                    Class of {a.passing_year} {a.section ? `(${a.section})` : ''}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                    <span className="text-[10px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block border border-[#F4C542]/30">
+                      Class of {a.passing_year} {a.section ? `(${a.section})` : ''}
+                    </span>
+                    {a.blood_group && (
+                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full inline-flex items-center space-x-0.5 border border-rose-200">
+                        <Droplet className="w-2.5 h-2.5 fill-rose-600 text-rose-600" />
+                        <span>{a.blood_group}</span>
+                      </span>
+                    )}
+                    {a.is_volunteer === 'YES' && (
+                      <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full inline-flex items-center space-x-0.5 border border-emerald-300">
+                        <HandHeart className="w-2.5 h-2.5 text-emerald-600" />
+                        <span>VOLUNTEER</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-[#6B7280] mt-2 space-y-1">
                     {a.profession && (
                       <div className="truncate flex items-center space-x-1.5">

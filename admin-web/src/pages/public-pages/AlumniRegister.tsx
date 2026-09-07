@@ -364,9 +364,15 @@ export const AlumniRegister: React.FC = () => {
     try {
       const res = await api.verifyOTP(email, otp);
       setIsOtpVerified(true);
-      if (!location.state?.isPasswordSetup && ((res.resume_step && res.resume_step > 2) || hasExistingPassword || isGoogleAuth)) {
+      
+      const hasPassword = hasExistingPassword || isGoogleAuth || Boolean(res.resume_step && res.resume_step >= 3);
+      if (hasPassword) {
         setHasExistingPassword(true);
-        goToStep(2);
+      }
+
+      if (!location.state?.isPasswordSetup && hasPassword) {
+        const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;
+        goToStep(Math.max(2, targetStep) as any);
       }
     } catch (err: any) {
       alertService.handleApiError(err, 'Invalid verification code entered.');
@@ -398,7 +404,9 @@ export const AlumniRegister: React.FC = () => {
 
     setLoading(true);
     try {
-      if (otp) {
+      if (api.getToken()) {
+        await api.updatePassword(password.trim());
+      } else if (otp) {
         await api.setPasswordWithOTP(email, otp, password.trim());
       } else {
         await api.updatePassword(password.trim());
@@ -425,7 +433,9 @@ export const AlumniRegister: React.FC = () => {
   // Immediate step data persistence helper
   const saveStepDataToDB = async (partialData: any) => {
     try {
-      await api.register(partialData);
+      if (api.getToken()) {
+        await api.register(partialData);
+      }
     } catch (e) {
       console.warn('Step registration draft database sync notice:', e);
     }
@@ -439,7 +449,6 @@ export const AlumniRegister: React.FC = () => {
     if (!fullName || !fullName.trim()) missing.push('Full Name');
     if (!gender) missing.push('Gender');
     if (!dob) missing.push('Date of Birth');
-    if (!profilePhotoUrl) missing.push('Profile Photograph');
     if (!country || !country.trim()) missing.push('Country');
     if (!state || !state.trim()) missing.push('Current State');
     if (!currentCity || !currentCity.trim()) missing.push('Current City');
@@ -458,6 +467,12 @@ export const AlumniRegister: React.FC = () => {
       return;
     }
 
+    // Auto-generate avatar if no custom photo was uploaded
+    const photoToUse = profilePhotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName.trim())}&background=F4C542&color=111111`;
+    if (!profilePhotoUrl) {
+      setProfilePhotoUrl(photoToUse);
+    }
+
     // Save Step 2 details immediately to DB
     const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix} ${mobile}`.trim();
     saveStepDataToDB({
@@ -470,7 +485,7 @@ export const AlumniRegister: React.FC = () => {
       blood_group: bloodGroup || undefined,
       father_name: fatherName.trim() || undefined,
       mother_name: motherName.trim() || undefined,
-      profile_photo_url: profilePhotoUrl,
+      profile_photo_url: photoToUse,
       current_city: currentCity.trim(),
       city: currentCity.trim(),
       state: state.trim(),
@@ -741,6 +756,53 @@ export const AlumniRegister: React.FC = () => {
   const effectiveBatchYear = getEffectiveBatchYear(passingYear, leavingClass);
   const calculatedBatchName = passingYear ? `Batch of ${effectiveBatchYear}` : 'Select Passing Year';
 
+  // Helper to check if a specific step's required form data is fully filled
+  const isStepCompleted = (stepNum: number): boolean => {
+    switch (stepNum) {
+      case 1:
+        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth || (password && password.length >= 6)));
+      case 2:
+        return Boolean(
+          fullName && fullName.trim() &&
+          gender &&
+          dob &&
+          currentCity && currentCity.trim() &&
+          mobile && mobile.replace(/\D/g, '').length >= 10
+        );
+      case 3:
+        return Boolean(
+          schoolName && schoolName.trim() &&
+          joiningYear &&
+          passingYear &&
+          leavingClass &&
+          parseInt(joiningYear) <= parseInt(passingYear)
+        );
+      case 4:
+        if (noHigherEducation) return true;
+        return Boolean(
+          collegeName && collegeName.trim() &&
+          degree &&
+          (degree !== 'Other - write something' || (otherDegree && otherDegree.trim())) &&
+          stream && stream.trim() &&
+          collegeJoiningYear &&
+          collegePassingYear &&
+          parseInt(collegeJoiningYear) <= parseInt(collegePassingYear)
+        );
+      case 5:
+        return Boolean(
+          employmentStatus &&
+          currentCity && currentCity.trim()
+        );
+      case 6:
+        return Boolean(agreeTerms);
+      default:
+        return false;
+    }
+  };
+
+  const completedDataStepsCount = [1, 2, 3, 4, 5, 6].filter(n => isStepCompleted(n)).length;
+  const realProgressPercent = Math.round((completedDataStepsCount / 6) * 100);
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111111] pt-6 sm:pt-8 pb-16 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
 
@@ -765,7 +827,7 @@ export const AlumniRegister: React.FC = () => {
           <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
               className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
-              style={{ width: `${(step / 6) * 100}%` }}
+              style={{ width: `${realProgressPercent}%` }}
             />
           </div>
         </div>
@@ -793,8 +855,9 @@ export const AlumniRegister: React.FC = () => {
               <div className="relative">
                 {stepsList.map((s, index) => {
                   const isActive = step === s.num;
-                  const isUnlocked = s.num <= maxStepReached || s.num <= step || (otpSent && s.num <= maxStepReached + 1);
-                  const isCompleted = s.num < step || s.num < maxStepReached;
+                  const isFilled = isStepCompleted(s.num);
+                  const isUnlocked = s.num <= maxStepReached || s.num <= step || (otpSent && s.num <= maxStepReached + 1) || isFilled;
+                  const isCompleted = isFilled && (!isActive || s.num < step);
                   const isLast = index === stepsList.length - 1;
 
                   return (
@@ -829,7 +892,7 @@ export const AlumniRegister: React.FC = () => {
                         {/* Perfectly Centered Vertical Connecting Line */}
                         {!isLast && (
                           <div
-                            className={`absolute top-8 -bottom-7 w-0.5 left-1/2 -translate-x-1/2 z-0 transition-colors ${isCompleted ? 'bg-[#10B981]' : 'bg-gray-200'
+                            className={`absolute top-8 -bottom-7 w-0.5 left-1/2 -translate-x-1/2 z-0 transition-colors ${isFilled ? 'bg-[#10B981]' : 'bg-gray-200'
                               }`}
                           />
                         )}
@@ -859,12 +922,12 @@ export const AlumniRegister: React.FC = () => {
               <div className="mt-6 pt-4 border-t border-gray-100 space-y-2">
                 <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
                   <span>{language === 'ta' ? `படி ${step} / 6` : `Step ${step} of 6`}</span>
-                  <span className="font-bold text-[#854D0E]">{Math.round((step / 6) * 100)}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
+                  <span className="font-bold text-[#854D0E]">{realProgressPercent}% {language === 'ta' ? 'நிறைவடைந்தது' : 'Completed'}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div
                     className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
-                    style={{ width: `${(step / 6) * 100}%` }}
+                    style={{ width: `${realProgressPercent}%` }}
                   />
                 </div>
               </div>

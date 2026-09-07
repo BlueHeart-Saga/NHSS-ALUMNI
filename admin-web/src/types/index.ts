@@ -165,6 +165,9 @@ export interface AlumniProfile {
   twitter_url?: string;
   website_url?: string;
   skills?: string[];
+  blood_group?: string;
+  is_volunteer?: string;
+  willing_to_donate?: string;
   phone_visible?: boolean;
   directory_visible?: boolean;
   verification_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NOT_REGISTERED';

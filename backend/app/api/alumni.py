@@ -4,6 +4,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
 from typing import List, Optional
+from pydantic import BaseModel
 from datetime import datetime, timezone
 from bson import ObjectId
 from app.core.database import get_db
@@ -356,7 +357,7 @@ async def search_directory(
         ]
 
     cursor = db.alumni.find(query).sort("full_name", 1)
-    alumni_list = await cursor.to_list(length=300)
+    alumni_list = await cursor.to_list(length=5000)
 
     is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"])
 
@@ -370,6 +371,9 @@ async def search_directory(
             mobile=a.get("mobile", "") if a.get("email_visible") or is_admin else "***",
             email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
             profile_photo_url=a.get("profile_photo_url"),
+            blood_group=a.get("blood_group"),
+            is_volunteer=a.get("is_volunteer", "NO"),
+            willing_to_donate=a.get("willing_to_donate", "NO"),
             passing_year=a.get("passing_year", 2010),
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             admission_number=a.get("admission_number", ""),
@@ -464,7 +468,129 @@ async def update_own_profile(
         phone_visible=alumni.get("phone_visible", False),
         directory_visible=alumni.get("directory_visible", True),
         verification_status=alumni.get("verification_status", "APPROVED"),
+        is_volunteer=alumni.get("is_volunteer", "NO"),
+        willing_to_donate=alumni.get("willing_to_donate", "NO"),
         roles=current_user.get("roles", ["ALUMNI"]),
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))
     )
+
+class AdminUpdateAlumniRequest(BaseModel):
+    full_name: Optional[str] = None
+    passing_year: Optional[int] = None
+    section: Optional[str] = None
+    admission_number: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    blood_group: Optional[str] = None
+    is_volunteer: Optional[str] = None
+    willing_to_donate: Optional[str] = None
+    current_city: Optional[str] = None
+    profession: Optional[str] = None
+    company: Optional[str] = None
+    verification_status: Optional[str] = None
+
+class BulkUpdateAlumniRequest(BaseModel):
+    alumni_ids: List[str]
+    verification_status: Optional[str] = None
+    passing_year: Optional[int] = None
+    section: Optional[str] = None
+    blood_group: Optional[str] = None
+    is_volunteer: Optional[str] = None
+    willing_to_donate: Optional[str] = None
+
+class BulkDeleteAlumniRequest(BaseModel):
+    alumni_ids: List[str]
+
+@router.put("/{alumni_id}")
+async def admin_update_alumni(
+    alumni_id: str,
+    request: AdminUpdateAlumniRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    filter_q = {"school_id": school_id} if school_id else {}
+    try:
+        filter_q["_id"] = ObjectId(alumni_id)
+    except Exception:
+        filter_q["_id"] = alumni_id
+
+    update_fields = {k: v for k, v in request.model_dump().items() if v is not None}
+    if not update_fields:
+        return {"success": True, "message": "No fields to update"}
+
+    await db.alumni.update_one(filter_q, {"$set": update_fields})
+    return {"success": True, "message": "Alumni updated successfully"}
+
+@router.delete("/{alumni_id}")
+async def admin_delete_alumni(
+    alumni_id: str,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    filter_q = {"school_id": school_id} if school_id else {}
+    try:
+        filter_q["_id"] = ObjectId(alumni_id)
+    except Exception:
+        filter_q["_id"] = alumni_id
+
+    await db.alumni.delete_one(filter_q)
+    return {"success": True, "message": "Alumni record deleted successfully"}
+
+@router.post("/bulk-update")
+async def bulk_update_alumni(
+    request: BulkUpdateAlumniRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    update_fields = {k: v for k, v in request.model_dump().items() if k != "alumni_ids" and v is not None}
+    if not update_fields or not request.alumni_ids:
+        return {"success": True, "message": "Nothing to update", "updated": 0}
+
+    obj_ids = []
+    str_ids = []
+    for aid in request.alumni_ids:
+        try:
+            obj_ids.append(ObjectId(aid))
+        except Exception:
+            str_ids.append(aid)
+
+    query = {"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}
+    if school_id:
+        query["school_id"] = school_id
+
+    res = await db.alumni.update_many(query, {"$set": update_fields})
+    return {"success": True, "message": f"Updated {res.modified_count} alumni records", "updated": res.modified_count}
+
+@router.post("/bulk-delete")
+async def bulk_delete_alumni(
+    request: BulkDeleteAlumniRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user.get("school_id")
+
+    if not request.alumni_ids:
+        return {"success": True, "message": "No IDs provided", "deleted": 0}
+
+    obj_ids = []
+    str_ids = []
+    for aid in request.alumni_ids:
+        try:
+            obj_ids.append(ObjectId(aid))
+        except Exception:
+            str_ids.append(aid)
+
+    query = {"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}
+    if school_id:
+        query["school_id"] = school_id
+
+    res = await db.alumni.delete_many(query)
+    return {"success": True, "message": f"Deleted {res.deleted_count} alumni records", "deleted": res.deleted_count}
+

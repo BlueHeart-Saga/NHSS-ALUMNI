@@ -38,6 +38,7 @@ const AlumniGalleryPage = lazy(() => import('../pages/alumni/AlumniGalleryPage')
 const AlumniDocumentsPage = lazy(() => import('../pages/alumni/AlumniDocumentsPage').then(m => ({ default: m.AlumniDocumentsPage })));
 const AlumniNotificationsPage = lazy(() => import('../pages/alumni/AlumniNotificationsPage').then(m => ({ default: m.AlumniNotificationsPage })));
 const AlumniSettingsPage = lazy(() => import('../pages/alumni/AlumniSettingsPage').then(m => ({ default: m.AlumniSettingsPage })));
+const AlumniDataReportsModule = lazy(() => import('../pages/common-pages/AlumniDataReportsModule').then(m => ({ default: m.AlumniDataReportsModule })));
 
 // School Admin Pages (Lazy)
 const Dashboard = lazy(() => import('../pages/school-admin/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -99,6 +100,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="batch" element={<AlumniBatchesPage />} />
         <Route path="batch/members" element={<AlumniBatchesPage />} />
         <Route path="directory" element={<AlumniDirectoryPage />} />
+        <Route path="reports" element={<AlumniDataReportsModule />} />
+        <Route path="directory-reports" element={<AlumniDataReportsModule />} />
         <Route path="school-events" element={<AlumniSchoolEventsPage />} />
         <Route path="community" element={<AlumniSchoolEventsPage />} />
         <Route path="mentorship" element={<AlumniSchoolEventsPage />} />

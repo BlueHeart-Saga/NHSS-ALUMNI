@@ -513,6 +513,37 @@ class ApiClient {
     return this.searchAlumni(search);
   }
 
+  async getDirectory(search?: string, batch_year?: number, status?: string) {
+    return this.searchAlumni(search, batch_year, status);
+  }
+
+  async updateAlumniAdmin(alumni_id: string, data: Partial<AlumniProfile>) {
+    return this.request<{ success: boolean; message: string }>(`/alumni/${alumni_id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAlumniAdmin(alumni_id: string) {
+    return this.request<{ success: boolean; message: string }>(`/alumni/${alumni_id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkUpdateAlumniAdmin(alumni_ids: string[], updateData: Partial<AlumniProfile>) {
+    return this.request<{ success: boolean; message: string; updated: number }>('/alumni/bulk-update', {
+      method: 'POST',
+      body: JSON.stringify({ alumni_ids, ...updateData }),
+    });
+  }
+
+  async bulkDeleteAlumniAdmin(alumni_ids: string[]) {
+    return this.request<{ success: boolean; message: string; deleted: number }>('/alumni/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ alumni_ids }),
+    });
+  }
+
   async importCSV(file: File) {
     const formData = new FormData();
     formData.append('file', file);

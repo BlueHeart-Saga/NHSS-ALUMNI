@@ -6,6 +6,7 @@ import { LoadingState, StatsGridSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { DashboardReport } from '../../types';
+import { AlumniDataReportsModule } from '../common-pages/AlumniDataReportsModule';
 
 export const ReportsDashboard: React.FC = () => {
   const [report, setReport] = useState<DashboardReport | null>(null);
@@ -67,6 +68,11 @@ export const ReportsDashboard: React.FC = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* 2-in-1 ALUMNI DATA & VOLUNTEERS TABLE REPORT MODULE */}
+      <div className="pt-4 border-t border-gray-200">
+        <AlumniDataReportsModule />
       </div>
     </div>
   );

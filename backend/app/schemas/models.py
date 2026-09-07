@@ -53,6 +53,8 @@ class UserRegistrationRequest(BaseModel):
     gender: Optional[str] = None
     dob: Optional[str] = None
     blood_group: Optional[str] = None
+    is_volunteer: Optional[str] = "NO"
+    willing_to_donate: Optional[str] = "NO"
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
     profile_photo_url: Optional[str] = None
@@ -149,6 +151,8 @@ class UserProfileResponse(BaseModel):
     roles: List[str] = ["ALUMNI"]
     committee_role: Optional[str] = None
     committee_role_title: Optional[str] = None
+    is_volunteer: Optional[str] = "NO"
+    willing_to_donate: Optional[str] = "NO"
     email_visible: bool = False
     created_at: datetime
 
@@ -182,6 +186,8 @@ class UpdateProfileRequest(BaseModel):
     email_visible: Optional[bool] = None
     phone_visible: Optional[bool] = None
     directory_visible: Optional[bool] = None
+    is_volunteer: Optional[str] = None
+    willing_to_donate: Optional[str] = None
     skills: Optional[List[str]] = None
 
 # --- Verification Schemas ---

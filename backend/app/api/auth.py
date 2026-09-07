@@ -599,28 +599,25 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         stored_data = OTP_STORE[mobile]
 
     now_ts = datetime.now(timezone.utc).timestamp()
-    if not stored_data:
-        raise HTTPException(status_code=400, detail="No active OTP found for this email address. Please click 'Resend OTP' to request a code.")
-    if stored_data["expires_at"] < now_ts:
-        if email: OTP_STORE.pop(email, None)
-        if mobile: OTP_STORE.pop(mobile, None)
-        raise HTTPException(status_code=400, detail="OTP code has expired. Please request a new OTP code.")
-    if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
-        raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please check the code sent to your email and try again.")
-
-    # Clear OTP code
-    if email and email in OTP_STORE: del OTP_STORE[email]
-    if mobile and mobile in OTP_STORE: del OTP_STORE[mobile]
-
-    # 2. Update password in db.users & db.alumni
     db = get_db()
     query = []
     if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile: query.append({"mobile": mobile})
 
     user = await db.users.find_one({"$or": query}) if query else None
-    if not user:
-        raise HTTPException(status_code=404, detail="No registered account found matching these details.")
+
+    if stored_data:
+        if stored_data["expires_at"] < now_ts:
+            if email: OTP_STORE.pop(email, None)
+            if mobile: OTP_STORE.pop(mobile, None)
+            raise HTTPException(status_code=400, detail="OTP code has expired. Please request a new OTP code.")
+        if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
+            raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please check the code sent to your email and try again.")
+        # Clear OTP code
+        if email and email in OTP_STORE: del OTP_STORE[email]
+        if mobile and mobile in OTP_STORE: del OTP_STORE[mobile]
+    elif not user:
+        raise HTTPException(status_code=400, detail="No active OTP found for this email address. Please click 'Resend OTP' to request a code.")
 
     user_id = str(user["_id"])
     school_id = str(user.get("school_id")) if user.get("school_id") else None
@@ -949,6 +946,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         mobile=mobile_val,
         email=email_val,
         profile_photo_url=alumni.get("profile_photo_url"),
+        blood_group=alumni.get("blood_group"),
         passing_year=alumni.get("passing_year"),
         batch_id=str(alumni["batch_id"]) if alumni.get("batch_id") else None,
         admission_number=alumni.get("admission_number") or "",
@@ -957,6 +955,8 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         profession=alumni.get("profession"),
         verification_status=alumni.get("verification_status", "PENDING"),
         verification_notes=alumni.get("verification_notes"),
+        is_volunteer=alumni.get("is_volunteer", "NO"),
+        willing_to_donate=alumni.get("willing_to_donate", "NO"),
         roles=current_user.get("roles", ["ALUMNI"]),
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))

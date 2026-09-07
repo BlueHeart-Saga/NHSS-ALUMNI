@@ -10,6 +10,7 @@ import { api } from '../services/api';
 import { AlumniProfile, SchoolProfile } from '../types';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
+import { VolunteerDonationPrompts } from '../components/VolunteerDonationPrompts';
 
 export interface AlumniContextType {
   user: AlumniProfile | null;
@@ -441,6 +442,10 @@ export const AlumniLayout: React.FC = () => {
                   <Compass className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_directory')}</span>}
                 </NavLink>
+                <NavLink to="/alumni/reports" className={navItemClass} title={language === 'ta' ? 'அறிக்கைகள் & தன்னார்வலர்கள்' : 'Directory & Reports'}>
+                  <Award className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'அறிக்கைகள் & தன்னார்வலர்கள்' : 'Directory & Reports'}</span>}
+                </NavLink>
                 <NavLink to="/alumni/school-events" className={navItemClass} title={t('alumni_nav_school_events')}>
                   <Sparkles className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_school_events')}</span>}
@@ -533,6 +538,11 @@ export const AlumniLayout: React.FC = () => {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Interactive Volunteer Popup & Donation Top Banner Bar */}
+          {isApproved && (
+            <VolunteerDonationPrompts user={user} onProfileUpdated={(updated) => setUser(updated)} />
           )}
 
           <Outlet context={{ user, school, setUser, refreshUser: fetchMe }} />

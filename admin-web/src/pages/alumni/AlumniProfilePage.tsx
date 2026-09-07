@@ -37,6 +37,9 @@ export const AlumniProfilePage: React.FC = () => {
     twitter_url: user?.twitter_url || '',
     website_url: user?.website_url || '',
     profile_photo_url: user?.profile_photo_url || '',
+    blood_group: user?.blood_group || '',
+    is_volunteer: user?.is_volunteer || 'NO',
+    willing_to_donate: user?.willing_to_donate || 'NO',
     phone_visible: user?.phone_visible || false,
     directory_visible: user?.directory_visible ?? true,
     email_visible: user?.email_visible || false
@@ -260,6 +263,65 @@ export const AlumniProfilePage: React.FC = () => {
                 onChange={e => setProfileForm({ ...profileForm, country: e.target.value })}
                 className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
               />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-[#374151] mb-1">Blood Group</label>
+              <select
+                value={profileForm.blood_group || ''}
+                onChange={e => setProfileForm({ ...profileForm, blood_group: e.target.value })}
+                className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542] appearance-none cursor-pointer font-bold text-rose-700"
+              >
+                <option value="">Select Blood Group</option>
+                {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
+                  <option key={bg} value={bg}>{bg} Blood Group</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Community & Volunteer Willingness Box */}
+          <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-4">
+            <h4 className="font-extrabold text-xs text-[#854D0E] uppercase tracking-wider">
+              Community & Volunteer Engagement
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="flex items-center justify-between p-3 bg-white border border-amber-200 rounded-xl">
+                <div>
+                  <div className="font-bold text-[#111111]">Willing to Volunteer?</div>
+                  <div className="text-[11px] text-gray-500">Help organize events & mentor students</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileForm({ ...profileForm, is_volunteer: profileForm.is_volunteer === 'YES' ? 'NO' : 'YES' })}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    profileForm.is_volunteer === 'YES'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {profileForm.is_volunteer === 'YES' ? 'VOLUNTEER (YES)' : 'NO'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-white border border-amber-200 rounded-xl">
+                <div>
+                  <div className="font-bold text-[#111111]">Willing to Donate?</div>
+                  <div className="text-[11px] text-gray-500">Support school & alumni fund initiatives</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileForm({ ...profileForm, willing_to_donate: profileForm.willing_to_donate === 'YES' ? 'NO' : 'YES' })}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    profileForm.willing_to_donate === 'YES'
+                      ? 'bg-[#854D0E] text-white shadow-2xs'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {profileForm.willing_to_donate === 'YES' ? 'WILLING (YES)' : 'NO'}
+                </button>
+              </div>
             </div>
           </div>
 

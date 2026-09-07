@@ -64,10 +64,46 @@ app.add_middleware(
 )
 
 
+import time
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# Terminal Request/Response Logger & Error Reporter Middleware
+@app.middleware("http")
+async def log_requests_middleware(request: Request, call_next):
+    start_time = time.time()
+    path = request.url.path
+    method = request.method
+
+    try:
+        response = await call_next(request)
+        process_time = (time.time() - start_time) * 1000
+        status_code = response.status_code
+
+        if status_code >= 400:
+            logger.warning(f"⚠️ [{status_code}] {method} {path} ({process_time:.2f}ms)")
+        else:
+            logger.info(f"✅ [{status_code}] {method} {path} ({process_time:.2f}ms)")
+
+        return response
+    except Exception as exc:
+        process_time = (time.time() - start_time) * 1000
+        logger.error(f"❌ [500 EXCEPTION] {method} {path} ({process_time:.2f}ms) - {exc}", exc_info=True)
+        raise exc
+
+# HTTPException Handler for formatted terminal error logging
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.warning(f"⚠️ [HTTP {exc.status_code}] {request.method} {request.url.path} -> Detail: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers
+    )
+
 # Global Sanitized Exception Handler for Production
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled Exception on {request.method} {request.url}: {exc}", exc_info=True)
+    logger.error(f"❌ Unhandled Exception on {request.method} {request.url}: {exc}", exc_info=True)
     if settings.is_production:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -86,7 +122,7 @@ if os.path.exists(PROFILES_DIR):
 api_v1 = FastAPI(title="School Alumni API v1")
 api_v1.add_middleware(GZipMiddleware, minimum_size=500)
 
-# Attach CORSMiddleware directly to api_v1 sub-application as well
+# Attach CORSMiddleware & Exception Handlers directly to api_v1 sub-application
 api_v1.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins_set,
@@ -95,6 +131,8 @@ api_v1.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+api_v1.exception_handler(StarletteHTTPException)(http_exception_handler)
+api_v1.exception_handler(Exception)(global_exception_handler)
 
 
 api_v1.include_router(public.router)

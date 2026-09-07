@@ -27,7 +27,7 @@ async def get_public_stats(response: Response):
     db = get_db()
 
     school = await db.schools.find_one({}) or {}
-    total_alumni = await db.alumni.count_documents({"verification_status": "APPROVED"})
+    total_alumni = await db.alumni.count_documents({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}})
     total_batches = await db.batches.count_documents({})
     total_events = await db.events.count_documents({})
 
@@ -239,7 +239,7 @@ async def get_public_batches(response: Response):
     batches_task = db.batches.find({}, batch_projection).sort("passing_year", -1).to_list(length=100)
     
     counts_pipeline = [
-        {"$match": {"verification_status": "APPROVED"}},
+        {"$match": {"verification_status": {"$in": ["APPROVED", "VERIFIED"]}}},
         {"$group": {
             "_id": "$passing_year",
             "count": {"$sum": 1},
@@ -255,7 +255,7 @@ async def get_public_batches(response: Response):
     events_task = db.events.aggregate(events_pipeline).to_list(length=1000)
 
     samples_task = db.alumni.find(
-        {"verification_status": "APPROVED"},
+        {"verification_status": {"$in": ["APPROVED", "VERIFIED"]}},
         sample_projection
     ).sort("passing_year", -1).to_list(length=1000)
 
@@ -276,7 +276,10 @@ async def get_public_batches(response: Response):
 
     coords_map = {}
     if all_coord_ids:
-        coord_alumni = await db.alumni.find({"_id": {"$in": all_coord_ids}}, sample_projection).to_list(length=len(all_coord_ids))
+        coord_alumni = await db.alumni.find(
+            {"_id": {"$in": all_coord_ids}, "verification_status": {"$in": ["APPROVED", "VERIFIED"]}},
+            sample_projection
+        ).to_list(length=len(all_coord_ids))
         for ca in coord_alumni:
             coords_map[str(ca["_id"])] = {
                 "id": str(ca["_id"]),
@@ -345,7 +348,7 @@ async def get_public_batches(response: Response):
 async def get_public_highlights(response: Response):
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     db = get_db()
-    alumni = await db.alumni.find({"verification_status": "APPROVED"}).to_list(length=8)
+    alumni = await db.alumni.find({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}}).to_list(length=8)
 
     res = []
     for a in alumni:
