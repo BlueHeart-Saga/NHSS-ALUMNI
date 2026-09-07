@@ -141,6 +141,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="schools/:schoolId" element={<DeveloperPortal />} />
         <Route path="school-admins" element={<DeveloperPortal />} />
         <Route path="users" element={<DeveloperPortal />} />
+        <Route path="enquiries" element={<DeveloperPortal />} />
         <Route path="reports" element={<DeveloperPortal />} />
         <Route path="audit-logs" element={<DeveloperPortal />} />
         <Route path="settings" element={<DeveloperPortal />} />

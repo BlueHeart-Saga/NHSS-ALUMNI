@@ -506,3 +506,272 @@ async def update_enquiry_status(
         "message": f"Enquiry status updated to {new_status} successfully!",
         "status": new_status
     }
+
+class UpdateSchoolAdminRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    mobile: Optional[str] = None
+    school_id: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class CreateUpdateUserRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    mobile: str
+    roles: Optional[List[str]] = ["ALUMNI"]
+    school_id: Optional[str] = None
+    is_active: Optional[bool] = True
+
+@router.get("/school-admins")
+async def list_school_admins(school_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """List all provisioned school admins with their assigned school info and active status."""
+    db = get_db()
+    query = {"roles": "SCHOOL_ADMIN"}
+    if school_id:
+        query["school_id"] = school_id
+
+    cursor = db.users.find(query).sort("created_at", -1)
+    admin_users = await cursor.to_list(length=200)
+
+    # Collect school IDs for batch fetching
+    school_ids = []
+    for u in admin_users:
+        if u.get("school_id"):
+            try:
+                school_ids.append(ObjectId(u["school_id"]))
+            except Exception:
+                school_ids.append(u["school_id"])
+
+    schools_map = {}
+    if school_ids:
+        schools_docs = await db.schools.find({"_id": {"$in": school_ids}}).to_list(length=len(school_ids))
+        for s in schools_docs:
+            schools_map[str(s["_id"])] = s
+
+    res = []
+    for u in admin_users:
+        s_id = str(u.get("school_id", ""))
+        school = schools_map.get(s_id)
+        
+        full_name = u.get("full_name") or u.get("name")
+        if not full_name and u.get("_id"):
+            alumni = await db.alumni.find_one({"user_id": str(u["_id"])})
+            if alumni:
+                full_name = alumni.get("full_name")
+
+        res.append({
+            "id": str(u["_id"]),
+            "user_id": str(u["_id"]),
+            "full_name": full_name or "School Administrator",
+            "email": u.get("email"),
+            "mobile": u.get("mobile"),
+            "school_id": s_id,
+            "school_name": school.get("name") if school else "Unassigned School",
+            "school_code": school.get("code") if school else "N/A",
+            "is_active": u.get("is_active", True),
+            "roles": u.get("roles", ["SCHOOL_ADMIN"]),
+            "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", ""))
+        })
+    return res
+
+@router.put("/school-admins/{admin_id}")
+async def update_school_admin(
+    admin_id: str,
+    request: UpdateSchoolAdminRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a provisioned School Admin details or active status."""
+    db = get_db()
+    if not ObjectId.is_valid(admin_id):
+        raise HTTPException(status_code=400, detail="Invalid admin ID format")
+
+    update_fields = {}
+    if request.full_name is not None:
+        update_fields["full_name"] = request.full_name.strip()
+    if request.email is not None:
+        update_fields["email"] = request.email.strip()
+    if request.mobile is not None:
+        mobile = request.mobile.strip()
+        if not mobile.startswith("+"):
+            mobile = f"+91{mobile.lstrip('0')}"
+        update_fields["mobile"] = mobile
+    if request.school_id is not None:
+        update_fields["school_id"] = request.school_id
+    if request.is_active is not None:
+        update_fields["is_active"] = request.is_active
+
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No valid fields provided to update.")
+
+    update_fields["updated_at"] = datetime.now(timezone.utc)
+    res = await db.users.update_one({"_id": ObjectId(admin_id)}, {"$set": update_fields})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="School Admin account not found.")
+
+    return {"success": True, "message": "School Admin profile updated successfully."}
+
+@router.delete("/school-admins/{admin_id}")
+async def delete_school_admin(admin_id: str, current_user: dict = Depends(get_current_user)):
+    """Revoke and delete a School Admin account."""
+    db = get_db()
+    if not ObjectId.is_valid(admin_id):
+        raise HTTPException(status_code=400, detail="Invalid admin ID format")
+
+    res = await db.users.delete_one({"_id": ObjectId(admin_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="School Admin account not found.")
+
+    return {"success": True, "message": "School Admin account removed successfully."}
+
+@router.get("/users")
+async def list_all_users(
+    role: Optional[str] = None,
+    school_id: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all platform users with role, school, and active status filters."""
+    db = get_db()
+    query = {}
+    if role and role.upper() != "ALL":
+        query["roles"] = role.upper()
+    if school_id and school_id.upper() != "ALL":
+        query["school_id"] = school_id
+    if search:
+        s_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [{"full_name": s_regex}, {"email": s_regex}, {"mobile": s_regex}]
+
+    cursor = db.users.find(query).sort("created_at", -1)
+    users_list = await cursor.to_list(length=300)
+
+    # Batch fetch schools
+    school_ids = []
+    for u in users_list:
+        if u.get("school_id"):
+            try:
+                school_ids.append(ObjectId(u["school_id"]))
+            except Exception:
+                school_ids.append(u["school_id"])
+
+    schools_map = {}
+    if school_ids:
+        schools_docs = await db.schools.find({"_id": {"$in": school_ids}}).to_list(length=len(school_ids))
+        for s in schools_docs:
+            schools_map[str(s["_id"])] = s
+
+    res = []
+    for u in users_list:
+        s_id = str(u.get("school_id", ""))
+        school = schools_map.get(s_id)
+        res.append({
+            "id": str(u["_id"]),
+            "user_id": str(u["_id"]),
+            "full_name": u.get("full_name") or u.get("name") or "Platform User",
+            "email": u.get("email"),
+            "mobile": u.get("mobile"),
+            "roles": u.get("roles", ["ALUMNI"]),
+            "school_id": s_id,
+            "school_name": school.get("name") if school else "Unassigned",
+            "is_active": u.get("is_active", True),
+            "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", ""))
+        })
+    return res
+
+@router.post("/users")
+async def create_user_developer(
+    request: CreateUpdateUserRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new platform user directly as Developer."""
+    db = get_db()
+    mobile = request.mobile.strip()
+    if not mobile.startswith("+"):
+        mobile = f"+91{mobile.lstrip('0')}"
+
+    existing = await db.users.find_one({"mobile": mobile})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"User with mobile '{mobile}' already exists.")
+
+    now = datetime.now(timezone.utc)
+    user_doc = {
+        "full_name": request.full_name,
+        "email": request.email,
+        "mobile": mobile,
+        "roles": [r.upper() for r in (request.roles or ["ALUMNI"])],
+        "school_id": request.school_id,
+        "is_active": request.is_active if request.is_active is not None else True,
+        "created_at": now
+    }
+    res = await db.users.insert_one(user_doc)
+    return {"success": True, "user_id": str(res.inserted_id), "message": "User created successfully."}
+
+@router.put("/users/{user_id}")
+async def update_user_developer(
+    user_id: str,
+    request: CreateUpdateUserRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update an existing user's details, roles, school, or status."""
+    db = get_db()
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    update_fields = {}
+    if request.full_name is not None:
+        update_fields["full_name"] = request.full_name.strip()
+    if request.email is not None:
+        update_fields["email"] = request.email.strip()
+    if request.mobile:
+        mobile = request.mobile.strip()
+        if not mobile.startswith("+"):
+            mobile = f"+91{mobile.lstrip('0')}"
+        update_fields["mobile"] = mobile
+    if request.roles is not None:
+        update_fields["roles"] = [r.upper() for r in request.roles]
+    if request.school_id is not None:
+        update_fields["school_id"] = request.school_id
+    if request.is_active is not None:
+        update_fields["is_active"] = request.is_active
+
+    update_fields["updated_at"] = datetime.now(timezone.utc)
+    res = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_fields})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User account not found.")
+
+    return {"success": True, "message": "User account updated successfully."}
+
+@router.delete("/users/{user_id}")
+async def delete_user_developer(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a user account."""
+    db = get_db()
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    res = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User account not found.")
+
+    # Also delete associated alumni profile if present
+    await db.alumni.delete_many({"user_id": user_id})
+
+    return {"success": True, "message": "User account deleted successfully."}
+
+@router.get("/audit-logs")
+async def list_audit_logs(current_user: dict = Depends(get_current_user)):
+    """List recent developer portal audit logs."""
+    db = get_db()
+    cursor = db.audit_logs.find({}).sort("timestamp", -1)
+    logs = await cursor.to_list(length=100)
+
+    res = []
+    for l in logs:
+        res.append({
+            "id": str(l["_id"]),
+            "action": l.get("action", "PLATFORM_ACTION"),
+            "user_id": str(l.get("user_id", "")),
+            "school_id": str(l.get("school_id", "")),
+            "resource_type": l.get("resource_type"),
+            "resource_id": str(l.get("resource_id", "")),
+            "timestamp": l.get("timestamp").isoformat() if isinstance(l.get("timestamp"), datetime) else str(l.get("timestamp", ""))
+        })
+    return res

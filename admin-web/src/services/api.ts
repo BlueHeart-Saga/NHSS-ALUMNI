@@ -21,9 +21,26 @@ class ApiClient {
 
   clearToken() {
     this.token = null;
-    sessionStorage.removeItem('alumni_access_token');
-    localStorage.removeItem('alumni_access_token');
+    try {
+      sessionStorage.removeItem('alumni_access_token');
+      localStorage.removeItem('alumni_access_token');
+      sessionStorage.removeItem('alumni_refresh_token');
+      localStorage.removeItem('alumni_refresh_token');
+      sessionStorage.removeItem('developer_mobile');
+      localStorage.removeItem('developer_mobile');
+    } catch (e) {}
     this.clearCache();
+  }
+
+  logout(redirectUrl: string = '/login') {
+    this.clearToken();
+    try {
+      sessionStorage.clear();
+      localStorage.clear();
+    } catch (e) {}
+    if (typeof window !== 'undefined') {
+      window.location.href = redirectUrl;
+    }
   }
 
   clearCache() {
@@ -76,6 +93,9 @@ class ApiClient {
         if (!response.ok) {
           if (response.status === 401) {
             this.clearToken();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
           }
           const errorBody = await response.json().catch(() => ({ detail: 'An unexpected error occurred' }));
           let detailMsg = 'An unexpected error occurred';
@@ -155,10 +175,23 @@ class ApiClient {
   }
 
   async setPasswordWithOTP(email: string, otp: string, password: string) {
-    return this.request<{ success: boolean; message: string }>('/auth/set-password-with-otp', {
+    const res = await this.request<{
+      access_token?: string;
+      user_id?: string;
+      roles?: string[];
+      verification_status?: string;
+      registration_required?: boolean;
+      resume_step?: number;
+      success?: boolean;
+      message?: string;
+    }>('/auth/set-password-with-otp', {
       method: 'POST',
       body: JSON.stringify({ email, otp, password }),
     });
+    if (res.access_token) {
+      this.setToken(res.access_token);
+    }
+    return res;
   }
 
   async verifyAdminOTP(identifier: string, otp: string, secondaryPhone?: string) {
@@ -805,6 +838,56 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify({ status, notes, school_id }),
     });
+  }
+
+  async getDeveloperSchoolAdmins(school_id?: string) {
+    const q = school_id ? `?school_id=${encodeURIComponent(school_id)}` : '';
+    return this.request<any[]>(`/developer/school-admins${q}`);
+  }
+
+  async updateDeveloperSchoolAdmin(id: string, data: any) {
+    return this.request<{ success: boolean; message: string }>(`/developer/school-admins/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDeveloperSchoolAdmin(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/school-admins/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDeveloperUsers(params?: { role?: string; school_id?: string; search?: string }) {
+    const q = new URLSearchParams();
+    if (params?.role) q.append('role', params.role);
+    if (params?.school_id) q.append('school_id', params.school_id);
+    if (params?.search) q.append('search', params.search);
+    return this.request<any[]>(`/developer/users?${q.toString()}`);
+  }
+
+  async createDeveloperUser(data: any) {
+    return this.request<{ success: boolean; user_id: string; message: string }>('/developer/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDeveloperUser(id: string, data: any) {
+    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDeveloperUser(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDeveloperAuditLogs() {
+    return this.request<any[]>('/developer/audit-logs');
   }
 }
 

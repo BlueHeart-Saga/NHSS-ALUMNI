@@ -5,14 +5,57 @@ from app.core.database import get_db
 from app.schemas.models import DashboardReportResponse
 from app.middleware.auth import require_roles
 
+from bson import ObjectId
+
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
+
+async def build_school_filter(school_id: str = None):
+    if not school_id or str(school_id).strip() in ["None", "undefined", "null", ""]:
+        return {}
+
+    db = get_db()
+    s_str = str(school_id).strip()
+    target_ids = [s_str]
+    try:
+        target_ids.append(ObjectId(s_str))
+    except Exception:
+        pass
+
+    school_or = [{"code": s_str}]
+    if ObjectId.is_valid(s_str):
+        school_or.append({"_id": ObjectId(s_str)})
+    else:
+        school_or.append({"_id": s_str})
+
+    school = await db.schools.find_one({"$or": school_or})
+    if school:
+        s_id_str = str(school["_id"])
+        s_id_obj = school["_id"]
+        s_code = school.get("code")
+        for val in [s_id_str, s_id_obj, s_code]:
+            if val and val not in target_ids:
+                target_ids.append(val)
+
+    return {"school_id": {"$in": target_ids}}
 
 @router.get("/summary", response_model=DashboardReportResponse)
 async def get_dashboard_summary(
-    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR"]))
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR", "SUPER_ADMIN", "DEVELOPER", "PLATFORM_DEVELOPER"]))
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id")
+    base_filter = await build_school_filter(school_id)
+
+    total_alumni_query = dict(base_filter)
+    verified_alumni_query = {**base_filter, "verification_status": "APPROVED"}
+    pending_alumni_query = {**base_filter, "verification_status": "PENDING"}
+    
+    # Active batches count: handle documents where status is 'ACTIVE' or not explicitly set
+    batch_query = {**base_filter}
+    batch_query["$or"] = [{"status": "ACTIVE"}, {"status": {"$exists": False}}, {"status": None}]
+
+    events_query = dict(base_filter)
+    checkins_query = dict(base_filter)
 
     import asyncio
     (
@@ -23,15 +66,15 @@ async def get_dashboard_summary(
         upcoming_events,
         recent_checkins
     ) = await asyncio.gather(
-        db.alumni.count_documents({"school_id": school_id}),
-        db.alumni.count_documents({"school_id": school_id, "verification_status": "APPROVED"}),
-        db.alumni.count_documents({"school_id": school_id, "verification_status": "PENDING"}),
-        db.batches.count_documents({"school_id": school_id, "status": "ACTIVE"}),
-        db.events.count_documents({"school_id": school_id, "status": "PUBLISHED"}),
-        db.checkins.count_documents({"school_id": school_id})
+        db.alumni.count_documents(total_alumni_query),
+        db.alumni.count_documents(verified_alumni_query),
+        db.alumni.count_documents(pending_alumni_query),
+        db.batches.count_documents(batch_query),
+        db.events.count_documents(events_query),
+        db.checkins.count_documents(checkins_query)
     )
 
-    turnout_pct = (recent_checkins / verified_alumni * 100) if verified_alumni > 0 else 0.0
+    turnout_pct = (recent_checkins / verified_alumni * 100) if verified_alumni > 0 else (100.0 if recent_checkins > 0 else 0.0)
 
     return DashboardReportResponse(
         total_alumni=total_alumni,
@@ -45,12 +88,13 @@ async def get_dashboard_summary(
 
 @router.get("/export-alumni")
 async def export_alumni_csv(
-    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "SUPER_ADMIN", "DEVELOPER", "PLATFORM_DEVELOPER"]))
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id")
+    filter_query = await build_school_filter(school_id)
 
-    cursor = db.alumni.find({"school_id": school_id}).sort("passing_year", -1)
+    cursor = db.alumni.find(filter_query).sort("passing_year", -1)
     alumni_list = await cursor.to_list(length=5000)
 
     output = io.StringIO()

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, KeyRound, ArrowRight, Lock } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Shield, Mail, KeyRound, ArrowRight, Lock, Home } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
 import { alertService } from '../../services/alertService';
@@ -116,7 +116,19 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111111] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111111] flex flex-col items-center justify-center p-4">
+      {/* Top Header / Home Page Navigation */}
+      <div className="w-full max-w-md flex items-center justify-between mb-4">
+        <Link
+          to="/"
+          className="inline-flex items-center space-x-2 text-xs font-semibold text-gray-700 bg-white border border-[#E5E7EB] px-3.5 py-2 rounded-xl shadow-xs hover:bg-gray-50 hover:text-[#111111] transition-all cursor-pointer"
+        >
+          <Home className="w-4 h-4 text-[#111111]" />
+          <span>Home Page</span>
+        </Link>
+        <span className="text-xs font-medium text-gray-400">Platform Developer Access</span>
+      </div>
+
       <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-xs space-y-6 animate-fadeIn">
         {/* Developer Login Header */}
         <div className="text-center">

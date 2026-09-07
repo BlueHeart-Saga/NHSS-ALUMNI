@@ -18,12 +18,35 @@ router = APIRouter(prefix="/alumni", tags=["Alumni Directory & Verification"])
 
 @router.get("/pending", response_model=List[UserProfileResponse])
 async def list_pending_verifications(
-    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR"]))
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR", "SUPER_ADMIN", "DEVELOPER", "PLATFORM_DEVELOPER"]))
 ):
     db = get_db()
     query = {"verification_status": "PENDING"}
-    if current_user.get("school_id"):
-        query["school_id"] = current_user["school_id"]
+    school_id = current_user.get("school_id")
+    if school_id and str(school_id).strip() not in ["None", "undefined", "null", ""]:
+        s_str = str(school_id).strip()
+        target_ids = [s_str]
+        try:
+            target_ids.append(ObjectId(s_str))
+        except Exception:
+            pass
+
+        school_or = [{"code": s_str}]
+        if ObjectId.is_valid(s_str):
+            school_or.append({"_id": ObjectId(s_str)})
+        else:
+            school_or.append({"_id": s_str})
+
+        school = await db.schools.find_one({"$or": school_or})
+        if school:
+            s_id_str = str(school["_id"])
+            s_id_obj = school["_id"]
+            s_code = school.get("code")
+            for val in [s_id_str, s_id_obj, s_code]:
+                if val and val not in target_ids:
+                    target_ids.append(val)
+
+        query["school_id"] = {"$in": target_ids}
 
     cursor = db.alumni.find(query).sort("created_at", -1)
     pending = await cursor.to_list(length=200)

@@ -15,11 +15,16 @@ async def list_events(
     current_user: dict = Depends(get_current_user)
 ):
     db = get_db()
-    school_id = current_user["school_id"]
+    school_id = current_user.get("school_id")
 
     query = {}
     if school_id:
-        query["$or"] = [{"school_id": school_id}, {"school_id": {"$exists": False}}, {"school_id": None}]
+        target_ids = [school_id]
+        try:
+            target_ids.append(ObjectId(school_id))
+        except Exception:
+            pass
+        query["$or"] = [{"school_id": {"$in": target_ids}}, {"school_id": {"$exists": False}}, {"school_id": None}]
 
     if batch_id:
         query["batch_id"] = batch_id
@@ -110,10 +115,10 @@ async def list_events(
             cover_image_url_ta=e.get("cover_image_url_ta"),
             registration_url=e.get("registration_url"),
             status=e.get("status", "PUBLISHED"),
-            attending_count=attending,
-            maybe_count=maybe,
-            declined_count=declined,
-            total_guests=total_guests,
+            attending_count=counts.get("attending", 0),
+            maybe_count=counts.get("maybe", 0),
+            declined_count=counts.get("declined", 0),
+            total_guests=counts.get("guests", 0),
             created_by=str(e.get("created_by", "")),
             created_at=e.get("created_at", datetime.now(timezone.utc))
         ))

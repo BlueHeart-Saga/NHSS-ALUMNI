@@ -11,8 +11,7 @@ export const SchoolAdminLayout: React.FC = () => {
   const [user, setUser] = useState<AlumniProfile | null>(null);
 
   const handleLogout = () => {
-    api.clearToken();
-    navigate('/admin/login');
+    api.logout('/admin/login');
   };
 
   useEffect(() => {

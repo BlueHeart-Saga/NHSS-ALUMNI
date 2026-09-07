@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, KeyRound, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, KeyRound, ArrowRight, CheckCircle2, Home } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -105,7 +105,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-4 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+      {/* Top Header / Home Page Navigation */}
+      <div className="w-full max-w-md flex items-center justify-between mb-4">
+        <Link
+          to="/"
+          className="inline-flex items-center space-x-2 text-xs font-semibold text-gray-700 bg-white border border-[#E5E7EB] px-3.5 py-2 rounded-xl shadow-xs hover:bg-gray-50 hover:text-[#111111] transition-all cursor-pointer"
+        >
+          <Home className="w-4 h-4 text-[#854D0E]" />
+          <span>Home Page</span>
+        </Link>
+        <span className="text-xs font-medium text-gray-400">School Admin Authentication</span>
+      </div>
+
       <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xl">
         {/* Brand Header */}
         <div className="text-center mb-6 sm:mb-8">

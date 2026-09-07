@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
   KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase,
-  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown
+  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown, RotateCw
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -135,6 +135,7 @@ export const AlumniRegister: React.FC = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [hasExistingPassword, setHasExistingPassword] = useState(false);
   const [accountAlreadyExists, setAccountAlreadyExists] = useState(false);
@@ -143,6 +144,34 @@ export const AlumniRegister: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCountdown]);
+
+  const handleResendOTP = async () => {
+    if (!email || !email.trim()) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await api.sendOTP(email);
+      setResendCountdown(30);
+      alertService.showInfo(
+        language === 'ta' ? 'OTP மீண்டும் அனுப்பப்பட்டது' : 'OTP Resent Successfully',
+        language === 'ta'
+          ? `6-இலக்க OTP குறியீடு ${email} முகவரிக்கு மீண்டும் அனுப்பப்பட்டுள்ளது.`
+          : `A new 6-digit OTP verification code has been dispatched to ${email}.`
+      );
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to resend verification OTP code.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Step 2 — Personal Information
   const [fullName, setFullName] = useState('');
@@ -210,7 +239,13 @@ export const AlumniRegister: React.FC = () => {
       setEmail(location.state.email);
       setOtpSent(true);
       setShowEmailInput(true);
-      if (location.state?.resumeStep) goToStep(location.state.resumeStep as any);
+      if (location.state?.isPasswordSetup) {
+        setStep(1);
+        setMaxStepReached(1);
+        setIsOtpVerified(false);
+      } else if (location.state?.resumeStep) {
+        goToStep(location.state.resumeStep as any);
+      }
       if (location.state?.hasPassword) setHasExistingPassword(true);
       if (location.state?.fullName) setFullName(location.state.fullName);
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
@@ -317,7 +352,7 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
-  // Step 1: Verify OTP and proceed directly to Step 2
+  // Step 1: Verify OTP and transition to Create Password screen or Step 2
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -328,12 +363,60 @@ export const AlumniRegister: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.verifyOTP(email, otp);
-      if (res.resume_step && res.resume_step > 2) {
+      setIsOtpVerified(true);
+      if (!location.state?.isPasswordSetup && ((res.resume_step && res.resume_step > 2) || hasExistingPassword || isGoogleAuth)) {
         setHasExistingPassword(true);
+        goToStep(2);
       }
-      goToStep(2);
     } catch (err: any) {
       alertService.handleApiError(err, 'Invalid verification code entered.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1: Save Password and advance to Step 2 or return to login
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!password || password.trim().length < 6) {
+      alertService.showWarning(
+        language === 'ta' ? 'கடவுச்சொல் தேவை' : 'Password Required',
+        language === 'ta' ? 'கடவுச்சொல் குறைந்தபட்சம் 6 எழுத்துகள் கொண்டிருக்க வேண்டும்.' : 'Password must be at least 6 characters long.'
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alertService.showWarning(
+        language === 'ta' ? 'கடவுச்சொற்கள் பொருந்தவில்லை' : 'Password Mismatch',
+        language === 'ta' ? 'உள்ளிடப்பட்ட இரண்டு கடவுச்சொற்களும் ஒரே மாதிரியாக இல்லை.' : 'Passwords do not match. Please re-type your password.'
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (otp) {
+        await api.setPasswordWithOTP(email, otp, password.trim());
+      } else {
+        await api.updatePassword(password.trim());
+      }
+      setHasExistingPassword(true);
+      alertService.showSuccess(
+        language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது! 🔐' : 'Password Created Successfully! 🔐',
+        language === 'ta'
+          ? 'உங்கள் கணக்கு கடவுச்சொல் பாதுகாப்பாகச் சேமிக்கப்பட்டது. இப்போது நீங்கள் உள்நுழையலாம்.'
+          : 'Your account password has been saved securely in database! You can now log in.'
+      );
+      if (location.state?.isPasswordSetup) {
+        navigate('/login', { state: { email } });
+      } else {
+        goToStep(2);
+      }
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to save account password.');
     } finally {
       setLoading(false);
     }
@@ -555,6 +638,7 @@ export const AlumniRegister: React.FC = () => {
       const payload = {
         email: email.trim().toLowerCase(),
         mobile: mobile.trim(),
+        password: password ? password.trim() : undefined,
         full_name: fullName.trim(),
         gender: gender,
         dob: dob,
@@ -884,7 +968,7 @@ export const AlumniRegister: React.FC = () => {
                         <span>{language === 'ta' ? 'கூகிள் மூலம் பதிவு செய்க' : 'Sign Up with Google'}</span>
                       </button>
                     </form>
-                  ) : (
+                  ) : !isOtpVerified ? (
                     <form onSubmit={handleVerifyOTP} className="space-y-6">
                       <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center justify-between">
                         <div className="flex items-center space-x-2">
@@ -894,7 +978,7 @@ export const AlumniRegister: React.FC = () => {
                             <strong>{email}</strong>
                           </span>
                         </div>
-                        <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-[#854D0E] underline">
+                        <button type="button" onClick={() => { setOtpSent(false); setIsOtpVerified(false); }} className="text-xs font-bold text-[#854D0E] underline cursor-pointer">
                           {language === 'ta' ? 'மின்னஞ்சலை மாற்ற' : 'Change Email'}
                         </button>
                       </div>
@@ -916,6 +1000,101 @@ export const AlumniRegister: React.FC = () => {
 
                       <Button type="submit" className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer" isLoading={loading}>
                         <span>{language === 'ta' ? 'OTP சரிபார்த்துத் தொடரவும்' : 'Verify Security Code & Continue'}</span>
+                        <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
+                      </Button>
+
+                      {/* Resend OTP Button */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 mt-4">
+                        <span className="text-xs text-gray-500 font-medium">
+                          {language === 'ta' ? 'குறியீடு வரவில்லையா?' : "Didn't receive verification code?"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleResendOTP}
+                          disabled={loading || resendCountdown > 0}
+                          className="text-xs font-bold text-[#854D0E] hover:underline cursor-pointer disabled:opacity-50 flex items-center space-x-1"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                          <span>
+                            {resendCountdown > 0
+                              ? (language === 'ta' ? `மீண்டும் அனுப்ப (${resendCountdown}s)` : `Resend in ${resendCountdown}s`)
+                              : (language === 'ta' ? 'OTP மீண்டும் அனுப்புக' : 'Resend OTP Code')}
+                          </span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleSavePassword} className="space-y-6 animate-fadeIn">
+                      <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center space-x-3">
+                        <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
+                        <div>
+                          <p className="font-bold text-sm">
+                            {language === 'ta' ? 'மின்னஞ்சல் OTP சரிபார்க்கப்பட்டது!' : 'Email OTP Verified Successfully!'}
+                          </p>
+                          <p className="text-xs opacity-90 mt-0.5">
+                            {language === 'ta'
+                              ? 'உங்கள் கணக்கில் பாதுகாப்பாக உள்நுழைய கடவுச்சொல்லை உருவாக்கவும்'
+                              : 'Create a secure password to access your alumni account anytime'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Create Password Input */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                          {language === 'ta' ? 'புதிய கடவுச்சொல் (New Password)' : 'Create Password'} <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder={language === 'ta' ? 'குறைந்தது 6 எழுத்துகள்' : 'Minimum 6 characters'}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          {language === 'ta' ? 'குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்' : 'Must be at least 6 characters long'}
+                        </p>
+                      </div>
+
+                      {/* Confirm Password Input */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                          {language === 'ta' ? 'கடவுச்சொல்லை உறுதிப்படுத்தவும்' : 'Confirm Password'} <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder={language === 'ta' ? 'கடவுச்சொல்லை மீண்டும் உள்ளிடவும்' : 'Re-enter your password'}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer" isLoading={loading}>
+                        <KeyRound className="w-4 h-4 mr-1" />
+                        <span>{language === 'ta' ? 'கடவுச்சொல்லைச் சேமித்து சுயவிவரத்திற்குச் செல்லவும்' : 'Save Password & Continue to Profile Details'}</span>
                         <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
                       </Button>
                     </form>

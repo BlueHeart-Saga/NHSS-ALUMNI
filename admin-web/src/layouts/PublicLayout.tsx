@@ -43,9 +43,7 @@ export const PublicLayout: React.FC = () => {
   }, [location.pathname]);
 
   const handleLogout = () => {
-    api.clearToken();
-    setUser(null);
-    alertService.showInfo('Logged Out', 'You have been logged out of your session.');
+    api.logout('/login');
   };
 
   const navLinks = [

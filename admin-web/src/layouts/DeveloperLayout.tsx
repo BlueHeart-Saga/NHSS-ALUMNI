@@ -7,8 +7,7 @@ export const DeveloperLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    api.clearToken();
-    navigate('/developer/login');
+    api.logout('/developer/login');
   };
 
   useEffect(() => {

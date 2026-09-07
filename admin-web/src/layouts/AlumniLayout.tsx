@@ -65,8 +65,7 @@ export const AlumniLayout: React.FC = () => {
   }, [location.pathname]);
 
   const handleLogout = () => {
-    api.clearToken();
-    navigate('/');
+    api.logout('/login');
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -119,7 +118,7 @@ export const AlumniLayout: React.FC = () => {
                 {school?.name || 'Alumni Association Portal'}
               </h1>
               <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium truncate">
-                {language === 'ta' ? 'அதிகாரப்பூர்வ பழைய மாணவர்கள் தளம்' : 'Official Alumni Member Network'}
+                {language === 'ta' ? 'அதிகாரப்பூர்வ முன்னாள் மாணவர்கள் தளம்' : 'Official Alumni Member Network'}
               </p>
             </div>
           </div>
@@ -195,10 +194,10 @@ export const AlumniLayout: React.FC = () => {
 
               <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed font-normal">
                 {isPending && (language === 'ta'
-                  ? 'உங்கள் விவரங்கள் பள்ளி நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்த பிறகே பழைய மாணவர் தளத்தை அணுக முடியும். தயவுசெய்து காத்திருக்கவும்.'
+                  ? 'உங்கள் விவரங்கள் பள்ளி நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்த பிறகே முன்னாள் மாணவர் தளத்தை அணுக முடியும். தயவுசெய்து காத்திருக்கவும்.'
                   : 'Your alumni registration details have been submitted successfully! School Association Admin will review and verify your details before granting access to explore the Alumni Portal. Please wait for approval.')}
                 {isRejected && (language === 'ta' ? 'உங்கள் தகவல்கள் பள்ளி பதிவுகளுடன் பொருந்தவில்லை. கூடுதல் விவரங்களுக்கு பள்ளி நிர்வாகியைத் தொடர்பு கொள்ளவும்.' : 'Your registration details could not be verified against official school records. Please contact your school administrator.')}
-                {isSuspended && (language === 'ta' ? 'உங்கள் பழைய மாணவர் கணக்கு தற்காலிகமாக இடைநிறுத்தப்பட்டுள்ளது.' : 'Your alumni portal account access has been suspended by the school administrator.')}
+                {isSuspended && (language === 'ta' ? 'உங்கள் முன்னாள் மாணவர் கணக்கு தற்காலிகமாக இடைநிறுத்தப்பட்டுள்ளது.' : 'Your alumni portal account access has been suspended by the school administrator.')}
               </p>
             </div>
 
@@ -517,7 +516,7 @@ export const AlumniLayout: React.FC = () => {
                   </div>
                   <p className="text-[11px] sm:text-xs text-gray-700 mt-1 font-normal leading-relaxed">
                     {language === 'ta'
-                      ? 'உங்கள் பழைய மாணவர் கணக்கு விவரங்கள் பள்ளி சங்க நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்தவுடன் முழு சரிபார்க்கப்பட்ட முத்திரை வழங்கப்பட்டு சுயவிவரம் செயல்படுத்தப்படும்.'
+                      ? 'உங்கள் முன்னாள் மாணவர் கணக்கு விவரங்கள் பள்ளி சங்க நிர்வாகிகளுக்குச் சமர்ப்பிக்கப்பட்டுள்ளன. பள்ளி நிர்வாகி உங்கள் தகவல்களைச் சரிபார்த்து அனுமதித்தவுடன் முழு சரிபார்க்கப்பட்ட முத்திரை வழங்கப்பட்டு சுயவிவரம் செயல்படுத்தப்படும்.'
                       : 'Your alumni profile is registered and submitted to the School Association Admin. Once verified by your school administrator, your official verified badge & directory features will be fully activated.'}
                   </p>
                 </div>

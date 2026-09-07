@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Shield, Building2, UserPlus, Layers, LogOut, Terminal, Key, Menu, X } from 'lucide-react';
+import { Shield, Building2, UserPlus, Layers, LogOut, Terminal, Key, Menu, X, Users } from 'lucide-react';
 import { api } from '../services/api';
 
 interface DeveloperSidebarProps {
@@ -30,7 +30,9 @@ export const DeveloperSidebar: React.FC<DeveloperSidebarProps> = ({ onLogout }) 
   const navItems = [
     { label: 'Platform Dashboard', path: '/developer', icon: Layers },
     { label: 'Schools Management', path: '/developer/schools', icon: Building2 },
-    { label: 'Provision Admins', path: '/developer/school-admins', icon: UserPlus },
+    { label: 'School Admins', path: '/developer/school-admins', icon: UserPlus },
+    { label: 'User Directory', path: '/developer/users', icon: Users },
+    { label: 'Admin Enquiries', path: '/developer/enquiries', icon: Shield },
     { label: 'System Audit Logs', path: '/developer/audit-logs', icon: Terminal },
   ];
 

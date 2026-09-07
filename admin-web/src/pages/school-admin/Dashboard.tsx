@@ -23,14 +23,30 @@ export const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [repData, pendData, evData] = await Promise.all([
+      const [repRes, pendRes, evRes] = await Promise.allSettled([
         api.getDashboardReport(),
         api.getPendingVerifications(),
         api.getEvents()
       ]);
-      setReport(repData);
-      setPendingList(pendData.slice(0, 5));
-      if (evData.length > 0) setUpcomingEvent(evData[0]);
+
+      if (repRes.status === 'fulfilled') {
+        setReport(repRes.value);
+      } else if (repRes.status === 'rejected') {
+        console.error('Failed to load dashboard report stats:', repRes.reason);
+      }
+
+      if (pendRes.status === 'fulfilled') {
+        if (Array.isArray(pendRes.value)) {
+          setPendingList(pendRes.value.slice(0, 5));
+        }
+      } else if (pendRes.status === 'rejected') {
+        console.error('Failed to load pending verifications queue:', pendRes.reason);
+        setPendingList([]);
+      }
+
+      if (evRes.status === 'fulfilled' && Array.isArray(evRes.value) && evRes.value.length > 0) {
+        setUpcomingEvent(evRes.value[0]);
+      }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -147,7 +163,11 @@ export const Dashboard: React.FC = () => {
             {pendingList.map((a) => (
               <div key={a.id} className="py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 hover:bg-[#FAFAFA] px-2 rounded-xl transition-colors">
                 <div className="flex items-center space-x-3">
-                  <img src={a.profile_photo_url} alt="" className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0" />
+                  <img
+                    src={a.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || 'Alumni')}&background=F3F4F6&color=111827`}
+                    alt=""
+                    className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0"
+                  />
                   <div>
                     <div className="text-sm font-bold text-[#111111]">{a.full_name}</div>
                     <div className="text-xs text-[#6B7280]">

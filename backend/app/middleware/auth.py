@@ -41,9 +41,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if isinstance(user_roles, list):
             user_roles = [str(r).upper() for r in user_roles]
 
+        raw_school_id = user.get("school_id") or school_id
+        clean_school_id = str(raw_school_id) if raw_school_id and str(raw_school_id).strip() not in ["None", "undefined", "null", ""] else None
+
         return {
             "user_id": str(user["_id"]),
-            "school_id": str(user.get("school_id", school_id)),
+            "school_id": clean_school_id,
             "roles": user_roles,
             "mobile": user.get("mobile"),
             "email": user.get("email"),
