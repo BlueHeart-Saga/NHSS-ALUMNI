@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -113,37 +113,63 @@ class CreateAdminRequest(BaseModel):
 
 # --- User & Profile Schemas ---
 class UserProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: str
     user_id: str
     school_id: str
     full_name: Optional[str] = "User"
-    mobile: Optional[str] = None
-    email: Optional[str] = None
-    profile_photo_url: Optional[str] = None
+    name_ta: Optional[str] = None
+    full_name_ta: Optional[str] = None
+    mobile: Optional[Any] = None
+    country_code: Optional[Any] = None
+    gender: Optional[Any] = None
+    date_of_birth: Optional[Any] = None
+    dob: Optional[Any] = None
     blood_group: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
-    passing_year: Optional[int] = None
-    batch_id: Optional[str] = None
-    admission_number: Optional[str] = None
-    section: Optional[str] = None
+    relative_students_name: Optional[str] = None
     current_city: Optional[str] = None
     state: Optional[str] = None
+    current_state: Optional[str] = None
     country: Optional[str] = None
-    profession: Optional[str] = None
+    school_name: Optional[str] = None
+    joining_year: Optional[Any] = None
+    admission_year: Optional[Any] = None
+    passing_year: Optional[Any] = None
+    leaving_class: Optional[Any] = None
+    admission_number: Optional[Any] = None
+    roll_no: Optional[Any] = None
+    section: Optional[Any] = None
+    no_higher_education: Optional[Any] = None
+    college_name: Optional[str] = None
+    institution_name: Optional[str] = None
+    degree: Optional[str] = None
+    custom_degree: Optional[str] = None
+    department: Optional[str] = None
+    stream: Optional[str] = None
+    college_register_no: Optional[Any] = None
+    college_joining_year: Optional[Any] = None
+    college_passing_year: Optional[Any] = None
+    employment_status: Optional[str] = None
     company: Optional[str] = None
+    company_name: Optional[str] = None
+    profession: Optional[str] = None
+    designation: Optional[str] = None
     industry: Optional[str] = None
-    experience_years: Optional[int] = None
+    experience_years: Optional[Any] = None
+    total_experience: Optional[Any] = None
     bio: Optional[str] = None
     house: Optional[str] = None
-    stream: Optional[str] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
-    whatsapp_number: Optional[str] = None
+    whatsapp_number: Optional[Any] = None
     github_url: Optional[str] = None
     twitter_url: Optional[str] = None
     website_url: Optional[str] = None
-    skills: Optional[List[str]] = []
+    skills: Optional[Any] = []
+    profile_photo_url: Optional[str] = None
     phone_visible: bool = False
     directory_visible: bool = True
     verification_status: Optional[str] = "PENDING"
@@ -151,8 +177,8 @@ class UserProfileResponse(BaseModel):
     roles: List[str] = ["ALUMNI"]
     committee_role: Optional[str] = None
     committee_role_title: Optional[str] = None
-    is_volunteer: Optional[str] = "NO"
-    willing_to_donate: Optional[str] = "NO"
+    is_volunteer: Optional[Any] = "NO"
+    willing_to_donate: Optional[Any] = "NO"
     email_visible: bool = False
     created_at: datetime
 
@@ -543,20 +569,39 @@ class CheckinResultResponse(BaseModel):
 
 # --- Announcement Schemas ---
 class CreateAnnouncementRequest(BaseModel):
-    target: str = Field(..., example="BATCH") # SCHOOL, BATCH
+    target: str = Field(..., example="SCHOOL") # SCHOOL, BATCH
     batch_id: Optional[str] = None
+    category: Optional[str] = "GENERAL" # GENERAL, CIRCULAR, EVENT_NOTICE, CELEBRATION, ACADEMIC, ACHIEVEMENT
     title: str
+    title_ta: Optional[str] = None
     content: str
+    content_ta: Optional[str] = None
+    poster_url: Optional[str] = None
+
+class UpdateAnnouncementRequest(BaseModel):
+    target: Optional[str] = None
+    batch_id: Optional[str] = None
+    category: Optional[str] = None
+    title: Optional[str] = None
+    title_ta: Optional[str] = None
+    content: Optional[str] = None
+    content_ta: Optional[str] = None
+    poster_url: Optional[str] = None
 
 class AnnouncementResponse(BaseModel):
     id: str
     school_id: str
     batch_id: Optional[str] = None
     target: str
+    category: Optional[str] = "GENERAL"
     title: str
+    title_ta: Optional[str] = None
     content: str
+    content_ta: Optional[str] = None
+    poster_url: Optional[str] = None
     created_by_name: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
 # --- Memory & Photo Schemas ---
 class CreateMemoryRequest(BaseModel):
@@ -595,16 +640,21 @@ class ContactEnquiryRequest(BaseModel):
 
 # --- Association Team Schemas ---
 class CreateAssociationTeamMemberRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     profile_type: str = Field(default="common", example="common") # alumni, common
     alumni_id: Optional[str] = None
     full_name: str = Field(..., example="K. Ravi Kumar")
+    full_name_ta: Optional[str] = None
+    name_ta: Optional[str] = None
     photo_url: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     mobile: Optional[str] = None
     location: Optional[str] = None
     occupation: Optional[str] = None
     batch_year: Optional[int] = None
     position: str = Field(..., example="President")
+    position_ta: Optional[str] = None
     responsibility: Optional[str] = None
     term_start: Optional[str] = "2024"
     term_end: Optional[str] = "2026"
@@ -613,14 +663,19 @@ class CreateAssociationTeamMemberRequest(BaseModel):
     status: str = "ACTIVE"
 
 class UpdateAssociationTeamMemberRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     full_name: Optional[str] = None
+    full_name_ta: Optional[str] = None
+    name_ta: Optional[str] = None
     photo_url: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     mobile: Optional[str] = None
     location: Optional[str] = None
     occupation: Optional[str] = None
     batch_year: Optional[int] = None
     position: Optional[str] = None
+    position_ta: Optional[str] = None
     responsibility: Optional[str] = None
     term_start: Optional[str] = None
     term_end: Optional[str] = None
@@ -629,11 +684,15 @@ class UpdateAssociationTeamMemberRequest(BaseModel):
     status: Optional[str] = None
 
 class AssociationTeamMemberResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: str
     school_id: str
     profile_type: str = "common"
     alumni_id: Optional[str] = None
     full_name: str
+    full_name_ta: Optional[str] = None
+    name_ta: Optional[str] = None
     photo_url: Optional[str] = None
     email: Optional[str] = None
     mobile: Optional[str] = None
@@ -641,6 +700,7 @@ class AssociationTeamMemberResponse(BaseModel):
     occupation: Optional[str] = None
     batch_year: Optional[int] = None
     position: str
+    position_ta: Optional[str] = None
     responsibility: Optional[str] = None
     term_start: Optional[str] = None
     term_end: Optional[str] = None

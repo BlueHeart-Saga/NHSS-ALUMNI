@@ -8,6 +8,7 @@ import { Input, Select } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Table } from '../../components/Table';
 import { LoadingState } from '../../components/EmptyState';
+import { ImageUploadAndEdit } from '../../components/ImageUploadAndEdit';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AssociationTeamMember, AlumniProfile } from '../../types';
@@ -22,11 +23,21 @@ const COMMON_POSITIONS = [
   'Other'
 ];
 
+const POSITION_TA_MAP: Record<string, string> = {
+  'President': 'தலைவர்',
+  'Vice President': 'துணைத் தலைவர்',
+  'Secretary': 'செயலாளர்',
+  'Joint Secretary': 'துணைச் செயலாளர்',
+  'Treasurer': 'பொருளாளர்',
+  'Executive Committee Member': 'செயற்குழு உறுப்பினர்',
+  'Other': 'உறுப்பினர்'
+};
+
 const POSITION_TA_HINTS: Record<string, string> = {
   'President': 'President (தலைவர்)',
   'Vice President': 'Vice President (துணைத் தலைவர்)',
   'Secretary': 'Secretary (செயலாளர்)',
-  'Joint Secretary': 'Joint Secretary (இணைச் செயலாளர்)',
+  'Joint Secretary': 'Joint Secretary (துணைச் செயலாளர்)',
   'Treasurer': 'Treasurer (பொருளாளர்)',
   'Executive Committee Member': 'Executive Committee Member (செயற்குழு உறுப்பினர்)',
   'Other': 'Other (உறுப்பினர் பொறுப்பு)'
@@ -38,7 +49,7 @@ const getPositionDisplayWithTa = (position: string) => {
   if (lower.includes('president') || lower.includes('thalaivar')) return `${position} (தலைவர்)`;
   if (lower.includes('vice president')) return `${position} (துணைத் தலைவர்)`;
   if (lower.includes('secretary') || lower.includes('seyalalar')) return `${position} (செயலாளர்)`;
-  if (lower.includes('joint secretary')) return `${position} (இணைச் செயலாளர்)`;
+  if (lower.includes('joint secretary')) return `${position} (துணைச் செயலாளர்)`;
   if (lower.includes('treasurer') || lower.includes('porulalar')) return `${position} (பொருளாளர்)`;
   if (lower.includes('committee') || lower.includes('member')) return `${position} (செயற்குழு)`;
   return position;
@@ -61,6 +72,7 @@ export const AssociationTeam: React.FC = () => {
 
   // Form Fields
   const [fullName, setFullName] = useState('');
+  const [fullNameTa, setFullNameTa] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -68,6 +80,7 @@ export const AssociationTeam: React.FC = () => {
   const [occupation, setOccupation] = useState('');
   const [batchYear, setBatchYear] = useState<number | ''>('');
   const [positionSelect, setPositionSelect] = useState('President');
+  const [positionTa, setPositionTa] = useState('தலைவர்');
   const [customPosition, setCustomPosition] = useState('');
   const [responsibility, setResponsibility] = useState('');
   const [termStart, setTermStart] = useState('2024');
@@ -129,6 +142,7 @@ export const AssociationTeam: React.FC = () => {
   const handleSelectAlumnus = (alumnus: AlumniProfile) => {
     setSelectedAlumnus(alumnus);
     setFullName(alumnus.full_name);
+    setFullNameTa(alumnus.name_ta || (alumnus as any).full_name_ta || '');
     setPhotoUrl(alumnus.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(alumnus.full_name)}&background=FFF7D6&color=854D0E`);
     setEmail(alumnus.email || '');
     setMobile(alumnus.mobile || '');
@@ -159,6 +173,7 @@ export const AssociationTeam: React.FC = () => {
     setSelectedAlumnus(null);
     setAlumniSearchTerm('');
     setFullName('');
+    setFullNameTa('');
     setPhotoUrl('');
     setEmail('');
     setMobile('');
@@ -166,6 +181,7 @@ export const AssociationTeam: React.FC = () => {
     setOccupation('');
     setBatchYear('');
     setPositionSelect('President');
+    setPositionTa('தலைவர்');
     setCustomPosition('');
     setResponsibility('');
     setTermStart('2024');
@@ -181,6 +197,7 @@ export const AssociationTeam: React.FC = () => {
     setCreationMode(member.profile_type);
     setSelectedAlumnus(null);
     setFullName(member.full_name);
+    setFullNameTa(member.full_name_ta || member.name_ta || '');
     setPhotoUrl(member.photo_url || '');
     setEmail(member.email || '');
     setMobile(member.mobile || '');
@@ -195,6 +212,7 @@ export const AssociationTeam: React.FC = () => {
       setPositionSelect('Other');
       setCustomPosition(member.position);
     }
+    setPositionTa(member.position_ta || POSITION_TA_MAP[member.position] || '');
 
     setResponsibility(member.responsibility || '');
     setTermStart(member.term_start || '2024');
@@ -219,7 +237,9 @@ export const AssociationTeam: React.FC = () => {
       const payload: Partial<AssociationTeamMember> = {
         profile_type: creationMode,
         alumni_id: selectedAlumnus ? selectedAlumnus.id : undefined,
-        full_name: fullName,
+        full_name: fullName.trim(),
+        full_name_ta: fullNameTa.trim() || undefined,
+        name_ta: fullNameTa.trim() || undefined,
         photo_url: photoUrl,
         email,
         mobile,
@@ -227,6 +247,7 @@ export const AssociationTeam: React.FC = () => {
         occupation,
         batch_year: batchYear ? Number(batchYear) : undefined,
         position: finalPosition,
+        position_ta: positionTa.trim() || undefined,
         responsibility,
         term_start: termStart,
         term_end: termEnd,
@@ -287,8 +308,11 @@ export const AssociationTeam: React.FC = () => {
             className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]" 
           />
           <div>
-            <div className="font-bold text-[#111111] flex items-center space-x-1.5">
+            <div className="font-bold text-[#111111] flex items-center space-x-1.5 flex-wrap gap-y-1">
               <span>{row.full_name}</span>
+              {(row.full_name_ta || row.name_ta) && (
+                <span className="text-xs font-semibold text-gray-600">({row.full_name_ta || row.name_ta})</span>
+              )}
               <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                 row.profile_type === 'alumni' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
               }`}>
@@ -305,7 +329,7 @@ export const AssociationTeam: React.FC = () => {
       accessor: (row: AssociationTeamMember) => (
         <div>
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-3 py-1 rounded-full inline-block">
-            {getPositionDisplayWithTa(row.position)}
+            {row.position} {row.position_ta ? `(${row.position_ta})` : (getPositionDisplayWithTa(row.position) !== row.position ? `(${getPositionDisplayWithTa(row.position).replace(row.position, '').replace(/[()]/g, '').trim()})` : '')}
           </span>
           {row.responsibility && <div className="text-xs text-[#6B7280] mt-1">{row.responsibility}</div>}
         </div>
@@ -578,12 +602,21 @@ export const AssociationTeam: React.FC = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Full Name *"
-                placeholder="e.g. K. Ravi Kumar"
+                label="Full Name (English) *"
+                placeholder="e.g. D. Selwyn"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
+              <Input
+                label="Full Name in Tamil (தமிழ் பெயர்)"
+                placeholder="e.g. D. செல்வின்"
+                value={fullNameTa}
+                onChange={(e) => setFullNameTa(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Email Address"
                 type="email"
@@ -591,65 +624,48 @@ export const AssociationTeam: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Mobile Number"
                 placeholder="+91 98765 43210"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Current Location / City"
                 placeholder="e.g. Thoothukudi / Chennai"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
+              <Input
+                label="Occupation / Profession"
+                placeholder="e.g. Software Architect / Retired"
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Occupation / Profession"
-                placeholder="e.g. Software Architect / Entrepreneur"
-                value={occupation}
-                onChange={(e) => setOccupation(e.target.value)}
-              />
-              <Input
                 label="Batch Year (If Alumni)"
                 type="number"
-                placeholder="e.g. 2002"
+                placeholder="e.g. 1976"
                 value={batchYear}
                 onChange={(e) => setBatchYear(e.target.value ? Number(e.target.value) : '')}
               />
             </div>
 
-            {/* Profile Photo Upload */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#111111]">Profile Photo</label>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="file"
-                  id="assoc-photo-upload"
-                  accept="image/*"
-                  onChange={handlePhotoFileUpload}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="assoc-photo-upload"
-                  className={`px-3 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold text-xs rounded-xl border border-gray-300 transition-colors flex items-center space-x-1 cursor-pointer ${
-                    uploadingPhoto ? 'opacity-50 pointer-events-none' : ''
-                  }`}
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{uploadingPhoto ? 'Uploading...' : 'Upload Photo'}</span>
-                </label>
-                <Input
-                  placeholder="https://example.com/photo.jpg"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                />
-              </div>
+            {/* Profile Photo Upload with Image Editor */}
+            <div className="pt-2">
+              <ImageUploadAndEdit
+                label="Profile Photo (சுயவிவரப் படம்)"
+                sublabel="Upload, crop to square 1:1, rotate, or adjust colors."
+                value={photoUrl}
+                onChange={setPhotoUrl}
+                aspectRatioPreset="1:1"
+              />
             </div>
           </div>
 
@@ -660,11 +676,17 @@ export const AssociationTeam: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#111111] mb-1.5">
-                  Association Position *
+                  Association Position (English) *
                 </label>
                 <select
                   value={positionSelect}
-                  onChange={(e) => setPositionSelect(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPositionSelect(val);
+                    if (POSITION_TA_MAP[val]) {
+                      setPositionTa(POSITION_TA_MAP[val]);
+                    }
+                  }}
                   className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] font-semibold"
                   required
                 >
@@ -677,22 +699,30 @@ export const AssociationTeam: React.FC = () => {
               </div>
 
               <Input
+                label="Position in Tamil (பதவி - தமிழ்)"
+                placeholder="e.g. தலைவர் / செயலாளர் / துணைத் தலைவர் / பொருளாளர்"
+                value={positionTa}
+                onChange={(e) => setPositionTa(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
                 label="Responsibility / Role Overview"
                 placeholder="e.g. Managing Executive Meetings & Events"
                 value={responsibility}
                 onChange={(e) => setResponsibility(e.target.value)}
               />
+              {positionSelect === 'Other' ? (
+                <Input
+                  label="Specify Custom Position (English) *"
+                  placeholder="e.g. Academic Committee Head"
+                  value={customPosition}
+                  onChange={(e) => setCustomPosition(e.target.value)}
+                  required
+                />
+              ) : null}
             </div>
-
-            {positionSelect === 'Other' && (
-              <Input
-                label="Specify Custom Position *"
-                placeholder="e.g. Academic Committee Head"
-                value={customPosition}
-                onChange={(e) => setCustomPosition(e.target.value)}
-                required
-              />
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input

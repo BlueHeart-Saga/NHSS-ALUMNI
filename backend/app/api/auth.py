@@ -326,9 +326,15 @@ async def send_otp(request: SendOTPRequest):
     target_email = email
     if not target_email and mobile:
         db = get_db()
-        user_doc = await db.users.find_one({"mobile": mobile})
+        clean_mob = mobile.replace("+91", "").strip()
+        mob_query = {"$or": [{"mobile": mobile}, {"mobile": clean_mob}, {"mobile": f"+91{clean_mob}"}]}
+        user_doc = await db.users.find_one(mob_query)
         if user_doc and user_doc.get("email"):
             target_email = user_doc.get("email")
+        if not target_email:
+            alumni_doc = await db.alumni.find_one(mob_query)
+            if alumni_doc and alumni_doc.get("email"):
+                target_email = alumni_doc.get("email")
 
     if request.for_developer and not target_email:
         target_email = settings.EMAILS_FROM_EMAIL or "devopstrioglobal@gmail.com"
@@ -338,15 +344,15 @@ async def send_otp(request: SendOTPRequest):
     print(f" [EMAIL/SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Identifier: {identifier}")
     if target_email:
         print(f" [SMTP EMAIL TARGET] Emailing OTP Code: [{otp}] via SMTP to: {target_email}")
+    else:
+        print(f" [WARNING] No target email resolved for identifier: {identifier}. Dispatched in terminal/SMS mode.")
     print("="*70 + "\n")
     logger.info(f"OTP Dispatched: [{otp}] -> {identifier} (Target Email: {target_email})")
 
-    # Dispatch Real SMTP Email via Gmail
-    # Once verified, a 6-digit OTP code is generated (valid for 10 minutes) and dispatched to the user's email inbox via SMTP.
-    # (Commented out for current use so existing users can log in directly using email & password without OTP step)
-    # if target_email:
-    #     purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
-    #     asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
+    # Dispatch Real SMTP Email
+    if target_email:
+        purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
+        asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
 
     return SendOTPResponse(
         success=True,

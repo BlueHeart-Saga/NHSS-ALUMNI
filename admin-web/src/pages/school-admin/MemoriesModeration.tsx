@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { 
   Image as ImageIcon, Trash2, CheckCircle2, XCircle, AlertTriangle, Plus, Eye, 
   Filter, Clock, ShieldCheck, X, Upload, Video, FolderPlus, Layers, Play, Search, Film, Check, ChevronLeft, ChevronRight,
-  Loader2, Sparkles, Globe, Calendar, Star, Edit3, RefreshCw, CheckSquare, Square
+  Loader2, Sparkles, Globe, Calendar, Star, Edit3, RefreshCw, CheckSquare, Square,
+  User, GraduationCap, Building2
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { LoadingState, EmptyState } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
-import { Memory } from '../../types';
+import { Memory, AlumniProfile } from '../../types';
 import { getAssetUrl } from '../../utils/asset';
 
 const DEFAULT_ALBUMS = [
@@ -59,6 +60,13 @@ export const MemoriesModeration: React.FC = () => {
   const [targetAudience, setTargetAudience] = useState<'PUBLIC' | 'BATCH'>('PUBLIC');
   const [createBatchYear, setCreateBatchYear] = useState('');
   const [createUploaderName, setCreateUploaderName] = useState('School Admin');
+  const [createUploaderEmail, setCreateUploaderEmail] = useState('');
+
+  // Current Logged-in Admin User & Alumni List
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
+  const [showAlumniPicker, setShowAlumniPicker] = useState(false);
+  const [alumniFilterQuery, setAlumniFilterQuery] = useState('');
 
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
@@ -72,7 +80,28 @@ export const MemoriesModeration: React.FC = () => {
   useEffect(() => {
     fetchMemories();
     fetchAlbums();
+    loadAdminAndAlumni();
   }, [activeTab, mediaTypeFilter, selectedAlbum]);
+
+  const loadAdminAndAlumni = async () => {
+    try {
+      const [user, alumni] = await Promise.all([
+        api.getMe().catch(() => null),
+        api.searchAlumni().catch(() => [])
+      ]);
+      if (user) {
+        setCurrentUser(user);
+        const name = user.full_name || (user as any).username || 'School Admin';
+        setCreateUploaderName(name);
+        if (user.email) setCreateUploaderEmail(user.email);
+      }
+      if (alumni && Array.isArray(alumni)) {
+        setAlumniList(alumni);
+      }
+    } catch (err) {
+      console.error('Failed to load admin profile or alumni records:', err);
+    }
+  };
 
   const fetchMemories = async () => {
     try {
@@ -258,7 +287,11 @@ export const MemoriesModeration: React.FC = () => {
     setCreateDescriptionTa('');
     setTargetAudience('PUBLIC');
     setCreateBatchYear('');
-    setCreateUploaderName('School Admin');
+    const defaultName = currentUser?.full_name || (currentUser as any)?.username || 'School Admin';
+    setCreateUploaderName(defaultName);
+    setCreateUploaderEmail(currentUser?.email || '');
+    setShowAlumniPicker(false);
+    setAlumniFilterQuery('');
     setIsCreateModalOpen(true);
   };
 
@@ -285,7 +318,10 @@ export const MemoriesModeration: React.FC = () => {
     setCreateDescriptionTa(memory.description_ta || '');
     setTargetAudience(memory.target_audience === 'BATCH' || (memory.batch_year && memory.batch_year !== 'Public / School-Wide') ? 'BATCH' : 'PUBLIC');
     setCreateBatchYear(memory.batch_year && memory.batch_year !== 'Public / School-Wide' ? memory.batch_year : '');
-    setCreateUploaderName(memory.uploader_name || 'School Admin');
+    setCreateUploaderName(memory.uploader_name || currentUser?.full_name || 'School Admin');
+    setCreateUploaderEmail(memory.uploader_email || '');
+    setShowAlumniPicker(false);
+    setAlumniFilterQuery('');
     setIsCreateModalOpen(true);
   };
 
@@ -387,7 +423,8 @@ export const MemoriesModeration: React.FC = () => {
         description_ta: createDescriptionTa.trim() || undefined,
         target_audience: targetAudience,
         batch_year: finalBatchYear,
-        uploader_name: createUploaderName.trim() || 'School Admin',
+        uploader_name: createUploaderName.trim() || currentUser?.full_name || 'School Admin',
+        uploader_email: createUploaderEmail.trim() || undefined,
         status: 'APPROVED'
       };
 
@@ -1081,7 +1118,7 @@ export const MemoriesModeration: React.FC = () => {
               </div>
 
               {/* 3. Target Album Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
                     Target Album Name / ஆல்பம் பெயர்
@@ -1089,40 +1126,200 @@ export const MemoriesModeration: React.FC = () => {
                   <select
                     value={createAlbumName}
                     onChange={(e) => setCreateAlbumName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none shadow-xs"
                   >
                     {DEFAULT_ALBUMS.map(alb => (
                       <option key={alb} value={alb}>{alb}</option>
                     ))}
-                    <option value="CUSTOM">+ Create New Custom Album</option>
+                    <option value="CUSTOM">+ Create New Custom Album / புதிய ஆல்பம்</option>
                   </select>
                 </div>
 
-                {createAlbumName === 'CUSTOM' ? (
-                  <div>
-                    <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                      New Custom Album Name *
+                {createAlbumName === 'CUSTOM' && (
+                  <div className="p-3 bg-amber-50/50 border border-[#F4C542] rounded-2xl animate-fadeIn">
+                    <label className="block text-xs font-bold text-[#854D0E] uppercase tracking-wider mb-1 flex items-center space-x-1.5">
+                      <FolderPlus className="w-4 h-4 text-[#854D0E]" />
+                      <span>New Custom Album Name * / புதிய ஆல்பத்தின் பெயர்</span>
                     </label>
                     <input
                       type="text"
                       value={customAlbumInput}
                       onChange={(e) => setCustomAlbumInput(e.target.value)}
                       placeholder="e.g. 1995 Golden Jubilee Reunion Album"
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs sm:text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                      required={createAlbumName === 'CUSTOM'}
+                      className="w-full px-4 py-2.5 bg-white border border-[#F4C542] rounded-xl text-xs sm:text-sm font-semibold text-[#111111] focus:border-[#854D0E] focus:outline-none shadow-xs"
                     />
                   </div>
-                ) : (
+                )}
+              </div>
+
+              {/* 4. Dynamic Uploader / Submitted By Section */}
+              <div className="space-y-3 border-t border-gray-100 pt-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div>
-                    <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                      Uploader / Publisher Name
+                    <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center space-x-1.5">
+                      <User className="w-3.5 h-3.5 text-[#854D0E]" />
+                      <span>Uploader / Submitted By Name (பதிவேற்றியவர் / சமர்ப்பித்தவர் பெயர்) *</span>
                     </label>
-                    <input
-                      type="text"
-                      value={createUploaderName}
-                      onChange={(e) => setCreateUploaderName(e.target.value)}
-                      placeholder="School Admin"
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs sm:text-sm text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
-                    />
+                    <span className="text-[10px] text-gray-500">
+                      Write submitter name or use quick presets below
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAlumniPicker(!showAlumniPicker)}
+                    className="text-xs font-bold text-[#854D0E] hover:text-[#713f0c] flex items-center space-x-1 cursor-pointer self-start sm:self-auto px-2.5 py-1 bg-[#FFF7D6] hover:bg-[#F4C542] border border-[#F4C542]/70 rounded-lg transition-colors"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>{showAlumniPicker ? 'Hide Alumni List' : 'Search & Pick Alumnus'}</span>
+                  </button>
+                </div>
+
+                {/* Main Editable Text Input for Uploader / Submitted By */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <User className="w-4 h-4 text-[#854D0E]" />
+                  </div>
+                  <input
+                    type="text"
+                    value={createUploaderName}
+                    onChange={(e) => setCreateUploaderName(e.target.value)}
+                    placeholder="e.g. School Admin / D. Selwyn / 1995 Batch Alumni"
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm font-semibold text-[#111111] focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542] focus:outline-none shadow-xs"
+                  />
+                </div>
+
+                {/* Quick Selection Preset Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mr-0.5">
+                    Quick Fill:
+                  </span>
+                  
+                  {currentUser?.full_name && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateUploaderName(currentUser.full_name);
+                        if (currentUser.email) setCreateUploaderEmail(currentUser.email);
+                      }}
+                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-[#854D0E] border border-[#F4C542]/70 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer shadow-2xs"
+                      title="Click to set your admin name as uploader"
+                    >
+                      <User className="w-3 h-3 text-[#854D0E]" />
+                      <span>{currentUser.full_name} (Admin)</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateUploaderName('School Administration')}
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Building2 className="w-3 h-3 text-gray-500" />
+                    <span>School Administration</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateUploaderName('Alumni Association')}
+                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
+                  >
+                    <GraduationCap className="w-3 h-3 text-blue-600" />
+                    <span>Alumni Association</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateUploaderName('Alumni Member')}
+                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
+                  >
+                    <span>Alumni Member</span>
+                  </button>
+                </div>
+
+                {/* Interactive Alumni Selector Drawer if toggled */}
+                {showAlumniPicker && (
+                  <div className="p-3 bg-amber-50/70 border border-[#F4C542] rounded-2xl space-y-2 animate-fadeIn shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-[#854D0E] flex items-center space-x-1">
+                        <GraduationCap className="w-3.5 h-3.5 text-[#854D0E]" />
+                        <span>Select Submitter from Registered Alumni ({alumniList.length} alumni in school):</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAlumniPicker(false)}
+                        className="text-gray-400 hover:text-gray-600 p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={alumniFilterQuery}
+                        onChange={(e) => setAlumniFilterQuery(e.target.value)}
+                        placeholder="Search alumnus by name, mobile, or batch year..."
+                        className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs text-[#111111] focus:border-[#F4C542] focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="max-h-40 overflow-y-auto space-y-1 divide-y divide-amber-100/80">
+                      {alumniList
+                        .filter(a => {
+                          if (!alumniFilterQuery.trim()) return true;
+                          const q = alumniFilterQuery.toLowerCase();
+                          return (
+                            a.full_name?.toLowerCase().includes(q) ||
+                            (a as any).name_ta?.toLowerCase().includes(q) ||
+                            a.mobile?.includes(q) ||
+                            String(a.passing_year)?.includes(q)
+                          );
+                        })
+                        .slice(0, 10)
+                        .map(a => (
+                          <div
+                            key={a.id}
+                            onClick={() => {
+                              const chosenName = a.full_name + ((a as any).name_ta ? ` (${(a as any).name_ta})` : '');
+                              setCreateUploaderName(chosenName);
+                              if (a.email) setCreateUploaderEmail(a.email);
+                              if (a.passing_year) {
+                                setCreateBatchYear(String(a.passing_year));
+                                setTargetAudience('BATCH');
+                              }
+                              setShowAlumniPicker(false);
+                              alertService.showSuccess('Submitter Selected', `Set uploader to ${a.full_name}${a.passing_year ? ` (Class of ${a.passing_year})` : ''}`);
+                            }}
+                            className="pt-1.5 pb-1 flex items-center justify-between text-xs hover:bg-[#FFF7D6] px-2 rounded-lg cursor-pointer transition-colors"
+                          >
+                            <div>
+                              <span className="font-bold text-[#111111]">{a.full_name}</span>
+                              {(a as any).name_ta && (
+                                <span className="text-gray-600 text-[11px] ml-1">({(a as any).name_ta})</span>
+                              )}
+                              {a.passing_year && (
+                                <span className="text-amber-800 text-[10px] ml-2 font-semibold bg-amber-100/60 px-1.5 py-0.5 rounded">
+                                  Class of {a.passing_year}
+                                </span>
+                              )}
+                              {a.current_city && (
+                                <span className="text-gray-500 text-[10px] ml-1.5">• {a.current_city}</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-[#854D0E] bg-[#FFF7D6] hover:bg-[#F4C542] px-2.5 py-1 rounded-md border border-[#F4C542]/70 shrink-0">
+                              Use Name
+                            </span>
+                          </div>
+                        ))}
+                      {alumniList.length === 0 && (
+                        <div className="py-2 text-center text-xs text-gray-400">
+                          No alumni records found. You can type any name directly in the input box above.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

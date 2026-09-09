@@ -15,7 +15,7 @@ router = APIRouter(prefix="/school", tags=["School Profile & Staff"])
 @router.post("/upload-image")
 async def upload_school_image(
     file: UploadFile = File(...),
-    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "SUPER_ADMIN", "BATCH_COORDINATOR"]))
 ):
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files (JPG, PNG, WebP, GIF) are allowed")
@@ -26,7 +26,7 @@ async def upload_school_image(
 
     school_id = current_user.get("school_id", "school")
     image_url, _, _ = await blob_service.upload_image(contents, file.filename, file.content_type, school_id=school_id)
-    return {"url": image_url, "filename": file.filename}
+    return {"url": image_url, "image_url": image_url, "filename": file.filename}
 
 def format_school_response(school: dict) -> SchoolProfileResponse:
     return SchoolProfileResponse(

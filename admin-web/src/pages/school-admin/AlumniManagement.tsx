@@ -117,42 +117,51 @@ export const AlumniManagement: React.FC = () => {
   };
 
   // Inline Sheet Cell Change Handler
-  const handleCellEdit = async (id: string, field: keyof AlumniProfile, value: any) => {
-    // Client‑side validation
-    if (field === 'mobile') {
-      const mobileRegex = /^\+?[0-9]{7,15}$/;
-      if (!mobileRegex.test(value)) {
-        alertService.showError('Invalid Mobile', 'Please enter a valid mobile number.');
-        return;
-      }
+  // Inline Sheet Cell Change Handler (Immediate local UI update)
+  const handleCellEdit = (
+    id: string,
+    field: keyof AlumniProfile,
+    value: any,
+    companionField?: keyof AlumniProfile
+  ) => {
+    const patch: Partial<AlumniProfile> = { [field]: value };
+    if (companionField) {
+      patch[companionField] = value;
     }
-    if (field === 'dob') {
-      // Expect YYYY‑MM‑DD or empty
-      if (value && isNaN(Date.parse(value))) {
-        alertService.showError('Invalid Date of Birth', 'Please enter a valid date.');
-        return;
-      }
-    }
+
     // Optimistically update UI state
     setAlumniList((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
+      prev.map((a) => (a.id === id ? { ...a, ...patch } : a))
     );
-    // Persist change immediately via API
+
+    // Track in unsaved editedRows
+    setEditedRows((prev) => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || {}),
+        ...patch,
+      }
+    }));
+  };
+
+  // Auto-save row updates seamlessly when user clicks away / tabs out
+  const handleCellBlur = async (id: string) => {
+    const rowUpdates = editedRows[id];
+    if (!rowUpdates || Object.keys(rowUpdates).length === 0) return;
+
     try {
-      await api.updateAlumniAdmin(id, { [field]: value } as Partial<AlumniProfile>);
-      // Remove from editedRows if present (change saved)
+      await api.updateAlumniAdmin(id, rowUpdates);
       setEditedRows((prev) => {
-        const { [id]: _, ...rest } = prev;
-        return rest;
+        const next = { ...prev };
+        delete next[id];
+        return next;
       });
     } catch (err: any) {
-      // Revert UI on failure
-      fetchAlumni();
-      alertService.handleApiError(err, `Failed to update ${field}.`);
+      console.error(`Failed to auto-save alumni row ${id}:`, err);
     }
   };
 
-  // Save Sheet Changes Action
+  // Save All Sheet Changes Action (Manual bulk save button)
   const handleSaveSheetChanges = async () => {
     const idsToUpdate = Object.keys(editedRows);
     if (idsToUpdate.length === 0) return;
@@ -164,7 +173,7 @@ export const AlumniManagement: React.FC = () => {
       );
       alertService.showSuccess(
         'Sheet Saved Successfully',
-        `Updated ${idsToUpdate.length} alumni record(s) in the database.`
+        `Successfully saved changes for ${idsToUpdate.length} alumni record(s) to the database.`
       );
       setEditedRows({});
       fetchAlumni();
@@ -692,7 +701,7 @@ export const AlumniManagement: React.FC = () => {
       {/* VIEW 2: INTERACTIVE EDITABLE SPREADSHEET GRID MODE */}
       {viewMode === 'sheet' && (
         <div className="bg-white border-2 border-[#111111] rounded-3xl overflow-hidden shadow-lg">
-          <div className="px-5 py-3 bg-[#111111] text-white flex items-center justify-between text-xs font-bold">
+          <div className="px-5 py-3 bg-[#111111] text-white flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
             <div className="flex items-center space-x-2">
               <Edit3 className="w-4 h-4 text-amber-400" />
               <span>Full Spreadsheet Editor — All 39 Fields Editable Directly Below</span>
@@ -700,9 +709,15 @@ export const AlumniManagement: React.FC = () => {
             <div className="flex items-center space-x-3">
               <span className="text-amber-300 font-mono">{displayedAlumni.length} Rows Rendered</span>
               {Object.keys(editedRows).length > 0 && (
-                <span className="bg-amber-500 text-[#111111] px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
-                  {Object.keys(editedRows).length} Unsaved Row(s)
-                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveSheetChanges}
+                  disabled={savingSheet}
+                  className="bg-amber-400 hover:bg-amber-300 text-[#111111] px-3.5 py-1 rounded-full text-xs font-extrabold flex items-center space-x-1.5 shadow transition-all cursor-pointer"
+                >
+                  <Save className={`w-3.5 h-3.5 ${savingSheet ? 'animate-spin' : ''}`} />
+                  <span>{savingSheet ? 'Saving...' : `Save ${Object.keys(editedRows).length} Edited Row(s)`}</span>
+                </button>
               )}
             </div>
           </div>
@@ -771,6 +786,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('full_name')}
                           onChange={(e) => handleCellEdit(a.id, 'full_name', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold text-[#111111]"
                         />
                       </td>
@@ -781,10 +797,8 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           placeholder="பெயர் (Tamil)"
                           value={getValue('name_ta') || getValue('full_name_ta')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'name_ta', e.target.value);
-                            handleCellEdit(a.id, 'full_name_ta', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'name_ta', e.target.value, 'full_name_ta')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-serif text-[#111111]"
                         />
                       </td>
@@ -795,6 +809,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('mobile')}
                           onChange={(e) => handleCellEdit(a.id, 'mobile', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
                         />
                       </td>
@@ -805,6 +820,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('country_code', '91')}
                           onChange={(e) => handleCellEdit(a.id, 'country_code', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold"
                         />
                       </td>
@@ -812,8 +828,9 @@ export const AlumniManagement: React.FC = () => {
                       {/* 5. Gender */}
                       <td className="p-1 border-r border-gray-200">
                         <select
-                          value={getValue('gender', 'Male')}
+                          value={getValue('gender') || 'Male'}
                           onChange={(e) => handleCellEdit(a.id, 'gender', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white cursor-pointer font-semibold"
                         >
                           <option value="Male">Male</option>
@@ -828,10 +845,8 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           placeholder="DD-MM-YYYY"
                           value={getValue('date_of_birth') || getValue('dob')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'date_of_birth', e.target.value);
-                            handleCellEdit(a.id, 'dob', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'date_of_birth', e.target.value, 'dob')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-mono"
                         />
                       </td>
@@ -841,6 +856,7 @@ export const AlumniManagement: React.FC = () => {
                         <select
                           value={getValue('blood_group')}
                           onChange={(e) => handleCellEdit(a.id, 'blood_group', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold text-rose-700 cursor-pointer"
                         >
                           <option value="">None</option>
@@ -856,6 +872,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('father_name')}
                           onChange={(e) => handleCellEdit(a.id, 'father_name', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -866,6 +883,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('mother_name')}
                           onChange={(e) => handleCellEdit(a.id, 'mother_name', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -876,6 +894,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('current_city')}
                           onChange={(e) => handleCellEdit(a.id, 'current_city', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-medium"
                         />
                       </td>
@@ -884,11 +903,9 @@ export const AlumniManagement: React.FC = () => {
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={getValue('state') || getValue('current_state', 'Tamil Nadu')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'state', e.target.value);
-                            handleCellEdit(a.id, 'current_state', e.target.value);
-                          }}
+                          value={getValue('current_state') || getValue('state', 'Tamil Nadu')}
+                          onChange={(e) => handleCellEdit(a.id, 'current_state', e.target.value, 'state')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -899,6 +916,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('country', 'India')}
                           onChange={(e) => handleCellEdit(a.id, 'country', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -909,6 +927,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('school_name', 'Natarajan Higher Secondary School')}
                           onChange={(e) => handleCellEdit(a.id, 'school_name', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -920,9 +939,9 @@ export const AlumniManagement: React.FC = () => {
                           value={getValue('joining_year') || getValue('admission_year')}
                           onChange={(e) => {
                             const num = e.target.value ? Number(e.target.value) : undefined;
-                            handleCellEdit(a.id, 'joining_year', num);
-                            handleCellEdit(a.id, 'admission_year', num);
+                            handleCellEdit(a.id, 'joining_year', num, 'admission_year');
                           }}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold"
                         />
                       </td>
@@ -933,6 +952,7 @@ export const AlumniManagement: React.FC = () => {
                           type="number"
                           value={getValue('passing_year')}
                           onChange={(e) => handleCellEdit(a.id, 'passing_year', Number(e.target.value))}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-extrabold text-[#854D0E] text-center"
                         />
                       </td>
@@ -943,6 +963,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('leaving_class')}
                           onChange={(e) => handleCellEdit(a.id, 'leaving_class', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-bold"
                         />
                       </td>
@@ -952,10 +973,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('admission_number') || getValue('roll_no')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'admission_number', e.target.value);
-                            handleCellEdit(a.id, 'roll_no', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'admission_number', e.target.value, 'roll_no')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
                         />
                       </td>
@@ -966,6 +985,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('section')}
                           onChange={(e) => handleCellEdit(a.id, 'section', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold uppercase"
                         />
                       </td>
@@ -975,6 +995,7 @@ export const AlumniManagement: React.FC = () => {
                         <select
                           value={getValue('no_higher_education', 'NO')}
                           onChange={(e) => handleCellEdit(a.id, 'no_higher_education', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold cursor-pointer text-center"
                         >
                           <option value="YES">YES</option>
@@ -987,10 +1008,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('college_name') || getValue('institution_name')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'college_name', e.target.value);
-                            handleCellEdit(a.id, 'institution_name', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'college_name', e.target.value, 'institution_name')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -1001,6 +1020,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('degree')}
                           onChange={(e) => handleCellEdit(a.id, 'degree', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-semibold"
                         />
                       </td>
@@ -1011,6 +1031,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('custom_degree')}
                           onChange={(e) => handleCellEdit(a.id, 'custom_degree', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -1020,10 +1041,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('department') || getValue('stream')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'department', e.target.value);
-                            handleCellEdit(a.id, 'stream', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'department', e.target.value, 'stream')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -1034,6 +1053,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('college_register_no')}
                           onChange={(e) => handleCellEdit(a.id, 'college_register_no', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
                         />
                       </td>
@@ -1044,6 +1064,7 @@ export const AlumniManagement: React.FC = () => {
                           type="number"
                           value={getValue('college_joining_year')}
                           onChange={(e) => handleCellEdit(a.id, 'college_joining_year', e.target.value ? Number(e.target.value) : undefined)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
                         />
                       </td>
@@ -1054,6 +1075,7 @@ export const AlumniManagement: React.FC = () => {
                           type="number"
                           value={getValue('college_passing_year')}
                           onChange={(e) => handleCellEdit(a.id, 'college_passing_year', e.target.value ? Number(e.target.value) : undefined)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
                         />
                       </td>
@@ -1064,6 +1086,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('employment_status')}
                           onChange={(e) => handleCellEdit(a.id, 'employment_status', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -1073,10 +1096,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('company_name') || getValue('company')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'company_name', e.target.value);
-                            handleCellEdit(a.id, 'company', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'company_name', e.target.value, 'company')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-medium"
                         />
                       </td>
@@ -1086,10 +1107,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('profession') || getValue('designation')}
-                          onChange={(e) => {
-                            handleCellEdit(a.id, 'profession', e.target.value);
-                            handleCellEdit(a.id, 'designation', e.target.value);
-                          }}
+                          onChange={(e) => handleCellEdit(a.id, 'profession', e.target.value, 'designation')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold"
                         />
                       </td>
@@ -1100,6 +1119,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('industry')}
                           onChange={(e) => handleCellEdit(a.id, 'industry', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
                         />
                       </td>
@@ -1109,7 +1129,8 @@ export const AlumniManagement: React.FC = () => {
                         <input
                           type="text"
                           value={getValue('total_experience') || getValue('experience_years')}
-                          onChange={(e) => handleCellEdit(a.id, 'total_experience', e.target.value)}
+                          onChange={(e) => handleCellEdit(a.id, 'total_experience', e.target.value, 'experience_years')}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
                         />
                       </td>
@@ -1120,6 +1141,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={Array.isArray(getValue('skills')) ? (getValue('skills') as string[]).join(', ') : (getValue('skills') || '')}
                           onChange={(e) => handleCellEdit(a.id, 'skills', e.target.value.split(',').map(s => s.trim()))}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-xs"
                         />
                       </td>
@@ -1130,6 +1152,7 @@ export const AlumniManagement: React.FC = () => {
                           type="url"
                           value={getValue('linkedin_url')}
                           onChange={(e) => handleCellEdit(a.id, 'linkedin_url', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px] text-blue-700"
                         />
                       </td>
@@ -1140,6 +1163,7 @@ export const AlumniManagement: React.FC = () => {
                           type="url"
                           value={getValue('instagram_url')}
                           onChange={(e) => handleCellEdit(a.id, 'instagram_url', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px] text-pink-700"
                         />
                       </td>
@@ -1150,6 +1174,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('whatsapp_number') || getValue('mobile')}
                           onChange={(e) => handleCellEdit(a.id, 'whatsapp_number', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-emerald-800"
                         />
                       </td>
@@ -1160,6 +1185,7 @@ export const AlumniManagement: React.FC = () => {
                           type="url"
                           value={getValue('website_url')}
                           onChange={(e) => handleCellEdit(a.id, 'website_url', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
                         />
                       </td>
@@ -1170,6 +1196,7 @@ export const AlumniManagement: React.FC = () => {
                           type="text"
                           value={getValue('profile_photo_url')}
                           onChange={(e) => handleCellEdit(a.id, 'profile_photo_url', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
                         />
                       </td>
@@ -1179,6 +1206,7 @@ export const AlumniManagement: React.FC = () => {
                         <select
                           value={getValue('verification_status', 'APPROVED')}
                           onChange={(e) => handleCellEdit(a.id, 'verification_status', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold cursor-pointer uppercase"
                         >
                           <option value="APPROVED">APPROVED</option>

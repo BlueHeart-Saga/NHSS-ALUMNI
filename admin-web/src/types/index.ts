@@ -75,6 +75,8 @@ export interface AssociationTeamMember {
   profile_type: 'alumni' | 'common';
   alumni_id?: string;
   full_name: string;
+  full_name_ta?: string;
+  name_ta?: string;
   photo_url?: string;
   email?: string;
   mobile?: string;
@@ -82,6 +84,7 @@ export interface AssociationTeamMember {
   occupation?: string;
   batch_year?: number;
   position: string;
+  position_ta?: string;
   responsibility?: string;
   term_start?: string;
   term_end?: string;
@@ -320,10 +323,15 @@ export interface Announcement {
   school_id: string;
   batch_id?: string;
   target: 'SCHOOL' | 'BATCH';
+  category?: string;
   title: string;
+  title_ta?: string;
   content: string;
+  content_ta?: string;
+  poster_url?: string;
   created_by_name: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Memory {

@@ -30,10 +30,10 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
             {language === 'ta' ? 'புதிதாக இணைந்த முன்னாள் மாணவர்கள்' : 'Recently Joined Alumni'}
           </h2>
-          <p className="text-xs sm:text-base text-gray-600 font-normal mt-1 sm:mt-2 flex items-center justify-center space-x-2">
+          {/* <p className="text-xs sm:text-base text-gray-600 font-normal mt-1 sm:mt-2 flex items-center justify-center space-x-2">
             <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 inline" />
             <span>{language === 'ta' ? 'நமது குடும்பத்தில் புதிதாக இணைந்த சரிபார்க்கப்பட்ட முன்னாள் மாணவர்கள்' : 'Warm welcome to our newest verified alumni members'}</span>
-          </p>
+          </p> */}
         </div>
 
         {loading ? (

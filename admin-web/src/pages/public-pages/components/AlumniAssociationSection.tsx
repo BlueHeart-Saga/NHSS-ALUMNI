@@ -72,18 +72,18 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
   if (isHomePage) {
     // Show ONLY 3 cards: President (Thalaivar), Secretary (Seyalalar), Treasurer (Porulalar)
     const president = sortedTeam.find((t) => {
-      const p = (t.position || '').toLowerCase();
-      return (p.includes('president') || p.includes('thalaivar')) && !p.includes('vice');
+      const p = ((t.position || '') + ' ' + (t.position_ta || '')).toLowerCase();
+      return (p.includes('president') || p.includes('thalaivar') || p.includes('தலைவர்')) && !p.includes('vice') && !p.includes('துணை');
     }) || DEFAULT_FALLBACK_ROLES[0];
 
     const secretary = sortedTeam.find((t) => {
-      const p = (t.position || '').toLowerCase();
-      return (p.includes('secretary') || p.includes('seyalalar')) && !p.includes('joint');
+      const p = ((t.position || '') + ' ' + (t.position_ta || '')).toLowerCase();
+      return (p.includes('secretary') || p.includes('seyalalar') || p.includes('செயலாளர்')) && !p.includes('joint') && !p.includes('துணை') && !p.includes('இணை');
     }) || DEFAULT_FALLBACK_ROLES[2];
 
     const treasurer = sortedTeam.find((t) => {
-      const p = (t.position || '').toLowerCase();
-      return p.includes('treasurer') || p.includes('porulalar');
+      const p = ((t.position || '') + ' ' + (t.position_ta || '')).toLowerCase();
+      return p.includes('treasurer') || p.includes('porulalar') || p.includes('பொருளாளர்');
     }) || DEFAULT_FALLBACK_ROLES[4];
 
     displayedCards = [president, secretary, treasurer];
@@ -95,11 +95,14 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
 
   const totalPages = Math.ceil(sortedTeam.length / pageSize);
 
-  const getMemberPosition = (positionStr: string) => {
-    if (!positionStr) return '';
-    const rawPos = positionStr.trim();
-
+  const getMemberPosition = (positionStr: string, positionTa?: string) => {
     if (language === 'ta') {
+      if (positionTa && positionTa.trim()) {
+        return positionTa.trim();
+      }
+      if (!positionStr) return '';
+      const rawPos = positionStr.trim();
+
       if (POSITION_TA_MAP[rawPos]) {
         return POSITION_TA_MAP[rawPos];
       }
@@ -113,20 +116,35 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
       if (lower.includes('vice president') || lower.includes('vice-president')) return 'துணைத் தலைவர்';
       if (lower.includes('president') || lower.includes('thalaivar')) return 'தலைவர்';
       if (lower.includes('general secretary')) return 'பொதுச் செயலாளர்';
-      if (lower.includes('joint secretary') || lower.includes('joint-secretary')) return 'இணைச் செயலாளர்';
+      if (lower.includes('joint secretary') || lower.includes('joint-secretary')) return 'துணைச் செயலாளர்';
       if (lower.includes('secretary') || lower.includes('seyalalar')) return 'செயலாளர்';
       if (lower.includes('treasurer') || lower.includes('porulalar')) return 'பொருளாளர்';
       if (lower.includes('patron')) return 'காப்பாளர்';
       if (lower.includes('advisor')) return 'ஆலோசகர்';
       if (lower.includes('committee') || lower.includes('member')) return 'செயற்குழு உறுப்பினர்';
+      return rawPos;
     }
 
-    return rawPos;
+    return positionStr || '';
   };
 
   const getMemberName = (m: AssociationTeamMember) => {
+    if (language === 'ta') {
+      if (m.full_name_ta && m.full_name_ta.trim()) {
+        return m.full_name_ta.trim();
+      }
+      if (m.name_ta && m.name_ta.trim()) {
+        return m.name_ta.trim();
+      }
+    }
     if (m.full_name && m.full_name.trim()) {
-      return m.full_name;
+      return m.full_name.trim();
+    }
+    if (m.full_name_ta && m.full_name_ta.trim()) {
+      return m.full_name_ta.trim();
+    }
+    if (m.name_ta && m.name_ta.trim()) {
+      return m.name_ta.trim();
     }
     return language === 'ta' ? 'நிர்வாகி பெயர்' : 'Office Bearer Name';
   };
@@ -264,7 +282,7 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
             : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 pt-2"
         }>
           {displayedCards.map((member, idx) => {
-            const posTitle = getMemberPosition(member.position);
+            const posTitle = getMemberPosition(member.position, member.position_ta);
             const memberName = getMemberName(member);
 
             return (
@@ -382,7 +400,7 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
                         {getMemberName(selectedMember)}
                       </span>
                       <p className="text-[11px] text-amber-900/80">
-                        {getMemberPosition(selectedMember.position)}
+                        {getMemberPosition(selectedMember.position, selectedMember.position_ta)}
                       </p>
                     </div>
                   </div>
@@ -396,7 +414,7 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
                   {/* Position Badge & Name */}
                   <div className="space-y-2">
                     <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-3.5 py-1 rounded-full uppercase tracking-wider inline-block">
-                      {getMemberPosition(selectedMember.position)}
+                      {getMemberPosition(selectedMember.position, selectedMember.position_ta)}
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-bold text-[#111111] leading-tight">
                       {getMemberName(selectedMember)}

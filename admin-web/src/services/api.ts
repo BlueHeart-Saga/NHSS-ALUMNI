@@ -271,7 +271,13 @@ class ApiClient {
       throw new Error(errorBody.detail || 'Image upload failed');
     }
 
-    return response.json() as Promise<{ url: string; filename: string }>;
+    const data = await response.json();
+    const finalUrl = data.url || data.image_url || '';
+    return {
+      url: finalUrl,
+      image_url: finalUrl,
+      filename: data.filename || file.name,
+    };
   }
 
   async getSchoolStaff() {
@@ -631,10 +637,48 @@ class ApiClient {
     return this.request<Announcement[]>(endpoint);
   }
 
-  async createAnnouncement(target: 'SCHOOL' | 'BATCH', title: string, content: string, batch_id?: string) {
+  async createAnnouncement(
+    data: {
+      target: 'SCHOOL' | 'BATCH';
+      title: string;
+      content: string;
+      title_ta?: string;
+      content_ta?: string;
+      category?: string;
+      poster_url?: string;
+      batch_id?: string;
+    } | 'SCHOOL' | 'BATCH',
+    legacyTitle?: string,
+    legacyContent?: string,
+    legacyBatchId?: string
+  ) {
+    let body: any;
+    if (typeof data === 'object') {
+      body = data;
+    } else {
+      body = {
+        target: data,
+        title: legacyTitle,
+        content: legacyContent,
+        batch_id: legacyBatchId,
+      };
+    }
     return this.request<Announcement>('/announcements', {
       method: 'POST',
-      body: JSON.stringify({ target, title, content, batch_id }),
+      body: JSON.stringify(body),
+    });
+  }
+
+  async updateAnnouncement(id: string, data: Partial<Announcement>) {
+    return this.request<Announcement>(`/announcements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAnnouncement(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/announcements/${id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -810,7 +854,11 @@ class ApiClient {
     return this.request<Array<{
       id: string;
       title: string;
+      title_ta?: string;
       content: string;
+      content_ta?: string;
+      poster_url?: string;
+      category?: string;
       created_at: string;
     }>>('/public/announcements');
   }

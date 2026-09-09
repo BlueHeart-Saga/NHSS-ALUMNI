@@ -368,20 +368,62 @@ async def search_directory(
             user_id=str(a.get("user_id", "")),
             school_id=str(a.get("school_id") or school_id or ""),
             full_name=a.get("full_name", "Alumnus"),
+            name_ta=a.get("name_ta") or a.get("full_name_ta"),
+            full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
             mobile=a.get("mobile", "") if a.get("email_visible") or is_admin else "***",
-            email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
-            profile_photo_url=a.get("profile_photo_url"),
+            country_code=a.get("country_code") or "91",
+            gender=a.get("gender"),
+            date_of_birth=a.get("date_of_birth") or a.get("dob"),
+            dob=a.get("dob") or a.get("date_of_birth"),
             blood_group=a.get("blood_group"),
-            is_volunteer=a.get("is_volunteer", "NO"),
-            willing_to_donate=a.get("willing_to_donate", "NO"),
-            passing_year=a.get("passing_year", 2010),
-            batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
-            admission_number=a.get("admission_number", ""),
-            section=a.get("section"),
-            current_city=a.get("current_city"),
-            profession=a.get("profession"),
+            father_name=a.get("father_name"),
+            mother_name=a.get("mother_name"),
+            current_city=a.get("current_city") or a.get("city"),
+            state=a.get("state") or a.get("current_state"),
+            current_state=a.get("current_state") or a.get("state"),
+            country=a.get("country") or "India",
+            school_name=a.get("school_name"),
+            joining_year=a.get("joining_year") or a.get("admission_year"),
+            admission_year=a.get("admission_year") or a.get("joining_year"),
+            passing_year=int(a["passing_year"]) if a.get("passing_year") and str(a["passing_year"]).isdigit() else (a.get("passing_year") or 2010),
+            leaving_class=str(a["leaving_class"]) if a.get("leaving_class") is not None else None,
+            admission_number=str(a.get("admission_number") or a.get("roll_no") or ""),
+            roll_no=str(a.get("roll_no") or a.get("admission_number") or "") if (a.get("roll_no") or a.get("admission_number")) is not None else None,
+            section=str(a["section"]) if a.get("section") is not None else None,
+            no_higher_education=(
+                "YES" if a.get("no_higher_education") in [True, "YES", "yes", "true", "True"]
+                else ("NO" if a.get("no_higher_education") in [False, "NO", "no", "false", "False"]
+                else (str(a.get("no_higher_education")) if a.get("no_higher_education") is not None else "NO"))
+            ),
+            college_name=a.get("college_name") or a.get("institution_name"),
+            institution_name=a.get("institution_name") or a.get("college_name"),
+            degree=a.get("degree"),
+            custom_degree=a.get("custom_degree"),
+            department=a.get("department") or a.get("stream"),
+            stream=a.get("stream") or a.get("department"),
+            college_register_no=str(a["college_register_no"]) if a.get("college_register_no") is not None else None,
+            college_joining_year=a.get("college_joining_year"),
+            college_passing_year=a.get("college_passing_year"),
+            employment_status=a.get("employment_status"),
+            company=a.get("company") or a.get("company_name"),
+            company_name=a.get("company_name") or a.get("company"),
+            profession=a.get("profession") or a.get("designation"),
+            designation=a.get("designation") or a.get("profession"),
+            industry=a.get("industry"),
+            experience_years=a.get("experience_years"),
+            total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
+            skills=a.get("skills") or [],
+            linkedin_url=a.get("linkedin_url"),
+            instagram_url=a.get("instagram_url"),
+            whatsapp_number=str(a["whatsapp_number"]) if a.get("whatsapp_number") is not None else None,
+            website_url=a.get("website_url"),
+            profile_photo_url=a.get("profile_photo_url"),
+            is_volunteer="YES" if a.get("is_volunteer") in [True, "YES", "yes", "true", "True"] else "NO",
+            willing_to_donate="YES" if a.get("willing_to_donate") in [True, "YES", "yes", "true", "True"] else "NO",
             verification_status=a.get("verification_status", "APPROVED"),
-            roles=["ALUMNI"],
+            roles=a.get("roles", ["ALUMNI"]),
+            email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
+            batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             email_visible=a.get("email_visible", False),
             created_at=a.get("created_at", datetime.now(timezone.utc))
         ))
@@ -495,23 +537,23 @@ class AdminUpdateAlumniRequest(BaseModel):
     current_state: Optional[str] = None
     country: Optional[str] = None
     school_name: Optional[str] = None
-    joining_year: Optional[int] = None
-    admission_year: Optional[int] = None
-    passing_year: Optional[int] = None
-    leaving_class: Optional[str] = None
-    admission_number: Optional[str] = None
-    roll_no: Optional[str] = None
-    section: Optional[str] = None
-    no_higher_education: Optional[str] = None
+    joining_year: Optional[Any] = None
+    admission_year: Optional[Any] = None
+    passing_year: Optional[Any] = None
+    leaving_class: Optional[Any] = None
+    admission_number: Optional[Any] = None
+    roll_no: Optional[Any] = None
+    section: Optional[Any] = None
+    no_higher_education: Optional[Any] = None
     college_name: Optional[str] = None
     institution_name: Optional[str] = None
     degree: Optional[str] = None
     custom_degree: Optional[str] = None
     department: Optional[str] = None
     stream: Optional[str] = None
-    college_register_no: Optional[str] = None
-    college_joining_year: Optional[int] = None
-    college_passing_year: Optional[int] = None
+    college_register_no: Optional[Any] = None
+    college_joining_year: Optional[Any] = None
+    college_passing_year: Optional[Any] = None
     employment_status: Optional[str] = None
     company: Optional[str] = None
     company_name: Optional[str] = None
@@ -519,16 +561,16 @@ class AdminUpdateAlumniRequest(BaseModel):
     designation: Optional[str] = None
     industry: Optional[str] = None
     experience_years: Optional[Any] = None
-    total_experience: Optional[str] = None
+    total_experience: Optional[Any] = None
     skills: Optional[Any] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
-    whatsapp_number: Optional[str] = None
+    whatsapp_number: Optional[Any] = None
     website_url: Optional[str] = None
     profile_photo_url: Optional[str] = None
     email: Optional[str] = None
-    is_volunteer: Optional[str] = None
-    willing_to_donate: Optional[str] = None
+    is_volunteer: Optional[Any] = None
+    willing_to_donate: Optional[Any] = None
     verification_status: Optional[str] = None
 
 class BulkUpdateAlumniRequest(BaseModel):
@@ -551,17 +593,66 @@ async def admin_update_alumni(
     current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
 ):
     db = get_db()
-    school_id = current_user.get("school_id")
-
-    filter_q = {"school_id": school_id} if school_id else {}
+    
+    id_or = []
     try:
-        filter_q["_id"] = ObjectId(alumni_id)
+        id_or.append({"_id": ObjectId(alumni_id)})
     except Exception:
-        filter_q["_id"] = alumni_id
+        pass
+    id_or.append({"_id": alumni_id})
+    filter_q = {"$or": id_or}
 
     update_fields = {k: v for k, v in request.model_dump().items() if v is not None}
     if not update_fields:
         return {"success": True, "message": "No fields to update"}
+
+    # Sync complementary fields
+    if "name_ta" in update_fields:
+        update_fields["full_name_ta"] = update_fields["name_ta"]
+    elif "full_name_ta" in update_fields:
+        update_fields["name_ta"] = update_fields["full_name_ta"]
+
+    if "date_of_birth" in update_fields:
+        update_fields["dob"] = update_fields["date_of_birth"]
+    elif "dob" in update_fields:
+        update_fields["date_of_birth"] = update_fields["dob"]
+
+    if "current_state" in update_fields:
+        update_fields["state"] = update_fields["current_state"]
+    elif "state" in update_fields:
+        update_fields["current_state"] = update_fields["state"]
+
+    if "college_name" in update_fields:
+        update_fields["institution_name"] = update_fields["college_name"]
+    elif "institution_name" in update_fields:
+        update_fields["college_name"] = update_fields["institution_name"]
+
+    if "department" in update_fields:
+        update_fields["stream"] = update_fields["department"]
+    elif "stream" in update_fields:
+        update_fields["department"] = update_fields["stream"]
+
+    if "admission_number" in update_fields:
+        update_fields["roll_no"] = update_fields["admission_number"]
+    elif "roll_no" in update_fields:
+        update_fields["admission_number"] = update_fields["roll_no"]
+
+    if "company_name" in update_fields:
+        update_fields["company"] = update_fields["company_name"]
+    elif "company" in update_fields:
+        update_fields["company_name"] = update_fields["company"]
+
+    if "profession" in update_fields:
+        update_fields["designation"] = update_fields["profession"]
+    elif "designation" in update_fields:
+        update_fields["profession"] = update_fields["designation"]
+
+    if "joining_year" in update_fields:
+        update_fields["admission_year"] = update_fields["joining_year"]
+    elif "admission_year" in update_fields:
+        update_fields["joining_year"] = update_fields["admission_year"]
+
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     await db.alumni.update_one(filter_q, {"$set": update_fields})
     return {"success": True, "message": "Alumni updated successfully"}

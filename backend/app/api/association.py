@@ -17,6 +17,8 @@ def format_team_response(doc: dict, school_id: str) -> AssociationTeamMemberResp
         profile_type=doc.get("profile_type", "common"),
         alumni_id=str(doc.get("alumni_id")) if doc.get("alumni_id") else None,
         full_name=doc.get("full_name", "Association Leader"),
+        full_name_ta=doc.get("full_name_ta") or doc.get("name_ta"),
+        name_ta=doc.get("name_ta") or doc.get("full_name_ta"),
         photo_url=doc.get("photo_url"),
         email=doc.get("email"),
         mobile=doc.get("mobile"),
@@ -24,6 +26,7 @@ def format_team_response(doc: dict, school_id: str) -> AssociationTeamMemberResp
         occupation=doc.get("occupation"),
         batch_year=doc.get("batch_year"),
         position=doc.get("position", "Committee Member"),
+        position_ta=doc.get("position_ta"),
         responsibility=doc.get("responsibility"),
         term_start=doc.get("term_start"),
         term_end=doc.get("term_end"),
@@ -63,6 +66,11 @@ async def create_association_team_member(
             if alumni:
                 if not request.full_name:
                     request.full_name = alumni.get("full_name", "")
+                if not request.full_name_ta and not request.name_ta:
+                    alumni_ta = alumni.get("name_ta") or alumni.get("full_name_ta")
+                    if alumni_ta:
+                        request.full_name_ta = alumni_ta
+                        request.name_ta = alumni_ta
                 if not request.photo_url:
                     request.photo_url = alumni.get("profile_photo_url")
                 if not request.email:
@@ -78,11 +86,15 @@ async def create_association_team_member(
         except Exception as e:
             print("Alumni lookup notice:", e)
 
+    tamil_name = request.full_name_ta or request.name_ta
+
     doc = {
         "school_id": school_id,
         "profile_type": request.profile_type,
         "alumni_id": request.alumni_id,
         "full_name": request.full_name,
+        "full_name_ta": tamil_name,
+        "name_ta": tamil_name,
         "photo_url": request.photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=FFF7D6&color=854D0E",
         "email": request.email,
         "mobile": request.mobile,
@@ -90,6 +102,7 @@ async def create_association_team_member(
         "occupation": request.occupation,
         "batch_year": request.batch_year,
         "position": request.position,
+        "position_ta": request.position_ta,
         "responsibility": request.responsibility,
         "term_start": request.term_start or "2024",
         "term_end": request.term_end or "2026",

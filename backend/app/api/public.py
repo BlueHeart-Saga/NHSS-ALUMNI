@@ -401,14 +401,18 @@ async def get_public_announcements(response: Response):
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     db = get_db()
 
-    announcements = await db.announcements.find({"target": "SCHOOL"}).sort("created_at", -1).to_list(length=6)
+    announcements = await db.announcements.find({"target": "SCHOOL"}).sort("created_at", -1).to_list(length=12)
 
     res = []
     for a in announcements:
         res.append({
             "id": str(a["_id"]),
-            "title": a.get("title"),
-            "content": a.get("content"),
+            "title": a.get("title", ""),
+            "title_ta": a.get("title_ta"),
+            "content": a.get("content", ""),
+            "content_ta": a.get("content_ta"),
+            "poster_url": a.get("poster_url"),
+            "category": a.get("category", "GENERAL"),
             "created_at": str(a.get("created_at"))
         })
     return res
@@ -505,6 +509,8 @@ async def get_public_association_team():
             "profile_type": m.get("profile_type", "common"),
             "alumni_id": str(m.get("alumni_id")) if m.get("alumni_id") else None,
             "full_name": m.get("full_name", "Association Leader"),
+            "full_name_ta": m.get("full_name_ta") or m.get("name_ta"),
+            "name_ta": m.get("name_ta") or m.get("full_name_ta"),
             "photo_url": m.get("photo_url"),
             "email": m.get("email"),
             "mobile": m.get("mobile"),
@@ -512,6 +518,7 @@ async def get_public_association_team():
             "occupation": m.get("occupation"),
             "batch_year": m.get("batch_year"),
             "position": m.get("position", "Committee Member"),
+            "position_ta": m.get("position_ta"),
             "responsibility": m.get("responsibility"),
             "term_start": m.get("term_start", "2024"),
             "term_end": m.get("term_end", "2026"),

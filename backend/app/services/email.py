@@ -3,13 +3,14 @@ import logging
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate, make_msgid
 from app.core.config import settings
 
 logger = logging.getLogger("app.email")
 
 def send_email_smtp(to_email: str, subject: str, html_content: str, text_content: str = None) -> bool:
     """
-    Sends an email via SMTP TLS (smtp.gmail.com:587) using configuration from settings.
+    Sends an email via SMTP TLS using configuration from settings.
     """
     if not settings.SMTP_USER or not settings.SMTP_PASS:
         logger.warning("SMTP credentials not configured. Skipping email dispatch.")
@@ -21,6 +22,10 @@ def send_email_smtp(to_email: str, subject: str, html_content: str, text_content
         msg["Subject"] = subject
         msg["From"] = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         msg["To"] = to_email
+        msg["Reply-To"] = settings.EMAILS_FROM_EMAIL
+        msg["Date"] = formatdate(localtime=True)
+        domain = settings.EMAILS_FROM_EMAIL.split("@")[-1] if "@" in (settings.EMAILS_FROM_EMAIL or "") else "nhssalumni.com"
+        msg["Message-ID"] = make_msgid(domain=domain)
 
         if text_content:
             part1 = MIMEText(text_content, "plain", "utf-8")
@@ -35,11 +40,13 @@ def send_email_smtp(to_email: str, subject: str, html_content: str, text_content
             server.sendmail(settings.EMAILS_FROM_EMAIL, [to_email], msg.as_string())
 
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        logger.info(f"operation=smtp_send duration_ms={duration_ms}")
+        logger.info(f"operation=smtp_send duration_ms={duration_ms} to={to_email} subject='{subject}'")
+        print(f" [SMTP SUCCESS] Successfully sent email to '{to_email}' (Subject: {subject})")
         return True
     except Exception as e:
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        logger.error(f"operation=smtp_send_error duration_ms={duration_ms} error={str(e)}")
+        logger.error(f"operation=smtp_send_error duration_ms={duration_ms} to={to_email} error={str(e)}", exc_info=True)
+        print(f" [SMTP ERROR] Failed to send email to '{to_email}': {str(e)}")
         return False
 
 

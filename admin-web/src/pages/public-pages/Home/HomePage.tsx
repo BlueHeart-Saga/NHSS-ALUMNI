@@ -235,18 +235,93 @@ export const HomePage: React.FC = () => {
       <Modal
         isOpen={Boolean(selectedNews)}
         onClose={() => setSelectedNews(null)}
-        title={selectedNews?.title || "School Notice"}
+        title={
+          language === 'ta' && selectedNews?.title_ta
+            ? selectedNews.title_ta
+            : selectedNews?.title || (language === 'ta' ? "பள்ளி அறிவிப்பு" : "School Notice")
+        }
       >
         {selectedNews && (
           <div className="space-y-4">
-            <div className="text-xs text-[#6B7280]">
-              Published on {new Date(selectedNews.created_at).toLocaleDateString()}
+            {/* Poster Flyer Preview if exists */}
+            {selectedNews.poster_url && (
+              <div className="rounded-2xl overflow-hidden border border-[#E5E7EB] bg-black max-h-72 flex items-center justify-center relative group">
+                <img
+                  src={selectedNews.poster_url}
+                  alt={selectedNews.title}
+                  className="max-h-72 w-full object-contain"
+                />
+                <a
+                  href={selectedNews.poster_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-black text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg backdrop-blur-xs flex items-center space-x-1"
+                >
+                  <span>{language === 'ta' ? 'பெரிதாக்குக' : 'Open Full Image'}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-100">
+              <span className="text-[11px] font-bold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/80 px-2.5 py-0.5 rounded-full">
+                {selectedNews.category || 'GENERAL'}
+              </span>
+              <div className="text-xs text-[#6B7280]">
+                {language === 'ta' ? 'தேதி: ' : 'Published on '}
+                {new Date(selectedNews.created_at).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </div>
             </div>
-            <p className="text-xs text-[#111111] leading-relaxed whitespace-pre-wrap">
-              {selectedNews.content}
-            </p>
+
+            {/* Bilingual Titles */}
+            {language === 'ta' ? (
+              <div>
+                <h3 className="text-lg font-bold text-[#111111]">
+                  {selectedNews.title_ta || selectedNews.title}
+                </h3>
+                {selectedNews.title_ta && selectedNews.title && selectedNews.title !== selectedNews.title_ta && (
+                  <p className="text-xs text-gray-500 mt-0.5 italic">{selectedNews.title}</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-bold text-[#111111]">{selectedNews.title}</h3>
+                {selectedNews.title_ta && (
+                  <p className="text-xs text-amber-900 mt-0.5 font-medium">{selectedNews.title_ta}</p>
+                )}
+              </div>
+            )}
+
+            {/* Content Details */}
+            <div className="space-y-3">
+              <p className="text-xs sm:text-sm text-[#111111] leading-relaxed whitespace-pre-wrap">
+                {language === 'ta'
+                  ? (selectedNews.content_ta || selectedNews.content)
+                  : selectedNews.content}
+              </p>
+
+              {/* If opposite language content exists, show secondary box */}
+              {language === 'ta' && selectedNews.content && selectedNews.content_ta && selectedNews.content !== selectedNews.content_ta && (
+                <div className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl p-3 text-xs text-[#4B5563] space-y-1">
+                  <span className="font-semibold text-gray-700 block">English Notice:</span>
+                  <p className="whitespace-pre-wrap">{selectedNews.content}</p>
+                </div>
+              )}
+
+              {language !== 'ta' && selectedNews.content_ta && (
+                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-3 text-xs text-amber-950 space-y-1">
+                  <span className="font-semibold text-amber-900 block">தமிழ் விவரம் (Tamil Notice):</span>
+                  <p className="whitespace-pre-wrap">{selectedNews.content_ta}</p>
+                </div>
+              )}
+            </div>
+
             <Button variant="secondary" className="w-full" onClick={() => setSelectedNews(null)}>
-              Close Notice
+              {language === 'ta' ? 'மூடுக' : 'Close Notice'}
             </Button>
           </div>
         )}
