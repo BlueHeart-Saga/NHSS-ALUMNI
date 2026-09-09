@@ -348,7 +348,7 @@ async def get_public_batches(response: Response):
 async def get_public_highlights(response: Response):
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     db = get_db()
-    alumni = await db.alumni.find({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}}).to_list(length=8)
+    alumni = await db.alumni.find({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}}).sort([("created_at", -1), ("_id", -1)]).to_list(length=8)
 
     res = []
     for a in alumni:
@@ -381,9 +381,12 @@ async def get_public_memories(response: Response):
         res.append({
             "id": str(m["_id"]),
             "title": m.get("title", "School Memory"),
+            "title_ta": m.get("title_ta"),
             "album_name": m.get("album_name", "Campus Memories"),
             "media_type": m.get("media_type", "IMAGE"),
             "description": m.get("description", ""),
+            "description_ta": m.get("description_ta"),
+            "target_audience": m.get("target_audience", "PUBLIC"),
             "batch_year": str(m.get("batch_year", m.get("batch_id", ""))),
             "image_url": cover,
             "cover_image_url": cover,

@@ -117,14 +117,39 @@ export const AlumniManagement: React.FC = () => {
   };
 
   // Inline Sheet Cell Change Handler
-  const handleCellEdit = (id: string, field: keyof AlumniProfile, value: any) => {
-    setEditedRows((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        [field]: value
+  const handleCellEdit = async (id: string, field: keyof AlumniProfile, value: any) => {
+    // Client‑side validation
+    if (field === 'mobile') {
+      const mobileRegex = /^\+?[0-9]{7,15}$/;
+      if (!mobileRegex.test(value)) {
+        alertService.showError('Invalid Mobile', 'Please enter a valid mobile number.');
+        return;
       }
-    }));
+    }
+    if (field === 'dob') {
+      // Expect YYYY‑MM‑DD or empty
+      if (value && isNaN(Date.parse(value))) {
+        alertService.showError('Invalid Date of Birth', 'Please enter a valid date.');
+        return;
+      }
+    }
+    // Optimistically update UI state
+    setAlumniList((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
+    );
+    // Persist change immediately via API
+    try {
+      await api.updateAlumniAdmin(id, { [field]: value } as Partial<AlumniProfile>);
+      // Remove from editedRows if present (change saved)
+      setEditedRows((prev) => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+    } catch (err: any) {
+      // Revert UI on failure
+      fetchAlumni();
+      alertService.handleApiError(err, `Failed to update ${field}.`);
+    }
   };
 
   // Save Sheet Changes Action
@@ -421,36 +446,6 @@ export const AlumniManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Save Sheet Floating Toolbar (In Sheet Mode when edited) */}
-      {viewMode === 'sheet' && editedCount > 0 && (
-        <div className="bg-amber-500 text-black p-3.5 rounded-2xl shadow-md flex items-center justify-between animate-fadeIn border border-amber-600">
-          <div className="text-xs font-extrabold flex items-center space-x-2">
-            <Edit3 className="w-4 h-4" />
-            <span>Unsaved Changes: {editedCount} row(s) edited in sheet</span>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setEditedRows({})}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-            >
-              Discard Changes
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSaveSheetChanges}
-              disabled={savingSheet}
-              className="px-4 py-1.5 bg-[#111111] hover:bg-gray-800 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-            >
-              <Save className={`w-3.5 h-3.5 text-amber-400 ${savingSheet ? 'animate-spin' : ''}`} />
-              <span>{savingSheet ? 'Saving Sheet...' : 'Save All Sheet Changes'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Search & Multi-Filter Control Bar */}
       <div className="bg-white border border-gray-200 rounded-3xl p-4 sm:p-5 shadow-2xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
@@ -700,111 +695,151 @@ export const AlumniManagement: React.FC = () => {
           <div className="px-5 py-3 bg-[#111111] text-white flex items-center justify-between text-xs font-bold">
             <div className="flex items-center space-x-2">
               <Edit3 className="w-4 h-4 text-amber-400" />
-              <span>Spreadsheet Grid Editor — Edit cell values directly below</span>
+              <span>Full Spreadsheet Editor — All 39 Fields Editable Directly Below</span>
             </div>
-            <span>{displayedAlumni.length} Rows Rendered</span>
+            <div className="flex items-center space-x-3">
+              <span className="text-amber-300 font-mono">{displayedAlumni.length} Rows Rendered</span>
+              {Object.keys(editedRows).length > 0 && (
+                <span className="bg-amber-500 text-[#111111] px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+                  {Object.keys(editedRows).length} Unsaved Row(s)
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700">
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Full Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Batch Year</th>
+          <div className="overflow-x-auto max-h-[75vh]">
+            <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+              <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700 z-10 shadow-sm">
+                <tr>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">Full Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Name in Tamil</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Mobile Number</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[90px]">Country Code</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Gender</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Date of Birth</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Blood Group</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Father Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Mother Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Current City</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Current State</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Country</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">School Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Joining Year</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Passing Year</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Leaving Class</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Admission/Roll No</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px]">Section</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Admission No</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Mobile</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Email</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Blood Group</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Volunteer</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Willing Donor</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Status</th>
-                  <th className="py-2.5 px-3 text-center min-w-[80px]">Action</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">No Higher Ed</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">College Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Degree / Course</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Custom Degree</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Department</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">College Reg No</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">College Joining Yr</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">College Passing Yr</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Employment Status</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">Company Name</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Designation / Position</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Industry</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Total Experience</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Skills & Expertise</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">LinkedIn URL</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Instagram URL</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">WhatsApp Number</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Website URL</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Profile Photo URL</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Status</th>
+                  <th className="py-2.5 px-3 text-center min-w-[80px] sticky right-0 bg-gray-100 shadow-left z-20">Action</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-300">
                 {displayedAlumni.map((a) => {
                   const draft = editedRows[a.id] || {};
-                  const nameVal = draft.full_name !== undefined ? draft.full_name : a.full_name;
-                  const yearVal = draft.passing_year !== undefined ? draft.passing_year : a.passing_year;
-                  const secVal = draft.section !== undefined ? draft.section : (a.section || '');
-                  const admVal = draft.admission_number !== undefined ? draft.admission_number : (a.admission_number || '');
-                  const mobVal = draft.mobile !== undefined ? draft.mobile : (a.mobile || '');
-                  const emailVal = draft.email !== undefined ? draft.email : (a.email || '');
-                  const bloodVal = draft.blood_group !== undefined ? draft.blood_group : (a.blood_group || '');
-                  const volVal = draft.is_volunteer !== undefined ? draft.is_volunteer : (a.is_volunteer || 'NO');
-                  const donVal = draft.willing_to_donate !== undefined ? draft.willing_to_donate : (a.willing_to_donate || 'NO');
-                  const statusVal = draft.verification_status !== undefined ? draft.verification_status : (a.verification_status || 'APPROVED');
+                  
+                  const getValue = (field: keyof AlumniProfile, defaultVal: any = '') => {
+                    return draft[field] !== undefined ? draft[field] : (a[field] !== undefined && a[field] !== null ? a[field] : defaultVal);
+                  };
 
                   const isRowEdited = Boolean(editedRows[a.id]);
 
                   return (
-                    <tr key={a.id} className={isRowEdited ? 'bg-amber-50' : 'hover:bg-gray-50'}>
-                      {/* Name Cell */}
+                    <tr key={a.id} className={isRowEdited ? 'bg-amber-50/80 hover:bg-amber-100/80 transition-colors' : 'hover:bg-gray-50 transition-colors'}>
+                      {/* 1. Full Name */}
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={nameVal}
+                          value={getValue('full_name')}
                           onChange={(e) => handleCellEdit(a.id, 'full_name', e.target.value)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold text-[#111111]"
                         />
                       </td>
 
-                      {/* Batch Year Cell */}
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="number"
-                          value={yearVal}
-                          onChange={(e) => handleCellEdit(a.id, 'passing_year', Number(e.target.value))}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-extrabold text-[#854D0E]"
-                        />
-                      </td>
-
-                      {/* Section Cell */}
+                      {/* 2. Name in Tamil */}
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={secVal}
-                          onChange={(e) => handleCellEdit(a.id, 'section', e.target.value)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold"
+                          placeholder="பெயர் (Tamil)"
+                          value={getValue('name_ta') || getValue('full_name_ta')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'name_ta', e.target.value);
+                            handleCellEdit(a.id, 'full_name_ta', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-serif text-[#111111]"
                         />
                       </td>
 
-                      {/* Admission No Cell */}
+                      {/* 3. Mobile Number */}
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={admVal}
-                          onChange={(e) => handleCellEdit(a.id, 'admission_number', e.target.value)}
+                          value={getValue('mobile')}
+                          onChange={(e) => handleCellEdit(a.id, 'mobile', e.target.value)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
                         />
                       </td>
 
-                      {/* Mobile Cell */}
+                      {/* 4. Country Code */}
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={mobVal}
-                          onChange={(e) => handleCellEdit(a.id, 'mobile', e.target.value)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-medium"
+                          value={getValue('country_code', '91')}
+                          onChange={(e) => handleCellEdit(a.id, 'country_code', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold"
                         />
                       </td>
 
-                      {/* Email Cell */}
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="email"
-                          value={emailVal}
-                          onChange={(e) => handleCellEdit(a.id, 'email', e.target.value)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
-                        />
-                      </td>
-
-                      {/* Blood Group Cell */}
+                      {/* 5. Gender */}
                       <td className="p-1 border-r border-gray-200">
                         <select
-                          value={bloodVal}
+                          value={getValue('gender', 'Male')}
+                          onChange={(e) => handleCellEdit(a.id, 'gender', e.target.value)}
+                          className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white cursor-pointer font-semibold"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </td>
+
+                      {/* 6. Date of Birth */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          placeholder="DD-MM-YYYY"
+                          value={getValue('date_of_birth') || getValue('dob')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'date_of_birth', e.target.value);
+                            handleCellEdit(a.id, 'dob', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-mono"
+                        />
+                      </td>
+
+                      {/* 7. Blood Group */}
+                      <td className="p-1 border-r border-gray-200">
+                        <select
+                          value={getValue('blood_group')}
                           onChange={(e) => handleCellEdit(a.id, 'blood_group', e.target.value)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold text-rose-700 cursor-pointer"
                         >
@@ -815,38 +850,334 @@ export const AlumniManagement: React.FC = () => {
                         </select>
                       </td>
 
-                      {/* Volunteer Status Cell */}
+                      {/* 8. Father Name */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('father_name')}
+                          onChange={(e) => handleCellEdit(a.id, 'father_name', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 9. Mother Name */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('mother_name')}
+                          onChange={(e) => handleCellEdit(a.id, 'mother_name', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 10. Current City */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('current_city')}
+                          onChange={(e) => handleCellEdit(a.id, 'current_city', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-medium"
+                        />
+                      </td>
+
+                      {/* 12. Current State */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('state') || getValue('current_state', 'Tamil Nadu')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'state', e.target.value);
+                            handleCellEdit(a.id, 'current_state', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 13. Country */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('country', 'India')}
+                          onChange={(e) => handleCellEdit(a.id, 'country', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 14. School Name */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('school_name', 'Natarajan Higher Secondary School')}
+                          onChange={(e) => handleCellEdit(a.id, 'school_name', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 15. Joining Year */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="number"
+                          value={getValue('joining_year') || getValue('admission_year')}
+                          onChange={(e) => {
+                            const num = e.target.value ? Number(e.target.value) : undefined;
+                            handleCellEdit(a.id, 'joining_year', num);
+                            handleCellEdit(a.id, 'admission_year', num);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold"
+                        />
+                      </td>
+
+                      {/* 16. Passing Year */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="number"
+                          value={getValue('passing_year')}
+                          onChange={(e) => handleCellEdit(a.id, 'passing_year', Number(e.target.value))}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-extrabold text-[#854D0E] text-center"
+                        />
+                      </td>
+
+                      {/* 17. Leaving Class */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('leaving_class')}
+                          onChange={(e) => handleCellEdit(a.id, 'leaving_class', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-bold"
+                        />
+                      </td>
+
+                      {/* 18. Admission/Roll No */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('admission_number') || getValue('roll_no')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'admission_number', e.target.value);
+                            handleCellEdit(a.id, 'roll_no', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
+                        />
+                      </td>
+
+                      {/* 19. Section */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('section')}
+                          onChange={(e) => handleCellEdit(a.id, 'section', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold uppercase"
+                        />
+                      </td>
+
+                      {/* 20. No Higher Education */}
                       <td className="p-1 border-r border-gray-200">
                         <select
-                          value={volVal}
-                          onChange={(e) => handleCellEdit(a.id, 'is_volunteer', e.target.value)}
-                          className={`w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-extrabold cursor-pointer ${
-                            volVal === 'YES' ? 'text-emerald-700' : 'text-gray-500'
-                          }`}
+                          value={getValue('no_higher_education', 'NO')}
+                          onChange={(e) => handleCellEdit(a.id, 'no_higher_education', e.target.value)}
+                          className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold cursor-pointer text-center"
                         >
                           <option value="YES">YES</option>
                           <option value="NO">NO</option>
                         </select>
                       </td>
 
-                      {/* Willing Donor Cell */}
+                      {/* 21. College Name */}
                       <td className="p-1 border-r border-gray-200">
-                        <select
-                          value={donVal}
-                          onChange={(e) => handleCellEdit(a.id, 'willing_to_donate', e.target.value)}
-                          className={`w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-extrabold cursor-pointer ${
-                            donVal === 'YES' ? 'text-[#854D0E]' : 'text-gray-500'
-                          }`}
-                        >
-                          <option value="YES">YES</option>
-                          <option value="NO">NO</option>
-                        </select>
+                        <input
+                          type="text"
+                          value={getValue('college_name') || getValue('institution_name')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'college_name', e.target.value);
+                            handleCellEdit(a.id, 'institution_name', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
                       </td>
 
-                      {/* Verification Status Cell */}
+                      {/* 22. Degree/Course */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('degree')}
+                          onChange={(e) => handleCellEdit(a.id, 'degree', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-semibold"
+                        />
+                      </td>
+
+                      {/* 23. Custom Degree */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('custom_degree')}
+                          onChange={(e) => handleCellEdit(a.id, 'custom_degree', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 24. Department/Stream */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('department') || getValue('stream')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'department', e.target.value);
+                            handleCellEdit(a.id, 'stream', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 25. College Register No */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('college_register_no')}
+                          onChange={(e) => handleCellEdit(a.id, 'college_register_no', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
+                        />
+                      </td>
+
+                      {/* 26. College Joining Year */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="number"
+                          value={getValue('college_joining_year')}
+                          onChange={(e) => handleCellEdit(a.id, 'college_joining_year', e.target.value ? Number(e.target.value) : undefined)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
+                        />
+                      </td>
+
+                      {/* 27. College Passing Year */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="number"
+                          value={getValue('college_passing_year')}
+                          onChange={(e) => handleCellEdit(a.id, 'college_passing_year', e.target.value ? Number(e.target.value) : undefined)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
+                        />
+                      </td>
+
+                      {/* 28. Employment Status */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('employment_status')}
+                          onChange={(e) => handleCellEdit(a.id, 'employment_status', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 29. Company Name */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('company_name') || getValue('company')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'company_name', e.target.value);
+                            handleCellEdit(a.id, 'company', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-medium"
+                        />
+                      </td>
+
+                      {/* 30. Designation / Position */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('profession') || getValue('designation')}
+                          onChange={(e) => {
+                            handleCellEdit(a.id, 'profession', e.target.value);
+                            handleCellEdit(a.id, 'designation', e.target.value);
+                          }}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold"
+                        />
+                      </td>
+
+                      {/* 31. Industry */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('industry')}
+                          onChange={(e) => handleCellEdit(a.id, 'industry', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white"
+                        />
+                      </td>
+
+                      {/* 32. Total Experience */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('total_experience') || getValue('experience_years')}
+                          onChange={(e) => handleCellEdit(a.id, 'total_experience', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center"
+                        />
+                      </td>
+
+                      {/* 33. Skills & Expertise */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={Array.isArray(getValue('skills')) ? (getValue('skills') as string[]).join(', ') : (getValue('skills') || '')}
+                          onChange={(e) => handleCellEdit(a.id, 'skills', e.target.value.split(',').map(s => s.trim()))}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-xs"
+                        />
+                      </td>
+
+                      {/* 34. LinkedIn Profile URL */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="url"
+                          value={getValue('linkedin_url')}
+                          onChange={(e) => handleCellEdit(a.id, 'linkedin_url', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px] text-blue-700"
+                        />
+                      </td>
+
+                      {/* 35. Instagram Profile URL */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="url"
+                          value={getValue('instagram_url')}
+                          onChange={(e) => handleCellEdit(a.id, 'instagram_url', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px] text-pink-700"
+                        />
+                      </td>
+
+                      {/* 36. WhatsApp Number */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('whatsapp_number') || getValue('mobile')}
+                          onChange={(e) => handleCellEdit(a.id, 'whatsapp_number', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-emerald-800"
+                        />
+                      </td>
+
+                      {/* 37. Personal/Company Website */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="url"
+                          value={getValue('website_url')}
+                          onChange={(e) => handleCellEdit(a.id, 'website_url', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
+                        />
+                      </td>
+
+                      {/* 38. Profile Photo URL */}
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('profile_photo_url')}
+                          onChange={(e) => handleCellEdit(a.id, 'profile_photo_url', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
+                        />
+                      </td>
+
+                      {/* 39. Verification Status */}
                       <td className="p-1 border-r border-gray-200">
                         <select
-                          value={statusVal}
+                          value={getValue('verification_status', 'APPROVED')}
                           onChange={(e) => handleCellEdit(a.id, 'verification_status', e.target.value)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold cursor-pointer uppercase"
                         >
@@ -857,12 +1188,12 @@ export const AlumniManagement: React.FC = () => {
                         </select>
                       </td>
 
-                      {/* Row Action */}
-                      <td className="p-1 text-center">
+                      {/* Sticky Action Cell */}
+                      <td className="p-1 text-center sticky right-0 bg-white shadow-left">
                         <button
                           type="button"
                           onClick={() => handleSingleDelete(a.id, a.full_name)}
-                          className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                          className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer transition-colors"
                           title="Delete Row"
                         >
                           <Trash2 className="w-3.5 h-3.5 mx-auto" />

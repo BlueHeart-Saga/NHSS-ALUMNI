@@ -3,8 +3,8 @@ import io
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Any
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime, timezone
 from bson import ObjectId
 from app.core.database import get_db
@@ -476,21 +476,63 @@ async def update_own_profile(
     )
 
 class AdminUpdateAlumniRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    
     full_name: Optional[str] = None
-    passing_year: Optional[int] = None
-    section: Optional[str] = None
-    admission_number: Optional[str] = None
+    name_ta: Optional[str] = None
+    full_name_ta: Optional[str] = None
     mobile: Optional[str] = None
-    email: Optional[str] = None
+    country_code: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    dob: Optional[str] = None
     blood_group: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
+    relative_students_name: Optional[str] = None
+    current_city: Optional[str] = None
+    state: Optional[str] = None
+    current_state: Optional[str] = None
+    country: Optional[str] = None
+    school_name: Optional[str] = None
+    joining_year: Optional[int] = None
+    admission_year: Optional[int] = None
+    passing_year: Optional[int] = None
+    leaving_class: Optional[str] = None
+    admission_number: Optional[str] = None
+    roll_no: Optional[str] = None
+    section: Optional[str] = None
+    no_higher_education: Optional[str] = None
+    college_name: Optional[str] = None
+    institution_name: Optional[str] = None
+    degree: Optional[str] = None
+    custom_degree: Optional[str] = None
+    department: Optional[str] = None
+    stream: Optional[str] = None
+    college_register_no: Optional[str] = None
+    college_joining_year: Optional[int] = None
+    college_passing_year: Optional[int] = None
+    employment_status: Optional[str] = None
+    company: Optional[str] = None
+    company_name: Optional[str] = None
+    profession: Optional[str] = None
+    designation: Optional[str] = None
+    industry: Optional[str] = None
+    experience_years: Optional[Any] = None
+    total_experience: Optional[str] = None
+    skills: Optional[Any] = None
+    linkedin_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    website_url: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+    email: Optional[str] = None
     is_volunteer: Optional[str] = None
     willing_to_donate: Optional[str] = None
-    current_city: Optional[str] = None
-    profession: Optional[str] = None
-    company: Optional[str] = None
     verification_status: Optional[str] = None
 
 class BulkUpdateAlumniRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
     alumni_ids: List[str]
     verification_status: Optional[str] = None
     passing_year: Optional[int] = None

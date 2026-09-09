@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../services/api';
 import { FAQSection } from './components/FAQSection';
+import { PublicFeedbackShowcase } from './components/PublicFeedbackShowcase';
 
 export const PublicContact: React.FC = () => {
   const { t, language } = useLanguage();
@@ -35,12 +36,18 @@ export const PublicContact: React.FC = () => {
   };
 
   return (
-    <div className="bg-white text-[#111111] animate-fadeIn">
-      {/* Header Banner */}
-      <div className="py-10 sm:py-16 bg-white border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
+    <div className="bg-white text-[#111111] animate-fadeIn space-y-8 py-6">
+      
+      {/* 1st & 2nd SECTION: Public Feedback Form (1st) & Comments Showcase (2nd) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 border-b border-gray-200">
+        <PublicFeedbackShowcase />
+      </div>
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
+      {/* 3rd SECTION: GET IN TOUCH WITH US Header Banner */}
+      <div className="py-10 sm:py-14 bg-gradient-to-b from-amber-50/30 via-white to-white border-y border-[#E5E7EB]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
+          
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#111111] tracking-tight">
             {t('contact_title')}
           </h1>
           <p className="text-sm sm:text-lg text-gray-600 font-normal max-w-2xl mx-auto">
@@ -49,6 +56,7 @@ export const PublicContact: React.FC = () => {
         </div>
       </div>
 
+      {/* Contact Details & Enquiry Form Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 items-start">
           {/* Contact Details Column */}
@@ -124,8 +132,8 @@ export const PublicContact: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <h3 className="text-xl font-bold text-[#111111] pb-2 border-b border-gray-100">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <h3 className="text-xl font-bold text-[#111111] pb-2 border-b border-gray-200">
                   {language === 'ta' ? 'செய்தி படிவம்' : 'Send Us a Message'}
                 </h3>
 
@@ -136,70 +144,72 @@ export const PublicContact: React.FC = () => {
                 )}
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-gray-700 uppercase">{t('name_label')} *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">{t('name_label')} *</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ramesh Kumar"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                    className="w-full py-2.5 bg-transparent border-b-2 border-gray-300 text-sm font-bold text-[#111111] placeholder-gray-400 focus:border-[#F4C542] focus:outline-none transition-colors rounded-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-700 uppercase">{t('email_label')} *</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">{t('email_label')} *</label>
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your.email@example.com"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                      className="w-full py-2.5 bg-transparent border-b-2 border-gray-300 text-sm font-bold text-[#111111] placeholder-gray-400 focus:border-[#F4C542] focus:outline-none transition-colors rounded-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-700 uppercase">{t('mobile_label')}</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">{t('mobile_label')}</label>
                     <input
                       type="tel"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="+91 9876543210"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                      className="w-full py-2.5 bg-transparent border-b-2 border-gray-300 text-sm font-bold text-[#111111] placeholder-gray-400 focus:border-[#F4C542] focus:outline-none transition-colors rounded-none"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-gray-700 uppercase">{t('message_label')} *</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">{t('message_label')} *</label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     required
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Enter your message or inquiry here..."
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl font-medium text-gray-900 focus:bg-white focus:border-[#F4C542] focus:outline-none"
+                    className="w-full py-2.5 bg-transparent border-b-2 border-gray-300 text-sm font-medium text-[#111111] placeholder-gray-400 focus:border-[#F4C542] focus:outline-none transition-colors rounded-none resize-none"
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-4 px-6 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 text-[#F4C542] animate-spin" />
-                      <span>{language === 'ta' ? 'அனுப்பப்படுகிறது...' : 'Sending Email...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 text-[#F4C542]" />
-                      <span>{t('send_message_btn')}</span>
-                    </>
-                  )}
-                </button>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full py-4 px-6 bg-[#111111] hover:bg-black text-[#F4C542] font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center space-x-2 border border-[#F4C542]/40 cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 text-[#F4C542] animate-spin" />
+                        <span>{language === 'ta' ? 'அனுப்பப்படுகிறது...' : 'Sending Email...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 text-[#F4C542]" />
+                        <span>{t('send_message_btn')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             )}
           </div>

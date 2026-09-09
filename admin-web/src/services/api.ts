@@ -1,8 +1,10 @@
 import { 
   SchoolProfile, AlumniProfile, Batch, EventItem, SchoolEventItem, AttendanceDashboard, 
   AttendanceRosterItem, CheckinResult, Announcement, Memory, DashboardReport,
-  BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder, SchoolStaff
+  BatchCommitteeResponse, SchoolStaffMember, AssociationTeamMember, RankHolder, SchoolStaff,
+  FeedbackItem, FeedbackAnalytics, CreateFeedbackPayload
 } from '../types';
+import { convertFileToWebP } from '../utils/imageOptimizer';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -247,8 +249,9 @@ class ApiClient {
   }
 
   async uploadSchoolImage(file: File) {
+    const webpFile = await convertFileToWebP(file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', webpFile);
 
     const token = this.getToken();
     const headers: Record<string, string> = {};
@@ -650,8 +653,9 @@ class ApiClient {
   }
 
   async uploadMemoryFile(file: File) {
+    const webpFile = await convertFileToWebP(file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', webpFile);
 
     const headers: Record<string, string> = {};
     if (this.token) {
@@ -673,8 +677,11 @@ class ApiClient {
   }
 
   async uploadMultipleMemoryFiles(files: FileList | File[]) {
+    const fileArray = Array.from(files);
+    const webpFiles = await Promise.all(fileArray.map((file) => convertFileToWebP(file)));
+
     const formData = new FormData();
-    Array.from(files).forEach((file) => formData.append('files', file));
+    webpFiles.forEach((file) => formData.append('files', file));
 
     const headers: Record<string, string> = {};
     if (this.token) {
@@ -702,6 +709,13 @@ class ApiClient {
     });
   }
 
+  async updateMemory(id: string, data: Partial<Memory>) {
+    return this.request<Memory>(`/memories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async updateMemoryStatus(id: string, status: string, admin_remarks?: string) {
     return this.request<Memory>(`/memories/${id}/status`, {
       method: 'PUT',
@@ -711,6 +725,13 @@ class ApiClient {
 
   async deleteMemory(memory_id: string) {
     return this.request<{ success: boolean; message: string }>(`/memories/${memory_id}`, { method: 'DELETE' });
+  }
+
+  async bulkDeleteMemories(ids: string[]) {
+    return this.request<{ success: boolean; message: string; deleted: number }>('/memories/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
   }
 
   // Reports
@@ -919,6 +940,66 @@ class ApiClient {
 
   async getDeveloperAuditLogs() {
     return this.request<any[]>('/developer/audit-logs');
+  }
+
+  // --- ALUMNI FEEDBACK & OPINIONS ("கருத்துகள்") ---
+  async getPublicFeedback(params?: { feedback_type?: string; batch_year?: string; featured_only?: boolean; search?: string }) {
+    const q = new URLSearchParams();
+    if (params?.feedback_type) q.append('feedback_type', params.feedback_type);
+    if (params?.batch_year) q.append('batch_year', params.batch_year);
+    if (params?.featured_only) q.append('featured_only', 'true');
+    if (params?.search) q.append('search', params.search);
+    return this.request<FeedbackItem[]>(`/feedback/public?${q.toString()}`);
+  }
+
+  async createFeedback(data: CreateFeedbackPayload) {
+    return this.request<FeedbackItem>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyFeedback() {
+    return this.request<FeedbackItem[]>('/feedback/my');
+  }
+
+  async getAdminFeedback(params?: { status_filter?: string; feedback_type?: string; batch_year?: string; search?: string }) {
+    const q = new URLSearchParams();
+    if (params?.status_filter) q.append('status_filter', params.status_filter);
+    if (params?.feedback_type) q.append('feedback_type', params.feedback_type);
+    if (params?.batch_year) q.append('batch_year', params.batch_year);
+    if (params?.search) q.append('search', params.search);
+    return this.request<FeedbackItem[]>(`/feedback/admin?${q.toString()}`);
+  }
+
+  async getFeedbackAnalytics() {
+    return this.request<FeedbackAnalytics>('/feedback/admin/analytics');
+  }
+
+  async updateFeedbackStatus(id: string, status: 'APPROVED' | 'REJECTED' | 'PENDING', admin_remarks?: string) {
+    return this.request<FeedbackItem>(`/feedback/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, admin_remarks }),
+    });
+  }
+
+  async toggleFeaturedFeedback(id: string) {
+    return this.request<FeedbackItem>(`/feedback/${id}/feature`, {
+      method: 'PUT',
+    });
+  }
+
+  async updateFeedback(id: string, data: Partial<FeedbackItem>) {
+    return this.request<FeedbackItem>(`/feedback/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFeedback(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/feedback/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 

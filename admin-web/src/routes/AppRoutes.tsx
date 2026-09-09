@@ -12,6 +12,7 @@ import { PublicBatches } from '../pages/public-pages/PublicBatches';
 import { PublicEvents } from '../pages/public-pages/PublicEvents';
 import { PublicMemories } from '../pages/public-pages/PublicMemories';
 import { PublicContact } from '../pages/public-pages/PublicContact';
+import { PublicFeedback } from '../pages/public-pages/PublicFeedback';
 import { AlumniLogin } from '../pages/public-pages/AlumniLogin';
 import { AlumniRegister } from '../pages/public-pages/AlumniRegister';
 import { AuthCallback } from '../pages/public-pages/AuthCallback';
@@ -38,6 +39,7 @@ const AlumniGalleryPage = lazy(() => import('../pages/alumni/AlumniGalleryPage')
 const AlumniDocumentsPage = lazy(() => import('../pages/alumni/AlumniDocumentsPage').then(m => ({ default: m.AlumniDocumentsPage })));
 const AlumniNotificationsPage = lazy(() => import('../pages/alumni/AlumniNotificationsPage').then(m => ({ default: m.AlumniNotificationsPage })));
 const AlumniSettingsPage = lazy(() => import('../pages/alumni/AlumniSettingsPage').then(m => ({ default: m.AlumniSettingsPage })));
+const AlumniFeedback = lazy(() => import('../pages/alumni/AlumniFeedback').then(m => ({ default: m.AlumniFeedback })));
 const AlumniDataReportsModule = lazy(() => import('../pages/common-pages/AlumniDataReportsModule').then(m => ({ default: m.AlumniDataReportsModule })));
 
 // School Admin Pages (Lazy)
@@ -52,6 +54,7 @@ const EventDetails = lazy(() => import('../pages/school-admin/EventDetails').the
 const AttendanceRoster = lazy(() => import('../pages/school-admin/AttendanceRoster').then(m => ({ default: m.AttendanceRoster })));
 const AnnouncementsManager = lazy(() => import('../pages/school-admin/AnnouncementsManager').then(m => ({ default: m.AnnouncementsManager })));
 const MemoriesModeration = lazy(() => import('../pages/school-admin/MemoriesModeration').then(m => ({ default: m.MemoriesModeration })));
+const FeedbackManagement = lazy(() => import('../pages/school-admin/FeedbackManagement').then(m => ({ default: m.FeedbackManagement })));
 const ReportsDashboard = lazy(() => import('../pages/school-admin/ReportsDashboard').then(m => ({ default: m.ReportsDashboard })));
 const SchoolSettings = lazy(() => import('../pages/school-admin/SchoolSettings').then(m => ({ default: m.SchoolSettings })));
 const AssociationTeam = lazy(() => import('../pages/school-admin/AssociationTeam').then(m => ({ default: m.AssociationTeam })));
@@ -82,6 +85,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="events" element={<PublicEvents />} />
         <Route path="memories" element={<PublicMemories />} />
         <Route path="contact" element={<PublicContact />} />
+        <Route path="feedback" element={<PublicFeedback />} />
+        <Route path="karuthukal" element={<PublicFeedback />} />
         <Route path="login" element={<AlumniLogin />} />
         <Route path="register" element={<AlumniRegister />} />
         <Route path="auth/callback" element={<AuthCallback />} />
@@ -112,6 +117,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="memories" element={<AlumniGalleryPage />} />
         <Route path="documents" element={<AlumniDocumentsPage />} />
         <Route path="notifications" element={<AlumniNotificationsPage />} />
+        <Route path="feedback" element={<AlumniFeedback />} />
         <Route path="settings" element={<AlumniSettingsPage />} />
       </Route>
 
@@ -131,6 +137,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="school-events" element={<SchoolEventsManager />} />
         <Route path="announcements" element={<AnnouncementsManager />} />
         <Route path="memories" element={<MemoriesModeration />} />
+        <Route path="feedback" element={<FeedbackManagement />} />
         <Route path="association-team" element={<AssociationTeam />} />
         <Route path="rank-holders" element={<RankHoldersManager />} />
         <Route path="reports" element={<ReportsDashboard />} />

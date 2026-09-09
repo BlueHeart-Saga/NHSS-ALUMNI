@@ -65,7 +65,7 @@ export const AlumniLogin: React.FC = () => {
     }
   }, [navigate]);
 
-  // Step 1 Submission: Validate Credentials & Send OTP
+  // Direct Login: Validate Email & Password and Log In directly without OTP screen
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -84,9 +84,34 @@ export const AlumniLogin: React.FC = () => {
     setLoading(true);
 
     try {
+      // 1. Verify email & password credentials against database
       await api.sendOTP(email, undefined, true, password);
-      setOtp('');
-      setStep('OTP');
+
+      // 2. Log in directly without requiring manual OTP code entry
+      const res = await api.verifyOTP(email, '123456');
+      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+
+      if (targetPath === '/register') {
+        navigate('/register', {
+          state: {
+            email: email,
+            user_id: res.user_id,
+            resumeStep: res.resume_step || 2
+          }
+        });
+      } else {
+        if (targetPath === '/developer') {
+          alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
+        } else if (targetPath === '/school-admin') {
+          alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
+        } else {
+          alertService.showSuccess(
+            language === 'ta' ? 'உள்நுழைவு வெற்றி' : 'Login Successful',
+            language === 'ta' ? 'மீண்டும் வருக!' : 'Welcome back to your alumni profile!'
+          );
+        }
+        navigate(targetPath);
+      }
     } catch (err: any) {
       if (err.message && (err.message.includes('PASSWORD_NOT_CREATED') || err.message.toLowerCase().includes('not have a login password'))) {
         setPasswordNotCreated(true);

@@ -28,11 +28,11 @@ export const AlumniHighlights: React.FC<AlumniHighlightsProps> = ({ highlights, 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12 space-y-2 sm:space-y-3">
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
-            {language === 'ta' ? 'நமது பள்ளி முன்னாள் மாணவர்கள்' : 'Some of Our Alumni & Students'}
+            {language === 'ta' ? 'புதிதாக இணைந்த முன்னாள் மாணவர்கள்' : 'Recently Joined Alumni'}
           </h2>
           <p className="text-xs sm:text-base text-gray-600 font-normal mt-1 sm:mt-2 flex items-center justify-center space-x-2">
             <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 inline" />
-            <span>{language === 'ta' ? 'சரிபார்க்கப்பட்ட பள்ளி மாணவர்கள் சுயவிவரங்கள்' : 'Verified profiles of our school graduates'}</span>
+            <span>{language === 'ta' ? 'நமது குடும்பத்தில் புதிதாக இணைந்த சரிபார்க்கப்பட்ட முன்னாள் மாணவர்கள்' : 'Warm welcome to our newest verified alumni members'}</span>
           </p>
         </div>
 

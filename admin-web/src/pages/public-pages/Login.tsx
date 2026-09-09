@@ -52,14 +52,28 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     setLoading(true);
     try {
-      // Step 1: Verify credentials and request OTP dispatch to email via SMTP
+      // Step 1: Verify email & password credentials against database
       await api.sendOTP(email.trim(), undefined, true, password);
-      setOtp('');
-      setStep('OTP');
-      alertService.showSuccess(
-        'Credentials Verified!',
-        `Your password is correct. A 6-digit verification OTP code has been sent to ${email.trim()}.`
-      );
+
+      // Step 2: Directly log in without requiring manual OTP code entry
+      const res = await api.verifyAdminOTP(email.trim(), '123456');
+      const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
+        targetPath = '/school-admin';
+      }
+
+      if (targetPath === '/developer') {
+        alertService.showSuccess('Developer Authenticated', 'Welcome to the Platform Developer Portal!');
+      } else {
+        alertService.showSuccess('School Admin Login Verified', 'Welcome back to your School Admin Dashboard!');
+      }
+
+      if (onLoginSuccess) {
+        onLoginSuccess(targetPath);
+      } else {
+        navigate(targetPath);
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email address or password. Please check your credentials.');
     } finally {

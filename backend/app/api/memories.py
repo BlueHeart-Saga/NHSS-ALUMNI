@@ -16,6 +16,7 @@ router = APIRouter(prefix="/memories", tags=["Event Memories & Photos Management
 
 class MemoryCreatePayload(BaseModel):
     title: str
+    title_ta: Optional[str] = None
     album_name: Optional[str] = "General School Gallery"
     media_type: Optional[str] = "IMAGE"  # IMAGE, VIDEO, ALBUM
     image_url: Optional[str] = ""
@@ -24,6 +25,8 @@ class MemoryCreatePayload(BaseModel):
     video_url: Optional[str] = None
     video_thumbnail_url: Optional[str] = None
     description: Optional[str] = None
+    description_ta: Optional[str] = None
+    target_audience: Optional[str] = "PUBLIC"  # PUBLIC vs BATCH
     batch_year: Optional[str] = None
     batch_id: Optional[str] = None
     uploader_name: Optional[str] = "Alumni Member"
@@ -48,6 +51,7 @@ def format_memory(p: dict) -> dict:
     return {
         "id": str(p["_id"]),
         "title": p.get("title", "School Memory"),
+        "title_ta": p.get("title_ta"),
         "album_name": p.get("album_name", "General School Gallery"),
         "media_type": p.get("media_type", "IMAGE"),
         "image_url": cover,
@@ -56,6 +60,8 @@ def format_memory(p: dict) -> dict:
         "video_url": p.get("video_url"),
         "video_thumbnail_url": p.get("video_thumbnail_url"),
         "description": p.get("description", ""),
+        "description_ta": p.get("description_ta"),
+        "target_audience": p.get("target_audience", "PUBLIC"),
         "batch_year": str(p.get("batch_year", p.get("batch_id", ""))),
         "uploader_name": p.get("uploader_name", "Alumni Member"),
         "uploader_email": p.get("uploader_email", ""),
@@ -138,6 +144,7 @@ async def create_memory(payload: MemoryCreatePayload):
     now = datetime.now(timezone.utc)
     doc = {
         "title": payload.title.strip(),
+        "title_ta": payload.title_ta.strip() if payload.title_ta else None,
         "album_name": payload.album_name.strip() if payload.album_name else "General School Gallery",
         "media_type": payload.media_type.upper() if payload.media_type else "IMAGE",
         "image_url": cover,
@@ -146,6 +153,8 @@ async def create_memory(payload: MemoryCreatePayload):
         "video_url": payload.video_url.strip() if payload.video_url else None,
         "video_thumbnail_url": payload.video_thumbnail_url.strip() if payload.video_thumbnail_url else None,
         "description": payload.description.strip() if payload.description else "",
+        "description_ta": payload.description_ta.strip() if payload.description_ta else None,
+        "target_audience": payload.target_audience.strip() if payload.target_audience else "PUBLIC",
         "batch_year": payload.batch_year.strip() if payload.batch_year else "",
         "batch_id": payload.batch_id.strip() if payload.batch_id else "",
         "uploader_name": payload.uploader_name.strip() if payload.uploader_name else "Alumni Member",
@@ -219,6 +228,81 @@ async def update_memory_status(memory_id: str, payload: MemoryStatusUpdatePayloa
     await db.memories.update_one({"_id": obj_id}, {"$set": update_fields})
     updated = await db.memories.find_one({"_id": obj_id})
     return format_memory(updated)
+
+class MemoryUpdatePayload(BaseModel):
+    title: Optional[str] = None
+    title_ta: Optional[str] = None
+    album_name: Optional[str] = None
+    media_type: Optional[str] = None
+    image_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    media_urls: Optional[List[str]] = None
+    video_url: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    target_audience: Optional[str] = None
+    batch_year: Optional[str] = None
+    uploader_name: Optional[str] = None
+    status: Optional[str] = None
+
+class BulkDeleteMemoriesPayload(BaseModel):
+    ids: List[str]
+
+@router.put("/{memory_id}")
+async def update_memory(memory_id: str, payload: MemoryUpdatePayload):
+    """Updates memory record / album details and media URLs."""
+    db = get_db()
+    try:
+        obj_id = ObjectId(memory_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid memory ID format")
+
+    memory = await db.memories.find_one({"_id": obj_id})
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory record not found")
+
+    update_fields = {"updated_at": datetime.now(timezone.utc)}
+    if payload.title is not None: update_fields["title"] = payload.title.strip()
+    if payload.title_ta is not None: update_fields["title_ta"] = payload.title_ta.strip() if payload.title_ta else None
+    if payload.album_name is not None: update_fields["album_name"] = payload.album_name.strip()
+    if payload.media_type is not None: update_fields["media_type"] = payload.media_type.upper()
+    if payload.cover_image_url is not None:
+        update_fields["cover_image_url"] = payload.cover_image_url.strip()
+        update_fields["image_url"] = payload.cover_image_url.strip()
+    if payload.media_urls is not None: update_fields["media_urls"] = payload.media_urls
+    if payload.video_url is not None: update_fields["video_url"] = payload.video_url.strip()
+    if payload.description is not None: update_fields["description"] = payload.description.strip()
+    if payload.description_ta is not None: update_fields["description_ta"] = payload.description_ta.strip() if payload.description_ta else None
+    if payload.target_audience is not None: update_fields["target_audience"] = payload.target_audience.strip()
+    if payload.batch_year is not None: update_fields["batch_year"] = payload.batch_year.strip()
+    if payload.uploader_name is not None: update_fields["uploader_name"] = payload.uploader_name.strip()
+    if payload.status is not None and payload.status.upper() in VALID_STATUSES:
+        update_fields["status"] = payload.status.upper()
+
+    await db.memories.update_one({"_id": obj_id}, {"$set": update_fields})
+    updated = await db.memories.find_one({"_id": obj_id})
+    return format_memory(updated)
+
+@router.post("/bulk-delete")
+async def bulk_delete_memories(payload: BulkDeleteMemoriesPayload):
+    """Deletes multiple memory records in bulk."""
+    db = get_db()
+    if not payload.ids:
+        return {"success": True, "deleted": 0}
+
+    obj_ids = []
+    for id_str in payload.ids:
+        try:
+            obj_ids.append(ObjectId(id_str))
+        except Exception:
+            pass
+
+    res = await db.memories.delete_many({"_id": {"$in": obj_ids}})
+    return {
+        "success": True,
+        "message": f"Successfully deleted {res.deleted_count} memory records",
+        "deleted": res.deleted_count
+    }
 
 @router.delete("/{memory_id}")
 async def delete_memory(memory_id: str):

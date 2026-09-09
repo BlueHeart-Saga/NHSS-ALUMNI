@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserCheck, GraduationCap, Calendar, Sparkles,
-  Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Award, Trophy 
+  Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Award, Trophy,
+  MessageSquareQuote
 } from 'lucide-react';
 import { SchoolProfile } from '../types';
 import { api } from '../services/api';
@@ -30,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { label: t('admin_school_events'), path: '/school-admin/school-events', icon: Sparkles },
     { label: t('admin_announcements'), path: '/school-admin/announcements', icon: Megaphone },
     { label: t('admin_memories'), path: '/school-admin/memories', icon: ImageIcon },
+    { label: t('admin_feedback'), path: '/school-admin/feedback', icon: MessageSquareQuote },
     { label: t('admin_association_team'), path: '/school-admin/association-team', icon: Award },
     { label: t('admin_rank_holders'), path: '/school-admin/rank-holders', icon: Trophy },
     { label: t('admin_reports'), path: '/school-admin/reports', icon: BarChart3 },

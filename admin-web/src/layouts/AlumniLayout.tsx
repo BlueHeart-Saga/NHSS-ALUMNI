@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, User, Users, Compass, MessageSquare, GraduationCap, 
+import {
+  LayoutDashboard, User, Users, Compass, MessageSquare, GraduationCap,
   Calendar, Bell, Camera, Award, Settings, LogOut, Menu, X, Search,
   ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Clock, ShieldAlert,
-  AlertTriangle, RefreshCw, Mail
+  AlertTriangle, RefreshCw, Mail, MessageSquareQuote
 } from 'lucide-react';
 import { api } from '../services/api';
 import { AlumniProfile, SchoolProfile } from '../types';
@@ -28,7 +28,7 @@ export const AlumniLayout: React.FC = () => {
   const [school, setSchool] = useState<SchoolProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Sidebar Collapse & Mobile Drawer state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,10 +78,9 @@ export const AlumniLayout: React.FC = () => {
   };
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
-    `w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-      isActive
-        ? 'bg-[#111111] text-white shadow-sm font-semibold'
-        : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
+    `w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
+      ? 'bg-[#111111] text-white shadow-sm font-semibold'
+      : 'text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]'
     } ${sidebarCollapsed ? 'justify-center px-2' : ''}`;
 
   if (loading) {
@@ -105,7 +104,7 @@ export const AlumniLayout: React.FC = () => {
 
     return (
       <div className="min-h-screen w-screen bg-[#FAFAFA] text-[#111111] flex flex-col font-sans selection:bg-[#F4C542] selection:text-[#111111]">
-        
+
         {/* Top Minimal Bar */}
         <header className="h-16 shrink-0 bg-white border-b border-[#E5E7EB] px-3.5 sm:px-8 flex items-center justify-between shadow-2xs z-20">
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
@@ -139,7 +138,7 @@ export const AlumniLayout: React.FC = () => {
         {/* Main Center Area with Awaiting Approval Card */}
         <main className="flex-1 flex items-center justify-center p-3.5 sm:p-6 md:p-10">
           <div className="max-w-2xl w-full bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-10 shadow-xl space-y-5 sm:space-y-6 text-center animate-fadeIn relative overflow-hidden">
-            
+
             {/* Soft Ambient Glow */}
             <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#F4C542]/20 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-amber-300/15 rounded-full blur-3xl pointer-events-none" />
@@ -281,7 +280,7 @@ export const AlumniLayout: React.FC = () => {
       {/* 1. TOP NAVBAR (FIXED HEIGHT, NEVER MOVES OR SHIFTS) */}
       {/* ========================================================================= */}
       <header className="h-16 shrink-0 bg-white border-b border-[#E5E7EB] px-3 sm:px-6 z-30 flex items-center justify-between shadow-2xs">
-        
+
         {/* Left: Mobile Toggle, Desktop Expand/Collapse & School Brand */}
         <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
           <button
@@ -398,7 +397,7 @@ export const AlumniLayout: React.FC = () => {
       {/* 2. BODY LAYOUT (SIDEBAR & MAIN AREA AT FULL REMAINING HEIGHT) */}
       {/* ========================================================================= */}
       <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden relative">
-        
+
         {/* Mobile Backdrop */}
         {mobileMenuOpen && (
           <div
@@ -414,7 +413,7 @@ export const AlumniLayout: React.FC = () => {
           ${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-64 shadow-2xl translate-x-0' : 'fixed inset-y-0 left-0 z-50 w-64 -translate-x-full lg:translate-x-0 lg:static'}
         `}>
           <nav className="flex-1 p-3.5 sm:p-4 space-y-5 sm:space-y-6 text-xs">
-            
+
             {/* SECTION 1: MAIN */}
             <div>
               {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_main')}</p>}
@@ -468,6 +467,10 @@ export const AlumniLayout: React.FC = () => {
                 <NavLink to="/alumni/gallery" className={navItemClass} title={t('alumni_nav_gallery')}>
                   <Camera className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_gallery')}</span>}
+                </NavLink>
+                <NavLink to="/alumni/feedback" className={navItemClass} title={language === 'ta' ? ' கருத்துகள்' : 'Feedback & Opinions'}>
+                  <MessageSquareQuote className="w-4 h-4 shrink-0 text-[#854D0E]" />
+                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'கருத்துகள் & பரிந்துரைகள்' : 'Feedback / கருத்துகள்'}</span>}
                 </NavLink>
               </div>
             </div>

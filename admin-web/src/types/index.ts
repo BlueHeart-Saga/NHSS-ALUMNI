@@ -142,30 +142,60 @@ export interface AlumniProfile {
   user_id: string;
   school_id: string;
   full_name: string;
+  name_ta?: string;
+  full_name_ta?: string;
   mobile: string;
-  email: string;
-  profile_photo_url?: string;
-  passing_year: number;
-  batch_id?: string;
-  admission_number: string;
-  section?: string;
+  country_code?: string;
+  gender?: string;
+  date_of_birth?: string;
+  dob?: string;
+  blood_group?: string;
+  father_name?: string;
+  mother_name?: string;
+  relative_students_name?: string;
   current_city?: string;
   state?: string;
+  current_state?: string;
   country?: string;
-  profession?: string;
+  school_name?: string;
+  joining_year?: number;
+  admission_year?: number;
+  passing_year: number;
+  leaving_class?: string;
+  admission_number: string;
+  roll_no?: string;
+  section?: string;
+  no_higher_education?: string;
+  college_name?: string;
+  institution_name?: string;
+  degree?: string;
+  custom_degree?: string;
+  department?: string;
+  stream?: string;
+  college_register_no?: string;
+  college_joining_year?: number;
+  college_passing_year?: number;
+  employment_status?: string;
   company?: string;
+  company_name?: string;
+  profession?: string;
+  designation?: string;
   industry?: string;
   experience_years?: number;
+  total_experience?: string;
+  skills?: string[];
+  linkedin_url?: string;
+  instagram_url?: string;
+  whatsapp_number?: string;
+  website_url?: string;
+  profile_photo_url?: string;
+  email: string;
+  batch_id?: string;
   bio?: string;
   roll_number?: string;
   house?: string;
-  stream?: string;
-  linkedin_url?: string;
   github_url?: string;
   twitter_url?: string;
-  website_url?: string;
-  skills?: string[];
-  blood_group?: string;
   is_volunteer?: string;
   willing_to_donate?: string;
   phone_visible?: boolean;
@@ -303,9 +333,12 @@ export interface Memory {
   batch_year?: string;
   event_id?: string;
   title: string;
+  title_ta?: string;
   album_name?: string;
   media_type?: 'IMAGE' | 'VIDEO' | 'ALBUM';
   description?: string;
+  description_ta?: string;
+  target_audience?: string;
   image_url: string;
   cover_image_url?: string;
   media_urls?: string[];
@@ -376,3 +409,43 @@ export interface SchoolStaff {
   notes_ta?: string;
   created_at?: string;
 }
+
+export interface FeedbackItem {
+  id: string;
+  user_id?: string;
+  alumni_name: string;
+  alumni_name_ta?: string;
+  batch_year: string;
+  photo_url?: string;
+  location?: string;
+  feedback_type: 'WEBSITE' | 'MEMORIES' | 'ASSOCIATION' | 'EVENTS' | 'SUGGESTIONS' | 'APPRECIATION' | 'OTHER' | string;
+  feedback_text: string;
+  feedback_text_ta?: string;
+  rating?: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  admin_remarks?: string;
+  is_featured?: boolean;
+  created_at?: string;
+}
+
+export interface FeedbackAnalytics {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  featured: number;
+  average_rating: number;
+}
+
+export interface CreateFeedbackPayload {
+  alumni_name: string;
+  alumni_name_ta?: string;
+  batch_year: string;
+  photo_url?: string;
+  location?: string;
+  feedback_type: string;
+  feedback_text: string;
+  feedback_text_ta?: string;
+  rating?: number;
+}
+

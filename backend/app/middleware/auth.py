@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 from bson import ObjectId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -82,3 +83,14 @@ async def require_verified_alumni(current_user: dict = Depends(get_current_user)
             detail=f"Access denied. Alumni profile status is '{status_val}'. Only APPROVED alumni can perform this action."
         )
     return current_user
+
+
+security_optional = HTTPBearer(auto_error=False)
+
+async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional)):
+    if not credentials:
+        return None
+    try:
+        return await get_current_user(credentials)
+    except Exception:
+        return None

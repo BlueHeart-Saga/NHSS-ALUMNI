@@ -50,8 +50,11 @@ class BlobStorageService:
         start_time = time.perf_counter()
         try:
             img = Image.open(io.BytesIO(file_bytes))
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
+            if img.mode not in ("RGB", "RGBA"):
+                if "transparency" in img.info or img.mode == "P":
+                    img = img.convert("RGBA")
+                else:
+                    img = img.convert("RGB")
             
             img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
             output = io.BytesIO()
@@ -62,7 +65,13 @@ class BlobStorageService:
         except Exception as e:
             duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
             logger.error(f"operation=image_resize_error duration_ms={duration_ms} error={e}")
-            return file_bytes, "image/jpeg"
+            try:
+                img = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+                output = io.BytesIO()
+                img.save(output, format="WEBP", quality=quality)
+                return output.getvalue(), "image/webp"
+            except Exception:
+                return file_bytes, "image/webp"
 
     async def upload_image(
         self,

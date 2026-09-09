@@ -24,6 +24,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
 import { AlumniAssociationSection } from './components/AlumniAssociationSection';
 
+
 export const PublicAbout: React.FC = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
@@ -33,12 +34,8 @@ export const PublicAbout: React.FC = () => {
     total_batches: 0,
     years_connected: 0
   });
-  const [memories, setMemories] = useState<any[]>([]);
-  const [activePhoto, setActivePhoto] = useState<any | null>(null);
-
   useEffect(() => {
     api.getPublicStats().then(setStats).catch(console.error);
-    api.getPublicMemories().then(setMemories).catch(() => setMemories([]));
 
     if (window.location.hash === '#association-team') {
       setTimeout(() => {
@@ -356,99 +353,12 @@ export const PublicAbout: React.FC = () => {
           </div>
         </div>
 
-        {/* 7. MEMORIES PHOTO SHOWCASE */}
-        <div className="space-y-6 sm:space-y-8 pt-6 border-t border-gray-200">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl sm:text-3xl font-bold text-[#111111]">
-              {language === 'ta' ? 'நமது பள்ளி வாழ்க்கையின் வரலாற்றுத் தருணங்கள்' : 'Glimpses of Our School History & Alumni Traditions'}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {memories.map((photo) => (
-              <div
-                key={photo.id}
-                onClick={() => setActivePhoto(photo)}
-                className="group relative overflow-hidden rounded-xl sm:rounded-2xl border border-gray-200 shadow-md bg-white hover:shadow-2xl hover:border-[#F4C542] transition-all cursor-pointer transform hover:-translate-y-1"
-              >
-                <div className="h-36 sm:h-48 overflow-hidden bg-gray-100 relative">
-                  <img src={getAssetUrl(photo.image_url) || photo.image_url} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-3 sm:p-4 bg-white">
-                  <span className="text-[10px] sm:text-[11px] font-bold text-[#854D0E] uppercase tracking-wider">{photo.batch_year ? `Batch ${photo.batch_year}` : 'School Memory'}</span>
-                  <h4 className="font-bold text-xs sm:text-sm text-[#111111] mt-0.5 leading-snug line-clamp-1">{photo.title}</h4>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* View More Button */}
-          <div className="text-center pt-6 sm:pt-8">
-            <button
-              onClick={() => navigate('/memories')}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-3 px-6 sm:px-8 py-3.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-xl hover:shadow-2xl transition-all cursor-pointer border border-[#F4C542]/40"
-            >
-              <span>{language === 'ta' ? 'மேலும் நினைவுகள் ஆல்பம் பார்க்க' : 'View Full Memories Gallery'}</span>
-              <ArrowRight className="w-4 h-4 text-[#F4C542]" />
-            </button>
-          </div>
-        </div>
+       
 
         {/* 8. ALL ASSOCIATION LEADERSHIP BOARD & OFFICE BEARERS (Paginated) */}
         <AlumniAssociationSection isHomePage={false} pageSize={8} />
 
       </div>
-
-      {/* Interactive Lightbox Popup Modal */}
-      {activePhoto && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
-            {/* Close Button */}
-            <button
-              onClick={() => setActivePhoto(null)}
-              className="absolute top-4 right-4 z-20 bg-black/70 hover:bg-black text-white p-2 rounded-full border border-white/20 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Image Preview */}
-            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
-              <img
-                src={getAssetUrl(activePhoto.image_url) || activePhoto.image_url}
-                alt={activePhoto.title}
-                className="max-h-[60vh] w-full object-contain"
-              />
-            </div>
-
-            {/* Modal Info Bar */}
-            <div className="p-6 bg-white space-y-4">
-              <div>
-                <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
-                  {activePhoto.batch_year ? `Batch ${activePhoto.batch_year}` : 'School Archive'}
-                </span>
-                <h3 className="text-xl font-bold text-[#111111] mt-2">{activePhoto.title}</h3>
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                <p className="text-xs text-gray-500 font-medium">
-                  {language === 'ta' ? 'மேலும் புகைப்படங்கள் மற்றும் நினைவுகளுக்கு உள்நுழைக' : 'Log in to explore the complete school photo archive'}
-                </p>
-                <button
-                  onClick={() => {
-                    setActivePhoto(null);
-                    navigate('/login');
-                  }}
-                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
-                >
-                  <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };
