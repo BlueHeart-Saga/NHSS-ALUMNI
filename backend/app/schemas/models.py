@@ -24,6 +24,12 @@ class VerifyOTPRequest(BaseModel):
     mobile: Optional[str] = Field(None, example="+919876543210")
     otp: str
 
+class LoginRequest(BaseModel):
+    email: Optional[str] = Field(None, example="user@school.com")
+    mobile: Optional[str] = Field(None, example="+919876543210")
+    password: str
+    remember_me: Optional[bool] = True
+
 class UpdatePasswordRequest(BaseModel):
     password: str
 

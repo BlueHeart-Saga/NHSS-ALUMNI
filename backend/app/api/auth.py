@@ -16,7 +16,7 @@ from app.services.email import send_otp_email
 from app.schemas.models import (
     SendOTPRequest, SendOTPResponse, VerifyOTPRequest, TokenResponse,
     UserRegistrationRequest, UserProfileResponse, UpdatePasswordRequest,
-    SetPasswordWithOTPRequest
+    SetPasswordWithOTPRequest, LoginRequest
 )
 from app.middleware.auth import get_current_user
 
@@ -360,6 +360,168 @@ async def send_otp(request: SendOTPRequest):
         email=target_email or email,
         mobile=mobile,
         dev_otp=None
+    )
+
+@router.post("/login", response_model=TokenResponse)
+async def login(request: LoginRequest):
+    """
+    Direct Email/Mobile & Password Login without OTP verification.
+    Authenticates user, verifies password directly, and issues JWT access token.
+    """
+    raw_id = request.email.strip() if request.email else None
+    mobile = request.mobile.strip() if request.mobile else None
+    email = None
+
+    if raw_id:
+        if "@" in raw_id:
+            email = raw_id.lower()
+        else:
+            if not mobile:
+                mobile = raw_id
+
+    password = request.password.strip() if request.password else ""
+
+    if not email and not mobile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide your registered email address or mobile number."
+        )
+
+    if not password:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide your account password."
+        )
+
+    identifier = email or mobile
+    db = get_db()
+
+    query = []
+    if email:
+        query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    if mobile:
+        clean_mob = mobile.replace("+91", "").strip()
+        query.extend([{"mobile": mobile}, {"mobile": clean_mob}, {"mobile": f"+91{clean_mob}"}])
+
+    user = await db.users.find_one({"$or": query}) if query else None
+    alumni = None
+
+    # If user doc is not found directly, check alumni collection
+    if not user:
+        alumni = await db.alumni.find_one({"$or": query}) if query else None
+        if alumni:
+            user_id = alumni.get("user_id")
+            if user_id:
+                try:
+                    user = await db.users.find_one({"_id": ObjectId(user_id)})
+                except Exception:
+                    user = await db.users.find_one({"_id": user_id})
+            if not user:
+                # Provision user account linked to this alumni record
+                school_id = alumni.get("school_id")
+                if not school_id:
+                    school = await db.schools.find_one({})
+                    school_id = str(school["_id"]) if school else None
+                new_user = {
+                    "school_id": school_id,
+                    "roles": ["ALUMNI"],
+                    "is_active": True,
+                    "password": alumni.get("password") or alumni.get("password_hash"),
+                    "created_at": datetime.now(timezone.utc)
+                }
+                if email or alumni.get("email"):
+                    new_user["email"] = email or alumni.get("email")
+                if mobile or alumni.get("mobile"):
+                    new_user["mobile"] = mobile or alumni.get("mobile")
+
+                res = await db.users.insert_one(new_user)
+                user = new_user
+                user["_id"] = res.inserted_id
+                await db.alumni.update_one({"_id": alumni["_id"]}, {"$set": {"user_id": str(res.inserted_id)}})
+
+    if not user and not alumni:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No registered account found for '{identifier}'. Please register your profile first."
+        )
+
+    user_id = str(user["_id"]) if user else None
+    if not alumni and user_id:
+        alumni = await db.alumni.find_one({"user_id": user_id})
+        if not alumni and user.get("email"):
+            alumni = await db.alumni.find_one({"email": {"$regex": f"^{user.get('email')}$", "$options": "i"}})
+
+    # Verify password against user or alumni record
+    stored_password = (user.get("password") or user.get("password_hash")) if user else None
+    if not stored_password and alumni:
+        stored_password = alumni.get("password") or alumni.get("password_hash")
+
+    if not stored_password:
+        raise HTTPException(
+            status_code=400,
+            detail=f"PASSWORD_NOT_CREATED: Your account '{identifier}' does not have a login password set yet. Please create a password first."
+        )
+
+    if stored_password != password:
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect password entered. Please check your password and try again."
+        )
+
+    roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
+    verification_status = alumni.get("verification_status") if alumni else None
+    school_id = user.get("school_id") if user else (alumni.get("school_id") if alumni else None)
+
+    if not school_id:
+        school = await db.schools.find_one({})
+        school_id = str(school["_id"]) if school else None
+
+    # Evaluate profile completion status & wizard resume step
+    is_profile_complete = False
+    resume_step = 2
+
+    if alumni:
+        has_personal = bool(alumni.get("full_name") and alumni.get("mobile") and alumni.get("current_city"))
+        has_academic = bool(alumni.get("degree") and alumni.get("stream") and alumni.get("joining_year") and alumni.get("passing_year"))
+        if has_personal and has_academic:
+            is_profile_complete = True
+            resume_step = 5
+        elif has_personal:
+            resume_step = 4
+        else:
+            resume_step = 3
+    else:
+        user_pass = user.get("password") if user else None
+        if user_pass:
+            resume_step = 3
+        else:
+            resume_step = 2
+
+    registration_required = not is_profile_complete
+
+    token_data = {
+        "sub": user_id,
+        "school_id": school_id,
+        "roles": roles,
+        "verification_status": verification_status
+    }
+
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+
+    print(f" [LOGIN SUCCESS] Direct credentials login: {identifier} (Roles: {roles})")
+    logger.info(f"Direct login successful for {identifier}, roles: {roles}")
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_id=user_id,
+        roles=roles,
+        verification_status=verification_status,
+        registration_required=registration_required,
+        resume_step=resume_step,
+        alumni_id=str(alumni["_id"]) if alumni else None,
+        school_id=school_id
     )
 
 @router.post("/verify-otp", response_model=TokenResponse)

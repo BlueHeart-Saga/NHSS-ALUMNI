@@ -39,7 +39,7 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, load
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div className="space-y-2 sm:space-y-3">
             <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#111111] tracking-tight">
-              {language === 'ta' ? 'பள்ளி வரலாற்று நிகழ்வுகள்' : 'Past School Events & Get-Togethers'}
+              {language === 'ta' ? ' வரலாற்று நிகழ்வுகள்' : 'Past Events & Get-Togethers'}
             </h2>
           </div>
 

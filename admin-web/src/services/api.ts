@@ -142,6 +142,29 @@ class ApiClient {
   }
 
   // Auth
+  async login(identifier: string, password: string, rememberMe: boolean = true) {
+    const { email, mobile } = this.parseIdentifier(identifier);
+    const res = await this.request<{
+      access_token: string;
+      refresh_token: string;
+      token_type: string;
+      user_id: string;
+      roles: string[];
+      verification_status: string;
+      registration_required: boolean;
+      resume_step?: number;
+      alumni_id?: string;
+      school_id?: string;
+    }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: email || identifier, mobile, password, remember_me: rememberMe }),
+    });
+    if (res.access_token) {
+      this.setToken(res.access_token);
+    }
+    return res;
+  }
+
   async sendOTP(identifier: string, secondaryPhone?: string, checkUser: boolean = false, password?: string, forPasswordReset: boolean = false, checkAlreadyRegistered: boolean = false, forDeveloper: boolean = false) {
     const { email, mobile } = this.parseIdentifier(identifier, secondaryPhone);
     return this.request<{ success: boolean; message: string; email?: string; mobile?: string; dev_otp?: string }>('/auth/send-otp', {

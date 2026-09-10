@@ -40,18 +40,18 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, 
     <section id="school-news" className="py-12 sm:py-20 bg-white border-b border-[#E5E7EB]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12 space-y-2 sm:space-y-3">
-          <div className="inline-flex items-center space-x-2 bg-[#FFF7D6] border border-[#F4C542]/80 px-3.5 py-1 rounded-full text-xs font-bold text-[#854D0E] mb-2">
+          {/* <div className="inline-flex items-center space-x-2 bg-[#FFF7D6] border border-[#F4C542]/80 px-3.5 py-1 rounded-full text-xs font-bold text-[#854D0E] mb-2">
             <Megaphone className="w-3.5 h-3.5 text-[#854D0E]" />
-            <span>{language === 'ta' ? 'பள்ளி அறிவிப்புகள்' : 'Official Bulletins'}</span>
-          </div>
+            <span>{language === 'ta' ? 'அறிவிப்புகள்' : 'Official Bulletins'}</span>
+          </div> */}
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-[#111111] tracking-tight">
-            {language === 'ta' ? 'பள்ளிச் செய்திகள் மற்றும் புதிய அறிவிப்புகள்' : 'School News & Official Updates'}
+            {language === 'ta' ? 'செய்திகள் மற்றும் புதிய அறிவிப்புகள்' : 'School News & Official Updates'}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto">
+          {/* <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto">
             {language === 'ta'
-              ? 'பள்ளியின் முக்கிய நிகழ்வுகள், சுற்றறிக்கைகள் மற்றும் முன்னாள் மாணவர்களுக்கான அறிவிப்புகள்'
+              ? ' முக்கிய நிகழ்வுகள், சுற்றறிக்கைகள் மற்றும் முன்னாள் மாணவர்களுக்கான அறிவிப்புகள்'
               : 'Stay informed with the latest school events, official circulars, and community broadcasts'}
-          </p>
+          </p> */}
         </div>
 
         {loading ? (
@@ -84,12 +84,12 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, 
             <div className="space-y-2">
               <h3 className="text-xl sm:text-2xl font-bold text-[#111111]">
                 {language === 'ta'
-                  ? 'பள்ளிச் செய்திகள் விரைவில் பகிரப்படும்'
+                  ? ' செய்திகள் விரைவில் பகிரப்படும்'
                   : 'School Updates Will Be Published Soon'}
               </h3>
               <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
                 {language === 'ta'
-                  ? 'பள்ளியின் முக்கிய நிகழ்வுகள், தேர்வு அறிவிப்புகள், சாதனைகள் மற்றும் சுற்றறிக்கைகள் விரைவில் இங்கு பதிவேற்றப்படும். தொடர்ந்து இணைந்திருங்கள்!'
+                  ? 'முக்கிய நிகழ்வுகள், தேர்வு அறிவிப்புகள், சாதனைகள் மற்றும் சுற்றறிக்கைகள் விரைவில் இங்கு பதிவேற்றப்படும். தொடர்ந்து இணைந்திருங்கள்!'
                   : 'Important school circulars, exam notifications, upcoming celebrations, and student achievements will be posted here soon. Stay tuned!'}
               </p>
             </div>
