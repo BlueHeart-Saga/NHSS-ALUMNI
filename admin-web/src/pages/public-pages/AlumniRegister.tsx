@@ -189,8 +189,8 @@ export const AlumniRegister: React.FC = () => {
 
   // Step 3 — School Details
   const [schoolName, setSchoolName] = useState('NHS School');
-  const [joiningYear, setJoiningYear] = useState('2010');
-  const [passingYear, setPassingYear] = useState('2015');
+  const [joiningYear, setJoiningYear] = useState('');
+  const [passingYear, setPassingYear] = useState('');
   const [leavingClass, setLeavingClass] = useState('10th');
 
   // Step 4 — Higher Education Details
@@ -490,7 +490,7 @@ export const AlumniRegister: React.FC = () => {
       city: currentCity.trim(),
       state: state.trim(),
       country: country.trim() || 'India',
-      passing_year: parseInt(passingYear) || 2015
+      passing_year: passingYear ? parseInt(passingYear) : undefined
     });
 
     goToStep(3);

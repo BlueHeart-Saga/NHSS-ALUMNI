@@ -175,7 +175,29 @@ export const PublicLayout: React.FC = () => {
           <div>
             <div className="font-bold text-[#111111] text-base sm:text-lg">{t('app_title')}</div>
             <div className="mt-1.5 text-xs sm:text-sm text-gray-500 font-medium flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span>{t('copyright')}</span>
+              <span>
+                {(() => {
+                  const copyrightText = t('copyright');
+                  const parts = copyrightText.split('Devopstrio');
+                  if (parts.length > 1) {
+                    return (
+                      <>
+                        {parts[0]}
+                        <a
+                          href="https://devopstrio.co.uk/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-gray-700 hover:text-[#854D0E] underline underline-offset-2 transition-colors"
+                        >
+                          Devopstrio
+                        </a>
+                        {parts[1]}
+                      </>
+                    );
+                  }
+                  return copyrightText;
+                })()}
+              </span>
               <span className="text-gray-300 hidden sm:inline">•</span>
               <Link
                 to="/admin/login"

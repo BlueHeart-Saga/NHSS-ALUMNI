@@ -16,7 +16,8 @@ import {
   Award,
   ChevronRight,
   BookMarked,
-  Lightbulb
+  Lightbulb,
+  Calendar
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link, useNavigate } from 'react-router-dom';
@@ -32,10 +33,18 @@ export const PublicAbout: React.FC = () => {
     school_name: 'Our School',
     total_alumni: 0,
     total_batches: 0,
+    total_events: 0,
     years_connected: 0
   });
+  const [loadingStats, setLoadingStats] = useState(true);
+
   useEffect(() => {
-    api.getPublicStats().then(setStats).catch(console.error);
+    api.getPublicStats()
+      .then((sData) => {
+        if (sData) setStats(sData);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingStats(false));
 
     if (window.location.hash === '#association-team') {
       setTimeout(() => {
@@ -190,23 +199,73 @@ export const PublicAbout: React.FC = () => {
           <div className="lg:col-span-5 bg-[#FAFAFA] border-2 border-[#111111] rounded-3xl p-5 sm:p-8 shadow-[8px_8px_0px_0px_#F4C542] space-y-6">
             <h3 className="text-xl font-bold text-[#111111] border-b border-gray-200 pb-3 flex items-center justify-between">
               <span>{language === 'ta' ? 'சமூகத் தாக்கம்' : 'Impact Metrics'}</span>
-              <Award className="w-5 h-5 text-[#854D0E]" />
+              <div className="flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>LIVE</span>
+              </div>
             </h3>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-3xl font-extrabold text-[#111111]">{stats.total_alumni || '500'}+</div>
-                <div className="text-xs text-gray-500 font-semibold mt-1">
-                  {language === 'ta' ? 'முன்னாள் உறுப்பினர்கள்' : 'Registered Alumni'}
+            {loadingStats ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white p-4 rounded-2xl border border-gray-200 animate-pulse space-y-2">
+                    <div className="w-7 h-7 bg-gray-200 rounded-lg"></div>
+                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                    <div className="h-3 bg-gray-100 rounded w-20"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-xs hover:border-[#F4C542] transition-colors group">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF7D6] text-[#854D0E] flex items-center justify-center font-bold mb-2">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+                    {(stats.total_alumni || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5">
+                    {language === 'ta' ? 'முன்னாள் உறுப்பினர்கள்' : 'Registered Alumni'}
+                  </div>
+                </div>
+
+                <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-xs hover:border-[#F4C542] transition-colors group">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF7D6] text-[#854D0E] flex items-center justify-center font-bold mb-2">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+                    {stats.total_batches || 0}
+                  </div>
+                  <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5">
+                    {language === 'ta' ? 'கல்வி வகுப்புகள்' : 'Graduating Batches'}
+                  </div>
+                </div>
+
+                <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-xs hover:border-[#F4C542] transition-colors group">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF7D6] text-[#854D0E] flex items-center justify-center font-bold mb-2">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+                    {stats.total_events || 0}
+                  </div>
+                  <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5">
+                    {language === 'ta' ? 'நிகழ்வுகள்' : 'Events & Meetups'}
+                  </div>
+                </div>
+
+                <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-xs hover:border-[#F4C542] transition-colors group">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF7D6] text-[#854D0E] flex items-center justify-center font-bold mb-2">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+                    {stats.years_connected || 0}+
+                  </div>
+                  <div className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-0.5">
+                    {language === 'ta' ? 'இணைந்த ஆண்டுகள்' : 'Years Connected'}
+                  </div>
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-                <div className="text-3xl font-extrabold text-[#111111]">{stats.total_batches || '50'}+</div>
-                <div className="text-xs text-gray-500 font-semibold mt-1">
-                  {language === 'ta' ? 'கல்வி வகுப்புகள்' : 'Graduating Batches'}
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="bg-[#FFF7D6] border border-[#F4C542] p-4 rounded-2xl space-y-2">
               <div className="text-xs font-extrabold text-[#854D0E] uppercase tracking-wider">

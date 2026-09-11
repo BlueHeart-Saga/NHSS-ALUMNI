@@ -36,7 +36,7 @@
 //         {/* Legal & Copyright */}
 //         <div className="flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-gray-500 font-normal gap-4 text-center sm:text-left">
 //           <div>
-//             © 2026 {t('app_title')} Alumni Network. Built on Devopstrio. All Rights Reserved.
+//             © 2026 {t('app_title')} Alumni Network. Built on <a href="https://devopstrio.co.uk/" target="_blank" rel="noopener noreferrer" className="font-semibold text-gray-700 hover:text-[#854D0E] underline underline-offset-2 transition-colors">Devopstrio</a>. All Rights Reserved.
 //           </div>
 
 //           <div className="flex items-center space-x-4 font-semibold text-[#111111] text-xs sm:text-sm">

@@ -49,6 +49,7 @@ interface GalleryPhotoItem {
   title: string;
   src: string;
   category: string;
+  date?: string;
 }
 
 export const PublicSchool: React.FC = () => {
@@ -104,12 +105,14 @@ export const PublicSchool: React.FC = () => {
       const photos: GalleryPhotoItem[] = [];
 
       (schoolEvents || []).forEach((ev: any) => {
+        const itemDate = ev.event_date || ev.created_at || '';
         if (ev.cover_image_url) {
           photos.push({
             id: `se-${ev.id}`,
             title: ev.title,
             src: getAssetUrl(ev.cover_image_url),
-            category: ev.category?.replace('_', ' ') || 'School Event'
+            category: ev.category?.replace('_', ' ') || 'School Event',
+            date: itemDate
           });
         }
         (ev.gallery_urls || []).forEach((gUrl: string, idx: number) => {
@@ -117,20 +120,36 @@ export const PublicSchool: React.FC = () => {
             id: `se-${ev.id}-g-${idx}`,
             title: `${ev.title} Gallery`,
             src: getAssetUrl(gUrl),
-            category: ev.category?.replace('_', ' ') || 'School Event'
+            category: ev.category?.replace('_', ' ') || 'School Event',
+            date: itemDate
           });
         });
       });
 
       (memories || []).forEach((mem: any) => {
+        const itemDate = mem.created_at || mem.event_date || '';
         if (mem.cover_image_url || mem.image_url) {
           photos.push({
             id: `mem-${mem.id}`,
             title: mem.title,
             src: getAssetUrl(mem.cover_image_url || mem.image_url),
-            category: mem.album_name || 'Campus Heritage'
+            category: mem.album_name || 'Campus Heritage',
+            date: itemDate
           });
         }
+      });
+
+      // Sort newest data first (top) by date/timestamp, with fallback to ID descending
+      photos.sort((a, b) => {
+        const timeA = a.date && !isNaN(Date.parse(a.date)) ? new Date(a.date).getTime() : 0;
+        const timeB = b.date && !isNaN(Date.parse(b.date)) ? new Date(b.date).getTime() : 0;
+
+        if (timeA && timeB && timeA !== timeB) {
+          return timeB - timeA; // Newest first
+        }
+        if (timeA && !timeB) return -1;
+        if (!timeA && timeB) return 1;
+        return b.id.localeCompare(a.id);
       });
 
       setGalleryPhotos(photos);
@@ -543,9 +562,18 @@ export const PublicSchool: React.FC = () => {
                   <div className="h-44 overflow-hidden bg-gray-100 relative">
                     <img src={photo.src} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
-                  <div className="p-3 bg-white">
-                    <span className="text-[10px] font-bold text-[#854D0E] uppercase">{photo.category}</span>
-                    <h4 className="font-bold text-xs text-[#111111] mt-0.5 line-clamp-1">{photo.title}</h4>
+                  <div className="p-3 bg-white flex flex-col justify-between flex-1">
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-[10px] font-bold text-[#854D0E] uppercase truncate">{photo.category}</span>
+                        {photo.date && !isNaN(Date.parse(photo.date)) && (
+                          <span className="text-[10px] font-medium text-gray-400 shrink-0">
+                            {new Date(photo.date).toLocaleDateString(language === 'ta' ? 'ta-IN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-xs text-[#111111] line-clamp-1">{photo.title}</h4>
+                    </div>
                   </div>
                 </div>
               ))}

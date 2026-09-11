@@ -392,7 +392,9 @@ async def get_public_memories(response: Response):
             "cover_image_url": cover,
             "media_urls": urls,
             "video_url": m.get("video_url"),
-            "uploader_name": m.get("uploader_name", "Alumnus")
+            "uploader_name": m.get("uploader_name", "Alumnus"),
+            "created_at": str(m.get("created_at") or ""),
+            "event_date": m.get("event_date", "")
         })
     return res
 
