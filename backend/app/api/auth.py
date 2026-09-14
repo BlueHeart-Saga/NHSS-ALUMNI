@@ -29,6 +29,7 @@ logger = logging.getLogger("app.auth")
 # In-memory OTP storage with timestamps
 OTP_STORE = {}
 
+
 @router.get("/google/login")
 async def google_login():
     """Generates and redirects to Google OAuth2 Authorization URL"""
@@ -904,8 +905,11 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
 
     pre_imported = await db.alumni.find_one({
         "school_id": school_id,
-        "user_id": None,
-        "$or": dup_query
+        "$or": [
+            {"user_id": {"$exists": False}},
+            {"user_id": None},
+        ],
+        **({"$and": [{"$or": dup_query}]} if dup_query else {})
     }) if dup_query else None
 
     now = datetime.now(timezone.utc)
@@ -963,6 +967,8 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         "other_college": request.other_college or request.college_name,
         "other_stream": request.other_stream or request.stream,
         "other_passing_year": request.other_passing_year or request.college_passing_year,
+        "is_volunteer": request.is_volunteer or "NO",
+        "willing_to_donate": request.willing_to_donate or "NO",
         "address": request.address,
         "city": request.city or request.current_city,
         "state": request.state,
@@ -1118,9 +1124,10 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         profile_photo_url=alumni.get("profile_photo_url"),
         blood_group=alumni.get("blood_group"),
         passing_year=alumni.get("passing_year"),
-        batch_id=str(alumni["batch_id"]) if alumni.get("batch_id") else None,
-        admission_number=alumni.get("admission_number") or "",
+        batch_id=batch_id,
+        admission_number=alumni.get("admission_number", "N/A"),
         section=alumni.get("section"),
+        address=alumni.get("address"),
         current_city=alumni.get("current_city"),
         profession=alumni.get("profession"),
         verification_status=alumni.get("verification_status", "PENDING"),

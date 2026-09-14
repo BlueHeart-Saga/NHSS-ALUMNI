@@ -107,36 +107,59 @@ async def export_alumni_csv(
     alumni_list = await cursor.to_list(length=5000)
 
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
 
     # Header
     writer.writerow([
-        "Alumni ID", "Full Name", "Batch Year", "Admission Number", "Section",
+        "Alumni ID", "Full Name", "Name in Tamil", "Batch Year", "Admission Number", "Section",
         "Mobile", "Email", "Blood Group", "Is Volunteer", "Willing to Donate",
-        "Current City", "Profession", "Verification Status"
+        "Address", "Current City", "Profession", "Verification Status"
     ])
 
+    def excel_safe_text(value) -> str:
+        """Wrap string values in an Excel ="..." formula so Excel treats them as TEXT.
+        This prevents long numeric/hex strings (like MongoDB ObjectIds and mobile
+        numbers with + country code) from being converted into scientific notation.
+        Internal double quotes are escaped by doubling them.
+        """
+        if value is None:
+            return ""
+        s = str(value)
+        if s == "":
+            return ""
+        escaped = s.replace('"', '""')
+        return f'="{escaped}"'
+
     for a in alumni_list:
+        raw_id = str(a["_id"])
+        raw_mobile = a.get("mobile", "") or ""
+
+        # Both Alumni ID and Mobile are wrapped in Excel text-safe syntax
+        # so Excel preserves them exactly as strings.
         writer.writerow([
-            str(a["_id"]),
+            excel_safe_text(raw_id),
             a.get("full_name", ""),
+            a.get("name_ta") or a.get("full_name_ta", ""),
             a.get("passing_year", ""),
             a.get("admission_number", ""),
             a.get("section", ""),
-            a.get("mobile", ""),
+            excel_safe_text(raw_mobile) if raw_mobile else "",
             a.get("email", ""),
             a.get("blood_group", ""),
             a.get("is_volunteer", "NO"),
             a.get("willing_to_donate", "NO"),
+            a.get("address", ""),
             a.get("current_city", ""),
             a.get("profession", ""),
             a.get("verification_status", "")
         ])
 
-    csv_data = output.getvalue()
+    # Prepend UTF-8 BOM so Microsoft Excel detects UTF-8 and renders Tamil correctly
+    csv_data = "\ufeff" + output.getvalue()
+
     return Response(
-        content=csv_data,
-        media_type="text/csv",
+        content=csv_data.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=alumni_roster.csv"}
     )
 
@@ -153,7 +176,7 @@ async def export_event_attendance_csv(
     att_list = await cursor.to_list(length=5000)
 
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
 
     writer.writerow([
         "Alumni Name", "Batch Year", "Admission Number", "RSVP Status",
@@ -176,9 +199,11 @@ async def export_event_attendance_csv(
             checkin["checked_in_at"].strftime("%Y-%m-%d %I:%M %p") if checkin else ""
         ])
 
-    csv_data = output.getvalue()
+    # Prepend UTF-8 BOM for Excel compatibility
+    csv_data = "\ufeff" + output.getvalue()
+
     return Response(
-        content=csv_data,
-        media_type="text/csv",
+        content=csv_data.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename=event_{event_id}_attendance.csv"}
     )

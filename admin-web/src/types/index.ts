@@ -94,13 +94,13 @@ export interface AssociationTeamMember {
   created_at: string;
 }
 
-export type CommitteeRoleType = 
-  | 'PRESIDENT' 
-  | 'VICE_PRESIDENT' 
-  | 'SECRETARY' 
-  | 'JOINT_SECRETARY' 
-  | 'TREASURER' 
-  | 'EXECUTIVE_MEMBER' 
+export type CommitteeRoleType =
+  | 'PRESIDENT'
+  | 'VICE_PRESIDENT'
+  | 'SECRETARY'
+  | 'JOINT_SECRETARY'
+  | 'TREASURER'
+  | 'EXECUTIVE_MEMBER'
   | 'NORMAL_MEMBER';
 
 export interface CommitteeRoleConfig {
@@ -157,6 +157,7 @@ export interface AlumniProfile {
   mother_name?: string;
   relative_students_name?: string;
   current_city?: string;
+  address?: string;
   state?: string;
   current_state?: string;
   country?: string;
@@ -203,8 +204,11 @@ export interface AlumniProfile {
   willing_to_donate?: string;
   phone_visible?: boolean;
   directory_visible?: boolean;
-  verification_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NOT_REGISTERED';
+  // ✅ DRAFT is added — set on every save until Step 6 final submit
+  verification_status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NOT_REGISTERED';
   verification_notes?: string;
+  // ✅ NEW — true only after Step 6 "Submit Official Registration"
+  registration_submitted?: boolean;
   roles: string[];
   committee_role?: CommitteeRoleType;
   committee_role_title?: string;
@@ -456,4 +460,3 @@ export interface CreateFeedbackPayload {
   feedback_text_ta?: string;
   rating?: number;
 }
-

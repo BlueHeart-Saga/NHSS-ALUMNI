@@ -70,7 +70,8 @@ class UserRegistrationRequest(BaseModel):
     country: Optional[str] = "India"
     address: Optional[str] = None
     password: Optional[str] = None
-    
+    registration_submitted: Optional[bool] = False
+
     # School Education Details
     school_name: Optional[str] = None
     joining_year: Optional[int] = None
@@ -78,7 +79,7 @@ class UserRegistrationRequest(BaseModel):
     leaving_class: Optional[str] = "12th"
     admission_number: Optional[str] = "N/A"
     section: Optional[str] = "A"
-    
+
     # Higher Education / College Details
     no_higher_education: Optional[bool] = False
     college_name: Optional[str] = None
@@ -88,7 +89,7 @@ class UserRegistrationRequest(BaseModel):
     register_number: Optional[str] = None
     college_joining_year: Optional[int] = None
     college_passing_year: Optional[int] = None
-    
+
     # Professional & Additional Details
     employment_status: Optional[str] = None
     chapter: Optional[str] = None
@@ -103,7 +104,7 @@ class UserRegistrationRequest(BaseModel):
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[str] = None
     website_url: Optional[str] = None
-    
+
     # Legacy fallbacks
     other_college: Optional[str] = None
     other_stream: Optional[str] = None
@@ -137,6 +138,7 @@ class UserProfileResponse(BaseModel):
     mother_name: Optional[str] = None
     relative_students_name: Optional[str] = None
     current_city: Optional[str] = None
+    address: Optional[str] = None
     state: Optional[str] = None
     current_state: Optional[str] = None
     country: Optional[str] = None
@@ -186,6 +188,7 @@ class UserProfileResponse(BaseModel):
     is_volunteer: Optional[Any] = "NO"
     willing_to_donate: Optional[Any] = "NO"
     email_visible: bool = False
+    registration_submitted: Optional[bool] = False
     created_at: datetime
 
 class UpdateProfileRequest(BaseModel):
@@ -224,7 +227,7 @@ class UpdateProfileRequest(BaseModel):
 
 # --- Verification Schemas ---
 class VerificationDecisionRequest(BaseModel):
-    status: str = Field(..., example="APPROVED") # APPROVED, REJECTED, SUSPENDED
+    status: str = Field(..., example="APPROVED")
     notes: Optional[str] = None
 
 class CSVRowError(BaseModel):
@@ -238,6 +241,10 @@ class CSVImportResult(BaseModel):
     matched_and_approved: int
     duplicates_flagged: int
     skipped: int
+    updated: int = 0
+    unchanged: int = 0
+    created: int = 0
+    failed: int = 0
     errors: List[str]
     error_details: List[CSVRowError] = []
 
@@ -264,11 +271,11 @@ class SchoolAdminEnquiryResponse(BaseModel):
     state: Optional[str] = None
     country: Optional[str] = "India"
     message: Optional[str] = None
-    status: str = "PENDING" # PENDING, CONTACTED, APPROVED, REJECTED
+    status: str = "PENDING"
     created_at: datetime
 
 class EnquiryStatusUpdateRequest(BaseModel):
-    status: str = Field(..., example="APPROVED") # CONTACTED, APPROVED, REJECTED
+    status: str = Field(..., example="APPROVED")
     notes: Optional[str] = None
 
 # --- School Schemas ---
@@ -294,7 +301,6 @@ class SchoolProfileResponse(BaseModel):
     established_year: Optional[int] = None
     status: Optional[str] = "ACTIVE"
 
-    # Feature Toggles
     alumni_registration_enabled: bool = True
     manual_approval_enabled: bool = True
     public_directory_enabled: bool = True
@@ -318,8 +324,7 @@ class UpdateSchoolRequest(BaseModel):
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     established_year: Optional[int] = None
-    
-    # Feature Toggles
+
     alumni_registration_enabled: Optional[bool] = None
     manual_approval_enabled: Optional[bool] = None
     public_directory_enabled: Optional[bool] = None
@@ -339,7 +344,7 @@ class CreateSchoolStaffRequest(BaseModel):
     designation_ta: Optional[str] = None
     staff_id: Optional[str] = None
     profile_photo_url: Optional[str] = None
-    staff_type: Optional[str] = "CURRENT" # CURRENT, PAST, FORMER
+    staff_type: Optional[str] = "CURRENT"
     service_start_year: Optional[int] = None
     service_end_year: Optional[int] = None
     achievements: Optional[str] = None
@@ -428,7 +433,7 @@ class AssignCoordinatorRequest(BaseModel):
 
 class AssignCommitteeRoleRequest(BaseModel):
     alumni_id: str
-    role: str = Field(..., example="PRESIDENT") # PRESIDENT, VICE_PRESIDENT, SECRETARY, JOINT_SECRETARY, TREASURER, EXECUTIVE_MEMBER, NORMAL_MEMBER
+    role: str = Field(..., example="PRESIDENT")
 
 class CommitteeMemberResponse(BaseModel):
     alumni_id: str
@@ -463,7 +468,7 @@ class MapCoordinates(BaseModel):
 class CreateEventRequest(BaseModel):
     title: str = Field(..., example="2010 Batch Reunion")
     title_ta: Optional[str] = None
-    batch_id: Optional[str] = None # Null if school-wide
+    batch_id: Optional[str] = None
     description: str
     description_ta: Optional[str] = None
     event_date: str = Field(..., example="2026-12-20")
@@ -521,7 +526,7 @@ class EventResponse(BaseModel):
     cover_image_url: Optional[str] = None
     cover_image_url_ta: Optional[str] = None
     registration_url: Optional[str] = None
-    status: str # DRAFT, PUBLISHED, CANCELLED, COMPLETED
+    status: str
     attending_count: int = 0
     maybe_count: int = 0
     declined_count: int = 0
@@ -531,7 +536,7 @@ class EventResponse(BaseModel):
 
 # --- Attendance & RSVP Schemas ---
 class RSVPRequest(BaseModel):
-    rsvp_status: str = Field(..., example="ATTENDING") # ATTENDING, MAYBE, DECLINED
+    rsvp_status: str = Field(..., example="ATTENDING")
     adults_count: int = Field(default=1, ge=1)
     children_count: int = Field(default=0, ge=0)
 
@@ -575,9 +580,9 @@ class CheckinResultResponse(BaseModel):
 
 # --- Announcement Schemas ---
 class CreateAnnouncementRequest(BaseModel):
-    target: str = Field(..., example="SCHOOL") # SCHOOL, BATCH
+    target: str = Field(..., example="SCHOOL")
     batch_id: Optional[str] = None
-    category: Optional[str] = "GENERAL" # GENERAL, CIRCULAR, EVENT_NOTICE, CELEBRATION, ACADEMIC, ACHIEVEMENT
+    category: Optional[str] = "GENERAL"
     title: str
     title_ta: Optional[str] = None
     content: str
@@ -648,7 +653,7 @@ class ContactEnquiryRequest(BaseModel):
 class CreateAssociationTeamMemberRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    profile_type: str = Field(default="common", example="common") # alumni, common
+    profile_type: str = Field(default="common", example="common")
     alumni_id: Optional[str] = None
     full_name: str = Field(..., example="K. Ravi Kumar")
     full_name_ta: Optional[str] = None

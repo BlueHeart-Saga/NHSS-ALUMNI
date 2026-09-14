@@ -806,6 +806,44 @@ class ApiClient {
     return this.request<DashboardReport>('/reports/summary');
   }
 
+  // NEW: Download authenticated CSV export as a Blob and trigger browser download
+  async exportAlumniCSV(): Promise<void> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/reports/export-alumni`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      // Try to parse error message from backend JSON response
+      const errorBody = await response.json().catch(() => ({ detail: 'Export failed' }));
+      throw new Error(errorBody.detail || `Export failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Extract filename from Content-Disposition header, fallback to alumni_roster.csv
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename = filenameMatch && filenameMatch[1]
+      ? filenameMatch[1].replace(/['"]/g, '')
+      : 'alumni_roster.csv';
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
   getAlumniCSVExportUrl() {
     return `${API_BASE}/reports/export-alumni`;
   }

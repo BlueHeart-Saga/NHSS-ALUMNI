@@ -181,6 +181,202 @@ async def suspend_alumni(
 # Global in-memory storage for last CSV import error details
 LAST_CSV_ERRORS: List[dict] = []
 
+# --- CSV Import Configuration ---
+EMPTY_CELL_MEANS_UNCHANGED = True
+CLEAR_TOKEN = "__CLEAR__"
+
+# Header alias map — case-insensitive. Values are canonical field names.
+CSV_HEADER_ALIASES = {
+    "alumni_id": ["alumni id", "alumni_id", "id", "alumniid", "_id"],
+    "name": ["name", "full name", "full_name", "alumnus name", "alumni name"],
+    "name_ta": ["name in tamil", "name_ta", "full_name_ta", "tamil name"],
+    "batch_year": ["batch", "batch year", "passing_year", "passing year", "year"],
+    "admission_number": ["admission number", "admission_number", "admission no", "adm no"],
+    "roll_no": ["roll no", "roll_no"],
+    "section": ["section", "sec"],
+    "mobile": ["mobile", "mobile number", "mobile_number", "phone", "phone number", "contact"],
+    "country_code": ["country code", "country_code"],
+    "email": ["email", "email address", "email_address", "e-mail"],
+    "gender": ["gender"],
+    "date_of_birth": ["date of birth", "date_of_birth", "dob"],
+    "blood_group": ["blood group", "blood_group", "bloodgroup", "blood"],
+    "father_name": ["father name", "father_name"],
+    "mother_name": ["mother name", "mother_name"],
+    "is_volunteer": ["is volunteer", "is_volunteer", "volunteer"],
+    "willing_to_donate": ["willing to donate", "willing_to_donate", "donor"],
+    "address": ["address", "full address", "full_address", "residential address", "residential_address"],
+    "current_city": ["current city", "current_city", "city", "town"],
+    "current_state": ["current state", "current_state", "state"],
+    "country": ["country"],
+    "profession": ["profession", "designation", "occupation", "job", "position"],
+    "company_name": ["company", "company_name", "company name"],
+    "industry": ["industry"],
+    "linkedin_url": ["linkedin url", "linkedin_url"],
+    "instagram_url": ["instagram url", "instagram_url"],
+    "whatsapp_number": ["whatsapp number", "whatsapp_number", "whatsapp"],
+    "website_url": ["website url", "website_url", "website"],
+    "profile_photo_url": ["profile photo url", "profile_photo_url"],
+    "verification_status": ["verification status", "verification_status", "status"],
+}
+
+# Fields that must NEVER be overwritten on an existing record (protected fields).
+PROTECTED_FIELDS = {
+    "_id", "user_id", "password", "password_hash",
+    "created_at", "verified_by", "verified_at",
+}
+
+
+def _clean_cell(value) -> str:
+    """Strip Excel '=\"...\"' text-forcing wrapper, BOM, and whitespace from a cell value."""
+    if value is None:
+        return ""
+    s = str(value)
+    if s.startswith('="') and s.endswith('"'):
+        s = s[2:-1]
+        s = s.replace('""', '"')
+    if s.startswith("\ufeff"):
+        s = s[1:]
+    return s.strip()
+
+
+def _normalize_row(raw_row: dict) -> dict:
+    """Map CSV header names (case-insensitive, alias-aware) to canonical field names."""
+    normalized = {}
+    for k, v in raw_row.items():
+        if k is None:
+            continue
+        key = str(k).lstrip("\ufeff").strip().lower()
+        normalized[key] = _clean_cell(v)
+
+    result = {}
+    for canonical, aliases in CSV_HEADER_ALIASES.items():
+        for alias in aliases:
+            if alias in normalized:
+                result[canonical] = normalized[alias]
+                break
+        else:
+            result[canonical] = ""
+    return result
+
+
+def _resolve_cell_value(canonical_field: str, csv_value: str, existing_db_value):
+    """
+    Apply empty-cell policy.
+    Returns the value to write, or None if the field should be left unchanged.
+    """
+    raw = (csv_value or "").strip()
+
+    if raw == CLEAR_TOKEN:
+        return ""
+
+    if raw == "":
+        if EMPTY_CELL_MEANS_UNCHANGED:
+            return None
+        else:
+            return ""
+
+    return raw
+
+
+def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
+    """
+    Given a normalized CSV row and the existing DB doc, return the dict of
+    only the fields that actually changed. Never touches PROTECTED_FIELDS.
+    """
+    updates = {}
+
+    field_map = {
+        "name":             "full_name",
+        "name_ta":          "name_ta",
+        "batch_year":       "passing_year",
+        "admission_number": "admission_number",
+        "roll_no":          "roll_no",
+        "section":          "section",
+        "mobile":           "mobile",
+        "country_code":     "country_code",
+        "email":            "email",
+        "gender":           "gender",
+        "date_of_birth":    "dob",
+        "blood_group":      "blood_group",
+        "father_name":      "father_name",
+        "mother_name":      "mother_name",
+        "is_volunteer":     "is_volunteer",
+        "willing_to_donate":"willing_to_donate",
+        "address":          "address",
+        "current_city":     "current_city",
+        "current_state":    "state",
+        "country":          "country",
+        "profession":       "profession",
+        "company_name":     "company",
+        "industry":         "industry",
+        "linkedin_url":     "linkedin_url",
+        "instagram_url":    "instagram_url",
+        "whatsapp_number":  "whatsapp_number",
+        "website_url":      "website_url",
+        "profile_photo_url":"profile_photo_url",
+        "verification_status":"verification_status",
+    }
+
+    for csv_key, db_field in field_map.items():
+        if db_field in PROTECTED_FIELDS:
+            continue
+        raw = (csv_row.get(csv_key) or "").strip()
+
+        new_val = _resolve_cell_value(csv_key, raw, existing_doc.get(db_field))
+        if new_val is None:
+            continue
+
+        if db_field == "passing_year":
+            try:
+                new_val = int(float(new_val))
+            except (ValueError, TypeError):
+                continue
+        elif db_field in ("is_volunteer", "willing_to_donate"):
+            new_val = "YES" if str(new_val).strip().upper() in ("YES", "TRUE", "1") else "NO"
+        elif db_field == "verification_status":
+            new_val = str(new_val).strip().upper()
+            if new_val not in ("APPROVED", "PENDING", "SUSPENDED", "REJECTED"):
+                continue
+
+        existing_val = existing_doc.get(db_field)
+        if existing_val is None:
+            existing_val = ""
+        if isinstance(existing_val, (int, float)) and isinstance(new_val, (int, float)):
+            if existing_val == new_val:
+                continue
+        else:
+            if str(existing_val).strip() == str(new_val).strip():
+                continue
+
+        updates[db_field] = new_val
+
+    if batch_id is not None and existing_doc.get("batch_id") != batch_id:
+        updates["batch_id"] = batch_id
+
+    return updates
+
+
+def _is_valid_objectid_hex(s: str) -> bool:
+    """A valid MongoDB ObjectId hex string is exactly 24 hex characters."""
+    if not s or len(s) != 24:
+        return False
+    return all(c in "0123456789abcdefABCDEF" for c in s)
+
+
+def _looks_like_excel_corruption(s: str) -> bool:
+    """Detect values that Excel's autoformat has clearly mangled."""
+    if not s:
+        return False
+    upper = s.upper()
+    # Scientific notation, e.g. "6.6E+23", "9.18E+11"
+    if "E+" in upper or "E-" in upper:
+        return True
+    # Decimal point in a value that should be a hex integer
+    if "." in s:
+        return True
+    return False
+
+
 @router.post("/import-csv", response_model=CSVImportResult)
 async def import_alumni_csv(
     file: UploadFile = File(...),
@@ -197,33 +393,164 @@ async def import_alumni_csv(
     reader = csv.DictReader(io.StringIO(decoded))
 
     total = 0
-    imported = 0
+    created = 0
+    updated = 0
+    unchanged = 0
     matched = 0
     duplicates_flagged = 0
+    failed = 0
     errors = []
     error_details = []
 
-    for row in reader:
+    for raw_row in reader:
         total += 1
-        name = (row.get("Name") or row.get("full_name") or "").strip()
-        batch_year = (row.get("Batch") or row.get("passing_year") or "").strip()
-        admission = (row.get("Admission Number") or row.get("admission_number") or "").strip()
-        mobile = (row.get("Mobile") or row.get("mobile") or "").strip()
-        email = (row.get("Email") or row.get("email") or "").strip()
-        section = (row.get("Section") or row.get("section") or "A").strip()
-        city = (row.get("City") or row.get("city") or "").strip()
-        profession = (row.get("Profession") or row.get("profession") or "").strip()
+        row = _normalize_row(raw_row)
 
+        alumni_id_raw = (row.get("alumni_id") or "").strip()
+        name = (row.get("name") or "").strip()
+        batch_year = (row.get("batch_year") or "").strip()
+
+        # -------- CASE A: Alumni ID present --------
+        if alumni_id_raw:
+            # --- Excel-corruption guard ---
+            # Excel silently converts hex IDs into scientific notation (e.g. "6.6E+23")
+            # or truncated decimal strings. A valid MongoDB ObjectId is exactly
+            # 24 hex characters. If the value looks mangled, refuse the row rather
+            # than creating a duplicate that bypasses the intended UPDATE path.
+            if _looks_like_excel_corruption(alumni_id_raw) or not _is_valid_objectid_hex(alumni_id_raw):
+                err_msg = (
+                    f"Alumni ID appears corrupted by Excel: '{alumni_id_raw}'. "
+                    f"Re-export the CSV and do NOT open it in Excel before importing. "
+                    f"(Expected 24-character hex string.)"
+                )
+                errors.append(f"Row {total}: {err_msg}")
+                error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+                failed += 1
+                continue
+
+            try:
+                oid = ObjectId(alumni_id_raw)
+            except Exception:
+                err_msg = f"Invalid Alumni ID format: {alumni_id_raw}"
+                errors.append(f"Row {total}: {err_msg}")
+                error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+                failed += 1
+                continue
+
+            existing = await db.alumni.find_one({
+                "_id": oid,
+                "school_id": school_id
+            })
+            if existing is None:
+                # ID provided but not found in this school — create with that exact ID.
+                if not name or not batch_year:
+                    err_msg = f"Alumni ID {alumni_id_raw} not found; also missing Name/Batch to create."
+                    errors.append(f"Row {total}: {err_msg}")
+                    error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+                    failed += 1
+                    continue
+                try:
+                    year_int = int(float(batch_year))
+                except (ValueError, TypeError):
+                    err_msg = f"Invalid Batch year: {batch_year}"
+                    errors.append(f"Row {total}: {err_msg}")
+                    error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+                    failed += 1
+                    continue
+
+                batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
+                if not batch:
+                    b_res = await db.batches.insert_one({
+                        "school_id": school_id,
+                        "name": f"Batch of {year_int}",
+                        "passing_year": year_int,
+                        "created_at": datetime.now(timezone.utc)
+                    })
+                    batch_id = b_res.inserted_id
+                else:
+                    batch_id = batch["_id"]
+
+                # user_id intentionally OMITTED for pre-imported roster records.
+                # The unique index on user_id is sparse, so multiple alumni
+                # without a linked user account are allowed.
+                new_doc = {
+                    "_id": oid,
+                    "school_id": school_id,
+                    "batch_id": batch_id,
+                    "full_name": name,
+                    "name_ta": (row.get("name_ta") or "").strip(),
+                    "mobile": (row.get("mobile") or "").strip(),
+                    "email": (row.get("email") or "").strip(),
+                    "passing_year": year_int,
+                    "admission_number": (row.get("admission_number") or "").strip(),
+                    "section": (row.get("section") or "").strip() or "A",
+                    "current_city": (row.get("current_city") or "").strip(),
+                    "profession": (row.get("profession") or "").strip(),
+                    "blood_group": (row.get("blood_group") or "").strip(),
+                    "is_volunteer": "YES" if (row.get("is_volunteer") or "").strip().upper() in ("YES","TRUE","1") else "NO",
+                    "willing_to_donate": "YES" if (row.get("willing_to_donate") or "").strip().upper() in ("YES","TRUE","1") else "NO",
+                    "verification_status": "APPROVED",
+                    "verification_notes": "Uploaded via CSV (with explicit Alumni ID)",
+                    "created_at": datetime.now(timezone.utc)
+                }
+                await db.alumni.insert_one(new_doc)
+                created += 1
+                continue
+            else:
+                # UPDATE path
+                batch_id_for_update = None
+                if batch_year:
+                    try:
+                        year_int = int(float(batch_year))
+                        batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
+                        if not batch:
+                            b_res = await db.batches.insert_one({
+                                "school_id": school_id,
+                                "name": f"Batch of {year_int}",
+                                "passing_year": year_int,
+                                "created_at": datetime.now(timezone.utc)
+                            })
+                            batch_id_for_update = b_res.inserted_id
+                        else:
+                            batch_id_for_update = batch["_id"]
+                    except (ValueError, TypeError):
+                        batch_id_for_update = None
+
+                field_updates = _compute_field_updates(row, existing, batch_id_for_update)
+
+                if existing.get("verification_status") == "PENDING" and "verification_status" not in field_updates:
+                    field_updates["verification_status"] = "APPROVED"
+                    field_updates["verification_notes"] = "Auto-verified via CSV import (existing ID)"
+                    field_updates["verified_at"] = datetime.now(timezone.utc)
+                    matched += 1
+
+                if not field_updates:
+                    unchanged += 1
+                    continue
+
+                field_updates["updated_at"] = datetime.now(timezone.utc)
+                await db.alumni.update_one({"_id": oid}, {"$set": field_updates})
+                updated += 1
+                continue
+
+        # -------- CASE B: No Alumni ID, but Name + Batch present --------
         if not name or not batch_year:
-            err_msg = "Missing required Name or Batch"
+            err_msg = "Missing required Name or Batch (and no Alumni ID provided)"
             errors.append(f"Row {total}: {err_msg}")
-            error_details.append({"row": total, "data": dict(row), "reason": err_msg})
+            error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+            failed += 1
             continue
 
         try:
-            year_int = int(batch_year)
+            year_int = int(float(batch_year))
+        except (ValueError, TypeError):
+            err_msg = f"Invalid Batch year: {batch_year}"
+            errors.append(f"Row {total}: {err_msg}")
+            error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+            failed += 1
+            continue
 
-            # Auto-resolve or create batch record in db.batches
+        try:
             batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
             if not batch:
                 b_res = await db.batches.insert_one({
@@ -235,68 +562,48 @@ async def import_alumni_csv(
                 batch_id = b_res.inserted_id
             else:
                 batch_id = batch["_id"]
-            
-            # Check for existing duplicate records by mobile, email, or admission_number
-            dup_query = []
-            if mobile: dup_query.append({"mobile": mobile})
-            if email: dup_query.append({"email": email})
-            if admission: dup_query.append({"admission_number": admission})
 
-            existing = await db.alumni.find_one({
+            new_oid = ObjectId()
+            # user_id intentionally OMITTED — sparse unique index allows it.
+            await db.alumni.insert_one({
+                "_id": new_oid,
                 "school_id": school_id,
-                "$or": dup_query
-            }) if dup_query else None
-
-            if existing:
-                if existing.get("verification_status") == "PENDING":
-                    # Auto-verify existing pending application
-                    await db.alumni.update_one(
-                        {"_id": existing["_id"]},
-                        {"$set": {
-                            "batch_id": batch_id,
-                            "verification_status": "APPROVED",
-                            "verification_notes": "Auto-verified via school roster CSV import",
-                            "verified_at": datetime.now(timezone.utc)
-                        }}
-                    )
-                    matched += 1
-                else:
-                    # Flag as duplicate for admin review
-                    duplicates_flagged += 1
-                    errors.append(f"Row {total}: Flagged duplicate record for {name} ({mobile or admission})")
-                    error_details.append({"row": total, "data": dict(row), "reason": "Duplicate record matched existing verified alumnus"})
-            else:
-                # Insert pre-approved alumnus record into db.alumni
-                await db.alumni.insert_one({
-                    "school_id": school_id,
-                    "user_id": None,
-                    "batch_id": batch_id,
-                    "full_name": name,
-                    "mobile": mobile or f"+9190000{total:05d}",
-                    "email": email or "",
-                    "passing_year": year_int,
-                    "admission_number": admission or f"CSV-{year_int}-{total:03d}",
-                    "section": section,
-                    "current_city": city,
-                    "profession": profession,
-                    "verification_status": "APPROVED",
-                    "verification_notes": "Uploaded via CSV school roster",
-                    "created_at": datetime.now(timezone.utc)
-                })
-                imported += 1
+                "batch_id": batch_id,
+                "full_name": name,
+                "name_ta": (row.get("name_ta") or "").strip(),
+                "mobile": (row.get("mobile") or "").strip(),
+                "email": (row.get("email") or "").strip(),
+                "passing_year": year_int,
+                "admission_number": (row.get("admission_number") or "").strip() or f"CSV-{year_int}-{total:03d}",
+                "section": (row.get("section") or "").strip() or "A",
+                "current_city": (row.get("current_city") or "").strip(),
+                "profession": (row.get("profession") or "").strip(),
+                "blood_group": (row.get("blood_group") or "").strip(),
+                "is_volunteer": "YES" if (row.get("is_volunteer") or "").strip().upper() in ("YES","TRUE","1") else "NO",
+                "willing_to_donate": "YES" if (row.get("willing_to_donate") or "").strip().upper() in ("YES","TRUE","1") else "NO",
+                "verification_status": "APPROVED",
+                "verification_notes": "Uploaded via CSV (no Alumni ID provided)",
+                "created_at": datetime.now(timezone.utc)
+            })
+            created += 1
         except Exception as e:
             err_msg = str(e)
             errors.append(f"Row {total}: {err_msg}")
-            error_details.append({"row": total, "data": dict(row), "reason": err_msg})
+            error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
+            failed += 1
 
     LAST_CSV_ERRORS = error_details
 
     return CSVImportResult(
         total_rows=total,
-        imported=imported,
+        imported=created,
         matched_and_approved=matched,
         duplicates_flagged=duplicates_flagged,
-        skipped=len(error_details),
+        skipped=failed,
+        updated=updated,
+        unchanged=unchanged,
+        created=created,
+        failed=failed,
         errors=errors[:15],
         error_details=error_details[:15]
     )
@@ -356,7 +663,14 @@ async def search_directory(
             {"profession": {"$regex": search, "$options": "i"}}
         ]
 
-    cursor = db.alumni.find(query).sort("full_name", 1)
+    cursor = db.alumni.find(
+    query,
+    {
+        # Exclude the giant base64 photo from the listing response.
+        # The photo will be fetched separately via /alumni/{id}/photo.
+        "profile_photo_url": 0,
+    }
+).sort("full_name", 1)
     alumni_list = await cursor.to_list(length=5000)
 
     is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"])
@@ -378,6 +692,7 @@ async def search_directory(
             blood_group=a.get("blood_group"),
             father_name=a.get("father_name"),
             mother_name=a.get("mother_name"),
+            address=a.get("address"),
             current_city=a.get("current_city") or a.get("city"),
             state=a.get("state") or a.get("current_state"),
             current_state=a.get("current_state") or a.get("state"),
@@ -442,7 +757,6 @@ async def update_own_profile(
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    # Upsert alumni record if it doesn't exist yet for this registered user
     existing = await db.alumni.find_one({"user_id": user_id})
     if not existing:
         user_doc = await db.users.find_one({"_id": user_id}) or {}
@@ -463,7 +777,6 @@ async def update_own_profile(
         await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
         alumni = await db.alumni.find_one({"user_id": user_id})
 
-    # Also sync core fields (full_name, email, mobile, profile_photo_url) to db.users
     user_updates = {}
     if "full_name" in update_fields: user_updates["full_name"] = update_fields["full_name"]
     if "email" in update_fields: user_updates["email"] = update_fields["email"]
@@ -490,6 +803,7 @@ async def update_own_profile(
         batch_id=str(alumni["batch_id"]) if alumni.get("batch_id") else None,
         admission_number=alumni.get("admission_number", ""),
         section=alumni.get("section"),
+        address=alumni.get("address"),
         current_city=alumni.get("current_city"),
         state=alumni.get("state"),
         country=alumni.get("country"),
@@ -532,6 +846,7 @@ class AdminUpdateAlumniRequest(BaseModel):
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
     relative_students_name: Optional[str] = None
+    address: Optional[str] = None
     current_city: Optional[str] = None
     state: Optional[str] = None
     current_state: Optional[str] = None
@@ -606,7 +921,6 @@ async def admin_update_alumni(
     if not update_fields:
         return {"success": True, "message": "No fields to update"}
 
-    # Sync complementary fields
     if "name_ta" in update_fields:
         update_fields["full_name_ta"] = update_fields["name_ta"]
     elif "full_name_ta" in update_fields:
@@ -726,4 +1040,3 @@ async def bulk_delete_alumni(
 
     res = await db.alumni.delete_many(query)
     return {"success": True, "message": f"Deleted {res.deleted_count} alumni records", "deleted": res.deleted_count}
-

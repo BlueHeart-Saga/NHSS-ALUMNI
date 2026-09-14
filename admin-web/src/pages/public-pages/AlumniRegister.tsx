@@ -183,6 +183,7 @@ export const AlumniRegister: React.FC = () => {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState('');
   const [country, setCountry] = useState('India');
   const [state, setState] = useState('Tamil Nadu');
+  const [address, setAddress] = useState('');
   const [currentCity, setCurrentCity] = useState('');
   const [mobilePrefix, setMobilePrefix] = useState('+91');
   const [mobile, setMobile] = useState('');
@@ -214,6 +215,8 @@ export const AlumniRegister: React.FC = () => {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isVolunteer, setIsVolunteer] = useState('');       // NEW — 'YES' | 'NO' | ''
+  const [willingToDonate, setWillingToDonate] = useState(''); // NEW — 'YES' | 'NO' | ''
 
   const currentYearNum = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYearNum - 1959 }, (_, i) => currentYearNum - i);
@@ -260,6 +263,7 @@ export const AlumniRegister: React.FC = () => {
             if (p.full_name) setFullName(p.full_name);
             if (p.profile_photo_url) setProfilePhotoUrl(p.profile_photo_url);
             if (p.mobile) setMobile(p.mobile.replace(/^\+91\s?/, ''));
+            if (p.address) setAddress(p.address);
             if (p.current_city || p.city) setCurrentCity(p.current_city || p.city);
             if (p.gender) setGender(p.gender);
             if (p.dob) setDob(p.dob);
@@ -285,6 +289,8 @@ export const AlumniRegister: React.FC = () => {
             if (p.instagram_url) setInstagramUrl(p.instagram_url);
             if (p.whatsapp_number) setWhatsappNumber(p.whatsapp_number);
             if (p.website_url) setWebsiteUrl(p.website_url);
+            if (p.is_volunteer) setIsVolunteer(String(p.is_volunteer).toUpperCase());
+            if (p.willing_to_donate) setWillingToDonate(String(p.willing_to_donate).toUpperCase());
 
             // Unlock up to step 6 if user profile data exists
             setMaxStepReached(6);
@@ -451,6 +457,7 @@ export const AlumniRegister: React.FC = () => {
     if (!dob) missing.push('Date of Birth');
     if (!country || !country.trim()) missing.push('Country');
     if (!state || !state.trim()) missing.push('Current State');
+    if (!address || !address.trim()) missing.push('Address');
     if (!currentCity || !currentCity.trim()) missing.push('Current City');
     if (!mobile || !mobile.trim()) missing.push('Mobile Number');
 
@@ -486,6 +493,7 @@ export const AlumniRegister: React.FC = () => {
       father_name: fatherName.trim() || undefined,
       mother_name: motherName.trim() || undefined,
       profile_photo_url: photoToUse,
+      address: address.trim(),
       current_city: currentCity.trim(),
       city: currentCity.trim(),
       state: state.trim(),
@@ -528,6 +536,7 @@ export const AlumniRegister: React.FC = () => {
       full_name: fullName.trim(),
       email: email.trim(),
       mobile: fullMobile,
+      address: address.trim(),
       school_name: schoolName.trim(),
       joining_year: parseInt(joiningYear) || 2010,
       passing_year: parseInt(passingYear) || 2015,
@@ -576,6 +585,7 @@ export const AlumniRegister: React.FC = () => {
       full_name: fullName.trim(),
       email: email.trim(),
       mobile: fullMobile,
+      address: address.trim(),
       passing_year: parseInt(passingYear) || 2015,
       no_higher_education: noHigherEducation,
       college_name: !noHigherEducation ? collegeName.trim() : undefined,
@@ -598,6 +608,8 @@ export const AlumniRegister: React.FC = () => {
     const missing: string[] = [];
     if (!employmentStatus) missing.push('Employment Status');
     if (!currentCity || !currentCity.trim()) missing.push('Current City');
+    if (!isVolunteer) missing.push('Volunteer');
+    if (!willingToDonate) missing.push('Willing to Donate');
 
     if (missing.length > 0) {
       alertService.showWarning(
@@ -613,6 +625,7 @@ export const AlumniRegister: React.FC = () => {
       full_name: fullName.trim(),
       email: email.trim(),
       mobile: fullMobile,
+      address: address.trim(),
       passing_year: parseInt(passingYear) || 2015,
       employment_status: employmentStatus,
       company: company.trim() || undefined,
@@ -625,6 +638,8 @@ export const AlumniRegister: React.FC = () => {
       instagram_url: instagramUrl.trim() || undefined,
       whatsapp_number: whatsappNumber.trim() || undefined,
       website_url: websiteUrl.trim() || undefined,
+      is_volunteer: isVolunteer || undefined,
+      willing_to_donate: willingToDonate || undefined,
       current_city: currentCity.trim()
     });
 
@@ -663,6 +678,7 @@ export const AlumniRegister: React.FC = () => {
         country_code: mobilePrefix,
         country: country,
         state: state.trim(),
+        address: address.trim(),
         current_city: currentCity.trim(),
         profile_photo_url: profilePhotoUrl,
 
@@ -694,7 +710,9 @@ export const AlumniRegister: React.FC = () => {
         linkedin_url: linkedinUrl.trim() || undefined,
         instagram_url: instagramUrl.trim() || undefined,
         whatsapp_number: whatsappNumber.trim() || undefined,
-        website_url: websiteUrl.trim() || undefined
+        website_url: websiteUrl.trim() || undefined,
+        is_volunteer: isVolunteer || 'NO',
+        willing_to_donate: willingToDonate || 'NO'
       };
 
       await api.register(payload);
@@ -766,6 +784,7 @@ export const AlumniRegister: React.FC = () => {
           fullName && fullName.trim() &&
           gender &&
           dob &&
+          address && address.trim() &&
           currentCity && currentCity.trim() &&
           mobile && mobile.replace(/\D/g, '').length >= 10
         );
@@ -791,7 +810,9 @@ export const AlumniRegister: React.FC = () => {
       case 5:
         return Boolean(
           employmentStatus &&
-          currentCity && currentCity.trim()
+          currentCity && currentCity.trim() &&
+          isVolunteer &&
+          willingToDonate
         );
       case 6:
         return Boolean(agreeTerms);
@@ -1394,6 +1415,25 @@ export const AlumniRegister: React.FC = () => {
                       />
                     </div>
 
+                                        {/* Address (NEW) */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        {language === 'ta' ? 'முழு முகவரி' : 'Address'} <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder={
+                          language === 'ta'
+                            ? 'எ.கா. 12, வடக்கு தெரு, தூத்துக்குடி'
+                            : 'e.g. 12, North Street, Tuticorin, Tamil Nadu'
+                        }
+                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal resize-none"
+                      />
+                    </div>
+
                     {/* Current City */}
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
@@ -1943,7 +1983,7 @@ export const AlumniRegister: React.FC = () => {
                           />
                         </div>
 
-                        {/* Website URL */}
+                                                {/* Website URL */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                             Personal / Business Website
@@ -1955,6 +1995,64 @@ export const AlumniRegister: React.FC = () => {
                             placeholder="https://yourwebsite.com"
                             className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
                           />
+                        </div>
+
+                        {/* Volunteer — NEW */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                            {language === 'ta' ? 'தன்னார்வ தொண்டர்' : 'Volunteer'} <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex flex-wrap gap-2 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsVolunteer('YES')}
+                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'YES'
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                }`}
+                            >
+                              {language === 'ta' ? 'ஆம்' : 'Yes'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsVolunteer('NO')}
+                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'NO'
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                }`}
+                            >
+                              {language === 'ta' ? 'இல்லை' : 'No'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Willing to Donate — NEW */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                            {language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்' : 'Willing to Donate'} <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex flex-wrap gap-2 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setWillingToDonate('YES')}
+                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'YES'
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                }`}
+                            >
+                              {language === 'ta' ? 'ஆம்' : 'Yes'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setWillingToDonate('NO')}
+                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'NO'
+                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                }`}
+                            >
+                              {language === 'ta' ? 'இல்லை' : 'No'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2038,6 +2136,10 @@ export const AlumniRegister: React.FC = () => {
                         <div>
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தாயாரின் பெயர்:' : "Mother's Name:"}</span>
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{motherName || 'N/A'}</span>
+                        </div>
+                                                <div className="sm:col-span-2 lg:col-span-3">
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'முகவரி:' : 'Address:'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{address || 'N/A'}</span>
                         </div>
                         <div>
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'இடம்:' : 'Location:'}</span>
@@ -2143,12 +2245,20 @@ export const AlumniRegister: React.FC = () => {
                             <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{whatsappNumber}</span>
                           </div>
                         )}
-                        {websiteUrl && (
+                                                {websiteUrl && (
                           <div>
                             <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Website:</span>
                             <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{websiteUrl}</span>
                           </div>
                         )}
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தன்னார்வ தொண்டர்:' : 'Volunteer:'}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">{isVolunteer === 'YES' ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்:' : 'Willing to Donate:'}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">{willingToDonate === 'YES' ? 'Yes' : 'No'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

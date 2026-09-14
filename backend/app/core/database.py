@@ -91,12 +91,34 @@ async def create_indexes():
         await db.users.create_index("email", sparse=True)
         await db.users.create_index("school_id")
 
-        # Alumni
+        # --- Alumni ---
+        # One-time migration: drop the legacy non-sparse unique index on user_id.
+        # The old index treated every `user_id: None` as a duplicate, blocking
+        # any second CSV-imported roster record that has no linked user account.
+        # We replace it with a unique+sparse index which:
+        #   * enforces uniqueness when user_id IS present
+        #   * allows any number of alumni records without a linked user
+        try:
+            await db.alumni.drop_index("user_id_1")
+            logger.info("Dropped legacy non-sparse index 'user_id_1' on alumni collection.")
+        except Exception:
+            # Index didn't exist — nothing to drop.
+            pass
+        try:
+            await db.alumni.create_index(
+                "user_id",
+                unique=True,
+                sparse=True,
+                name="user_id_1"
+            )
+            logger.info("Ensured unique+sparse index 'user_id_1' exists on alumni collection.")
+        except Exception as e:
+            logger.warning(f"Could not create unique+sparse index on alumni.user_id: {e}")
+
         await db.alumni.create_index([("school_id", 1), ("batch_id", 1)])
         await db.alumni.create_index([("school_id", 1), ("verification_status", 1)])
         await db.alumni.create_index([("passing_year", 1), ("verification_status", 1)])
         await db.alumni.create_index("mobile")
-        await db.alumni.create_index("user_id", unique=True)
 
         # Batches
         await db.batches.create_index([("school_id", 1), ("passing_year", 1)], unique=True)
