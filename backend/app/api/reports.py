@@ -104,16 +104,57 @@ async def export_alumni_csv(
     filter_query = await build_school_filter(school_id)
 
     cursor = db.alumni.find(filter_query).sort("passing_year", -1)
-    alumni_list = await cursor.to_list(length=5000)
+    alumni_list = await cursor.to_list(length=10000)
 
     output = io.StringIO()
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
 
-    # Header
+    # Complete 44-column Header matching all editable spreadsheet & profile fields
     writer.writerow([
-        "Alumni ID", "Full Name", "Name in Tamil", "Batch Year", "Admission Number", "Section",
-        "Mobile", "Email", "Blood Group", "Is Volunteer", "Willing to Donate",
-        "Address", "Current City", "Profession", "Verification Status"
+        "Alumni ID",
+        "Full Name",
+        "Name in Tamil",
+        "Mobile Number",
+        "Country Code",
+        "Gender",
+        "Date of Birth",
+        "Email",
+        "Blood Group",
+        "Father Name",
+        "Mother Name",
+        "Current City",
+        "Current State",
+        "Address",
+        "Country",
+        "School Name",
+        "Joining Year",
+        "Passing Year",
+        "Leaving Class",
+        "Admission Number",
+        "Roll No",
+        "Section",
+        "No Higher Ed",
+        "College Name",
+        "Degree",
+        "Custom Degree",
+        "Department",
+        "College Reg No",
+        "College Joining Yr",
+        "College Passing Yr",
+        "Employment Status",
+        "Company Name",
+        "Designation",
+        "Industry",
+        "Total Experience",
+        "Skills",
+        "LinkedIn URL",
+        "Instagram URL",
+        "WhatsApp Number",
+        "Website URL",
+        "Profile Photo URL",
+        "Is Volunteer",
+        "Willing to Donate",
+        "Verification Status"
     ])
 
     def excel_safe_text(value) -> str:
@@ -131,27 +172,73 @@ async def export_alumni_csv(
         return f'="{escaped}"'
 
     for a in alumni_list:
-        raw_id = str(a["_id"])
+        raw_id = str(a.get("_id", ""))
         raw_mobile = a.get("mobile", "") or ""
+        raw_country_code = a.get("country_code", "") or "91"
+        raw_adm_no = a.get("admission_number", "") or ""
+        raw_roll_no = a.get("roll_no", "") or ""
+        raw_college_reg = a.get("college_register_no") or a.get("register_number") or ""
+        raw_whatsapp = a.get("whatsapp_number", "") or ""
 
-        # Both Alumni ID and Mobile are wrapped in Excel text-safe syntax
-        # so Excel preserves them exactly as strings.
+        # Skills list or string
+        skills_val = a.get("skills", "")
+        if isinstance(skills_val, list):
+            skills_str = ", ".join(str(s) for s in skills_val if s)
+        else:
+            skills_str = str(skills_val) if skills_val is not None else ""
+
+        # Higher education flag
+        no_high_ed = a.get("no_higher_education")
+        if isinstance(no_high_ed, bool):
+            no_high_ed_str = "YES" if no_high_ed else "NO"
+        else:
+            no_high_ed_str = str(no_high_ed).strip().upper() if no_high_ed else "NO"
+
         writer.writerow([
             excel_safe_text(raw_id),
             a.get("full_name", ""),
             a.get("name_ta") or a.get("full_name_ta", ""),
-            a.get("passing_year", ""),
-            a.get("admission_number", ""),
-            a.get("section", ""),
             excel_safe_text(raw_mobile) if raw_mobile else "",
+            str(raw_country_code),
+            a.get("gender", ""),
+            a.get("date_of_birth") or a.get("dob", ""),
             a.get("email", ""),
             a.get("blood_group", ""),
+            a.get("father_name", ""),
+            a.get("mother_name", ""),
+            a.get("current_city", ""),
+            a.get("current_state") or a.get("state", ""),
+            a.get("address", ""),
+            a.get("country", "India"),
+            a.get("school_name", ""),
+            a.get("joining_year") or a.get("admission_year") or "",
+            a.get("passing_year", ""),
+            a.get("leaving_class", ""),
+            excel_safe_text(raw_adm_no) if raw_adm_no else "",
+            excel_safe_text(raw_roll_no) if raw_roll_no else "",
+            a.get("section", ""),
+            no_high_ed_str,
+            a.get("college_name") or a.get("institution_name", ""),
+            a.get("degree", ""),
+            a.get("custom_degree") or a.get("other_degree", ""),
+            a.get("department") or a.get("stream", ""),
+            excel_safe_text(raw_college_reg) if raw_college_reg else "",
+            a.get("college_joining_year") or "",
+            a.get("college_passing_year") or "",
+            a.get("employment_status", ""),
+            a.get("company_name") or a.get("company", ""),
+            a.get("profession") or a.get("designation") or a.get("position", ""),
+            a.get("industry", ""),
+            a.get("total_experience") or a.get("experience_years", ""),
+            skills_str,
+            a.get("linkedin_url", ""),
+            a.get("instagram_url", ""),
+            excel_safe_text(raw_whatsapp) if raw_whatsapp else "",
+            a.get("website_url", ""),
+            a.get("profile_photo_url", ""),
             a.get("is_volunteer", "NO"),
             a.get("willing_to_donate", "NO"),
-            a.get("address", ""),
-            a.get("current_city", ""),
-            a.get("profession", ""),
-            a.get("verification_status", "")
+            a.get("verification_status", "APPROVED")
         ])
 
     # Prepend UTF-8 BOM so Microsoft Excel detects UTF-8 and renders Tamil correctly

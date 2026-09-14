@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   Search, Download, Upload, UserX, CheckCircle2, Trash2, Plus, 
   Table as TableIcon, Edit3, Save, RefreshCw, X, ShieldCheck, Clock, AlertCircle,
   Users, HandHeart, Heart, Droplet, Layers, CheckSquare, Square, Filter,
-  ArrowLeft, ArrowRight
+  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -34,6 +34,14 @@ export const AlumniManagement: React.FC = () => {
   // Sheet Edit Tracking State (map of id -> partial profile changes)
   const [editedRows, setEditedRows] = useState<Record<string, Partial<AlumniProfile>>>({});
   const [savingSheet, setSavingSheet] = useState(false);
+
+  // Sheet horizontal scroll container ref & helper
+  const sheetContainerRef = useRef<HTMLDivElement>(null);
+  const scrollSheet = (offset: number) => {
+    if (sheetContainerRef.current) {
+      sheetContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
 
   // Modals
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -1001,7 +1009,32 @@ export const AlumniManagement: React.FC = () => {
               <span>Full Spreadsheet Editor — All 41 Fields Editable Directly Below</span>
             </div>
             <div className="flex items-center space-x-3">
-              <span className="text-amber-300 font-mono">{displayedAlumni.length} Rows Rendered</span>
+              {/* Quick horizontal scroll controls */}
+              <div className="flex items-center bg-[#222222] border border-gray-700 rounded-lg p-0.5 text-gray-300 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => scrollSheet(-400)}
+                  title="Scroll Left (or Shift + Mouse Wheel)"
+                  className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] font-mono px-2 text-gray-400 select-none tracking-tight">
+                  Pan Columns
+                </span>
+                <button
+                  type="button"
+                  onClick={() => scrollSheet(400)}
+                  title="Scroll Right (or Shift + Mouse Wheel)"
+                  className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <span className="text-amber-300 font-mono bg-amber-950/50 px-2.5 py-1 rounded border border-amber-500/30">
+                {displayedAlumni.length} Rows Rendered
+              </span>
               {Object.keys(editedRows).length > 0 && (
                 <button
                   type="button"
@@ -1016,7 +1049,10 @@ export const AlumniManagement: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-[75vh]">
+          <div 
+            ref={sheetContainerRef}
+            className="overflow-auto max-h-[75vh] sheet-scrollbar relative"
+          >
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700 z-10 shadow-sm">
                 <tr>
@@ -1514,6 +1550,34 @@ export const AlumniManagement: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* SPREADSHEET FOOTER BAR — SCROLL & NAVIGATION HELPER */}
+          <div className="px-5 py-2.5 bg-gray-100 border-t border-gray-300 flex flex-wrap items-center justify-between gap-2 text-gray-600 text-[11px] font-semibold">
+            <div className="flex items-center space-x-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+              <span>Enhanced high-contrast scrollbar active. Tip: Use <b>Shift + Mouse Wheel</b> or drag the scrollbar below to navigate columns.</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => scrollSheet(-500)}
+                className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
+                title="Pan Left"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Scroll Left</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollSheet(500)}
+                className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
+                title="Pan Right"
+              >
+                <span>Scroll Right</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2165,17 +2229,14 @@ export const AlumniManagement: React.FC = () => {
       {/* CSV IMPORT MODAL */}
       <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Alumni School Roster via CSV">
         <form onSubmit={handleCSVUploadSubmit} className="space-y-4 text-xs font-medium">
-          <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-[#854D0E] space-y-1">
-            <div className="font-extrabold">CSV File Formatting Guidelines:</div>
-            <div>
-              <strong>Recommended:</strong> include the <strong>Alumni ID</strong> column (from a prior Export CSV) to update existing records.<br/>
-              Rows with an <strong>existing Alumni ID</strong> will <strong>update</strong> that record (only changed fields are written).<br/>
-              Rows with a <strong>new or blank Alumni ID</strong> will be created as new alumni.<br/>
-              Required for new rows: <strong>Name</strong> and <strong>Batch</strong>.<br/>
-              Leave a cell blank to keep its current value. Enter <code>__CLEAR__</code> to explicitly empty a field.
-            </div>
-            <div className="mt-2 pt-2 border-t border-[#F4C542]/60 font-bold text-rose-800">
-              ⚠️ IMPORTANT: Do NOT open the exported CSV in Microsoft Excel and re-save it. Excel silently converts Alumni ID and Mobile numbers into scientific notation, which will cause duplicates or data loss. Use a plain text editor (Notepad, VS Code) if you need to inspect the file.
+          <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-[#854D0E] space-y-1.5">
+            <div className="font-extrabold text-sm">Full 44-Field Spreadsheet Bulk Edit & Import:</div>
+            <div className="space-y-1">
+              <div>• <strong>All 44 Fields Supported:</strong> Personal details, School details, Higher Education (College/Degree), Employment, and Social links can be edited in bulk.</div>
+              <div>• <strong>Safe in Excel / Google Sheets:</strong> IDs and Mobile numbers are formatted to prevent scientific notation corruption.</div>
+              <div>• <strong>Update Existing Records:</strong> Keep the <strong>Alumni ID</strong> column intact — the system will update only your modified cells.</div>
+              <div>• <strong>Add New Records:</strong> Any row without an <strong>Alumni ID</strong> will be created as a new record (requires Full Name and Passing Year).</div>
+              <div>• <strong>Partial Edits:</strong> Leave an existing cell unchanged or blank to retain its current database value. Enter <code>__CLEAR__</code> to explicitly clear a field.</div>
             </div>
           </div>
 

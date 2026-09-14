@@ -189,33 +189,47 @@ CLEAR_TOKEN = "__CLEAR__"
 CSV_HEADER_ALIASES = {
     "alumni_id": ["alumni id", "alumni_id", "id", "alumniid", "_id"],
     "name": ["name", "full name", "full_name", "alumnus name", "alumni name"],
-    "name_ta": ["name in tamil", "name_ta", "full_name_ta", "tamil name"],
+    "name_ta": ["name in tamil", "name_ta", "full_name_ta", "tamil name", "tamil_name"],
     "batch_year": ["batch", "batch year", "passing_year", "passing year", "year"],
     "admission_number": ["admission number", "admission_number", "admission no", "adm no"],
-    "roll_no": ["roll no", "roll_no"],
+    "roll_no": ["roll no", "roll_no", "roll number", "roll_number"],
     "section": ["section", "sec"],
     "mobile": ["mobile", "mobile number", "mobile_number", "phone", "phone number", "contact"],
-    "country_code": ["country code", "country_code"],
+    "country_code": ["country code", "country_code", "countrycode"],
     "email": ["email", "email address", "email_address", "e-mail"],
-    "gender": ["gender"],
-    "date_of_birth": ["date of birth", "date_of_birth", "dob"],
+    "gender": ["gender", "sex"],
+    "date_of_birth": ["date of birth", "date_of_birth", "dob", "birth date"],
     "blood_group": ["blood group", "blood_group", "bloodgroup", "blood"],
-    "father_name": ["father name", "father_name"],
-    "mother_name": ["mother name", "mother_name"],
+    "father_name": ["father name", "father_name", "father's name"],
+    "mother_name": ["mother name", "mother_name", "mother's name"],
     "is_volunteer": ["is volunteer", "is_volunteer", "volunteer"],
-    "willing_to_donate": ["willing to donate", "willing_to_donate", "donor"],
+    "willing_to_donate": ["willing to donate", "willing_to_donate", "donor", "willing donor"],
     "address": ["address", "full address", "full_address", "residential address", "residential_address"],
     "current_city": ["current city", "current_city", "city", "town"],
-    "current_state": ["current state", "current_state", "state"],
-    "country": ["country"],
-    "profession": ["profession", "designation", "occupation", "job", "position"],
-    "company_name": ["company", "company_name", "company name"],
-    "industry": ["industry"],
-    "linkedin_url": ["linkedin url", "linkedin_url"],
-    "instagram_url": ["instagram url", "instagram_url"],
+    "current_state": ["current state", "current_state", "state", "province"],
+    "country": ["country", "nation"],
+    "school_name": ["school name", "school_name", "school"],
+    "joining_year": ["joining year", "joining_year", "joining yr", "admission year", "admission_year"],
+    "leaving_class": ["leaving class", "leaving_class", "class", "std", "standard"],
+    "no_higher_education": ["no higher ed", "no_higher_education", "no higher education", "no_higher_ed"],
+    "college_name": ["college name", "college_name", "college", "institution name", "institution_name", "university"],
+    "degree": ["degree", "degree / course", "course", "qualification"],
+    "custom_degree": ["custom degree", "custom_degree", "other degree", "other_degree"],
+    "department": ["department", "stream", "dept", "branch"],
+    "college_register_no": ["college reg no", "college_register_no", "college reg", "register number", "register_number"],
+    "college_joining_year": ["college joining yr", "college joining year", "college_joining_year"],
+    "college_passing_year": ["college passing yr", "college passing year", "college_passing_year"],
+    "employment_status": ["employment status", "employment_status", "employment"],
+    "company_name": ["company name", "company_name", "company", "employer", "organization"],
+    "profession": ["designation", "profession", "designation / position", "position", "occupation", "job title", "title"],
+    "industry": ["industry", "sector"],
+    "total_experience": ["total experience", "total_experience", "experience", "experience_years"],
+    "skills": ["skills", "skills & expertise", "skills and expertise"],
+    "linkedin_url": ["linkedin url", "linkedin_url", "linkedin"],
+    "instagram_url": ["instagram url", "instagram_url", "instagram"],
     "whatsapp_number": ["whatsapp number", "whatsapp_number", "whatsapp"],
-    "website_url": ["website url", "website_url", "website"],
-    "profile_photo_url": ["profile photo url", "profile_photo_url"],
+    "website_url": ["website url", "website_url", "website", "portfolio"],
+    "profile_photo_url": ["profile photo url", "profile_photo_url", "photo url", "photo", "avatar"],
     "verification_status": ["verification status", "verification_status", "status"],
 }
 
@@ -281,40 +295,54 @@ def _resolve_cell_value(canonical_field: str, csv_value: str, existing_db_value)
 def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
     """
     Given a normalized CSV row and the existing DB doc, return the dict of
-    only the fields that actually changed. Never touches PROTECTED_FIELDS.
+    only the fields that actually changed across all 44 fields. Never touches PROTECTED_FIELDS.
     """
     updates = {}
 
     field_map = {
-        "name":             "full_name",
-        "name_ta":          "name_ta",
-        "batch_year":       "passing_year",
-        "admission_number": "admission_number",
-        "roll_no":          "roll_no",
-        "section":          "section",
-        "mobile":           "mobile",
-        "country_code":     "country_code",
-        "email":            "email",
-        "gender":           "gender",
-        "date_of_birth":    "dob",
-        "blood_group":      "blood_group",
-        "father_name":      "father_name",
-        "mother_name":      "mother_name",
-        "is_volunteer":     "is_volunteer",
-        "willing_to_donate":"willing_to_donate",
-        "address":          "address",
-        "current_city":     "current_city",
-        "current_state":    "state",
-        "country":          "country",
-        "profession":       "profession",
-        "company_name":     "company",
-        "industry":         "industry",
-        "linkedin_url":     "linkedin_url",
-        "instagram_url":    "instagram_url",
-        "whatsapp_number":  "whatsapp_number",
-        "website_url":      "website_url",
-        "profile_photo_url":"profile_photo_url",
-        "verification_status":"verification_status",
+        "name":                 "full_name",
+        "name_ta":              "name_ta",
+        "batch_year":           "passing_year",
+        "admission_number":     "admission_number",
+        "roll_no":              "roll_no",
+        "section":              "section",
+        "mobile":               "mobile",
+        "country_code":         "country_code",
+        "email":                "email",
+        "gender":               "gender",
+        "date_of_birth":        "date_of_birth",
+        "blood_group":          "blood_group",
+        "father_name":          "father_name",
+        "mother_name":          "mother_name",
+        "is_volunteer":         "is_volunteer",
+        "willing_to_donate":    "willing_to_donate",
+        "address":              "address",
+        "current_city":         "current_city",
+        "current_state":        "current_state",
+        "country":              "country",
+        "school_name":          "school_name",
+        "joining_year":         "joining_year",
+        "leaving_class":        "leaving_class",
+        "no_higher_education":  "no_higher_education",
+        "college_name":         "college_name",
+        "degree":               "degree",
+        "custom_degree":        "custom_degree",
+        "department":           "department",
+        "college_register_no":  "college_register_no",
+        "college_joining_year": "college_joining_year",
+        "college_passing_year": "college_passing_year",
+        "employment_status":    "employment_status",
+        "company_name":         "company_name",
+        "profession":           "profession",
+        "industry":             "industry",
+        "total_experience":     "total_experience",
+        "skills":               "skills",
+        "linkedin_url":         "linkedin_url",
+        "instagram_url":        "instagram_url",
+        "whatsapp_number":      "whatsapp_number",
+        "website_url":          "website_url",
+        "profile_photo_url":    "profile_photo_url",
+        "verification_status":  "verification_status",
     }
 
     for csv_key, db_field in field_map.items():
@@ -326,12 +354,14 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
         if new_val is None:
             continue
 
-        if db_field == "passing_year":
+        if db_field in ("passing_year", "joining_year", "college_joining_year", "college_passing_year"):
             try:
                 new_val = int(float(new_val))
             except (ValueError, TypeError):
                 continue
         elif db_field in ("is_volunteer", "willing_to_donate"):
+            new_val = "YES" if str(new_val).strip().upper() in ("YES", "TRUE", "1") else "NO"
+        elif db_field == "no_higher_education":
             new_val = "YES" if str(new_val).strip().upper() in ("YES", "TRUE", "1") else "NO"
         elif db_field == "verification_status":
             new_val = str(new_val).strip().upper()
@@ -344,16 +374,149 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
         if isinstance(existing_val, (int, float)) and isinstance(new_val, (int, float)):
             if existing_val == new_val:
                 continue
+        elif db_field == "skills":
+            existing_skills_str = ", ".join(existing_val) if isinstance(existing_val, list) else str(existing_val or "")
+            if existing_skills_str.strip() == str(new_val).strip():
+                continue
         else:
             if str(existing_val).strip() == str(new_val).strip():
                 continue
 
         updates[db_field] = new_val
 
+        # Companion field syncs to ensure full compatibility across web, admin, and mobile views
+        if db_field == "name_ta":
+            updates["full_name_ta"] = new_val
+        elif db_field == "date_of_birth":
+            updates["dob"] = new_val
+        elif db_field == "current_state":
+            updates["state"] = new_val
+        elif db_field == "joining_year":
+            updates["admission_year"] = new_val
+        elif db_field == "college_name":
+            updates["institution_name"] = new_val
+        elif db_field == "department":
+            updates["stream"] = new_val
+        elif db_field == "custom_degree":
+            updates["other_degree"] = new_val
+        elif db_field == "college_register_no":
+            updates["register_number"] = new_val
+        elif db_field == "company_name":
+            updates["company"] = new_val
+        elif db_field == "profession":
+            updates["designation"] = new_val
+            updates["position"] = new_val
+        elif db_field == "total_experience":
+            updates["experience_years"] = new_val
+        elif db_field == "skills":
+            if isinstance(new_val, str):
+                updates["skills"] = [s.strip() for s in new_val.split(",") if s.strip()]
+
     if batch_id is not None and existing_doc.get("batch_id") != batch_id:
         updates["batch_id"] = batch_id
 
     return updates
+
+
+def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dict:
+    """Build a complete alumni document containing all 44 fields for CSV creation."""
+    name = (row.get("name") or "").strip()
+    batch_year_raw = (row.get("batch_year") or "").strip()
+    try:
+        passing_year = int(float(batch_year_raw))
+    except (ValueError, TypeError):
+        passing_year = datetime.now(timezone.utc).year
+
+    def to_int_or_none(val):
+        if not val:
+            return None
+        try:
+            return int(float(val))
+        except (ValueError, TypeError):
+            return None
+
+    skills_raw = (row.get("skills") or "").strip()
+    skills_list = [s.strip() for s in skills_raw.split(",") if s.strip()] if skills_raw else []
+
+    name_ta = (row.get("name_ta") or "").strip()
+    dob = (row.get("date_of_birth") or "").strip()
+    state = (row.get("current_state") or "").strip()
+    college_name = (row.get("college_name") or "").strip()
+    dept = (row.get("department") or "").strip()
+    custom_degree = (row.get("custom_degree") or "").strip()
+    college_reg = (row.get("college_register_no") or "").strip()
+    company = (row.get("company_name") or "").strip()
+    profession = (row.get("profession") or "").strip()
+    exp = (row.get("total_experience") or "").strip()
+    no_higher = "YES" if (row.get("no_higher_education") or "").strip().upper() in ("YES", "TRUE", "1") else "NO"
+
+    status_raw = (row.get("verification_status") or "").strip().upper()
+    verification_status = status_raw if status_raw in ("APPROVED", "PENDING", "SUSPENDED", "REJECTED") else "APPROVED"
+
+    adm_no = (row.get("admission_number") or "").strip()
+    roll_no = (row.get("roll_no") or "").strip()
+
+    return {
+        "_id": oid,
+        "school_id": school_id,
+        "batch_id": batch_id,
+        "full_name": name,
+        "name_ta": name_ta,
+        "full_name_ta": name_ta,
+        "mobile": (row.get("mobile") or "").strip(),
+        "country_code": (row.get("country_code") or "91").strip(),
+        "gender": (row.get("gender") or "Male").strip(),
+        "date_of_birth": dob,
+        "dob": dob,
+        "email": (row.get("email") or "").strip(),
+        "blood_group": (row.get("blood_group") or "").strip(),
+        "father_name": (row.get("father_name") or "").strip(),
+        "mother_name": (row.get("mother_name") or "").strip(),
+        "current_city": (row.get("current_city") or "").strip(),
+        "current_state": state,
+        "state": state,
+        "address": (row.get("address") or "").strip(),
+        "country": (row.get("country") or "India").strip(),
+        "school_name": (row.get("school_name") or "Natarajan Higher Secondary School").strip(),
+        "joining_year": to_int_or_none(row.get("joining_year")),
+        "admission_year": to_int_or_none(row.get("joining_year")),
+        "passing_year": passing_year,
+        "leaving_class": (row.get("leaving_class") or "").strip(),
+        "admission_number": adm_no,
+        "roll_no": roll_no,
+        "section": (row.get("section") or "A").strip(),
+        "no_higher_education": no_higher,
+        "college_name": college_name,
+        "institution_name": college_name,
+        "degree": (row.get("degree") or "").strip(),
+        "custom_degree": custom_degree,
+        "other_degree": custom_degree,
+        "department": dept,
+        "stream": dept,
+        "college_register_no": college_reg,
+        "register_number": college_reg,
+        "college_joining_year": to_int_or_none(row.get("college_joining_year")),
+        "college_passing_year": to_int_or_none(row.get("college_passing_year")),
+        "employment_status": (row.get("employment_status") or "").strip(),
+        "company_name": company,
+        "company": company,
+        "profession": profession,
+        "designation": profession,
+        "position": profession,
+        "industry": (row.get("industry") or "").strip(),
+        "total_experience": exp,
+        "experience_years": exp,
+        "skills": skills_list,
+        "linkedin_url": (row.get("linkedin_url") or "").strip(),
+        "instagram_url": (row.get("instagram_url") or "").strip(),
+        "whatsapp_number": (row.get("whatsapp_number") or "").strip(),
+        "website_url": (row.get("website_url") or "").strip(),
+        "profile_photo_url": (row.get("profile_photo_url") or "").strip(),
+        "is_volunteer": "YES" if (row.get("is_volunteer") or "").strip().upper() in ("YES", "TRUE", "1") else "NO",
+        "willing_to_donate": "YES" if (row.get("willing_to_donate") or "").strip().upper() in ("YES", "TRUE", "1") else "NO",
+        "verification_status": verification_status,
+        "created_at": datetime.now(timezone.utc)
+    }
 
 
 def _is_valid_objectid_hex(s: str) -> bool:
@@ -473,26 +636,8 @@ async def import_alumni_csv(
                 # user_id intentionally OMITTED for pre-imported roster records.
                 # The unique index on user_id is sparse, so multiple alumni
                 # without a linked user account are allowed.
-                new_doc = {
-                    "_id": oid,
-                    "school_id": school_id,
-                    "batch_id": batch_id,
-                    "full_name": name,
-                    "name_ta": (row.get("name_ta") or "").strip(),
-                    "mobile": (row.get("mobile") or "").strip(),
-                    "email": (row.get("email") or "").strip(),
-                    "passing_year": year_int,
-                    "admission_number": (row.get("admission_number") or "").strip(),
-                    "section": (row.get("section") or "").strip() or "A",
-                    "current_city": (row.get("current_city") or "").strip(),
-                    "profession": (row.get("profession") or "").strip(),
-                    "blood_group": (row.get("blood_group") or "").strip(),
-                    "is_volunteer": "YES" if (row.get("is_volunteer") or "").strip().upper() in ("YES","TRUE","1") else "NO",
-                    "willing_to_donate": "YES" if (row.get("willing_to_donate") or "").strip().upper() in ("YES","TRUE","1") else "NO",
-                    "verification_status": "APPROVED",
-                    "verification_notes": "Uploaded via CSV (with explicit Alumni ID)",
-                    "created_at": datetime.now(timezone.utc)
-                }
+                new_doc = _build_alumni_doc(row, school_id, batch_id, oid)
+                new_doc["verification_notes"] = "Uploaded via CSV (with explicit Alumni ID)"
                 await db.alumni.insert_one(new_doc)
                 created += 1
                 continue
@@ -565,26 +710,11 @@ async def import_alumni_csv(
 
             new_oid = ObjectId()
             # user_id intentionally OMITTED — sparse unique index allows it.
-            await db.alumni.insert_one({
-                "_id": new_oid,
-                "school_id": school_id,
-                "batch_id": batch_id,
-                "full_name": name,
-                "name_ta": (row.get("name_ta") or "").strip(),
-                "mobile": (row.get("mobile") or "").strip(),
-                "email": (row.get("email") or "").strip(),
-                "passing_year": year_int,
-                "admission_number": (row.get("admission_number") or "").strip() or f"CSV-{year_int}-{total:03d}",
-                "section": (row.get("section") or "").strip() or "A",
-                "current_city": (row.get("current_city") or "").strip(),
-                "profession": (row.get("profession") or "").strip(),
-                "blood_group": (row.get("blood_group") or "").strip(),
-                "is_volunteer": "YES" if (row.get("is_volunteer") or "").strip().upper() in ("YES","TRUE","1") else "NO",
-                "willing_to_donate": "YES" if (row.get("willing_to_donate") or "").strip().upper() in ("YES","TRUE","1") else "NO",
-                "verification_status": "APPROVED",
-                "verification_notes": "Uploaded via CSV (no Alumni ID provided)",
-                "created_at": datetime.now(timezone.utc)
-            })
+            new_doc = _build_alumni_doc(row, school_id, batch_id, new_oid)
+            if not new_doc["admission_number"]:
+                new_doc["admission_number"] = f"CSV-{year_int}-{total:03d}"
+            new_doc["verification_notes"] = "Uploaded via CSV (no Alumni ID provided)"
+            await db.alumni.insert_one(new_doc)
             created += 1
         except Exception as e:
             err_msg = str(e)
