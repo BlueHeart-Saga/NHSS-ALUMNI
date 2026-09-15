@@ -3,7 +3,7 @@ import {
   Search, Download, Upload, UserX, CheckCircle2, Trash2, Plus, 
   Table as TableIcon, Edit3, Save, RefreshCw, X, ShieldCheck, Clock, AlertCircle,
   Users, HandHeart, Heart, Droplet, Layers, CheckSquare, Square, Filter,
-  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight
+  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Send, FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -35,7 +35,14 @@ export const AlumniManagement: React.FC = () => {
   const [editedRows, setEditedRows] = useState<Record<string, Partial<AlumniProfile>>>({});
   const [savingSheet, setSavingSheet] = useState(false);
 
-  // Sheet horizontal scroll container ref & helper
+  // Table & Sheet horizontal scroll container refs & helpers
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTable = (offset: number) => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
   const sheetContainerRef = useRef<HTMLDivElement>(null);
   const scrollSheet = (offset: number) => {
     if (sheetContainerRef.current) {
@@ -52,8 +59,11 @@ export const AlumniManagement: React.FC = () => {
   // Paginated Add form step (1..5)
   const [addFormStep, setAddFormStep] = useState<number>(1);
 
-  // Export CSV state
+  // Export CSV & Excel states
   const [exportingCSV, setExportingCSV] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [importSummaryModalOpen, setImportSummaryModalOpen] = useState(false);
+  const [lastImportResult, setLastImportResult] = useState<any | null>(null);
 
   // Add Single/Bulk Alumnus Form State — now includes ALL fields
   const [newAlumnus, setNewAlumnus] = useState<Partial<AlumniProfile>>({
@@ -325,7 +335,46 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
+  const handleSendInvitation = async (id: string, name: string, mobile: string) => {
+    const confirmed = await alertService.showConfirm(
+      'Send Account Invitation?',
+      `Send an SMS invitation link to "${name}" (${mobile}) to activate their account and set their password?`,
+      'Send Invitation',
+      'Cancel'
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await api.sendAlumniInvitation(id);
+      alertService.showSuccess('Invitation Sent', res.message || `SMS invitation sent to ${mobile}.`);
+      fetchAlumni(true);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to send account invitation.');
+    }
+  };
+
   // Bulk Actions
+  const handleBulkSendInvitations = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const confirmed = await alertService.showConfirm(
+      'Bulk Send Account Invitations?',
+      `Send SMS invitation links to ${ids.length} selected alumni to verify their mobile numbers and create passwords?`,
+      'Send Invitations',
+      'Cancel'
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await api.bulkSendAlumniInvitations(ids);
+      alertService.showSuccess('Invitations Dispatched', res.message || `Sent ${res.sent || ids.length} invitations.`);
+      setSelectedIds(new Set());
+      fetchAlumni(true);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to dispatch bulk invitations.');
+    }
+  };
   const handleBulkApprove = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -435,7 +484,6 @@ export const AlumniManagement: React.FC = () => {
     }
     if (step === 2) {
       if (!newAlumnus.mobile || !String(newAlumnus.mobile).trim()) missing.push('Mobile Number');
-      if (!newAlumnus.email || !String(newAlumnus.email).trim()) missing.push('Email Address');
       if (!newAlumnus.current_city || !String(newAlumnus.current_city).trim()) missing.push('Current City');
     }
     if (step === 3) {
@@ -498,8 +546,8 @@ export const AlumniManagement: React.FC = () => {
         payload.college_passing_year = Number(newAlumnus.college_passing_year);
       }
 
-      await api.register(payload);
-      alertService.showSuccess('Alumni Profile Created', `New alumni profile for ${newAlumnus.full_name} added.`);
+      await api.adminCreateAlumni(payload);
+      alertService.showSuccess('Alumni Profile Created', `New alumni profile for ${newAlumnus.full_name} added. You can now send them an account activation invitation.`);
       setIsAddModalOpen(false);
       resetAddForm();
       fetchAlumni(true);
@@ -547,6 +595,8 @@ export const AlumniManagement: React.FC = () => {
 
       setIsImportModalOpen(false);
       setCsvFile(null);
+      setLastImportResult(res);
+      setImportSummaryModalOpen(true);
       fetchAlumni(true);
     } catch (err: any) {
       alertService.handleApiError(err, 'CSV roster upload failed.');
@@ -565,6 +615,19 @@ export const AlumniManagement: React.FC = () => {
       alertService.handleApiError(err, 'Failed to export alumni CSV.');
     } finally {
       setExportingCSV(false);
+    }
+  };
+
+  // Export Excel (.xlsx) Handler (authenticated blob download with professional formatting)
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      await api.exportAlumniExcel();
+      alertService.showSuccess('Export Complete', 'Alumni roster Excel spreadsheet (.xlsx) has been downloaded.');
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to export alumni Excel spreadsheet.');
+    } finally {
+      setExportingExcel(false);
     }
   };
 
@@ -648,17 +711,38 @@ export const AlumniManagement: React.FC = () => {
             type="button"
             onClick={handleExportCSV}
             disabled={exportingCSV}
-            className="inline-flex items-center justify-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-bold text-xs rounded-xl transition-all border border-[#E0B030] shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-bold text-xs rounded-xl transition-all border border-[#E0B030] shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="Export raw CSV for editing, backup, or bulk import"
           >
             {exportingCSV ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                Exporting...
+                Exporting CSV...
               </>
             ) : (
               <>
                 <Download className="w-4 h-4 mr-1" />
                 Export CSV
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={exportingExcel}
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all border border-emerald-600 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="Download formatted Excel spreadsheet (.xlsx) with auto-filters and frozen headers"
+          >
+            {exportingExcel ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                Exporting Excel...
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="w-4 h-4 mr-1" />
+                Export Excel
               </>
             )}
           </button>
@@ -674,6 +758,16 @@ export const AlumniManagement: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBulkSendInvitations}
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer shadow-xs"
+              title="Send account activation SMS invitation to selected alumni"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send Invitation ({selectedIds.size})</span>
+            </button>
+
             <button
               type="button"
               onClick={handleBulkApprove}
@@ -779,10 +873,38 @@ export const AlumniManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500 font-medium pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 font-medium pt-2 border-t border-gray-100">
           <div>
             Showing <strong className="text-[#111111]">{displayedAlumni.length}</strong> of {alumniList.length} total roster records
           </div>
+
+          {viewMode === 'table' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] text-gray-500 hidden sm:inline">Horizontal Scroll:</span>
+              <div className="flex items-center bg-gray-100 hover:bg-gray-200/70 border border-gray-300 rounded-xl p-0.5 text-gray-700 shadow-2xs transition-all">
+                <button
+                  type="button"
+                  onClick={() => scrollTable(-300)}
+                  title="Scroll Left (or Shift + Mouse Wheel)"
+                  className="p-1 hover:text-[#111111] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] font-bold px-2 text-gray-600 select-none tracking-tight">
+                  Pan Columns
+                </span>
+                <button
+                  type="button"
+                  onClick={() => scrollTable(300)}
+                  title="Scroll Right (or Shift + Mouse Wheel)"
+                  className="p-1 hover:text-[#111111] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {viewMode === 'sheet' && (
             <span className="text-amber-800 font-bold bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 text-[11px]">
               Sheet Mode Active: Edit any input directly below
@@ -797,11 +919,11 @@ export const AlumniManagement: React.FC = () => {
           {loading ? (
             <TableSkeleton rows={8} />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            <div ref={tableContainerRef} className="overflow-x-auto table-scrollbar relative scroll-smooth">
+              <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className="bg-gray-100/80 border-b border-gray-200 text-[11px] font-extrabold uppercase tracking-wider text-gray-600">
-                    <th className="py-3 px-4 w-10">
+                  <tr className="bg-gray-100/90 border-b border-gray-200 text-[11px] font-extrabold uppercase tracking-wider text-gray-600 whitespace-nowrap">
+                    <th className="py-3 px-4 w-10 sticky left-0 bg-gray-100 z-10 border-r border-gray-200/50 shadow-2xs">
                       <button
                         type="button"
                         onClick={toggleSelectAll}
@@ -815,15 +937,15 @@ export const AlumniManagement: React.FC = () => {
                       </button>
                     </th>
                     <th className="py-3.5 px-3 w-16 text-center">S.No</th>
-                    <th className="py-3.5 px-4">Alumnus Profile</th>
-                    <th className="py-3.5 px-4">Batch & Section</th>
-                    <th className="py-3.5 px-4">Contact Information</th>
-                    <th className="py-3.5 px-4">Address</th>
-                    <th className="py-3.5 px-4">Blood Group</th>
-                    <th className="py-3.5 px-4">Volunteer</th>
-                    <th className="py-3.5 px-4">Willing Donor</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                    <th className="py-3.5 px-4 min-w-[200px]">Alumnus Profile</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">Batch & Section</th>
+                    <th className="py-3.5 px-4 min-w-[160px]">Contact Information</th>
+                    <th className="py-3.5 px-4 min-w-[190px]">Address</th>
+                    <th className="py-3.5 px-4 min-w-[110px]">Blood Group</th>
+                    <th className="py-3.5 px-4 min-w-[100px]">Volunteer</th>
+                    <th className="py-3.5 px-4 min-w-[110px]">Willing Donor</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">Status</th>
+                    <th className="py-3.5 px-4 text-right min-w-[190px]">Actions</th>
                   </tr>
                 </thead>
 
@@ -835,8 +957,8 @@ export const AlumniManagement: React.FC = () => {
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name)}&background=F3F4F6&color=111111`;
 
                       return (
-                        <tr key={a.id} className={`hover:bg-amber-50/40 transition-colors ${isSelected ? 'bg-amber-50/70' : ''}`}>
-                          <td className="py-3 px-4">
+                        <tr key={a.id} className={`group hover:bg-amber-50/40 transition-colors ${isSelected ? 'bg-amber-50/70' : ''}`}>
+                          <td className={`py-3 px-4 sticky left-0 z-10 border-r border-gray-200/40 ${isSelected ? 'bg-[#FFF2C6]' : 'bg-white group-hover:bg-amber-50/70'}`}>
                             <button
                               type="button"
                               onClick={() => toggleSelectRow(a.id)}
@@ -920,16 +1042,44 @@ export const AlumniManagement: React.FC = () => {
                           </td>
 
                           <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              a.verification_status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                              a.verification_status === 'PENDING' ? 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]' :
-                              'bg-rose-100 text-rose-800 border border-rose-300'
-                            }`}>
-                              {a.verification_status || 'APPROVED'}
-                            </span>
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                a.verification_status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                a.verification_status === 'PENDING' ? 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]' :
+                                'bg-rose-100 text-rose-800 border border-rose-300'
+                              }`}>
+                                {a.verification_status || 'APPROVED'}
+                              </span>
+                              {a.account_status === 'PENDING_ACTIVATION' ? (
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                                  a.invitation_status === 'SENT'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {a.invitation_status === 'SENT' ? 'Invite Sent' : 'Pending Activation'}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Active
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
+  {/* Send / Resend Activation Invitation */}
+  {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
+    <button
+      type="button"
+      onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
+      className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+      title="Send SMS Activation Invitation"
+    >
+      <Send className="w-3 h-3" />
+      <span>{a.invitation_status === 'SENT' ? 'Resend Invite' : 'Send Invite'}</span>
+    </button>
+  )}
+
   {/* PENDING → allow Approve */}
   {a.verification_status === 'PENDING' && (
     <button
@@ -1797,12 +1947,12 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Email Address *</label>
+                  <label className={addLabelCls}>Email Address (Optional)</label>
                   <input
                     type="email"
                     value={newAlumnus.email || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, email: e.target.value })}
-                    placeholder="e.g. alumni@example.com"
+                    placeholder="e.g. alumni@example.com (optional)"
                     className={addInputCls + ' font-mono'}
                   />
                 </div>
@@ -2258,6 +2408,66 @@ export const AlumniManagement: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* CSV IMPORT RESULTS BREAKDOWN MODAL */}
+      {lastImportResult && (
+        <Modal 
+          isOpen={importSummaryModalOpen} 
+          onClose={() => setImportSummaryModalOpen(false)} 
+          title="CSV Roster Import Results"
+        >
+          <div className="space-y-4 text-xs font-medium">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                <div className="text-gray-500 font-bold uppercase tracking-wider text-[10px]">Total Rows</div>
+                <div className="text-lg font-black text-gray-900 mt-0.5">{lastImportResult.total_rows || 0}</div>
+              </div>
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <div className="text-emerald-700 font-bold uppercase tracking-wider text-[10px]">Valid / Processed</div>
+                <div className="text-lg font-black text-emerald-800 mt-0.5">
+                  {(lastImportResult.created || 0) + (lastImportResult.updated || 0) + (lastImportResult.unchanged || 0) + (lastImportResult.matched_and_approved || 0)}
+                </div>
+              </div>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="text-blue-700 font-bold uppercase tracking-wider text-[10px]">Updated Rows</div>
+                <div className="text-lg font-black text-blue-800 mt-0.5">{lastImportResult.updated || 0}</div>
+              </div>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="text-green-700 font-bold uppercase tracking-wider text-[10px]">New Created</div>
+                <div className="text-lg font-black text-green-800 mt-0.5">{lastImportResult.created || 0}</div>
+              </div>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="text-amber-700 font-bold uppercase tracking-wider text-[10px]">Unchanged</div>
+                <div className="text-lg font-black text-amber-800 mt-0.5">{lastImportResult.unchanged || 0}</div>
+              </div>
+              <div className={`p-3 rounded-xl border ${lastImportResult.failed > 0 ? 'bg-red-50 border-red-200 text-red-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                <div className="font-bold uppercase tracking-wider text-[10px]">Failed / Skipped</div>
+                <div className="text-lg font-black mt-0.5">{lastImportResult.failed || 0}</div>
+              </div>
+            </div>
+
+            {lastImportResult.errors && lastImportResult.errors.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-bold text-red-700 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Validation & Import Errors ({lastImportResult.errors.length})</span>
+                </div>
+                <div className="max-h-40 overflow-y-auto p-3 bg-red-50/70 border border-red-200 rounded-xl space-y-1 font-mono text-[11px] text-red-900">
+                  {lastImportResult.errors.map((err: string, idx: number) => (
+                    <div key={idx} className="border-b border-red-100 last:border-b-0 pb-1">{err}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-2">
+              <Button type="button" onClick={() => setImportSummaryModalOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -207,6 +207,9 @@ export interface AlumniProfile {
   // ✅ DRAFT is added — set on every save until Step 6 final submit
   verification_status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NOT_REGISTERED';
   verification_notes?: string;
+  account_status?: 'ACTIVE' | 'PENDING_ACTIVATION' | 'SUSPENDED';
+  invitation_status?: 'PENDING' | 'SENT' | 'OPENED' | 'EXPIRED' | 'ACCEPTED';
+  phone_verified?: boolean;
   // ✅ NEW — true only after Step 6 "Submit Official Registration"
   registration_submitted?: boolean;
   roles: string[];

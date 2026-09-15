@@ -81,6 +81,42 @@
   background: #D1D5DB;
 }
 
+/* High-Visibility Table Scrollbar Kit */
+.table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.table-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 999px;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
+  border: 2px solid #f1f5f9;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  border: 1.5px solid #f1f5f9;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb:active {
+  background: #334155;
+}
+
+.table-scrollbar::-webkit-scrollbar-corner {
+  background: #e2e8f0;
+}
+
 /* High-Visibility Spreadsheet Scrollbar */
 .sheet-scrollbar {
   scrollbar-width: auto; /* Firefox standard width */

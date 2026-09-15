@@ -62,8 +62,8 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
       setOtp('');
       setStep('OTP');
       alertService.showSuccess(
-        'Developer Email Verified!',
-        `Security OTP code sent via SMTP email to: ${cleanEmail}`
+        'Developer Verified!',
+        'Security OTP code sent via SMS to your registered mobile.'
       );
     } catch (err: any) {
       const errMsg = err.message || 'The email address entered is not registered or authorized for Developer Portal access.';
@@ -167,14 +167,14 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
             </div>
 
             <Button type="submit" className="w-full py-3 bg-black text-white font-bold hover:bg-black" isLoading={loading}>
-              <span>Send Security OTP via SMTP</span>
+              <span>Send Security OTP Code</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOTP} className="space-y-5">
             <div className="p-3 bg-gray-50 border border-[#E5E7EB] rounded-xl text-xs text-[#6B7280]">
-              Developer OTP sent via SMTP to <strong className="text-[#111111]">{email}</strong>.
+              Developer OTP code sent via SMS to your registered mobile.
             </div>
 
             <div>

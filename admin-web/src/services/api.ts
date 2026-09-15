@@ -199,7 +199,8 @@ class ApiClient {
     });
   }
 
-  async setPasswordWithOTP(email: string, otp: string, password: string) {
+  async setPasswordWithOTP(identifier: string, otp: string, password: string) {
+    const { email, mobile } = this.parseIdentifier(identifier);
     const res = await this.request<{
       access_token?: string;
       user_id?: string;
@@ -211,7 +212,7 @@ class ApiClient {
       message?: string;
     }>('/auth/set-password-with-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, password }),
+      body: JSON.stringify({ email, mobile, otp, password }),
     });
     if (res.access_token) {
       this.setToken(res.access_token);
@@ -230,6 +231,53 @@ class ApiClient {
     }>('/auth/admin/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ email, mobile, otp }),
+    });
+    if (res.access_token) {
+      this.setToken(res.access_token);
+    }
+    return res;
+  }
+
+  // Account Invitation & Activation
+  async validateInvitationToken(token: string) {
+    return this.request<{
+      valid: boolean;
+      full_name: string;
+      school_name?: string;
+      mobile?: string;
+      expires_at?: string;
+    }>(`/auth/invitation/validate?token=${encodeURIComponent(token)}`);
+  }
+
+  async sendInvitationOTP(token: string) {
+    return this.request<{ success: boolean; message: string; mobile?: string }>('/auth/invitation/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async verifyInvitationOTP(token: string, otp: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/invitation/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ token, otp }),
+    });
+  }
+
+  async activateAccountWithInvitation(token: string, password: string) {
+    const res = await this.request<{
+      access_token: string;
+      refresh_token: string;
+      token_type: string;
+      user_id: string;
+      roles: string[];
+      verification_status: string;
+      registration_required: boolean;
+      resume_step?: number;
+      alumni_id?: string;
+      school_id?: string;
+    }>('/auth/invitation/activate', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
     });
     if (res.access_token) {
       this.setToken(res.access_token);
@@ -576,6 +624,37 @@ class ApiClient {
     });
   }
 
+  async adminCreateAlumni(data: Record<string, any>) {
+    return this.request<AlumniProfile>('/alumni', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendAlumniInvitation(alumniId: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      activation_url?: string;
+      alumni_id?: string;
+      mobile?: string;
+    }>(`/alumni/${alumniId}/send-invitation`, {
+      method: 'POST',
+    });
+  }
+
+  async bulkSendAlumniInvitations(alumniIds: string[]) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      sent?: number;
+      skipped?: number;
+    }>('/alumni/bulk-send-invitation', {
+      method: 'POST',
+      body: JSON.stringify({ alumni_ids: alumniIds }),
+    });
+  }
+
   async importCSV(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -836,6 +915,42 @@ class ApiClient {
     const filename = filenameMatch && filenameMatch[1]
       ? filenameMatch[1].replace(/['"]/g, '')
       : 'alumni_roster.csv';
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // NEW: Download professional Excel (.xlsx) export as a Blob and trigger browser download
+  async exportAlumniExcel(): Promise<void> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/reports/export-alumni-excel`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: 'Excel export failed' }));
+      throw new Error(errorBody.detail || `Export failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename = filenameMatch && filenameMatch[1]
+      ? filenameMatch[1].replace(/['"]/g, '')
+      : 'alumni_roster.xlsx';
 
     link.download = filename;
     document.body.appendChild(link);

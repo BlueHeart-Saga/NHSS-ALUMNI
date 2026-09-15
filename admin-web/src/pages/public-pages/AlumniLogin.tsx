@@ -65,15 +65,16 @@ export const AlumniLogin: React.FC = () => {
     }
   }, [navigate]);
 
-  // Direct Login: Validate Email & Password and Log In directly without OTP screen
+  // Direct Login: Authenticate via Mobile/Email & Password directly
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setUserNotFound(false);
     setPasswordNotCreated(false);
 
-    if (!email) {
-      setError(language === 'ta' ? 'தயவுசெய்து உங்கள் மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter your registered email address.');
+    const identifier = email.trim();
+    if (!identifier) {
+      setError(language === 'ta' ? 'தயவுசெய்து உங்கள் கைபேசி எண் அல்லது மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter your registered mobile number or email address.');
       return;
     }
     if (!password) {
@@ -84,17 +85,13 @@ export const AlumniLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1. Verify email & password credentials against database
-      await api.sendOTP(email, undefined, true, password);
-
-      // 2. Log in directly without requiring manual OTP code entry
-      const res = await api.verifyOTP(email, '123456');
+      const res = await api.login(identifier, password, rememberMe);
       const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
 
       if (targetPath === '/register') {
         navigate('/register', {
           state: {
-            email: email,
+            email: identifier,
             user_id: res.user_id,
             resumeStep: res.resume_step || 2
           }
@@ -113,12 +110,18 @@ export const AlumniLogin: React.FC = () => {
         navigate(targetPath);
       }
     } catch (err: any) {
-      if (err.message && (err.message.includes('PASSWORD_NOT_CREATED') || err.message.toLowerCase().includes('not have a login password'))) {
+      if (err.message && err.message.includes('ACCOUNT_PENDING_ACTIVATION')) {
+        setError(
+          language === 'ta'
+            ? 'உங்கள் கணக்கு இன்னும் செயல்படுத்தப்படவில்லை. உங்கள் கைபேசிக்கு அனுப்பப்பட்ட SMS இணைப்பு மூலம் கணக்கை செயல்படுத்தவும்.'
+            : 'Your account is pending activation. Please use the invitation link sent to your mobile phone via SMS to set your password.'
+        );
+      } else if (err.message && (err.message.includes('PASSWORD_NOT_CREATED') || err.message.toLowerCase().includes('not have a login password'))) {
         setPasswordNotCreated(true);
       } else if (err.message && (err.message.toLowerCase().includes('not found') || err.message.toLowerCase().includes('register'))) {
         setUserNotFound(true);
       } else {
-        setError(err.message || (language === 'ta' ? 'கணக்கை சரிபார்க்க முடியவில்லை.' : 'Failed to verify account credentials.'));
+        setError(err.message || (language === 'ta' ? 'உள்நுழைய முடியவில்லை. கடவுச்சொல்லை சரிபார்க்கவும்.' : 'Failed to log in. Please check your credentials and try again.'));
       }
     } finally {
       setLoading(false);
@@ -170,31 +173,31 @@ export const AlumniLogin: React.FC = () => {
   const handleForgotEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !email.trim() || !email.includes('@')) {
+    if (!email || !email.trim()) {
       alertService.showWarning(
-        language === 'ta' ? 'மின்னஞ்சல் தேவை' : 'Email Required',
-        language === 'ta' ? 'தயவுசெய்து உங்கள் மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter your registered email address.'
+        language === 'ta' ? 'கைபேசி எண் தேவை' : 'Identifier Required',
+        language === 'ta' ? 'தயவுசெய்து உங்கள் பதிவு செய்யப்பட்ட கைபேசி எண் அல்லது மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter your registered mobile number or email address.'
       );
       return;
     }
 
     setLoading(true);
     try {
-      // Pass forPasswordReset = true -> backend checks if email exists in DB
+      // Pass forPasswordReset = true -> backend checks if identifier exists in DB
       await api.sendOTP(email, undefined, false, undefined, true);
       alertService.showInfo(
         language === 'ta' ? 'OTP அனுப்பப்பட்டது' : 'Reset Code Sent',
         language === 'ta'
-          ? `கடவுச்சொல் மாற்றும் 6-இலக்க OTP ${email} முகவரிக்கு அனுப்பப்பட்டுள்ளது.`
-          : `A 6-digit password reset verification code has been dispatched to ${email}.`
+          ? 'கடவுச்சொல் மாற்றும் 6-இலக்க OTP SMS மூலம் உங்கள் கைபேசிக்கு அனுப்பப்பட்டுள்ளது.'
+          : 'A 6-digit password reset verification code has been dispatched via SMS to your registered mobile number.'
       );
       setForgotStep('OTP');
     } catch (err: any) {
       alertService.handleApiError(
         err,
         language === 'ta'
-          ? `'${email}' என்ற மின்னஞ்சலில் கணக்கு எதுவும் இல்லை. தயவுசெய்து சரிபார்க்கவும்.`
-          : `No alumni profile found matching '${email}'. Please check your email address.`
+          ? `'${email}' என்ற கணக்கு எதுவும் இல்லை. தயவுசெய்து சரிபார்க்கவும்.`
+          : `No alumni profile found matching '${email}'. Please check your registered credentials.`
       );
     } finally {
       setLoading(false);
@@ -286,13 +289,13 @@ export const AlumniLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Send clean OTP without checkUser/checkAlreadyRegistered flags
+      // Send clean OTP to registered mobile number
       await api.sendOTP(activeEmail);
       alertService.showInfo(
         language === 'ta' ? 'OTP அனுப்பப்பட்டது' : 'Verification OTP Sent',
         language === 'ta'
-          ? `கடவுச்சொல் உருவாக்க 6-இலக்க OTP ${activeEmail} முகவரிக்கு அனுப்பப்பட்டுள்ளது.`
-          : `A 6-digit verification code has been dispatched to ${activeEmail}.`
+          ? 'கடவுச்சொல் உருவாக்க 6-இலக்க OTP SMS மூலம் உங்கள் கைபேசிக்கு அனுப்பப்பட்டுள்ளது.'
+          : 'A 6-digit verification code has been dispatched via SMS to your registered mobile number.'
       );
       setMode('CREATE_PASSWORD');
       setCreatePassOtp('');
@@ -521,7 +524,7 @@ export const AlumniLogin: React.FC = () => {
                     </h4>
                     <p className="text-xs text-gray-800 mt-1 leading-relaxed font-normal">
                       {language === 'ta' ? (
-                        <><strong>{email}</strong> என்ற மின்னஞ்சலில் கணக்கு எதுவும் இல்லை. தொடர புதிய கணக்கு உருவாக்குங்கள்.</>
+                        <><strong>{email}</strong> என்ற கைபேசி எண்ணில் / கணக்கில் சுயவிவரம் எதுவும் இல்லை. தொடர புதிய கணக்கு உருவாக்குங்கள்.</>
                       ) : (
                         <>No alumni profile was found for <strong>{email}</strong>. Unregistered users cannot log in. Please create an account to proceed.</>
                       )}
@@ -580,21 +583,21 @@ export const AlumniLogin: React.FC = () => {
               <form onSubmit={handleCreatePasswordSubmit} className="space-y-5 animate-fadeIn">
                 <div className="p-4 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#854D0E] font-normal">
                   {language === 'ta' ? (
-                    <><strong>{email}</strong> முகவரிக்கு அனுப்பப்பட்ட 6-இலக்க OTP மற்றும் புதிய கடவுச்சொல்லை உள்ளிடுங்கள்.</>
+                    <>உங்கள் பதிவு செய்யப்பட்ட கைபேசிக்கு அனுப்பப்பட்ட 6-இலக்க OTP மற்றும் புதிய கடவுச்சொல்லை உள்ளிடுங்கள்.</>
                   ) : (
-                    <>Enter the 6-digit OTP code sent to <strong>{email}</strong> and set a password to secure your account.</>
+                    <>Enter the 6-digit verification code sent via SMS to your registered mobile phone and set a password to secure your account.</>
                   )}
                 </div>
 
-                {/* Email (Read-Only) */}
+                {/* Mobile / Account ID (Read-Only) */}
                 <div>
                   <label className="block text-sm font-normal text-[#111111] mb-2">
-                    {language === 'ta' ? 'மின்னஞ்சல்' : 'Account Email'}
+                    {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண்' : 'Registered Mobile Number'}
                   </label>
                   <div className="relative">
-                    <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
-                      type="email"
+                      type="text"
                       value={email}
                       readOnly
                       className="w-full pl-12 pr-4 py-3.5 bg-gray-100 border border-[#E5E7EB] rounded-xl text-base font-normal text-gray-600 focus:outline-none cursor-not-allowed"
@@ -711,21 +714,21 @@ export const AlumniLogin: React.FC = () => {
                 <form onSubmit={handleForgotEmailSubmit} className="space-y-5 animate-fadeIn">
                   <div className="p-4 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#854D0E] font-normal">
                     {language === 'ta'
-                      ? 'உங்கள் மின்னஞ்சலை உள்ளிடுங்கள். கடவுச்சொல் மாற்றும் குறியீட்டை அனுப்புவோம்.'
-                      : 'Enter your registered email address below. We will check our database and dispatch a password reset code to your email.'}
+                      ? 'உங்கள் பதிவு செய்யப்பட்ட கைபேசி எண்ணை உள்ளிடுங்கள். கடவுச்சொல் மாற்றும் 6-இலக்க OTP-ஐ SMS மூலம் அனுப்புவோம்.'
+                      : 'Enter your registered mobile number below. We will send a 6-digit password reset verification OTP via SMS.'}
                   </div>
 
                   <div>
                     <label className="block text-sm font-normal text-[#111111] mb-2">
-                      {language === 'ta' ? 'மின்னஞ்சல்' : 'Registered Email Address'} <span className="text-rose-500">*</span>
+                      {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண்' : 'Registered Mobile Number (or Email)'} <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                       <input
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder={language === 'ta' ? 'உங்கள் மின்னஞ்சல்' : 'Enter your registered email'}
+                        placeholder={language === 'ta' ? 'உங்கள் 10-இலக்க கைபேசி எண்' : 'Enter registered 10-digit mobile number'}
                         required
                         className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
                       />
@@ -739,7 +742,7 @@ export const AlumniLogin: React.FC = () => {
                   >
                     <span>
                       {loading
-                        ? (language === 'ta' ? 'சரிபார்க்கப்படுகிறது...' : 'Checking Account Email...')
+                        ? (language === 'ta' ? 'சரிபார்க்கப்படுகிறது...' : 'Validating Mobile Number...')
                         : (language === 'ta' ? 'சரிபார்ப்புக் குறியீடு அனுப்புக' : 'Send Reset Verification Code')}
                     </span>
                     <ArrowRight className="w-4 h-4" />
@@ -760,9 +763,9 @@ export const AlumniLogin: React.FC = () => {
                 <form onSubmit={handleForgotOTPSubmit} className="space-y-5 animate-fadeIn">
                   <div className="p-4 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#854D0E] font-normal">
                     {language === 'ta' ? (
-                      <><strong>{email}</strong> முகவரிக்கு வந்த 6-இலக்க OTP-ஐ உள்ளிடுங்கள்.</>
+                      <>உங்கள் பதிவு செய்யப்பட்ட கைபேசிக்கு SMS மூலம் வந்த 6-இலக்க OTP-ஐ உள்ளிடுங்கள்.</>
                     ) : (
-                      <>Reset verification OTP code sent to <strong>{email}</strong>. Enter the 6-digit code to reset your password.</>
+                      <>Reset verification OTP code sent via SMS to your registered mobile phone. Enter the 6-digit code to reset your password.</>
                     )}
                   </div>
 
@@ -802,7 +805,7 @@ export const AlumniLogin: React.FC = () => {
                 <form onSubmit={handleResetPasswordSubmit} className="space-y-5 animate-fadeIn">
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs sm:text-sm text-emerald-800 font-normal">
                     {language === 'ta' ? (
-                      <><strong>{email}</strong> சரிபார்க்கப்பட்டது. புதிய கடவுச்சொல்லை உள்ளிடுங்கள்.</>
+                      <><strong>{email}</strong> கைபேசி எண் சரிபார்க்கப்பட்டது. புதிய கடவுச்சொல்லை உள்ளிடுங்கள்.</>
                     ) : (
                       <>Identity verified for <strong>{email}</strong>. Enter your new password below to update your account security.</>
                     )}
@@ -876,15 +879,15 @@ export const AlumniLogin: React.FC = () => {
                 <form onSubmit={handleCredentialsSubmit} className="space-y-5 animate-fadeIn">
                   <div>
                     <label className="block text-sm font-normal text-[#111111] mb-2">
-                      {language === 'ta' ? 'மின்னஞ்சல்' : 'Email Address'} <span className="text-rose-500">*</span>
+                      {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண்' : 'Registered Mobile Number (or Email)'} <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                       <input
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder={language === 'ta' ? 'உங்கள் மின்னஞ்சல்' : 'Enter your email'}
+                        placeholder={language === 'ta' ? 'உங்கள் 10-இலக்க கைபேசி எண்' : 'Enter 10-digit mobile number (or email)'}
                         required
                         className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
                       />
@@ -961,9 +964,9 @@ export const AlumniLogin: React.FC = () => {
                 <form onSubmit={handleVerifyOTP} className="space-y-5 animate-fadeIn">
                   <div className="p-4 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#854D0E] font-normal">
                     {language === 'ta' ? (
-                      <><strong>{email}</strong> முகவரிக்கு வந்த 6-இலக்க OTP-ஐ உள்ளிடுங்கள்.</>
+                      <><strong>{email}</strong> என்ற கைபேசிக்கு SMS மூலம் வந்த 6-இலக்க OTP-ஐ உள்ளிடுங்கள்.</>
                     ) : (
-                      <>Security OTP verification code sent to <strong>{email}</strong>. Please enter the code below to complete sign in.</>
+                      <>Security OTP verification code sent via SMS to <strong>{email}</strong>. Please enter the code below to complete sign in.</>
                     )}
                   </div>
 
@@ -998,7 +1001,7 @@ export const AlumniLogin: React.FC = () => {
                       onClick={() => setStep('CREDENTIALS')}
                       className="font-normal text-gray-500 hover:text-[#111111] underline cursor-pointer"
                     >
-                      {language === 'ta' ? 'மின்னஞ்சலை மாற்ற' : 'Change Credentials'}
+                      {language === 'ta' ? 'கைபேசி எண்ணை மாற்ற' : 'Change Mobile Number'}
                     </button>
                   </div>
 

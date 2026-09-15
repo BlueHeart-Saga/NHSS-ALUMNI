@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
@@ -34,6 +36,8 @@ async def connect_to_mongo():
                 settings.MONGODB_URI,
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=10000,
+                socketTimeoutMS=45000,
+                maxIdleTimeMS=45000,
                 maxPoolSize=50,
                 minPoolSize=5
             )
@@ -76,77 +80,158 @@ async def close_mongo_connection():
             pass
         logger.info("MongoDB connection closed.")
 
+def _get_index_name(keys, **kwargs):
+    if "name" in kwargs:
+        return kwargs["name"]
+    if isinstance(keys, str):
+        return f"{keys}_1"
+    elif isinstance(keys, list):
+        return "_".join(f"{k}_{v}" for k, v in keys)
+    return None
+
+async def safe_create_indexes_bulk(collection, index_specs):
+    """
+    Checks collection.index_information() first in 1 single network call.
+    Only calls create_index for indexes that are genuinely missing.
+    """
+    try:
+        existing = await collection.index_information()
+    except Exception:
+        existing = {}
+
+    for spec in index_specs:
+        if isinstance(spec, tuple):
+            keys = spec[0]
+            kwargs = spec[1] if len(spec) > 1 else {}
+        else:
+            keys = spec
+            kwargs = {}
+
+        name = _get_index_name(keys, **kwargs)
+        if name and name in existing:
+            continue
+        try:
+            await collection.create_index(keys, **kwargs)
+            logger.info(f"Created index {name} on {collection.name}")
+        except Exception as e:
+            logger.debug(f"Index notice on {collection.name}: {e}")
+
 async def create_indexes():
     db = db_instance.db
     if db is None:
         return
 
     try:
-        # Users
-        try:
-            await db.users.drop_index("mobile_1")
-        except Exception:
-            pass
-        await db.users.create_index("mobile", unique=True, sparse=True)
-        await db.users.create_index("email", sparse=True)
-        await db.users.create_index("school_id")
-
-        # --- Alumni ---
-        # One-time migration: drop the legacy non-sparse unique index on user_id.
-        # The old index treated every `user_id: None` as a duplicate, blocking
-        # any second CSV-imported roster record that has no linked user account.
-        # We replace it with a unique+sparse index which:
-        #   * enforces uniqueness when user_id IS present
-        #   * allows any number of alumni records without a linked user
-        try:
-            await db.alumni.drop_index("user_id_1")
-            logger.info("Dropped legacy non-sparse index 'user_id_1' on alumni collection.")
-        except Exception:
-            # Index didn't exist — nothing to drop.
-            pass
-        try:
-            await db.alumni.create_index(
-                "user_id",
-                unique=True,
-                sparse=True,
-                name="user_id_1"
-            )
-            logger.info("Ensured unique+sparse index 'user_id_1' exists on alumni collection.")
-        except Exception as e:
-            logger.warning(f"Could not create unique+sparse index on alumni.user_id: {e}")
-
-        await db.alumni.create_index([("school_id", 1), ("batch_id", 1)])
-        await db.alumni.create_index([("school_id", 1), ("verification_status", 1)])
-        await db.alumni.create_index([("passing_year", 1), ("verification_status", 1)])
-        await db.alumni.create_index("mobile")
-
-        # Batches
-        await db.batches.create_index([("school_id", 1), ("passing_year", 1)], unique=True)
-
-        # Events
-        await db.events.create_index([("school_id", 1), ("event_date", 1)])
-        await db.events.create_index([("school_id", 1), ("batch_id", 1)])
-        await db.events.create_index([("status", 1), ("event_date", 1)])
-        await db.events.create_index([("event_date", -1)])
-
-        # Event Attendance
-        await db.event_attendance.create_index([("event_id", 1), ("alumni_id", 1)], unique=True)
-        await db.event_attendance.create_index([("event_id", 1), ("rsvp_status", 1)])
-
-        # Checkins
-        await db.checkins.create_index([("event_id", 1), ("alumni_id", 1)], unique=True)
-
-        # Announcements
-        await db.announcements.create_index([("school_id", 1), ("target", 1)])
-
-        # Memories
-        await db.memories.create_index([("school_id", 1), ("batch_id", 1)])
-        await db.memories.create_index([("school_id", 1), ("event_id", 1)])
-
-        logger.info("MongoDB indexes created successfully.")
+        # Check and ensure indexes for each collection efficiently
+        await asyncio.gather(
+            safe_create_indexes_bulk(db.users, [
+                ("mobile", {"unique": True, "sparse": True}),
+                ("email", {"sparse": True}),
+                "school_id"
+            ]),
+            safe_create_indexes_bulk(db.alumni, [
+                ("user_id", {"unique": True, "sparse": True, "name": "user_id_1"}),
+                [("school_id", 1), ("verification_status", 1), ("passing_year", 1)],
+                [("school_id", 1), ("full_name", 1)],
+                [("school_id", 1), ("account_status", 1)],
+                [("school_id", 1), ("batch_id", 1)],
+                [("passing_year", 1), ("verification_status", 1)],
+                [("verification_status", 1), ("passing_year", -1)],
+                "mobile",
+                ("admission_number", {"sparse": True})
+            ]),
+            safe_create_indexes_bulk(db.batches, [
+                ([("school_id", 1), ("passing_year", 1)], {"unique": True}),
+                [("school_id", 1), ("status", 1)]
+            ]),
+            safe_create_indexes_bulk(db.events, [
+                [("school_id", 1), ("event_date", 1)],
+                [("school_id", 1), ("batch_id", 1)],
+                [("status", 1), ("event_date", 1)],
+                [("event_date", -1)]
+            ]),
+            safe_create_indexes_bulk(db.event_attendance, [
+                ([("event_id", 1), ("alumni_id", 1)], {"unique": True}),
+                [("event_id", 1), ("rsvp_status", 1)]
+            ]),
+            safe_create_indexes_bulk(db.checkins, [
+                ([("event_id", 1), ("alumni_id", 1)], {"unique": True})
+            ]),
+            safe_create_indexes_bulk(db.announcements, [
+                [("school_id", 1), ("target", 1)]
+            ]),
+            safe_create_indexes_bulk(db.memories, [
+                [("school_id", 1), ("batch_id", 1)],
+                [("school_id", 1), ("event_id", 1)]
+            ]),
+            safe_create_indexes_bulk(db.account_invitations, [
+                ("token_hash", {"unique": True, "sparse": True}),
+                [("alumni_id", 1), ("used", 1)],
+                ("expires_at", {"expireAfterSeconds": 0})
+            ]),
+            safe_create_indexes_bulk(db.schools, [
+                ("code", {"sparse": True})
+            ]),
+            safe_create_indexes_bulk(db.audit_logs, [
+                [("school_id", 1), ("timestamp", -1)]
+            ])
+        )
+        logger.info("MongoDB indexes verified and ensured successfully.")
     except Exception as e:
-        logger.warning(f"Index creation notice: {e}")
+        logger.warning(f"Index verification notice: {e}")
 
 
 def get_db():
     return db_instance.db
+
+async def resolve_school_target_ids(school_id: str) -> list:
+    """
+    Resolves school IDs matching a string, ObjectId, or school code.
+    Caches the result in in-memory TTL cache and uses strict projection
+    to avoid downloading multi-megabyte base64 logo/cover fields.
+    """
+    if not school_id or str(school_id).strip() in ["None", "undefined", "null", ""]:
+        return []
+    s_str = str(school_id).strip()
+    cache_key = f"school_target_ids:{s_str}"
+    
+    from app.core.cache import ttl_cache
+    cached = ttl_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_db()
+    if db is None:
+        return [s_str]
+
+    target_ids = [s_str]
+    try:
+        target_ids.append(ObjectId(s_str))
+    except Exception:
+        pass
+
+    school_or = [{"code": s_str}]
+    if ObjectId.is_valid(s_str):
+        school_or.append({"_id": ObjectId(s_str)})
+    else:
+        school_or.append({"_id": s_str})
+
+    # STRICT PROJECTION: Only fetch _id and code, NEVER raw 4MB base64 images
+    school = await db.schools.find_one({"$or": school_or}, {"_id": 1, "code": 1})
+    if school:
+        s_id_str = str(school["_id"])
+        s_id_obj = school["_id"]
+        s_code = school.get("code")
+        for val in [s_id_str, s_id_obj, s_code]:
+            if val and val not in target_ids:
+                target_ids.append(val)
+
+    ttl_cache.set(cache_key, target_ids, ttl=300)
+    return target_ids
+
+async def build_school_filter(school_id: str = None) -> dict:
+    """Builds an indexed query filter for school_id with cached target resolution."""
+    target_ids = await resolve_school_target_ids(school_id)
+    if not target_ids:
+        return {}
+    return {"school_id": {"$in": target_ids}}

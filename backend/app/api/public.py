@@ -7,6 +7,7 @@ from bson import ObjectId
 
 from app.schemas.models import SchoolAdminEnquiryRequest, ContactEnquiryRequest
 from app.core.database import get_db
+from app.core.cache import ttl_cache
 from app.services.email import send_contact_thank_you_email, send_contact_admin_notification_email
 
 logger = logging.getLogger("app.public")
@@ -26,10 +27,16 @@ async def get_public_stats(response: Response):
 
     db = get_db()
 
-    school = await db.schools.find_one({}) or {}
-    total_alumni = await db.alumni.count_documents({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}})
-    total_batches = await db.batches.count_documents({})
-    total_events = await db.events.count_documents({})
+    # Parallelize stats queries concurrently
+    school_task = db.schools.find_one({})
+    alumni_task = db.alumni.count_documents({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}})
+    batches_task = db.batches.count_documents({})
+    events_task = db.events.count_documents({})
+
+    school_doc, total_alumni, total_batches, total_events = await asyncio.gather(
+        school_task, alumni_task, batches_task, events_task
+    )
+    school = school_doc or {}
 
     est_year = school.get("established_year") or 2005
     years_connected = max(1, 2026 - est_year)
@@ -51,7 +58,7 @@ async def get_public_stats(response: Response):
         "years_connected": years_connected
     }
 
-    ttl_cache.set("public:stats", res, ttl=60)
+    ttl_cache.set("public:stats", res, ttl=180)
     total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
     return res
 
@@ -60,6 +67,11 @@ async def get_public_events(response: Response):
     """Fetch upcoming events (event_date >= today or status=PUBLISHED/UPCOMING). Batch attendance and batch name lookups in 3 queries total."""
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     start_time = time.perf_counter()
+
+    cached_res = ttl_cache.get("public:events")
+    if cached_res is not None:
+        return cached_res
+
     db = get_db()
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
@@ -72,6 +84,7 @@ async def get_public_events(response: Response):
     if not events:
         total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
         logger.info(f"endpoint=public_events db_queries=1 db_time_ms={total_time_ms} total_time_ms={total_time_ms}")
+        ttl_cache.set("public:events", [], ttl=60)
         return []
 
     event_ids = [str(ev["_id"]) for ev in events]
@@ -125,6 +138,7 @@ async def get_public_events(response: Response):
             "registration_url": ev.get("registration_url")
         })
 
+    ttl_cache.set("public:events", res, ttl=60)
     total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
     logger.info(f"endpoint=public_events db_queries=3 db_time_ms={total_time_ms} total_time_ms={total_time_ms}")
     return res
@@ -134,6 +148,11 @@ async def get_public_past_events(response: Response):
     """Fetch past/expired events (event_date < today) for Memories & Past Event Recaps. Batch attendance counts in 2 queries total."""
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     start_time = time.perf_counter()
+
+    cached_res = ttl_cache.get("public:past_events")
+    if cached_res is not None:
+        return cached_res
+
     db = get_db()
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
@@ -145,6 +164,7 @@ async def get_public_past_events(response: Response):
     if not events:
         total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
         logger.info(f"endpoint=public_past_events db_queries=1 db_time_ms={total_time_ms} total_time_ms={total_time_ms}")
+        ttl_cache.set("public:past_events", [], ttl=60)
         return []
 
     event_ids = [str(ev["_id"]) for ev in events]
@@ -179,6 +199,7 @@ async def get_public_past_events(response: Response):
             "status": "PAST"
         })
 
+    ttl_cache.set("public:past_events", res, ttl=60)
     total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
     logger.info(f"endpoint=public_past_events db_queries=2 db_time_ms={total_time_ms} total_time_ms={total_time_ms}")
     return res
@@ -214,8 +235,6 @@ async def get_public_school_events(response: Response):
         })
     return res
 
-from app.core.cache import ttl_cache
-
 @router.get("/batches")
 async def get_public_batches(response: Response):
     """Fetch public batches. Serves warm responses from safe in-memory TTL cache or runs concurrent queries."""
@@ -230,10 +249,10 @@ async def get_public_batches(response: Response):
 
     db = get_db()
 
-
     # Strict Projections: Fetch only required fields to minimize network payload from Cosmos DB
     batch_projection = {"name": 1, "passing_year": 1, "description": 1, "coordinators": 1}
-    sample_projection = {"full_name": 1, "profile_photo_url": 1, "profession": 1, "current_city": 1, "passing_year": 1}
+    sample_projection = {"full_name": 1, "profession": 1, "current_city": 1, "passing_year": 1}
+    coord_projection = {"full_name": 1, "profile_photo_url": 1, "profession": 1, "current_city": 1}
 
     # Define tasks for concurrent parallel execution
     batches_task = db.batches.find({}, batch_projection).sort("passing_year", -1).to_list(length=100)
@@ -257,7 +276,7 @@ async def get_public_batches(response: Response):
     samples_task = db.alumni.find(
         {"verification_status": {"$in": ["APPROVED", "VERIFIED"]}},
         sample_projection
-    ).sort("passing_year", -1).to_list(length=1000)
+    ).sort("passing_year", -1).to_list(length=250)
 
     # Run all 4 independent database queries concurrently in parallel
     batches, counts_list, events_list, all_samples = await asyncio.gather(
@@ -278,13 +297,16 @@ async def get_public_batches(response: Response):
     if all_coord_ids:
         coord_alumni = await db.alumni.find(
             {"_id": {"$in": all_coord_ids}, "verification_status": {"$in": ["APPROVED", "VERIFIED"]}},
-            sample_projection
+            coord_projection
         ).to_list(length=len(all_coord_ids))
         for ca in coord_alumni:
+            photo = ca.get("profile_photo_url")
+            if photo and len(photo) > 500 and photo.startswith("data:image"):
+                photo = f"https://ui-avatars.com/api/?name={ca.get('full_name', 'Coordinator')}&background=F4C542&color=111111"
             coords_map[str(ca["_id"])] = {
                 "id": str(ca["_id"]),
                 "full_name": ca.get("full_name", "Coordinator"),
-                "profile_photo_url": ca.get("profile_photo_url"),
+                "profile_photo_url": photo,
                 "profession": ca.get("profession"),
                 "current_city": ca.get("current_city")
             }
@@ -307,10 +329,12 @@ async def get_public_batches(response: Response):
         if yr not in sample_members_map:
             sample_members_map[yr] = []
         if len(sample_members_map[yr]) < 6:
+            name = m.get("full_name", "Alumnus")
+            avatar_url = f"https://ui-avatars.com/api/?name={name}&background=F4C542&color=111111"
             sample_members_map[yr].append({
                 "id": str(m["_id"]),
-                "full_name": m.get("full_name", "Alumnus"),
-                "profile_photo_url": m.get("profile_photo_url"),
+                "full_name": name,
+                "profile_photo_url": avatar_url,
                 "profession": m.get("profession") or "Alumnus",
                 "current_city": m.get("current_city") or "Thoothukudi",
                 "passing_year": yr
@@ -336,30 +360,35 @@ async def get_public_batches(response: Response):
             "sample_members": s_members
         })
 
-    ttl_cache.set("public:batches", res, ttl=60)
+    ttl_cache.set("public:batches", res, ttl=180)
     total_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
     logger.info(f"endpoint=public_batches db_queries=5 db_time_ms={total_time_ms} total_time_ms={total_time_ms}")
     return res
 
-
-
-
 @router.get("/highlights")
 async def get_public_highlights(response: Response):
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
+    cached_res = ttl_cache.get("public:highlights")
+    if cached_res is not None:
+        return cached_res
+
     db = get_db()
     alumni = await db.alumni.find({"verification_status": {"$in": ["APPROVED", "VERIFIED"]}}).sort([("created_at", -1), ("_id", -1)]).to_list(length=8)
 
     res = []
     for a in alumni:
+        photo = a.get("profile_photo_url")
+        if photo and len(photo) > 500 and photo.startswith("data:image"):
+            photo = f"https://ui-avatars.com/api/?name={a.get('full_name', 'Alumnus')}&background=F4C542&color=111111"
         res.append({
             "id": str(a["_id"]),
             "full_name": a.get("full_name"),
             "passing_year": a.get("passing_year"),
             "profession": a.get("profession") or "Alumnus",
             "current_city": a.get("current_city") or "N/A",
-            "profile_photo_url": a.get("profile_photo_url")
+            "profile_photo_url": photo
         })
+    ttl_cache.set("public:highlights", res, ttl=60)
     return res
 
 @router.get("/memories")
@@ -401,8 +430,11 @@ async def get_public_memories(response: Response):
 @router.get("/announcements")
 async def get_public_announcements(response: Response):
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
-    db = get_db()
+    cached_res = ttl_cache.get("public:announcements")
+    if cached_res is not None:
+        return cached_res
 
+    db = get_db()
     announcements = await db.announcements.find({"target": "SCHOOL"}).sort("created_at", -1).to_list(length=12)
 
     res = []
@@ -417,6 +449,7 @@ async def get_public_announcements(response: Response):
             "category": a.get("category", "GENERAL"),
             "created_at": str(a.get("created_at"))
         })
+    ttl_cache.set("public:announcements", res, ttl=60)
     return res
 
 @router.post("/school-admin-enquiry")

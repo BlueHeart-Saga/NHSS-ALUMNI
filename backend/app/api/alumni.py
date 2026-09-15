@@ -1,19 +1,27 @@
 import csv
 import io
 import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
 from typing import List, Optional, Any
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
-from app.core.database import get_db
+from pymongo import UpdateOne
+from pymongo.errors import BulkWriteError
+from app.core.database import get_db, build_school_filter
 from app.core.config import settings
+from app.core.security import generate_invitation_token
+from app.services.sms import send_invitation_sms, normalize_indian_mobile, is_valid_indian_mobile
 from app.services.email import send_alumni_verified_email
 from app.schemas.models import (
-    UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest
+    UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest,
+    AdminCreateAlumniRequest, BulkSendInvitationRequest, SendInvitationResponse
 )
 from app.middleware.auth import get_current_user, require_roles
+
+logger = logging.getLogger("app.alumni")
 
 router = APIRouter(prefix="/alumni", tags=["Alumni Directory & Verification"])
 
@@ -24,32 +32,12 @@ async def list_pending_verifications(
     db = get_db()
     query = {"verification_status": "PENDING"}
     school_id = current_user.get("school_id")
-    if school_id and str(school_id).strip() not in ["None", "undefined", "null", ""]:
-        s_str = str(school_id).strip()
-        target_ids = [s_str]
-        try:
-            target_ids.append(ObjectId(s_str))
-        except Exception:
-            pass
+    if school_id:
+        school_filter = await build_school_filter(school_id)
+        if school_filter:
+            query.update(school_filter)
 
-        school_or = [{"code": s_str}]
-        if ObjectId.is_valid(s_str):
-            school_or.append({"_id": ObjectId(s_str)})
-        else:
-            school_or.append({"_id": s_str})
-
-        school = await db.schools.find_one({"$or": school_or})
-        if school:
-            s_id_str = str(school["_id"])
-            s_id_obj = school["_id"]
-            s_code = school.get("code")
-            for val in [s_id_str, s_id_obj, s_code]:
-                if val and val not in target_ids:
-                    target_ids.append(val)
-
-        query["school_id"] = {"$in": target_ids}
-
-    cursor = db.alumni.find(query).sort("created_at", -1)
+    cursor = db.alumni.find(query, {"profile_photo_url": 0}).sort("created_at", -1)
     pending = await cursor.to_list(length=200)
 
     # Batch fetch all matching users in 1 single DB query (Fix N+1 query loop)
@@ -553,7 +541,7 @@ async def import_alumni_csv(
 
     content = await file.read()
     decoded = content.decode("utf-8-sig", errors="ignore")
-    reader = csv.DictReader(io.StringIO(decoded))
+    raw_rows = list(csv.DictReader(io.StringIO(decoded)))
 
     total = 0
     created = 0
@@ -565,7 +553,53 @@ async def import_alumni_csv(
     errors = []
     error_details = []
 
-    for raw_row in reader:
+    # 1. Pre-fetch valid ObjectIds in bulk to avoid serial N round-trips
+    candidate_oids = []
+    for r in raw_rows:
+        raw_id = (r.get("Alumni ID") or r.get("alumni_id") or "").strip()
+        if raw_id.startswith('="') and raw_id.endswith('"'):
+            raw_id = raw_id[2:-1]
+        if raw_id and len(raw_id) == 24 and not _looks_like_excel_corruption(raw_id) and _is_valid_objectid_hex(raw_id):
+            try:
+                candidate_oids.append(ObjectId(raw_id))
+            except Exception:
+                pass
+
+    existing_docs_map = {}
+    if candidate_oids:
+        for i in range(0, len(candidate_oids), 1000):
+            chunk = candidate_oids[i:i + 1000]
+            cursor = db.alumni.find({"_id": {"$in": chunk}, "school_id": school_id})
+            async for doc in cursor:
+                existing_docs_map[doc["_id"]] = doc
+
+    # 2. Pre-fetch school batches into memory cache
+    batches_map = {}
+    cursor = db.batches.find({"school_id": school_id})
+    async for b in cursor:
+        if "passing_year" in b:
+            batches_map[b["passing_year"]] = b["_id"]
+
+    async def get_or_create_batch(year_int: int):
+        if year_int in batches_map:
+            return batches_map[year_int]
+        batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
+        if batch:
+            batches_map[year_int] = batch["_id"]
+            return batch["_id"]
+        b_res = await db.batches.insert_one({
+            "school_id": school_id,
+            "name": f"Batch of {year_int}",
+            "passing_year": year_int,
+            "created_at": datetime.now(timezone.utc)
+        })
+        batches_map[year_int] = b_res.inserted_id
+        return b_res.inserted_id
+
+    pending_updates = []
+    pending_inserts = []
+
+    for raw_row in raw_rows:
         total += 1
         row = _normalize_row(raw_row)
 
@@ -576,10 +610,6 @@ async def import_alumni_csv(
         # -------- CASE A: Alumni ID present --------
         if alumni_id_raw:
             # --- Excel-corruption guard ---
-            # Excel silently converts hex IDs into scientific notation (e.g. "6.6E+23")
-            # or truncated decimal strings. A valid MongoDB ObjectId is exactly
-            # 24 hex characters. If the value looks mangled, refuse the row rather
-            # than creating a duplicate that bypasses the intended UPDATE path.
             if _looks_like_excel_corruption(alumni_id_raw) or not _is_valid_objectid_hex(alumni_id_raw):
                 err_msg = (
                     f"Alumni ID appears corrupted by Excel: '{alumni_id_raw}'. "
@@ -600,10 +630,7 @@ async def import_alumni_csv(
                 failed += 1
                 continue
 
-            existing = await db.alumni.find_one({
-                "_id": oid,
-                "school_id": school_id
-            })
+            existing = existing_docs_map.get(oid)
             if existing is None:
                 # ID provided but not found in this school — create with that exact ID.
                 if not name or not batch_year:
@@ -621,24 +648,12 @@ async def import_alumni_csv(
                     failed += 1
                     continue
 
-                batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
-                if not batch:
-                    b_res = await db.batches.insert_one({
-                        "school_id": school_id,
-                        "name": f"Batch of {year_int}",
-                        "passing_year": year_int,
-                        "created_at": datetime.now(timezone.utc)
-                    })
-                    batch_id = b_res.inserted_id
-                else:
-                    batch_id = batch["_id"]
+                batch_id = await get_or_create_batch(year_int)
 
-                # user_id intentionally OMITTED for pre-imported roster records.
-                # The unique index on user_id is sparse, so multiple alumni
-                # without a linked user account are allowed.
                 new_doc = _build_alumni_doc(row, school_id, batch_id, oid)
                 new_doc["verification_notes"] = "Uploaded via CSV (with explicit Alumni ID)"
-                await db.alumni.insert_one(new_doc)
+                pending_inserts.append(new_doc)
+                existing_docs_map[oid] = new_doc
                 created += 1
                 continue
             else:
@@ -647,17 +662,7 @@ async def import_alumni_csv(
                 if batch_year:
                     try:
                         year_int = int(float(batch_year))
-                        batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
-                        if not batch:
-                            b_res = await db.batches.insert_one({
-                                "school_id": school_id,
-                                "name": f"Batch of {year_int}",
-                                "passing_year": year_int,
-                                "created_at": datetime.now(timezone.utc)
-                            })
-                            batch_id_for_update = b_res.inserted_id
-                        else:
-                            batch_id_for_update = batch["_id"]
+                        batch_id_for_update = await get_or_create_batch(year_int)
                     except (ValueError, TypeError):
                         batch_id_for_update = None
 
@@ -674,7 +679,8 @@ async def import_alumni_csv(
                     continue
 
                 field_updates["updated_at"] = datetime.now(timezone.utc)
-                await db.alumni.update_one({"_id": oid}, {"$set": field_updates})
+                pending_updates.append(UpdateOne({"_id": oid}, {"$set": field_updates}))
+                existing.update(field_updates)
                 updated += 1
                 continue
 
@@ -696,31 +702,48 @@ async def import_alumni_csv(
             continue
 
         try:
-            batch = await db.batches.find_one({"school_id": school_id, "passing_year": year_int})
-            if not batch:
-                b_res = await db.batches.insert_one({
-                    "school_id": school_id,
-                    "name": f"Batch of {year_int}",
-                    "passing_year": year_int,
-                    "created_at": datetime.now(timezone.utc)
-                })
-                batch_id = b_res.inserted_id
-            else:
-                batch_id = batch["_id"]
-
+            batch_id = await get_or_create_batch(year_int)
             new_oid = ObjectId()
-            # user_id intentionally OMITTED — sparse unique index allows it.
             new_doc = _build_alumni_doc(row, school_id, batch_id, new_oid)
             if not new_doc["admission_number"]:
                 new_doc["admission_number"] = f"CSV-{year_int}-{total:03d}"
             new_doc["verification_notes"] = "Uploaded via CSV (no Alumni ID provided)"
-            await db.alumni.insert_one(new_doc)
+            pending_inserts.append(new_doc)
+            existing_docs_map[new_oid] = new_doc
             created += 1
         except Exception as e:
             err_msg = str(e)
             errors.append(f"Row {total}: {err_msg}")
             error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
             failed += 1
+
+    # 3. Execute bulk inserts in chunks of 500
+    if pending_inserts:
+        for i in range(0, len(pending_inserts), 500):
+            chunk = pending_inserts[i:i + 500]
+            try:
+                await db.alumni.insert_many(chunk, ordered=False)
+            except BulkWriteError as bwe:
+                logger.error(f"Bulk insert error in CSV import: {bwe.details}")
+                for werr in bwe.details.get("writeErrors", []):
+                    errors.append(f"Bulk insert error: {werr.get('errmsg', 'Unknown insert error')}")
+            except Exception as e:
+                logger.error(f"Bulk insert error: {e}")
+                errors.append(f"Bulk insert error: {str(e)}")
+
+    # 4. Execute bulk updates via bulk_write in chunks of 500
+    if pending_updates:
+        for i in range(0, len(pending_updates), 500):
+            chunk = pending_updates[i:i + 500]
+            try:
+                await db.alumni.bulk_write(chunk, ordered=False)
+            except BulkWriteError as bwe:
+                logger.error(f"Bulk write error in CSV import: {bwe.details}")
+                for werr in bwe.details.get("writeErrors", []):
+                    errors.append(f"Bulk update error: {werr.get('errmsg', 'Unknown write error')}")
+            except Exception as e:
+                logger.error(f"Bulk update error: {e}")
+                errors.append(f"Bulk update error: {str(e)}")
 
     LAST_CSV_ERRORS = error_details
 
@@ -770,6 +793,8 @@ async def search_directory(
     search: Optional[str] = Query(None),
     batch_year: Optional[int] = Query(None),
     status: Optional[str] = Query("APPROVED"),
+    limit: Optional[int] = Query(None),
+    skip: int = Query(0),
     current_user: dict = Depends(get_current_user)
 ):
     db = get_db()
@@ -777,7 +802,9 @@ async def search_directory(
 
     query = {}
     if school_id:
-        query["school_id"] = school_id
+        school_filter = await build_school_filter(school_id)
+        if school_filter:
+            query.update(school_filter)
 
     if status and status != "ALL":
         query["verification_status"] = status
@@ -794,19 +821,31 @@ async def search_directory(
         ]
 
     cursor = db.alumni.find(
-    query,
-    {
-        # Exclude the giant base64 photo from the listing response.
-        # The photo will be fetched separately via /alumni/{id}/photo.
-        "profile_photo_url": 0,
-    }
-).sort("full_name", 1)
-    alumni_list = await cursor.to_list(length=5000)
+        query,
+        {
+            # Exclude the giant base64 photo from the listing response.
+            # The photo will be fetched separately via /alumni/{id}/photo.
+            "profile_photo_url": 0,
+        }
+    ).sort("full_name", 1)
+
+    limit_val = min(limit, 500) if limit is not None else 5000
+    if skip > 0:
+        cursor = cursor.skip(skip)
+    alumni_list = await cursor.to_list(length=limit_val)
 
     is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"])
 
     res = []
     for a in alumni_list:
+        skills_val = a.get("skills")
+        if isinstance(skills_val, str):
+            skills_list = [s.strip() for s in skills_val.split(",") if s.strip()]
+        elif isinstance(skills_val, list):
+            skills_list = skills_val
+        else:
+            skills_list = []
+
         res.append(UserProfileResponse(
             id=str(a["_id"]),
             user_id=str(a.get("user_id", "")),
@@ -857,7 +896,7 @@ async def search_directory(
             industry=a.get("industry"),
             experience_years=a.get("experience_years"),
             total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
-            skills=a.get("skills") or [],
+            skills=skills_list,
             linkedin_url=a.get("linkedin_url"),
             instagram_url=a.get("instagram_url"),
             whatsapp_number=str(a["whatsapp_number"]) if a.get("whatsapp_number") is not None else None,
@@ -866,6 +905,9 @@ async def search_directory(
             is_volunteer="YES" if a.get("is_volunteer") in [True, "YES", "yes", "true", "True"] else "NO",
             willing_to_donate="YES" if a.get("willing_to_donate") in [True, "YES", "yes", "true", "True"] else "NO",
             verification_status=a.get("verification_status", "APPROVED"),
+            account_status=a.get("account_status", "ACTIVE"),
+            invitation_status=a.get("invitation_status"),
+            phone_verified=a.get("phone_verified", False),
             roles=a.get("roles", ["ALUMNI"]),
             email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
@@ -1170,3 +1212,366 @@ async def bulk_delete_alumni(
 
     res = await db.alumni.delete_many(query)
     return {"success": True, "message": f"Deleted {res.deleted_count} alumni records", "deleted": res.deleted_count}
+
+@router.post("", response_model=UserProfileResponse)
+async def admin_create_alumni(
+    request: AdminCreateAlumniRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    """Admin manually creates an alumni record.
+    The linked user account is created with account_status='PENDING_ACTIVATION' and password=None.
+    The member activates their account and creates their own password via SMS invitation.
+    """
+    db = get_db()
+    school_id = current_user.get("school_id") or "PLATFORM"
+
+    if not request.mobile or not is_valid_indian_mobile(request.mobile):
+        raise HTTPException(status_code=400, detail="A valid 10-digit Indian mobile number is required.")
+
+    norm_mob = normalize_indian_mobile(request.mobile)
+    clean_mob = norm_mob.replace("+91", "")
+
+    # Check if mobile is already active with another account
+    existing_user = await db.users.find_one({
+        "$or": [{"mobile": request.mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}],
+        "account_status": "ACTIVE"
+    })
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail=f"This mobile number ({request.mobile}) is already active and registered to another account."
+        )
+
+    now = datetime.now(timezone.utc)
+    email_str = str(request.email).lower().strip() if request.email else None
+
+    # Find or create user doc with PENDING_ACTIVATION
+    user_query = [{"mobile": request.mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}]
+    if email_str:
+        user_query.append({"email": {"$regex": f"^{email_str}$", "$options": "i"}})
+    
+    existing_pending = await db.users.find_one({"$or": user_query})
+    if existing_pending:
+        user_id = str(existing_pending["_id"])
+        await db.users.update_one(
+            {"_id": existing_pending["_id"]},
+            {"$set": {
+                "full_name": request.full_name,
+                "mobile": norm_mob,
+                "email": email_str,
+                "updated_at": now
+            }}
+        )
+    else:
+        new_user = {
+            "school_id": school_id,
+            "full_name": request.full_name,
+            "mobile": norm_mob,
+            "email": email_str,
+            "roles": ["ALUMNI"],
+            "account_status": "PENDING_ACTIVATION",
+            "phone_verified": False,
+            "password": None,
+            "password_hash": None,
+            "is_active": True,
+            "created_at": now
+        }
+        res_user = await db.users.insert_one(new_user)
+        user_id = str(res_user.inserted_id)
+
+    # Batch resolution
+    raw_passing_yr = 2010
+    if request.passing_year:
+        try:
+            raw_passing_yr = int(float(request.passing_year))
+        except (ValueError, TypeError):
+            raw_passing_yr = 2010
+
+    batch = await db.batches.find_one({"school_id": school_id, "passing_year": raw_passing_yr})
+    if not batch and 1960 <= raw_passing_yr <= 2035:
+        b_res = await db.batches.insert_one({
+            "school_id": school_id,
+            "name": f"Batch of {raw_passing_yr}",
+            "passing_year": raw_passing_yr,
+            "created_at": now
+        })
+        batch_id = b_res.inserted_id
+    else:
+        batch_id = batch["_id"] if batch else None
+
+    alumni_doc = {
+        "school_id": school_id,
+        "user_id": user_id,
+        "full_name": request.full_name,
+        "name_ta": request.name_ta or request.full_name_ta,
+        "full_name_ta": request.full_name_ta or request.name_ta,
+        "mobile": norm_mob,
+        "country_code": request.country_code or "91",
+        "email": email_str,
+        "gender": request.gender,
+        "date_of_birth": request.date_of_birth or request.dob,
+        "dob": request.dob or request.date_of_birth,
+        "blood_group": request.blood_group,
+        "father_name": request.father_name,
+        "mother_name": request.mother_name,
+        "address": request.address,
+        "current_city": request.current_city,
+        "current_state": request.current_state or request.state,
+        "state": request.state or request.current_state,
+        "country": request.country or "India",
+        "school_name": request.school_name,
+        "joining_year": request.joining_year or request.admission_year,
+        "admission_year": request.admission_year or request.joining_year,
+        "passing_year": raw_passing_yr,
+        "batch_id": batch_id,
+        "leaving_class": str(request.leaving_class) if request.leaving_class is not None else "12th",
+        "admission_number": str(request.admission_number or request.roll_no or "N/A"),
+        "roll_no": str(request.roll_no or request.admission_number or "N/A"),
+        "section": str(request.section or "A"),
+        "no_higher_education": request.no_higher_education or "NO",
+        "college_name": request.college_name or request.institution_name,
+        "institution_name": request.institution_name or request.college_name,
+        "degree": request.degree,
+        "custom_degree": request.custom_degree,
+        "department": request.department or request.stream,
+        "stream": request.stream or request.department,
+        "college_register_no": request.college_register_no,
+        "college_joining_year": request.college_joining_year,
+        "college_passing_year": request.college_passing_year,
+        "employment_status": request.employment_status,
+        "company": request.company or request.company_name,
+        "company_name": request.company_name or request.company,
+        "profession": request.profession or request.designation,
+        "designation": request.designation or request.profession,
+        "industry": request.industry,
+        "experience_years": request.experience_years,
+        "total_experience": request.total_experience,
+        "skills": request.skills if isinstance(request.skills, list) else [],
+        "linkedin_url": request.linkedin_url,
+        "instagram_url": request.instagram_url,
+        "whatsapp_number": request.whatsapp_number,
+        "website_url": request.website_url,
+        "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
+        "is_volunteer": request.is_volunteer or "NO",
+        "willing_to_donate": request.willing_to_donate or "NO",
+        "verification_status": request.verification_status or "APPROVED",
+        "verification_notes": "Created by School Admin",
+        "account_status": "PENDING_ACTIVATION",
+        "invitation_status": "PENDING",
+        "phone_verified": False,
+        "email_visible": False,
+        "phone_visible": False,
+        "directory_visible": True,
+        "created_at": now
+    }
+
+    res_alumni = await db.alumni.insert_one(alumni_doc)
+    alumni_id = str(res_alumni.inserted_id)
+
+    # Log audit
+    await db.audit_logs.insert_one({
+        "school_id": school_id,
+        "user_id": current_user["user_id"],
+        "action": "ALUMNI_CREATED_BY_ADMIN",
+        "resource_type": "alumni",
+        "resource_id": alumni_id,
+        "timestamp": now
+    })
+
+    return UserProfileResponse(
+        id=alumni_id,
+        user_id=user_id,
+        school_id=str(school_id),
+        full_name=alumni_doc["full_name"],
+        mobile=alumni_doc["mobile"],
+        email=alumni_doc["email"] or "",
+        passing_year=alumni_doc["passing_year"],
+        batch_id=str(batch_id) if batch_id else None,
+        admission_number=alumni_doc["admission_number"],
+        section=alumni_doc["section"],
+        current_city=alumni_doc["current_city"],
+        profession=alumni_doc["profession"],
+        verification_status=alumni_doc["verification_status"],
+        account_status="PENDING_ACTIVATION",
+        invitation_status="PENDING",
+        phone_verified=False,
+        roles=["ALUMNI"],
+        created_at=now
+    )
+
+@router.post("/{alumni_id}/send-invitation", response_model=SendInvitationResponse)
+async def send_alumni_invitation(
+    alumni_id: str,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    """Admin sends/resends an account activation SMS invitation to an alumnus."""
+    db = get_db()
+    school_id = current_user.get("school_id") or "PLATFORM"
+
+    filter_q = []
+    try:
+        filter_q.append({"_id": ObjectId(alumni_id)})
+    except Exception:
+        pass
+    filter_q.append({"_id": alumni_id})
+
+    alumni = await db.alumni.find_one({"$or": filter_q})
+    if not alumni:
+        raise HTTPException(status_code=404, detail="Alumni record not found")
+
+    mobile = alumni.get("mobile")
+    if not mobile:
+        raise HTTPException(status_code=400, detail="Alumni profile has no mobile number for sending invitation.")
+
+    norm_mob = normalize_indian_mobile(mobile)
+    raw_token, token_hash = generate_invitation_token()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=7)
+
+    # Invalidate older unused invitations for this alumnus
+    await db.account_invitations.update_many(
+        {"alumni_id": str(alumni["_id"]), "used": False},
+        {"$set": {"used": True, "invalidated": True}}
+    )
+
+    # Store invitation record
+    invitation_doc = {
+        "user_id": str(alumni.get("user_id", "")),
+        "alumni_id": str(alumni["_id"]),
+        "school_id": school_id,
+        "mobile": norm_mob,
+        "token_hash": token_hash,
+        "expires_at": expires_at,
+        "used": False,
+        "used_at": None,
+        "created_at": now
+    }
+    await db.account_invitations.insert_one(invitation_doc)
+
+    # Construct activation URL
+    activation_url = f"{settings.FRONTEND_URL}/verify-account?token={raw_token}"
+
+    # Update alumni record
+    await db.alumni.update_one(
+        {"_id": alumni["_id"]},
+        {"$set": {
+            "invitation_status": "SENT",
+            "invitation_sent_at": now,
+            "invitation_count": alumni.get("invitation_count", 0) + 1
+        }}
+    )
+
+    # Dispatch SMS
+    sms_success, msg_or_err = await send_invitation_sms(norm_mob, activation_url)
+    if not sms_success:
+        logger.warning(f"Invitation SMS provider status for {norm_mob}: {msg_or_err}")
+
+    return SendInvitationResponse(
+        success=True,
+        message=f"Invitation SMS dispatched to {norm_mob}",
+        activation_url=activation_url,
+        alumni_id=str(alumni["_id"]),
+        mobile=norm_mob
+    )
+
+@router.post("/bulk-send-invitation", response_model=SendInvitationResponse)
+async def bulk_send_alumni_invitations(
+    request: BulkSendInvitationRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    """Admin triggers bulk account activation SMS invitations for multiple alumni with batch DB operations."""
+    db = get_db()
+    school_id = current_user.get("school_id") or "PLATFORM"
+
+    if not request.alumni_ids:
+        raise HTTPException(status_code=400, detail="No alumni IDs provided for invitation dispatch.")
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=7)
+
+    # 1. Single batch query to find all requested alumni
+    target_ids = []
+    for aid in request.alumni_ids:
+        try:
+            target_ids.append(ObjectId(aid))
+        except Exception:
+            pass
+        target_ids.append(aid)
+
+    alumni_list = await db.alumni.find({"_id": {"$in": target_ids}}).to_list(length=len(request.alumni_ids))
+
+    invitation_docs = []
+    alumni_ids_to_update = []
+    alumni_str_ids = []
+    sms_tasks = []
+    skipped = len(request.alumni_ids) - len(alumni_list)
+
+    for alumni in alumni_list:
+        mobile = alumni.get("mobile")
+        if not mobile or not is_valid_indian_mobile(mobile):
+            skipped += 1
+            continue
+
+        norm_mob = normalize_indian_mobile(mobile)
+        raw_token, token_hash = generate_invitation_token()
+        a_id_str = str(alumni["_id"])
+        alumni_str_ids.append(a_id_str)
+        alumni_ids_to_update.append(alumni["_id"])
+
+        invitation_docs.append({
+            "user_id": str(alumni.get("user_id", "")),
+            "alumni_id": a_id_str,
+            "school_id": school_id,
+            "mobile": norm_mob,
+            "token_hash": token_hash,
+            "expires_at": expires_at,
+            "used": False,
+            "used_at": None,
+            "created_at": now
+        })
+
+        activation_url = f"{settings.FRONTEND_URL}/verify-account?token={raw_token}"
+        sms_tasks.append((norm_mob, activation_url))
+
+    if invitation_docs:
+        # 2. Invalidate previous unused invitations in a single batch
+        await db.account_invitations.update_many(
+            {"alumni_id": {"$in": alumni_str_ids}, "used": False},
+            {"$set": {"used": True, "invalidated": True}}
+        )
+
+        # 3. Insert all new invitation records in a single batch
+        await db.account_invitations.insert_many(invitation_docs)
+
+        # 4. Update all alumni records in a single batch
+        await db.alumni.update_many(
+            {"_id": {"$in": alumni_ids_to_update}},
+            {"$set": {
+                "invitation_status": "SENT",
+                "invitation_sent_at": now
+            }, "$inc": {"invitation_count": 1}}
+        )
+
+        # 5. Concurrently dispatch SMS invitations with bounded concurrency (semaphore=5)
+        sem = asyncio.Semaphore(5)
+        async def _send_worker(mob, url):
+            async with sem:
+                try:
+                    await send_invitation_sms(mob, url)
+                    return True
+                except Exception as e:
+                    logger.error(f"Error sending bulk invitation to {mob}: {e}")
+                    return False
+
+        results = await asyncio.gather(*[_send_worker(m, u) for m, u in sms_tasks])
+        sent = sum(1 for r in results if r)
+        skipped += len(results) - sent
+    else:
+        sent = 0
+
+    return SendInvitationResponse(
+        success=True,
+        message=f"Dispatched {sent} invitations successfully. Skipped {skipped}.",
+        sent=sent,
+        skipped=skipped
+    )

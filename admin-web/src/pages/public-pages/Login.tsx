@@ -46,13 +46,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     if (!email.trim() || !password.trim()) {
-      setError('Please enter both your Admin Email Address and Password.');
+      setError('Please enter both your Admin Mobile Number / Email and Password.');
       return;
     }
 
     setLoading(true);
     try {
-      // Step 1: Verify email & password credentials against database
+      // Step 1: Verify mobile/email & password credentials against database
       await api.sendOTP(email.trim(), undefined, true, password);
 
       // Step 2: Directly log in without requiring manual OTP code entry
@@ -75,7 +75,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         navigate(targetPath);
       }
     } catch (err: any) {
-      setError(err.message || 'Invalid email address or password. Please check your credentials.');
+      setError(err.message || 'Invalid mobile number/email or password. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     if (!otp.trim() || otp.trim().length !== 6) {
-      setError('Please enter the complete 6-digit verification code sent to your email.');
+      setError('Please enter the complete 6-digit verification code sent via SMS.');
       return;
     }
 
@@ -151,9 +151,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         {step === 'CREDENTIALS' ? (
           <form onSubmit={handleVerifyCredentialsAndSendOTP} className="space-y-5">
             <Input
-              label="Admin Email Address *"
-              type="email"
-              placeholder="admin@school.com"
+              label="Admin Mobile Number (or Email) *"
+              type="text"
+              placeholder="Enter 10-digit mobile number or email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -177,7 +177,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <form onSubmit={handleVerifyOTP} className="space-y-5">
             <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] font-medium flex items-center space-x-2">
               <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
-              <span>Password verified! OTP code sent to <strong>{email}</strong>.</span>
+              <span>Password verified! OTP code sent via SMS to your registered mobile phone.</span>
             </div>
 
             <Input

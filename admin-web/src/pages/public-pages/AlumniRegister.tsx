@@ -154,17 +154,19 @@ export const AlumniRegister: React.FC = () => {
   }, [resendCountdown]);
 
   const handleResendOTP = async () => {
-    if (!email || !email.trim()) return;
+    const cleanMob = mobile.replace(/\D/g, '');
+    const activeTarget = cleanMob.length >= 10 ? cleanMob : email;
+    if (!activeTarget || !activeTarget.trim()) return;
     setError(null);
     setLoading(true);
     try {
-      await api.sendOTP(email);
+      await api.sendOTP(activeTarget);
       setResendCountdown(30);
       alertService.showInfo(
         language === 'ta' ? 'OTP மீண்டும் அனுப்பப்பட்டது' : 'OTP Resent Successfully',
         language === 'ta'
-          ? `6-இலக்க OTP குறியீடு ${email} முகவரிக்கு மீண்டும் அனுப்பப்பட்டுள்ளது.`
-          : `A new 6-digit OTP verification code has been dispatched to ${email}.`
+          ? `6-இலக்க OTP குறியீடு SMS மூலம் ${activeTarget} எண்ணிற்கு மீண்டும் அனுப்பப்பட்டுள்ளது.`
+          : `A new 6-digit OTP verification code has been dispatched via SMS to ${activeTarget}.`
       );
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to resend verification OTP code.');
@@ -333,19 +335,25 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
-  // Step 1: Send OTP for Email Signup
+  // Step 1: Send OTP for Mobile SMS Signup
   const handleSendEmailOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setAccountAlreadyExists(false);
 
-    if (!email || !email.trim() || !email.includes('@')) {
-      alertService.showWarning('Email Address Required', 'Please enter a valid email address to receive your OTP verification code.');
+    const cleanMob = mobile.replace(/\D/g, '');
+    if (!cleanMob || cleanMob.length !== 10) {
+      alertService.showWarning(
+        language === 'ta' ? 'கைபேசி எண் தேவை' : 'Mobile Number Required',
+        language === 'ta'
+          ? 'தயவுசெய்து சரியான 10-இலக்க கைபேசி எண்ணை உள்ளிடவும்.'
+          : 'Please enter a valid 10-digit mobile number to receive your SMS OTP verification code.'
+      );
       return;
     }
     setLoading(true);
     try {
-      await api.sendOTP(email, undefined, false, undefined, false, true);
+      await api.sendOTP(cleanMob, undefined, false, undefined, false, true);
       setOtpSent(true);
     } catch (err: any) {
       if (err.message && (err.message.includes('ACCOUNT_ALREADY_REGISTERED') || err.message.toLowerCase().includes('already registered'))) {
@@ -363,12 +371,19 @@ export const AlumniRegister: React.FC = () => {
     e.preventDefault();
     setError(null);
     if (!otp || otp.length < 6) {
-      alertService.showWarning('Verification Code Required', 'Please enter the complete 6-digit security code sent to your email.');
+      alertService.showWarning(
+        language === 'ta' ? 'சரிபார்ப்புக் குறியீடு தேவை' : 'Verification Code Required',
+        language === 'ta'
+          ? 'உங்கள் கைபேசிக்கு அனுப்பப்பட்ட 6-இலக்க குறியீட்டை உள்ளிடவும்.'
+          : 'Please enter the complete 6-digit security code sent to your mobile phone.'
+      );
       return;
     }
     setLoading(true);
     try {
-      const res = await api.verifyOTP(email, otp);
+      const cleanMob = mobile.replace(/\D/g, '');
+      const activeId = cleanMob.length >= 10 ? cleanMob : email;
+      const res = await api.verifyOTP(activeId, otp);
       setIsOtpVerified(true);
       
       const hasPassword = hasExistingPassword || isGoogleAuth || Boolean(res.resume_step && res.resume_step >= 3);
@@ -410,10 +425,12 @@ export const AlumniRegister: React.FC = () => {
 
     setLoading(true);
     try {
+      const cleanMob = mobile.replace(/\D/g, '');
+      const activeId = cleanMob.length >= 10 ? cleanMob : email;
       if (api.getToken()) {
         await api.updatePassword(password.trim());
       } else if (otp) {
-        await api.setPasswordWithOTP(email, otp, password.trim());
+        await api.setPasswordWithOTP(activeId, otp, password.trim());
       } else {
         await api.updatePassword(password.trim());
       }
@@ -425,7 +442,7 @@ export const AlumniRegister: React.FC = () => {
           : 'Your account password has been saved securely in database! You can now log in.'
       );
       if (location.state?.isPasswordSetup) {
-        navigate('/login', { state: { email } });
+        navigate('/login', { state: { mobile: cleanMob, email } });
       } else {
         goToStep(2);
       }
@@ -717,10 +734,10 @@ export const AlumniRegister: React.FC = () => {
 
       await api.register(payload);
       await alertService.showSuccess(
-        language === 'ta' ? 'பதிவு முடிந்தது & மின்னஞ்சல் அனுப்பப்பட்டது! 📧' : 'Registration Submitted & Confirmation Email Sent! 📧',
+        language === 'ta' ? 'பதிவு முடிந்தது & கணக்கு சமர்ப்பிக்கப்பட்டது! 🎉' : 'Registration Submitted Successfully! 🎉',
         language === 'ta'
-          ? 'நன்றி! உங்கள் பதிவு பெறப்பட்டது. உறுதிப்படுத்தல் மின்னஞ்சல் அனுப்பப்பட்டுள்ளது. பள்ளி நிர்வாகத்தின் சரிபார்ப்புக்காகக் காத்திருக்கவும். சரிபார்க்கப்பட்டதும் மின்னஞ்சல் அறிவிப்பு மற்றும் போர்டல் அணுகல் வழங்கப்படும்.'
-          : 'Thank you for registering! A confirmation email has been sent. Your profile is now awaiting School Admin verification. Once verified, you will receive an approval email and full portal access.'
+          ? 'நன்றி! உங்கள் பதிவு பெறப்பட்டது. பள்ளி நிர்வாகத்தின் சரிபார்ப்புக்காகக் காத்திருக்கவும். சரிபார்க்கப்பட்டதும் SMS அறிவிப்பு மற்றும் போர்டல் அணுகல் வழங்கப்படும்.'
+          : 'Thank you for registering! Your profile has been submitted and is now awaiting School Admin verification. Once approved, you will receive updates via SMS and gain full portal access.'
       );
       navigate('/alumni');
     } catch (err: any) {
@@ -734,7 +751,7 @@ export const AlumniRegister: React.FC = () => {
     {
       num: 1,
       label: language === 'ta' ? 'கணக்கு சரிபார்ப்பு' : 'Sign Up',
-      sub: language === 'ta' ? 'மின்னஞ்சல் OTP சரிபார்க்க' : 'Verify Email OTP'
+      sub: language === 'ta' ? 'SMS OTP சரிபார்க்க' : 'Verify Mobile OTP'
     },
     {
       num: 2,
@@ -968,7 +985,7 @@ export const AlumniRegister: React.FC = () => {
           <div className="lg:col-span-8">
             <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
 
-              {/* STEP 1: Sign Up & Email Verification */}
+              {/* STEP 1: Sign Up & Mobile Phone SMS Verification */}
               {step === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
@@ -978,8 +995,8 @@ export const AlumniRegister: React.FC = () => {
                       </h2>
                       <p className="text-xs text-gray-500 mt-1">
                         {language === 'ta'
-                          ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்'
-                          : 'Verify your primary email address to begin your alumni registration'}
+                          ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை கைபேசி எண்ணைச் சரிபார்க்கவும்'
+                          : 'Verify your primary mobile number to begin your alumni registration'}
                       </p>
                     </div>
                     {maxStepReached > 1 && (
@@ -993,18 +1010,19 @@ export const AlumniRegister: React.FC = () => {
                     <form onSubmit={handleSendEmailOTP} className="space-y-6">
                       <div>
                         <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                          {language === 'ta' ? 'மின்னஞ்சல் முகவரி' : 'Email Address'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'கைபேசி எண் (10 இலக்கங்கள்)' : 'Mobile Phone Number (10 Digits)'} <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <input
-                            type="email"
+                            type="tel"
                             required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="your.email@example.com"
+                            maxLength={10}
+                            value={mobile}
+                            onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                            placeholder="9876543210"
                             className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
                           />
-                          <Mail className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <Phone className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
 
@@ -1012,8 +1030,8 @@ export const AlumniRegister: React.FC = () => {
                         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs sm:text-sm text-amber-800 space-y-2">
                           <p className="font-bold">
                             {language === 'ta'
-                              ? 'இந்த மின்னஞ்சல் முகவரியில் ஏற்கனவே கணக்கு உள்ளது.'
-                              : 'An account already exists with this email address.'}
+                              ? 'இந்த கைபேசி எண்ணில் ஏற்கனவே கணக்கு உள்ளது.'
+                              : 'An account already exists with this mobile number.'}
                           </p>
                           <Link to="/login" className="inline-block font-bold text-[#111111] underline">
                             {language === 'ta' ? 'நேரடியாக உள்நுழைய இங்கே கிளிக் செய்யவும் →' : 'Click here to Log In directly →'}
@@ -1058,12 +1076,12 @@ export const AlumniRegister: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
                           <span>
-                            {language === 'ta' ? 'சரிபார்ப்பு OTP அனுப்பப்பட்டது: ' : 'Verification OTP code sent to '}
-                            <strong>{email}</strong>
+                            {language === 'ta' ? 'SMS சரிபார்ப்பு OTP அனுப்பப்பட்டது: ' : 'Verification OTP code sent via SMS to '}
+                            <strong>{mobile}</strong>
                           </span>
                         </div>
                         <button type="button" onClick={() => { setOtpSent(false); setIsOtpVerified(false); }} className="text-xs font-bold text-[#854D0E] underline cursor-pointer">
-                          {language === 'ta' ? 'மின்னஞ்சலை மாற்ற' : 'Change Email'}
+                          {language === 'ta' ? 'எண்ணை மாற்ற' : 'Change Number'}
                         </button>
                       </div>
 
@@ -1113,7 +1131,7 @@ export const AlumniRegister: React.FC = () => {
                         <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
                         <div>
                           <p className="font-bold text-sm">
-                            {language === 'ta' ? 'மின்னஞ்சல் OTP சரிபார்க்கப்பட்டது!' : 'Email OTP Verified Successfully!'}
+                            {language === 'ta' ? 'கைபேசி எண் OTP சரிபார்க்கப்பட்டது!' : 'Mobile OTP Verified Successfully!'}
                           </p>
                           <p className="text-xs opacity-90 mt-0.5">
                             {language === 'ta'
@@ -1371,6 +1389,23 @@ export const AlumniRegister: React.FC = () => {
                           maxLength={10}
                           className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
+                      </div>
+                    </div>
+
+                    {/* Email Address (For Account Notifications & Approval Notices) */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        {language === 'ta' ? 'மின்னஞ்சல் முகவரி' : 'Email Address'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(அறிவிப்புகள் & உறுதிப்படுத்தல்களுக்கு)' : '(For notifications & confirmations)'}</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
+                        />
+                        <Mail className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
                     </div>
 

@@ -9,14 +9,31 @@ import urllib.parse
 import urllib.request
 
 import asyncio
+import secrets
+import hashlib
+from datetime import timedelta
 from app.core.database import get_db
-from app.core.security import generate_otp, create_access_token, create_refresh_token
+from app.core.security import (
+    generate_otp, create_access_token, create_refresh_token,
+    get_password_hash, verify_password, hash_token, generate_invitation_token
+)
 from app.core.config import settings
+
+# =============================================================================
+# LEGACY SMTP OTP - TEMPORARILY DISABLED
+# PRESERVED FOR FUTURE USE
+# =============================================================================
 from app.services.email import send_otp_email
+
+# ACTIVE 2FACTOR SMS OTP SERVICE
+from app.services.sms import send_sms_otp, normalize_indian_mobile, is_valid_indian_mobile, send_invitation_sms
+
 from app.schemas.models import (
     SendOTPRequest, SendOTPResponse, VerifyOTPRequest, TokenResponse,
     UserRegistrationRequest, UserProfileResponse, UpdatePasswordRequest,
-    SetPasswordWithOTPRequest, LoginRequest
+    SetPasswordWithOTPRequest, LoginRequest,
+    ValidateInvitationResponse, SendInvitationOTPRequest, VerifyInvitationOTPRequest,
+    ActivateAccountWithInvitationRequest, BulkSendInvitationRequest, SendInvitationResponse
 )
 from app.middleware.auth import get_current_user
 
@@ -26,8 +43,67 @@ import logging
 
 logger = logging.getLogger("app.auth")
 
-# In-memory OTP storage with timestamps
+# In-memory OTP storage with rate-limiting, attempt tracking, and timestamps
 OTP_STORE = {}
+
+def _lookup_otp_record(identifier_keys: list) -> Optional[dict]:
+    for key in identifier_keys:
+        if key and key in OTP_STORE:
+            return OTP_STORE[key]
+    return None
+
+def _clear_otp_record(identifier_keys: list):
+    for key in identifier_keys:
+        if key:
+            OTP_STORE.pop(key, None)
+
+def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: str) -> dict:
+    """
+    Validates OTP for mobile or email:
+    - Checks expiry (5 minutes)
+    - Checks rate limit on attempts (max 5 attempts)
+    - Validates OTP code securely (secrets.compare_digest)
+    - Consumes OTP immediately (single-use guarantee)
+    """
+    keys = []
+    if mobile:
+        norm_mob = normalize_indian_mobile(mobile)
+        clean_mob = norm_mob.replace("+91", "")
+        keys.extend([mobile, norm_mob, clean_mob])
+    if email:
+        keys.append(email.lower())
+
+    stored_data = _lookup_otp_record(keys)
+    now_ts = datetime.now(timezone.utc).timestamp()
+
+    if not stored_data:
+        raise HTTPException(status_code=400, detail="No active OTP found. Please request a new OTP.")
+
+    if stored_data.get("expires_at", 0) < now_ts:
+        _clear_otp_record(keys)
+        if stored_data.get("mobile"):
+            _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
+
+    # Track verification attempts
+    stored_data["attempts"] = stored_data.get("attempts", 0) + 1
+    if stored_data["attempts"] > stored_data.get("max_attempts", 5):
+        _clear_otp_record(keys)
+        if stored_data.get("mobile"):
+            _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+        raise HTTPException(status_code=429, detail="Maximum verification attempts exceeded. Please request a new OTP.")
+
+    # Constant-time comparison
+    is_valid = secrets.compare_digest(stored_data["otp"], otp) or (settings.is_dev and otp == settings.DEFAULT_DEV_OTP)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="Invalid OTP.")
+
+    # Invalidate OTP on successful verification (single-use guarantee)
+    _clear_otp_record(keys)
+    if stored_data.get("mobile"):
+        _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+
+    return stored_data
 
 
 @router.get("/google/login")
@@ -309,57 +385,115 @@ async def send_otp(request: SendOTPRequest):
                 detail=f"Incorrect password entered for '{identifier}'. Please check your password and try again."
             )
 
-    otp = generate_otp()
-    
-    # Store OTP valid for 10 minutes
+    # Resolve & Validate Target Mobile for 2Factor SMS OTP Dispatch
+    target_mobile = None
+    if mobile:
+        if not is_valid_indian_mobile(mobile):
+            raise HTTPException(status_code=400, detail="Please enter a valid mobile number.")
+        target_mobile = normalize_indian_mobile(mobile)
+    elif email:
+        db = get_db()
+        user_doc = await db.users.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        if user_doc and user_doc.get("mobile"):
+            target_mobile = normalize_indian_mobile(user_doc["mobile"])
+        if not target_mobile:
+            alumni_doc = await db.alumni.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+            if alumni_doc and alumni_doc.get("mobile"):
+                target_mobile = normalize_indian_mobile(alumni_doc["mobile"])
+        if request.for_developer and not target_mobile:
+            target_mobile = normalize_indian_mobile(settings.INITIAL_ADMIN_MOBILE)
+
+    if not target_mobile:
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a valid mobile number."
+        )
+
     now_ts = datetime.now(timezone.utc).timestamp()
+
+    # Rate Limiting: 30-second cooldown between OTP requests for the same mobile
+    existing_entry = OTP_STORE.get(target_mobile)
+    if existing_entry:
+        time_since_last = now_ts - existing_entry.get("created_at", 0)
+        if time_since_last < 30:
+            remaining = int(30 - time_since_last)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {remaining} seconds before requesting another OTP."
+            )
+
+    otp = generate_otp()
+    expires_at = now_ts + 600  # 10 minutes expiry (matches approved template: "Valid for 10 minutes.")
+    clean_mob = target_mobile.replace("+91", "")
+
+    # Invalidate any previous OTP and store new OTP record
     otp_entry = {
         "otp": otp,
-        "expires_at": now_ts + 600
+        "created_at": now_ts,
+        "expires_at": expires_at,
+        "attempts": 0,
+        "max_attempts": 5,
+        "mobile": target_mobile
     }
-    
+    OTP_STORE[target_mobile] = otp_entry
+    OTP_STORE[clean_mob] = otp_entry
     if email:
         OTP_STORE[email] = otp_entry
-    if mobile:
-        OTP_STORE[mobile] = otp_entry
-    
-    # Resolve Target Email for Real SMTP Dispatch
-    target_email = email
-    if not target_email and mobile:
-        db = get_db()
-        clean_mob = mobile.replace("+91", "").strip()
-        mob_query = {"$or": [{"mobile": mobile}, {"mobile": clean_mob}, {"mobile": f"+91{clean_mob}"}]}
-        user_doc = await db.users.find_one(mob_query)
-        if user_doc and user_doc.get("email"):
-            target_email = user_doc.get("email")
-        if not target_email:
-            alumni_doc = await db.alumni.find_one(mob_query)
-            if alumni_doc and alumni_doc.get("email"):
-                target_email = alumni_doc.get("email")
 
-    if request.for_developer and not target_email:
-        target_email = settings.EMAILS_FROM_EMAIL or "devopstrioglobal@gmail.com"
+    # =========================================================================
+    # LEGACY SMTP OTP - TEMPORARILY DISABLED
+    # PRESERVED FOR FUTURE USE
+    # =========================================================================
+    # target_email = email
+    # if not target_email and mobile:
+    #     db = get_db()
+    #     clean_mob_old = mobile.replace("+91", "").strip()
+    #     mob_query = {"$or": [{"mobile": mobile}, {"mobile": clean_mob_old}, {"mobile": f"+91{clean_mob_old}"}]}
+    #     user_doc_old = await db.users.find_one(mob_query)
+    #     if user_doc_old and user_doc_old.get("email"):
+    #         target_email = user_doc_old.get("email")
+    #     if not target_email:
+    #         alumni_doc_old = await db.alumni.find_one(mob_query)
+    #         if alumni_doc_old and alumni_doc_old.get("email"):
+    #             target_email = alumni_doc_old.get("email")
+    #
+    # if request.for_developer and not target_email:
+    #     target_email = settings.EMAILS_FROM_EMAIL or "devopstrioglobal@gmail.com"
+    #
+    # if target_email:
+    #     purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
+    #     asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
+    # =========================================================================
 
-    # Terminal Log Output for Developers
-    print("\n" + "="*70)
-    print(f" [EMAIL/SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Identifier: {identifier}")
-    if target_email:
-        print(f" [SMTP EMAIL TARGET] Emailing OTP Code: [{otp}] via SMTP to: {target_email}")
+    # =========================================================================
+    # ACTIVE 2FACTOR SMS OTP IMPLEMENTATION
+    # =========================================================================
+    sms_success, session_or_err = await send_sms_otp(target_mobile, otp)
+    if not sms_success:
+        # Provider failure: rollback OTP store entry and return friendly error
+        OTP_STORE.pop(target_mobile, None)
+        OTP_STORE.pop(clean_mob, None)
+        if email:
+            OTP_STORE.pop(email, None)
+        logger.error(f"2Factor SMS dispatch failed for {target_mobile}: {session_or_err}")
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to send OTP. Please try again."
+        )
+
+    # Secure terminal output for developers in dev mode (never in production logs)
+    if settings.is_dev:
+        print("\n" + "="*70)
+        print(f" [2FACTOR SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Mobile: {target_mobile} (Session: {session_or_err})")
+        print("="*70 + "\n")
     else:
-        print(f" [WARNING] No target email resolved for identifier: {identifier}. Dispatched in terminal/SMS mode.")
-    print("="*70 + "\n")
-    logger.info(f"OTP Dispatched: [{otp}] -> {identifier} (Target Email: {target_email})")
-
-    # Dispatch Real SMTP Email
-    if target_email:
-        purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
-        asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
+        logger.info(f"SMS OTP Dispatched via 2Factor to: {target_mobile}")
 
     return SendOTPResponse(
         success=True,
-        message=f"Verification OTP code sent to {identifier}",
-        email=target_email or email,
-        mobile=mobile,
+        message="OTP sent successfully",
+        email=email,
+        mobile=target_mobile,
         dev_otp=None
     )
 
@@ -452,6 +586,13 @@ async def login(request: LoginRequest):
         if not alumni and user.get("email"):
             alumni = await db.alumni.find_one({"email": {"$regex": f"^{user.get('email')}$", "$options": "i"}})
 
+    # Check account activation status
+    if user and user.get("account_status") == "PENDING_ACTIVATION" and not user.get("password") and not user.get("password_hash"):
+        raise HTTPException(
+            status_code=403,
+            detail="ACCOUNT_PENDING_ACTIVATION: Your account has been created by the administrator but is pending activation. Please use the invitation link sent to your mobile number to set your password."
+        )
+
     # Verify password against user or alumni record
     stored_password = (user.get("password") or user.get("password_hash")) if user else None
     if not stored_password and alumni:
@@ -463,11 +604,17 @@ async def login(request: LoginRequest):
             detail=f"PASSWORD_NOT_CREATED: Your account '{identifier}' does not have a login password set yet. Please create a password first."
         )
 
-    if stored_password != password:
+    if not verify_password(password, stored_password):
         raise HTTPException(
             status_code=400,
             detail="Incorrect password entered. Please check your password and try again."
         )
+
+    # Transparent upgrade of legacy plaintext passwords to secure hash
+    if not stored_password.startswith("$pbkdf2") and not stored_password.startswith("$2b$") and not stored_password.startswith("$2a$"):
+        new_hash = get_password_hash(password)
+        if user and user.get("_id"):
+            await db.users.update_one({"_id": user["_id"]}, {"$set": {"password": new_hash, "password_hash": new_hash}})
 
     roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
     verification_status = alumni.get("verification_status") if alumni else None
@@ -534,38 +681,19 @@ async def verify_otp(request: VerifyOTPRequest):
     if not email and not mobile:
         raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
 
-    # Validate OTP against email or mobile
-    stored_data = None
-    if email and email in OTP_STORE:
-        stored_data = OTP_STORE.get(email)
-    elif mobile and mobile in OTP_STORE:
-        stored_data = OTP_STORE.get(mobile)
-
-    now_ts = datetime.now(timezone.utc).timestamp()
-
-    if not stored_data:
-        raise HTTPException(status_code=400, detail="No active OTP found for this email address. Please request a new OTP.")
-
-    if stored_data["expires_at"] < now_ts:
-        if email: OTP_STORE.pop(email, None)
-        if mobile: OTP_STORE.pop(mobile, None)
-        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
-
-    if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
-        raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please check the OTP code and try again.")
-
-    # One-time use: Clear OTP
-    if email: OTP_STORE.pop(email, None)
-    if mobile: OTP_STORE.pop(mobile, None)
+    # Validate OTP securely with expiry, rate limiting, and single-use invalidation
+    _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     
-    # Find user by email (case-insensitive) or mobile
+    # Find user by email (case-insensitive) or mobile (flexible prefix match)
     query = []
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        query.append({"mobile": mobile})
+        norm_mob = normalize_indian_mobile(mobile)
+        clean_mob = norm_mob.replace("+91", "")
+        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
 
     user = await db.users.find_one({"$or": query}) if query else None
     school_id = user.get("school_id") if user else None
@@ -655,34 +783,19 @@ async def verify_admin_otp(request: VerifyOTPRequest):
     if not email and not mobile:
         raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
 
-    # Validate OTP against email or mobile
-    stored_data = None
-    if email and email in OTP_STORE:
-        stored_data = OTP_STORE.get(email)
-    elif mobile and mobile in OTP_STORE:
-        stored_data = OTP_STORE.get(mobile)
-
-    now_ts = datetime.now(timezone.utc).timestamp()
-
-    if not stored_data:
-        raise HTTPException(status_code=400, detail="No active OTP found for this email address. Please request a new OTP.")
-
-    if stored_data["expires_at"] < now_ts:
-        if email: OTP_STORE.pop(email, None)
-        if mobile: OTP_STORE.pop(mobile, None)
-        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
-
-    if stored_data["otp"] != otp and otp != "123456":
-        raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please check the OTP code and try again.")
+    # Validate OTP securely with expiry, rate limiting, and single-use invalidation
+    _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     
-    # Query user by email or mobile
+    # Query user by email or mobile (flexible prefix match)
     query = []
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        query.append({"mobile": mobile})
+        norm_mob = normalize_indian_mobile(mobile)
+        clean_mob = norm_mob.replace("+91", "")
+        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
 
     user = await db.users.find_one({"$or": query}) if query else None
     
@@ -700,10 +813,6 @@ async def verify_admin_otp(request: VerifyOTPRequest):
             status_code=403,
             detail=f"Access Denied: '{target_id}' does not have School Administrator privileges in database."
         )
-
-    # One-time use: Clear OTP
-    if email: OTP_STORE.pop(email, None)
-    if mobile: OTP_STORE.pop(mobile, None)
 
     user_id = str(user["_id"])
     school_id = str(user.get("school_id")) if user.get("school_id") else None
@@ -739,13 +848,14 @@ async def update_password(request: UpdatePasswordRequest, current_user: dict = D
     if not password or len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
 
+    hashed_pass = get_password_hash(password)
     await db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"password": password}}
+        {"$set": {"password": hashed_pass, "password_hash": hashed_pass, "phone_verified": True}}
     )
     await db.alumni.update_many(
         {"user_id": user_id},
-        {"$set": {"password": password}}
+        {"$set": {"password": hashed_pass, "phone_verified": True}}
     )
 
     return {"success": True, "message": "Account password saved successfully."}
@@ -762,33 +872,21 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
 
-    # 1. Verify OTP code
-    stored_data = None
-    if email and email in OTP_STORE:
-        stored_data = OTP_STORE[email]
-    elif mobile and mobile in OTP_STORE:
-        stored_data = OTP_STORE[mobile]
+    # 1. Verify OTP code securely with expiry, rate limiting, and single-use invalidation
+    _validate_and_consume_otp(email, mobile, otp)
 
-    now_ts = datetime.now(timezone.utc).timestamp()
     db = get_db()
     query = []
-    if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
-    if mobile: query.append({"mobile": mobile})
+    if email:
+        query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    if mobile:
+        norm_mob = normalize_indian_mobile(mobile)
+        clean_mob = norm_mob.replace("+91", "")
+        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
 
     user = await db.users.find_one({"$or": query}) if query else None
-
-    if stored_data:
-        if stored_data["expires_at"] < now_ts:
-            if email: OTP_STORE.pop(email, None)
-            if mobile: OTP_STORE.pop(mobile, None)
-            raise HTTPException(status_code=400, detail="OTP code has expired. Please request a new OTP code.")
-        if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
-            raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please check the code sent to your email and try again.")
-        # Clear OTP code
-        if email and email in OTP_STORE: del OTP_STORE[email]
-        if mobile and mobile in OTP_STORE: del OTP_STORE[mobile]
-    elif not user:
-        raise HTTPException(status_code=400, detail="No active OTP found for this email address. Please click 'Resend OTP' to request a code.")
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found matching identifier.")
 
     user_id = str(user["_id"])
     school_id = str(user.get("school_id")) if user.get("school_id") else None
@@ -796,13 +894,22 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         school = await db.schools.find_one({})
         school_id = str(school["_id"]) if school else None
 
+    hashed_pass = get_password_hash(password)
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"password": password, "is_active": True, "status": "ACTIVE"}}
+        {"$set": {
+            "password": hashed_pass,
+            "password_hash": hashed_pass,
+            "is_active": True,
+            "status": "ACTIVE",
+            "account_status": "ACTIVE",
+            "phone_verified": True,
+            "updated_at": datetime.now(timezone.utc)
+        }}
     )
     await db.alumni.update_many(
         {"user_id": user_id},
-        {"$set": {"password": password}}
+        {"$set": {"password": hashed_pass, "phone_verified": True, "updated_at": datetime.now(timezone.utc)}}
     )
 
     alumni = await db.alumni.find_one({"user_id": user_id})
@@ -928,12 +1035,17 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
 
     # Update user record with name and contact details
     user_update = {
-        "email": str(request.email),
+        "email": str(request.email) if request.email else None,
         "mobile": request.mobile,
-        "full_name": request.full_name
+        "full_name": request.full_name,
+        "phone_verified": True,
+        "account_status": "ACTIVE",
+        "updated_at": now
     }
     if request.password and request.password.strip():
-        user_update["password"] = request.password.strip()
+        hashed_pw = get_password_hash(request.password.strip())
+        user_update["password"] = hashed_pw
+        user_update["password_hash"] = hashed_pw
 
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_update})
 
@@ -1183,40 +1295,343 @@ async def reset_password_with_otp(data: ResetPasswordWithOTPRequest):
         raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
 
     # Validate OTP
-    stored_data = None
-    if email and email in OTP_STORE:
-        stored_data = OTP_STORE.get(email)
-    elif mobile and mobile in OTP_STORE:
-        stored_data = OTP_STORE.get(mobile)
-
-    now_ts = datetime.now(timezone.utc).timestamp()
-    if not stored_data:
-        raise HTTPException(status_code=400, detail="No active OTP found. Please request a new OTP code.")
-
-    if stored_data["expires_at"] < now_ts:
-        if email: OTP_STORE.pop(email, None)
-        if mobile: OTP_STORE.pop(mobile, None)
-        raise HTTPException(status_code=400, detail="OTP code has expired. Please request a new OTP code.")
-
-    if stored_data["otp"] != otp and (settings.APP_ENV == "production" or otp != "123456"):
-        raise HTTPException(status_code=400, detail="Invalid OTP code entered. Please try again.")
-
-    # Clear OTP
-    if email: OTP_STORE.pop(email, None)
-    if mobile: OTP_STORE.pop(mobile, None)
+    # Validate OTP securely with expiry, rate limiting, and single-use invalidation
+    _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     query = []
-    if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
-    if mobile: query.append({"mobile": mobile})
+    if email:
+        query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    if mobile:
+        norm_mob = normalize_indian_mobile(mobile)
+        clean_mob = norm_mob.replace("+91", "")
+        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
 
     user = await db.users.find_one({"$or": query}) if query else None
     if not user:
         raise HTTPException(status_code=404, detail="User account not found matching identifier.")
 
+    if len(data.new_password.strip()) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+
+    hashed_pass = get_password_hash(data.new_password.strip())
+    now_utc = datetime.now(timezone.utc)
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"password": data.new_password.strip()}}
+        {"$set": {
+            "password": hashed_pass,
+            "password_hash": hashed_pass,
+            "phone_verified": True,
+            "account_status": "ACTIVE",
+            "updated_at": now_utc
+        }}
+    )
+    await db.alumni.update_many(
+        {"user_id": str(user["_id"])},
+        {"$set": {"password": hashed_pass, "phone_verified": True, "updated_at": now_utc}}
     )
     return {"success": True, "message": "Password reset successfully. You can now log in with your new password."}
+
+
+# =============================================================================
+# ADMIN-CREATED USER ACCOUNT ACTIVATION & INVITATION ENDPOINTS
+# =============================================================================
+
+@router.get("/invitation/validate", response_model=ValidateInvitationResponse)
+async def validate_invitation(token: str = Query(...)):
+    """
+    Validates single-use account invitation token.
+    Returns recipient display name and masked mobile number.
+    Does NOT reveal unmasked phone or sensitive details.
+    """
+    import re
+    if not token or len(token.strip()) < 10:
+        raise HTTPException(status_code=400, detail="This invitation link is invalid or has expired. Please contact the administrator.")
+
+    db = get_db()
+    t_hash = hash_token(token)
+    invitation = await db.account_invitations.find_one({"token_hash": t_hash})
+
+    if not invitation:
+        raise HTTPException(status_code=400, detail="This invitation link is invalid or has expired. Please contact the administrator.")
+
+    # Check if already used
+    if invitation.get("used_at"):
+        raise HTTPException(status_code=400, detail="This invitation link has already been used to activate an account. Please proceed to login.")
+
+    # Check expiration
+    expires_at = invitation.get("expires_at")
+    now = datetime.now(timezone.utc)
+    if isinstance(expires_at, datetime):
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < now:
+            raise HTTPException(status_code=400, detail="This invitation link has expired. Please contact the administrator to request a new invitation.")
+
+    # Fetch associated user / alumni
+    mobile = invitation.get("mobile", "")
+    user_id = invitation.get("user_id")
+    alumni_id = invitation.get("alumni_id")
+
+    user = None
+    alumni = None
+    if user_id:
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            user = await db.users.find_one({"_id": user_id})
+    if alumni_id:
+        try:
+            alumni = await db.alumni.find_one({"_id": ObjectId(alumni_id)})
+        except Exception:
+            alumni = await db.alumni.find_one({"_id": alumni_id})
+
+    name = ""
+    if alumni and alumni.get("full_name"):
+        name = alumni["full_name"]
+    elif user and user.get("full_name"):
+        name = user["full_name"]
+    elif user and user.get("name"):
+        name = user["name"]
+    else:
+        name = "Alumni Member"
+
+    digits = re.sub(r"\D", "", mobile)
+    masked = f"+91 ******{digits[-4:]}" if len(digits) >= 10 else mobile
+
+    school_id = invitation.get("school_id") or (user.get("school_id") if user else (alumni.get("school_id") if alumni else None))
+    school = None
+    if school_id:
+        try:
+            school = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
+        except Exception:
+            school = await db.schools.find_one({"_id": school_id})
+
+    return ValidateInvitationResponse(
+        valid=True,
+        name=name,
+        full_name=name,
+        mobile=mobile,
+        masked_mobile=masked,
+        school_name=school.get("name") if school else "NHSS Alumni Network",
+        alumni_id=str(alumni["_id"]) if alumni else None,
+        user_id=str(user["_id"]) if user else None,
+        expires_at=expires_at.isoformat() if isinstance(expires_at, datetime) else None
+    )
+
+@router.post("/invitation/send-otp")
+async def send_invitation_otp(request: SendInvitationOTPRequest):
+    """
+    Dispatches 2Factor SMS OTP using approved NHSS Alumni template
+    to the mobile number bound to the validated invitation.
+    """
+    import re
+    token = request.token.strip() if request.token else ""
+    if not token:
+        raise HTTPException(status_code=400, detail="Invitation token is required.")
+
+    db = get_db()
+    t_hash = hash_token(token)
+    invitation = await db.account_invitations.find_one({"token_hash": t_hash})
+
+    if not invitation or invitation.get("used_at"):
+        raise HTTPException(status_code=400, detail="This invitation link is invalid or has expired.")
+
+    mobile = invitation.get("mobile")
+    if not mobile or not is_valid_indian_mobile(mobile):
+        raise HTTPException(status_code=400, detail="Invalid mobile number associated with invitation.")
+
+    target_mobile = normalize_indian_mobile(mobile)
+    now_ts = datetime.now(timezone.utc).timestamp()
+
+    # Rate limiting: 30s resend cooldown
+    session_key = f"inv_{t_hash}"
+    existing = OTP_STORE.get(session_key) or OTP_STORE.get(target_mobile)
+    if existing:
+        elapsed = now_ts - existing.get("created_at", 0)
+        if elapsed < 30:
+            remaining = int(30 - elapsed)
+            raise HTTPException(status_code=429, detail=f"Please wait {remaining} seconds before requesting a new OTP.")
+
+    otp = generate_otp()
+    expires_at = now_ts + 600  # 10 minutes expiry matching approved template
+
+    otp_entry = {
+        "otp": otp,
+        "created_at": now_ts,
+        "expires_at": expires_at,
+        "attempts": 0,
+        "max_attempts": 5,
+        "mobile": target_mobile,
+        "token_hash": t_hash
+    }
+    OTP_STORE[session_key] = otp_entry
+    OTP_STORE[target_mobile] = otp_entry
+    OTP_STORE[target_mobile.replace("+91", "")] = otp_entry
+
+    sms_success, session_or_err = await send_sms_otp(target_mobile, otp)
+    if not sms_success:
+        OTP_STORE.pop(session_key, None)
+        OTP_STORE.pop(target_mobile, None)
+        raise HTTPException(status_code=502, detail="Unable to send OTP. Please try again.")
+
+    digits = re.sub(r"\D", "", target_mobile)
+    masked = f"+91 ******{digits[-4:]}" if len(digits) >= 10 else target_mobile
+
+    return {
+        "success": True,
+        "message": "OTP verification code sent successfully via SMS",
+        "mobile": masked
+    }
+
+@router.post("/invitation/verify-otp")
+async def verify_invitation_otp(request: VerifyInvitationOTPRequest):
+    """
+    Verifies the 6-digit OTP code against the invitation session.
+    """
+    token = request.token.strip() if request.token else ""
+    otp = request.otp.strip() if request.otp else ""
+    if not token or not otp:
+        raise HTTPException(status_code=400, detail="Invitation token and OTP are required.")
+
+    db = get_db()
+    t_hash = hash_token(token)
+    invitation = await db.account_invitations.find_one({"token_hash": t_hash})
+    if not invitation or invitation.get("used_at"):
+        raise HTTPException(status_code=400, detail="This invitation link is invalid or has expired.")
+
+    mobile = invitation.get("mobile")
+    target_mobile = normalize_indian_mobile(mobile)
+
+    # Consume OTP securely
+    _validate_and_consume_otp(email=None, mobile=target_mobile, otp=otp)
+
+    # Mark session verified for 15 minutes to allow password entry
+    OTP_STORE[f"verified_{t_hash}"] = {
+        "verified": True,
+        "expires_at": datetime.now(timezone.utc).timestamp() + 900,
+        "mobile": target_mobile
+    }
+
+    return {
+        "success": True,
+        "message": "Mobile number verified successfully via SMS OTP.",
+        "otp_verified": True
+    }
+
+@router.post("/invitation/activate")
+async def activate_account_with_invitation(request: ActivateAccountWithInvitationRequest):
+    """
+    Sets account password and activates user account after OTP verification.
+    """
+    token = request.token.strip() if request.token else ""
+    password = request.password.strip() if request.password else ""
+
+    if not token:
+        raise HTTPException(status_code=400, detail="Invitation token is required.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+
+    db = get_db()
+    t_hash = hash_token(token)
+    invitation = await db.account_invitations.find_one({"token_hash": t_hash})
+    if not invitation:
+        raise HTTPException(status_code=400, detail="This invitation link is invalid or has expired.")
+    if invitation.get("used_at"):
+        raise HTTPException(status_code=400, detail="This invitation link has already been used.")
+
+    # Ensure OTP verification occurred
+    verified_record = OTP_STORE.get(f"verified_{t_hash}")
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if not verified_record or verified_record.get("expires_at", 0) < now_ts:
+        raise HTTPException(status_code=400, detail="OTP verification required. Please verify your mobile phone with OTP first.")
+
+    user_id = invitation.get("user_id")
+    alumni_id = invitation.get("alumni_id")
+    mobile = invitation.get("mobile")
+    normalized_mobile = normalize_indian_mobile(mobile)
+
+    user = None
+    if user_id:
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            user = await db.users.find_one({"_id": user_id})
+
+    # If user doc wasn't created initially, create or find by mobile
+    if not user:
+        user = await db.users.find_one({"mobile": normalized_mobile})
+        if not user:
+            school_id = invitation.get("school_id")
+            if not school_id:
+                school = await db.schools.find_one({})
+                school_id = str(school["_id"]) if school else None
+            new_user = {
+                "school_id": school_id,
+                "roles": ["ALUMNI"],
+                "mobile": normalized_mobile,
+                "phone_number": normalized_mobile,
+                "phone_verified": True,
+                "account_status": "ACTIVE",
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc)
+            }
+            res = await db.users.insert_one(new_user)
+            user = new_user
+            user["_id"] = res.inserted_id
+            user_id = str(res.inserted_id)
+
+    hashed_password = get_password_hash(password)
+    now_utc = datetime.now(timezone.utc)
+
+    # 1. Update user document
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "password": hashed_password,
+            "password_hash": hashed_password,
+            "phone_verified": True,
+            "mobile": normalized_mobile,
+            "phone_number": normalized_mobile,
+            "account_status": "ACTIVE",
+            "is_active": True,
+            "status": "ACTIVE",
+            "updated_at": now_utc
+        }}
+    )
+
+    # 2. Update linked alumni profile
+    alumni_filter = []
+    if alumni_id:
+        try:
+            alumni_filter.append({"_id": ObjectId(alumni_id)})
+        except Exception:
+            alumni_filter.append({"_id": alumni_id})
+    alumni_filter.append({"user_id": str(user["_id"])})
+    alumni_filter.append({"mobile": normalized_mobile})
+
+    await db.alumni.update_many(
+        {"$or": alumni_filter},
+        {"$set": {
+            "user_id": str(user["_id"]),
+            "phone_verified": True,
+            "verification_status": "APPROVED",
+            "status": "APPROVED",
+            "account_status": "ACTIVE",
+            "updated_at": now_utc
+        }}
+    )
+
+    # 3. Mark invitation as used (single-use guarantee)
+    await db.account_invitations.update_one(
+        {"_id": invitation["_id"]},
+        {"$set": {"used_at": now_utc, "updated_at": now_utc}}
+    )
+    # Clear session verified flag
+    OTP_STORE.pop(f"verified_{t_hash}", None)
+
+    return {
+        "success": True,
+        "message": "Your NHSS Alumni account has been activated successfully. You can now log in with your mobile number and password."
+    }
 

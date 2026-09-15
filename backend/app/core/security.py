@@ -1,9 +1,48 @@
 import time
 import secrets
+import hashlib
 import jwt
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
+from passlib.context import CryptContext
 from app.core.config import settings
+
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    """Securely hashes a plaintext password using PBKDF2-SHA256 / Bcrypt."""
+    if not password:
+        return ""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verifies a plaintext password against a stored password string.
+    Supports both modern hashed passwords and transparent backwards compatibility for legacy plain text passwords.
+    """
+    if not plain_password or not hashed_password:
+        return False
+    if hashed_password.startswith("$pbkdf2") or hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
+        try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
+    # Legacy fallback: constant-time string comparison
+    return secrets.compare_digest(plain_password, hashed_password)
+
+def generate_invitation_token() -> Tuple[str, str]:
+    """
+    Generates a cryptographically random invitation token and its SHA-256 hash.
+    Returns:
+        (raw_token, token_hash)
+    """
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    return raw_token, token_hash
+
+def hash_token(raw_token: str) -> str:
+    """Returns SHA-256 hash of a token for secure database lookup."""
+    return hashlib.sha256(raw_token.strip().encode("utf-8")).hexdigest()
 
 def generate_otp() -> str:
     """Generate cryptographically random 6-digit OTP code"""

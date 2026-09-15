@@ -32,7 +32,7 @@ export const AdminSetupPassword: React.FC = () => {
 
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      setError('Please enter your School Admin email address.');
+      setError('Please enter your School Admin mobile number or email.');
       return;
     }
 
@@ -42,10 +42,10 @@ export const AdminSetupPassword: React.FC = () => {
       setStep('VERIFY_SET_PASS');
       alertService.showSuccess(
         'Verification OTP Sent!',
-        `A 6-digit setup code has been sent to ${cleanEmail}. Check your email inbox.`
+        'A 6-digit setup code has been sent via SMS to your registered mobile phone.'
       );
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP verification code to email.');
+      setError(err.message || 'Failed to send OTP verification code via SMS.');
       alertService.showError('Verification Error', err.message || 'Failed to send OTP code.');
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ export const AdminSetupPassword: React.FC = () => {
     setError(null);
 
     if (!otp.trim() || otp.trim().length !== 6) {
-      setError('Please enter the 6-digit OTP code sent to your email.');
+      setError('Please enter the 6-digit OTP code sent via SMS to your mobile phone.');
       return;
     }
 
@@ -96,7 +96,7 @@ export const AdminSetupPassword: React.FC = () => {
             <ShieldCheck className="w-8 h-8 text-[#854D0E]" />
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#111111]">School Admin Account Setup</h1>
-          <p className="text-xs text-[#6B7280] mt-1">Verify your email address &amp; create your account password</p>
+          <p className="text-xs text-[#6B7280] mt-1">Verify your mobile phone &amp; create your account password</p>
         </div>
 
         {error && (
@@ -108,16 +108,16 @@ export const AdminSetupPassword: React.FC = () => {
         {step === 'SEND_OTP' ? (
           <form onSubmit={handleSendOTP} className="space-y-5">
             <Input
-              label="School Admin Email Address *"
-              type="email"
-              placeholder="admin@school.com"
+              label="School Admin Mobile Number (or Email) *"
+              type="text"
+              placeholder="Enter 10-digit mobile number or email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
 
             <Button type="submit" className="w-full py-3 bg-[#111111] text-[#F4C542] hover:bg-black font-bold cursor-pointer border border-[#111111]" isLoading={loading}>
-              <span>Send OTP Verification Code to Email</span>
+              <span>Send OTP Verification Code via SMS</span>
               <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </form>
@@ -125,7 +125,7 @@ export const AdminSetupPassword: React.FC = () => {
           <form onSubmit={handleSetPassword} className="space-y-5">
             <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] font-medium flex items-center space-x-2">
               <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
-              <span>OTP code sent to <strong>{email}</strong>. Enter code &amp; create password.</span>
+              <span>OTP code sent via SMS to <strong>{email}</strong>. Enter code &amp; create password.</span>
             </div>
 
             <Input

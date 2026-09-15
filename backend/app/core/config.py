@@ -73,13 +73,19 @@ class Settings(BaseSettings):
     INITIAL_SCHOOL_CODE: str = "NHSS"
     INITIAL_ADMIN_MOBILE: str = "+917550375037"
 
-    # SMTP Email Configuration
+    # SMTP Email Configuration (Preserved for system & notification emails)
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
     EMAILS_FROM_NAME: str = "NHSS_ALUMNI-team"
     EMAILS_FROM_EMAIL: str = "devopstrioglobal@gmail.com"
+
+    # 2Factor SMS Configuration (SMS OTP ONLY — NO VOICE CALLS)
+    TWO_FACTOR_API_KEY: str = ""
+    TWO_FACTOR_TEMPLATE: str = "NHSS Alumni"
+    TWO_FACTOR_OTP_TEMPLATE: str = ""
+    TWO_FACTOR_SENDER_ID: str = "SMSNHS"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

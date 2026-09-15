@@ -15,6 +15,7 @@ import { PublicContact } from '../pages/public-pages/PublicContact';
 import { PublicFeedback } from '../pages/public-pages/PublicFeedback';
 import { AlumniLogin } from '../pages/public-pages/AlumniLogin';
 import { AlumniRegister } from '../pages/public-pages/AlumniRegister';
+import { VerifyAccount } from '../pages/public-pages/VerifyAccount';
 import { AuthCallback } from '../pages/public-pages/AuthCallback';
 import { Login } from '../pages/public-pages/Login';
 import { SchoolAdminRequest } from '../pages/public-pages/SchoolAdminRequest';
@@ -89,6 +90,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="karuthukal" element={<PublicFeedback />} />
         <Route path="login" element={<AlumniLogin />} />
         <Route path="register" element={<AlumniRegister />} />
+        <Route path="verify-account" element={<VerifyAccount />} />
         <Route path="auth/callback" element={<AuthCallback />} />
       </Route>
 

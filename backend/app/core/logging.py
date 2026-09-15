@@ -2,6 +2,12 @@ import logging
 import sys
 
 def setup_logging():
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
