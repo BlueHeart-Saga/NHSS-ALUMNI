@@ -366,5 +366,55 @@ def test_invitation_api_suite():
         assert mock_db.users.update_one.called
         assert mock_db.account_invitations.update_one.called
 
+def test_link_mobile_endpoint():
+    from unittest.mock import patch, MagicMock, AsyncMock
+    from fastapi.testclient import TestClient
+    from bson import ObjectId
+    from app.main import app, api_v1
+    from app.middleware.auth import get_current_user
+
+    client = TestClient(app)
+    mock_user_id = str(ObjectId())
+
+    override = lambda: {
+        "user_id": mock_user_id,
+        "school_id": str(ObjectId()),
+        "roles": ["ALUMNI"],
+        "email": "test@gmail.com"
+    }
+    app.dependency_overrides[get_current_user] = override
+    api_v1.dependency_overrides[get_current_user] = override
+
+    headers = {"Authorization": "Bearer test-token"}
+
+    mock_db = MagicMock()
+    # 1. Test invalid mobile
+    resp = client.post("/api/v1/auth/link-mobile", json={"mobile": "12345"}, headers=headers)
+    assert resp.status_code == 400
+    assert "valid 10-digit" in resp.json()["detail"]
+
+    # 2. Test duplicate mobile registered to another account
+    mock_db.users.find_one = AsyncMock(return_value={"_id": ObjectId(), "mobile": "+919876543210"})
+    with patch("app.api.auth.get_db", return_value=mock_db):
+        resp = client.post("/api/v1/auth/link-mobile", json={"mobile": "9876543210"}, headers=headers)
+        assert resp.status_code == 400
+        assert "already registered" in resp.json()["detail"]
+
+    # 3. Test successful link
+    mock_db.users.find_one = AsyncMock(return_value=None)
+    mock_db.users.update_one = AsyncMock()
+    mock_db.alumni.update_one = AsyncMock()
+    with patch("app.api.auth.get_db", return_value=mock_db):
+        resp = client.post("/api/v1/auth/link-mobile", json={"mobile": "9876543210"}, headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["mobile"] == "+919876543210"
+        assert mock_db.users.update_one.called
+        assert mock_db.alumni.update_one.called
+
+    app.dependency_overrides.pop(get_current_user, None)
+    api_v1.dependency_overrides.pop(get_current_user, None)
+
 
 

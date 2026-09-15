@@ -37,7 +37,7 @@ async def list_pending_verifications(
         if school_filter:
             query.update(school_filter)
 
-    cursor = db.alumni.find(query, {"profile_photo_url": 0}).sort("created_at", -1)
+    cursor = db.alumni.find(query).sort("created_at", -1)
     pending = await cursor.to_list(length=200)
 
     # Batch fetch all matching users in 1 single DB query (Fix N+1 query loop)
@@ -62,6 +62,7 @@ async def list_pending_verifications(
         user = users_map.get(u_id)
 
         roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
+        photo_val = a.get("profile_photo_url") or (user.get("profile_photo_url") if user else None)
         res.append(UserProfileResponse(
             id=str(a["_id"]),
             user_id=u_id,
@@ -69,13 +70,34 @@ async def list_pending_verifications(
             full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
             mobile=a.get("mobile") or (user.get("mobile") if user else ""),
             email=a.get("email") or (user.get("email") if user else ""),
-            profile_photo_url=a.get("profile_photo_url") or (user.get("profile_photo_url") if user else None),
+            profile_photo_url=photo_val,
             passing_year=a.get("passing_year", 2010),
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             admission_number=a.get("admission_number") or "N/A",
             section=a.get("section"),
+            gender=a.get("gender"),
+            dob=a.get("dob") or a.get("date_of_birth"),
+            date_of_birth=a.get("date_of_birth") or a.get("dob"),
+            blood_group=a.get("blood_group"),
+            father_name=a.get("father_name"),
+            mother_name=a.get("mother_name"),
+            address=a.get("address"),
             current_city=a.get("current_city"),
+            state=a.get("state") or a.get("current_state"),
+            country=a.get("country"),
+            joining_year=a.get("joining_year"),
+            leaving_class=a.get("leaving_class"),
+            college_name=a.get("college_name") or a.get("institution_name"),
+            degree=a.get("degree"),
+            stream=a.get("stream"),
             profession=a.get("profession"),
+            company=a.get("company") or a.get("company_name"),
+            designation=a.get("designation"),
+            industry=a.get("industry"),
+            total_experience=a.get("total_experience") or a.get("experience_years"),
+            skills=a.get("skills", []),
+            bio=a.get("bio"),
+            linkedin_url=a.get("linkedin_url"),
             verification_status=a.get("verification_status", "PENDING"),
             verification_notes=a.get("verification_notes"),
             roles=roles,

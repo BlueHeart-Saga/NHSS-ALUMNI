@@ -300,6 +300,13 @@ class ApiClient {
     return this.getMe();
   }
 
+  async linkMobile(mobile: string) {
+    return this.request<{ success: boolean; message: string; mobile: string }>('/auth/link-mobile', {
+      method: 'POST',
+      body: JSON.stringify({ mobile }),
+    });
+  }
+
   async updateAlumniProfile(data: Record<string, any>) {
     return this.request<AlumniProfile>('/alumni/profile', {
       method: 'PUT',

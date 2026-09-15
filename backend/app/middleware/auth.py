@@ -45,12 +45,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raw_school_id = user.get("school_id") or school_id
         clean_school_id = str(raw_school_id) if raw_school_id and str(raw_school_id).strip() not in ["None", "undefined", "null", ""] else None
 
+        user_photo = user.get("profile_photo_url") or (alumni.get("profile_photo_url") if alumni else None)
+        user_name = user.get("full_name") or (alumni.get("full_name") if alumni else None)
+
         return {
             "user_id": str(user["_id"]),
             "school_id": clean_school_id,
             "roles": user_roles,
-            "mobile": user.get("mobile"),
-            "email": user.get("email"),
+            "mobile": user.get("mobile") or (alumni.get("mobile") if alumni else None),
+            "email": user.get("email") or (alumni.get("email") if alumni else None),
+            "full_name": user_name,
+            "profile_photo_url": user_photo,
             "alumni": alumni,
             "verification_status": alumni.get("verification_status") if alumni else "NOT_REGISTERED"
         }

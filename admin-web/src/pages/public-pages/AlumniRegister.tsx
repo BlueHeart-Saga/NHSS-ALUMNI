@@ -254,6 +254,7 @@ export const AlumniRegister: React.FC = () => {
       if (location.state?.hasPassword) setHasExistingPassword(true);
       if (location.state?.fullName) setFullName(location.state.fullName);
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
+      if (location.state?.mobile) setMobile(location.state.mobile.replace(/^\+91\s?/, ''));
       if (location.state?.isGoogleAuth) setIsGoogleAuth(true);
     }
 

@@ -175,13 +175,15 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     if user:
         user_id = str(user["_id"])
         school_id = str(user.get("school_id")) if user.get("school_id") else None
+        user_update = {
+            "google_id": google_sub,
+            "full_name": user.get("full_name") or google_name,
+        }
+        if picture_url:
+            user_update["profile_photo_url"] = picture_url
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {
-                "google_id": google_sub,
-                "full_name": user.get("full_name") or google_name,
-                "profile_photo_url": user.get("profile_photo_url") or picture_url
-            }}
+            {"$set": user_update}
         )
     else:
         school = await db.schools.find_one({})
@@ -221,7 +223,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     else:
         update_fields = {}
         if not alumni.get("full_name") and google_name: update_fields["full_name"] = google_name
-        if not alumni.get("profile_photo_url") and picture_url: update_fields["profile_photo_url"] = picture_url
+        if picture_url: update_fields["profile_photo_url"] = picture_url
         if update_fields:
             await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
 
@@ -249,6 +251,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             resume_step = 2
 
     registration_required = not is_profile_complete
+    has_mobile = bool((user and user.get("mobile")) or (alumni and alumni.get("mobile")))
 
     # Step 5: Issue JustGatherNow JWT Access Token
     token_data = {
@@ -260,7 +263,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     access_token = create_access_token(token_data)
 
     # Step 6: Redirect to Frontend Callback Handler with auto-fill parameters
-    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo={urllib.parse.quote(picture_url)}&registration_required={str(registration_required).lower()}&resume_step={resume_step}"
+    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo={urllib.parse.quote(picture_url)}&registration_required={str(registration_required).lower()}&resume_step={resume_step}&has_mobile={str(has_mobile).lower()}"
     return RedirectResponse(url=target_url)
 
 @router.post("/send-otp", response_model=SendOTPResponse)
@@ -293,8 +296,12 @@ async def send_otp(request: SendOTPRequest):
     if request.for_password_reset:
         db = get_db()
         query = []
-        if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
-        if mobile: query.append({"mobile": mobile})
+        if email:
+            query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        if mobile:
+            norm_mob = normalize_indian_mobile(mobile)
+            clean_mob = norm_mob.replace("+91", "")
+            query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
 
         user = await db.users.find_one({"$or": query}) if query else None
         if not user:
@@ -302,7 +309,7 @@ async def send_otp(request: SendOTPRequest):
             if not alumni_rec:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"No registered alumni account found matching '{identifier}'. Please check your email address or register."
+                    detail=f"No registered account found matching '{identifier}'. Please check your credentials or register."
                 )
 
     # Check Developer Portal Access
@@ -1214,6 +1221,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             full_name=full_name_val,
             mobile=mobile_val,
             email=email_val,
+            profile_photo_url=(user_doc.get("profile_photo_url") if user_doc else None) or current_user.get("profile_photo_url"),
             passing_year=None,
             admission_number="N/A",
             verification_status="NOT_REGISTERED",
@@ -1225,6 +1233,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     mobile_val = alumni.get("mobile") or current_user.get("mobile") or (user_doc.get("mobile") if user_doc else None)
     email_val = alumni.get("email") or current_user.get("email") or (user_doc.get("email") if user_doc else None)
     full_name_val = alumni.get("full_name") or (user_doc.get("full_name") if user_doc else None) or current_user.get("full_name") or "Alumni"
+    photo_val = alumni.get("profile_photo_url") or (user_doc.get("profile_photo_url") if user_doc else None) or current_user.get("profile_photo_url")
 
     return UserProfileResponse(
         id=str(alumni["_id"]),
@@ -1233,7 +1242,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         full_name=full_name_val,
         mobile=mobile_val,
         email=email_val,
-        profile_photo_url=alumni.get("profile_photo_url"),
+        profile_photo_url=photo_val,
         blood_group=alumni.get("blood_group"),
         passing_year=alumni.get("passing_year"),
         batch_id=batch_id,
@@ -1250,6 +1259,46 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))
     )
+
+class LinkMobileRequest(BaseModel):
+    mobile: str
+
+@router.post("/link-mobile")
+async def link_mobile(
+    request: LinkMobileRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    mobile_input = request.mobile.strip() if request.mobile else ""
+    if not is_valid_indian_mobile(mobile_input):
+        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit Indian mobile number.")
+    
+    normalized_mobile = normalize_indian_mobile(mobile_input)
+    db = get_db()
+    user_id = current_user["user_id"]
+    
+    # Check if mobile is already registered by another account
+    existing_user = await db.users.find_one({
+        "mobile": normalized_mobile,
+        "_id": {"$ne": ObjectId(user_id)}
+    })
+    if existing_user:
+        raise HTTPException(status_code=400, detail="This mobile number is already registered with another account.")
+        
+    # Update both db.users and db.alumni
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"mobile": normalized_mobile}}
+    )
+    await db.alumni.update_one(
+        {"user_id": user_id},
+        {"$set": {"mobile": normalized_mobile}}
+    )
+    
+    return {
+        "success": True,
+        "message": "Mobile number linked successfully",
+        "mobile": normalized_mobile
+    }
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
