@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.middleware.auth import get_current_user
 from app.schemas.models import UserProfileResponse, SchoolProfileResponse
 from app.services.email import send_school_admin_invite_email
+from app.services.sms import normalize_indian_mobile, is_valid_indian_mobile, build_mobile_query_filter
 
 router = APIRouter(prefix="/developer", tags=["Platform Developer Portal"])
 
@@ -150,16 +151,14 @@ async def create_new_school(request: CreateSchoolRequest):
 
     # Auto-provision primary School Admin if admin_mobile is specified
     if request.admin_mobile and request.admin_mobile.strip():
-        admin_mobile = request.admin_mobile.strip()
-        if not admin_mobile.startswith("+"):
-            admin_mobile = f"+91{admin_mobile.lstrip('0')}"
+        admin_mobile = normalize_indian_mobile(request.admin_mobile) if is_valid_indian_mobile(request.admin_mobile) else request.admin_mobile.strip()
 
-        admin_user = await db.users.find_one({"mobile": admin_mobile})
+        admin_user = await db.users.find_one({"$or": build_mobile_query_filter(request.admin_mobile)})
         if admin_user:
             admin_user_id = str(admin_user["_id"])
             await db.users.update_one(
                 {"_id": admin_user["_id"]},
-                {"$set": {"school_id": school_id, "roles": ["SCHOOL_ADMIN"]}}
+                {"$set": {"school_id": school_id, "roles": ["SCHOOL_ADMIN"], "mobile": admin_mobile}}
             )
         else:
             new_u = {
@@ -298,23 +297,21 @@ async def provision_admin_for_school(school_id: str, request: ProvisionSchoolAdm
         raise HTTPException(status_code=404, detail="Target school not found.")
 
     target_school_id = str(school["_id"])
-    mobile = request.mobile.strip()
-    if not mobile.startswith("+"):
-        mobile = f"+91{mobile.lstrip('0')}"
+    norm_mob = normalize_indian_mobile(request.mobile) if is_valid_indian_mobile(request.mobile) else request.mobile.strip()
 
     now = datetime.now(timezone.utc)
     # Find or create user
-    user = await db.users.find_one({"mobile": mobile})
+    user = await db.users.find_one({"$or": build_mobile_query_filter(request.mobile)})
     if user:
         user_id = str(user["_id"])
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"school_id": target_school_id, "roles": ["SCHOOL_ADMIN"]}}
+            {"$set": {"school_id": target_school_id, "roles": ["SCHOOL_ADMIN"], "mobile": norm_mob}}
         )
     else:
         new_u = {
             "school_id": target_school_id,
-            "mobile": mobile,
+            "mobile": norm_mob,
             "email": str(request.email) if request.email else None,
             "roles": ["SCHOOL_ADMIN"],
             "is_active": True,
@@ -684,19 +681,17 @@ async def create_user_developer(
 ):
     """Create a new platform user directly as Developer."""
     db = get_db()
-    mobile = request.mobile.strip()
-    if not mobile.startswith("+"):
-        mobile = f"+91{mobile.lstrip('0')}"
+    norm_mob = normalize_indian_mobile(request.mobile) if is_valid_indian_mobile(request.mobile) else request.mobile.strip()
 
-    existing = await db.users.find_one({"mobile": mobile})
+    existing = await db.users.find_one({"$or": build_mobile_query_filter(request.mobile)})
     if existing:
-        raise HTTPException(status_code=400, detail=f"User with mobile '{mobile}' already exists.")
+        raise HTTPException(status_code=400, detail=f"User with mobile '{request.mobile}' already exists.")
 
     now = datetime.now(timezone.utc)
     user_doc = {
         "full_name": request.full_name,
         "email": request.email,
-        "mobile": mobile,
+        "mobile": norm_mob,
         "roles": [r.upper() for r in (request.roles or ["ALUMNI"])],
         "school_id": request.school_id,
         "is_active": request.is_active if request.is_active is not None else True,

@@ -252,7 +252,17 @@ export const AlumniLogin: React.FC = () => {
 
     setLoading(true);
     try {
-      await api.updatePassword(newPassword);
+      try {
+        await api.updatePassword(newPassword);
+      } catch (updateErr) {
+        const isEmail = email.includes('@');
+        await api.resetPasswordWithOTP(
+          isEmail ? email : undefined,
+          !isEmail ? email : undefined,
+          forgotOtp.trim(),
+          newPassword
+        );
+      }
       await alertService.showSuccess(
         language === 'ta' ? 'கடவுச்சொல் மாற்றப்பட்டது!' : 'Password Reset Successfully!',
         language === 'ta'
@@ -277,10 +287,14 @@ export const AlumniLogin: React.FC = () => {
   };
 
   // --- Create Password In-Place Workflow Handlers ---
-  const handleStartCreatePassword = async (targetEmail?: string) => {
-    const activeEmail = targetEmail || email;
-    if (!activeEmail || !activeEmail.trim() || !activeEmail.includes('@')) {
-      setError(language === 'ta' ? 'தயவுசெய்து செல்லுபடியாகும் மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter a valid email address.');
+  const handleStartCreatePassword = async (targetIdentifier?: string) => {
+    const activeIdentifier = (targetIdentifier || email || '').trim();
+    if (!activeIdentifier) {
+      setError(
+        language === 'ta'
+          ? 'தயவுசெய்து உங்கள் பதிவு செய்யப்பட்ட கைபேசி எண் அல்லது மின்னஞ்சலை உள்ளிடுங்கள்.'
+          : 'Please enter your registered mobile number or email address.'
+      );
       return;
     }
 
@@ -289,8 +303,8 @@ export const AlumniLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Send clean OTP to registered mobile number
-      await api.sendOTP(activeEmail);
+      // Send clean OTP to registered mobile number or email
+      await api.sendOTP(activeIdentifier);
       alertService.showInfo(
         language === 'ta' ? 'OTP அனுப்பப்பட்டது' : 'Verification OTP Sent',
         language === 'ta'
@@ -592,7 +606,7 @@ export const AlumniLogin: React.FC = () => {
                 {/* Mobile / Account ID (Read-Only) */}
                 <div>
                   <label className="block text-sm font-normal text-[#111111] mb-2">
-                    {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண்' : 'Registered Mobile Number'}
+                    {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண் / கணக்கு' : 'Registered Mobile Number / Account'}
                   </label>
                   <div className="relative">
                     <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -954,7 +968,7 @@ export const AlumniLogin: React.FC = () => {
                     <span>
                       {loading
                         ? (language === 'ta' ? 'சரிபார்க்கப்படுகிறது...' : 'Validating Account...')
-                        : (language === 'ta' ? 'தொடரவும்' : 'Continue to OTP Verification')}
+                        : (language === 'ta' ? 'தொடரவும்' : 'Continue')}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </button>

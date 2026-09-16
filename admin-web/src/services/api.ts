@@ -134,11 +134,12 @@ class ApiClient {
 
 
   private parseIdentifier(primary: string, secondary?: string) {
-    if (!primary) return { email: undefined, mobile: secondary || undefined };
-    if (primary.includes('@')) {
-      return { email: primary, mobile: secondary || undefined };
+    if (!primary) return { email: undefined, mobile: secondary ? secondary.trim() : undefined };
+    const p = primary.trim();
+    if (p.includes('@')) {
+      return { email: p, mobile: secondary ? secondary.trim() : undefined };
     }
-    return { email: undefined, mobile: primary };
+    return { email: undefined, mobile: p };
   }
 
   // Auth
@@ -673,7 +674,14 @@ class ApiClient {
       body: formData,
     });
 
-    if (!res.ok) throw new Error('CSV upload failed');
+    if (!res.ok) {
+      let msg = 'Roster upload failed';
+      try {
+        const errJson = await res.json();
+        msg = errJson.detail || errJson.message || msg;
+      } catch (_) {}
+      throw new Error(msg);
+    }
     return res.json();
   }
 

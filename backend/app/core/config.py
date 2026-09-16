@@ -73,13 +73,17 @@ class Settings(BaseSettings):
     INITIAL_SCHOOL_CODE: str = "NHSS"
     INITIAL_ADMIN_MOBILE: str = "+917550375037"
 
-    # SMTP Email Configuration (Preserved for system & notification emails)
-    SMTP_SERVER: str = "smtp.gmail.com"
+    # SMTP Email Configuration (Brevo / System & Notification emails)
+    SMTP_SERVER: str = "smtp-relay.brevo.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
-    EMAILS_FROM_NAME: str = "NHSS_ALUMNI-team"
-    EMAILS_FROM_EMAIL: str = "devopstrioglobal@gmail.com"
+    EMAILS_FROM_NAME: str = "nhssalumni"
+    EMAILS_FROM_EMAIL: str = "b988c6001@smtp-brevo.com"
+
+    # Brevo API Configuration
+    BREVO_API_KEY: str = ""
+    BREVO_SMS_SENDER: str = "NHSSALUMNI"
 
     # 2Factor SMS Configuration (SMS OTP ONLY — NO VOICE CALLS)
     TWO_FACTOR_API_KEY: str = ""

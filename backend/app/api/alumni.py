@@ -1,19 +1,24 @@
 import csv
 import io
+import re
 import asyncio
 import logging
+import openpyxl
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
 from typing import List, Optional, Any
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from bson import ObjectId
 from pymongo import UpdateOne
 from pymongo.errors import BulkWriteError
 from app.core.database import get_db, build_school_filter
 from app.core.config import settings
 from app.core.security import generate_invitation_token
-from app.services.sms import send_invitation_sms, normalize_indian_mobile, is_valid_indian_mobile
+from app.services.sms import (
+    send_invitation_sms, normalize_indian_mobile, is_valid_indian_mobile,
+    get_mobile_query_variants, build_mobile_query_filter
+)
 from app.services.email import send_alumni_verified_email
 from app.schemas.models import (
     UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest,
@@ -251,15 +256,17 @@ PROTECTED_FIELDS = {
 
 
 def _clean_cell(value) -> str:
-    """Strip Excel '=\"...\"' text-forcing wrapper, BOM, and whitespace from a cell value."""
+    """Strip Excel '="..."' text-forcing wrapper, quotes, BOM, and whitespace from a cell value."""
     if value is None:
         return ""
-    s = str(value)
+    s = str(value).strip()
+    if s.startswith("\ufeff"):
+        s = s[1:].strip()
     if s.startswith('="') and s.endswith('"'):
         s = s[2:-1]
         s = s.replace('""', '"')
-    if s.startswith("\ufeff"):
-        s = s[1:]
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1].strip()
     return s.strip()
 
 
@@ -473,7 +480,7 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
         "full_name": name,
         "name_ta": name_ta,
         "full_name_ta": name_ta,
-        "mobile": (row.get("mobile") or "").strip(),
+        "mobile": normalize_indian_mobile(row.get("mobile") or "") if is_valid_indian_mobile(row.get("mobile") or "") else (row.get("mobile") or "").strip(),
         "country_code": (row.get("country_code") or "91").strip(),
         "gender": (row.get("gender") or "Male").strip(),
         "date_of_birth": dob,
@@ -551,6 +558,7 @@ def _looks_like_excel_corruption(s: str) -> bool:
 
 
 @router.post("/import-csv", response_model=CSVImportResult)
+@router.post("/import-excel", response_model=CSVImportResult)
 async def import_alumni_csv(
     file: UploadFile = File(...),
     current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
@@ -562,8 +570,51 @@ async def import_alumni_csv(
     school_id = current_user.get("school_id") or "PLATFORM"
 
     content = await file.read()
-    decoded = content.decode("utf-8-sig", errors="ignore")
-    raw_rows = list(csv.DictReader(io.StringIO(decoded)))
+    if not content:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+
+    filename_lower = (file.filename or "").lower()
+    is_excel = filename_lower.endswith((".xlsx", ".xlsm", ".xltx", ".xltm", ".xls")) or content.startswith(b"PK\x03\x04")
+
+    raw_rows = []
+    if is_excel:
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+            ws = wb.active
+            rows_iter = ws.iter_rows(values_only=True)
+            header_row = next(rows_iter, None)
+            if not header_row:
+                raise HTTPException(status_code=400, detail="Excel spreadsheet is missing a header row.")
+
+            headers = [str(c).strip() if c is not None else "" for c in header_row]
+            for row_vals in rows_iter:
+                if not row_vals or not any(v is not None and str(v).strip() != "" for v in row_vals):
+                    continue
+                r_dict = {}
+                for h, val in zip(headers, row_vals):
+                    if not h:
+                        continue
+                    if val is None:
+                        r_dict[h] = ""
+                    elif isinstance(val, (datetime, date)):
+                        r_dict[h] = val.strftime("%Y-%m-%d")
+                    elif isinstance(val, float) and val.is_integer():
+                        r_dict[h] = str(int(val))
+                    else:
+                        r_dict[h] = str(val).strip()
+                raw_rows.append(r_dict)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error(f"Failed to read Excel workbook: {exc}", exc_info=True)
+            raise HTTPException(status_code=400, detail=f"Failed to read Excel file: {str(exc)}")
+    else:
+        try:
+            decoded = content.decode("utf-8-sig", errors="ignore")
+            raw_rows = list(csv.DictReader(io.StringIO(decoded)))
+        except Exception as exc:
+            logger.error(f"Failed to parse CSV file: {exc}", exc_info=True)
+            raise HTTPException(status_code=400, detail=f"Failed to read CSV file: {str(exc)}")
 
     total = 0
     created = 0
@@ -575,30 +626,61 @@ async def import_alumni_csv(
     errors = []
     error_details = []
 
-    # 1. Pre-fetch valid ObjectIds in bulk to avoid serial N round-trips
+    # 1. Pre-fetch candidate ObjectIds & existing school alumni to enable instant multi-key matching
     candidate_oids = []
     for r in raw_rows:
-        raw_id = (r.get("Alumni ID") or r.get("alumni_id") or "").strip()
-        if raw_id.startswith('="') and raw_id.endswith('"'):
-            raw_id = raw_id[2:-1]
-        if raw_id and len(raw_id) == 24 and not _looks_like_excel_corruption(raw_id) and _is_valid_objectid_hex(raw_id):
+        raw_id = _clean_cell(r.get("Alumni ID") or r.get("alumni_id") or r.get("id") or r.get("_id"))
+        if _is_valid_objectid_hex(raw_id):
             try:
                 candidate_oids.append(ObjectId(raw_id))
             except Exception:
                 pass
 
-    existing_docs_map = {}
+    existing_by_id = {}
+    existing_by_adm_no = {}
+    existing_by_mobile = {}
+    existing_by_email = {}
+    existing_by_roll_year = {}
+
+    # Query all existing alumni for this school
+    school_filter = await build_school_filter(school_id)
+    cursor = db.alumni.find(school_filter)
+    async for doc in cursor:
+        doc_id = doc["_id"]
+        existing_by_id[doc_id] = doc
+
+        adm = (doc.get("admission_number") or "").strip().lower()
+        if adm:
+            existing_by_adm_no[adm] = doc
+
+        mob = (doc.get("mobile") or "").strip()
+        mob_digits = re.sub(r"\D", "", mob)
+        if len(mob_digits) >= 10:
+            existing_by_mobile[mob_digits[-10:]] = doc
+
+        em = (doc.get("email") or "").strip().lower()
+        if em and "@" in em:
+            existing_by_email[em] = doc
+
+        roll = (doc.get("roll_no") or "").strip().lower()
+        py = doc.get("passing_year")
+        if roll and py:
+            existing_by_roll_year[(roll, py)] = doc
+
+    # Also query any candidate ObjectIds not yet in existing_by_id
     if candidate_oids:
-        for i in range(0, len(candidate_oids), 1000):
-            chunk = candidate_oids[i:i + 1000]
-            cursor = db.alumni.find({"_id": {"$in": chunk}, "school_id": school_id})
-            async for doc in cursor:
-                existing_docs_map[doc["_id"]] = doc
+        missing_oids = [oid for oid in candidate_oids if oid not in existing_by_id]
+        if missing_oids:
+            for i in range(0, len(missing_oids), 1000):
+                chunk_oids = missing_oids[i:i + 1000]
+                extra_cursor = db.alumni.find({"_id": {"$in": chunk_oids}})
+                async for doc in extra_cursor:
+                    existing_by_id[doc["_id"]] = doc
 
     # 2. Pre-fetch school batches into memory cache
     batches_map = {}
-    cursor = db.batches.find({"school_id": school_id})
-    async for b in cursor:
+    b_cursor = db.batches.find({"school_id": school_id})
+    async for b in b_cursor:
         if "passing_year" in b:
             batches_map[b["passing_year"]] = b["_id"]
 
@@ -619,105 +701,123 @@ async def import_alumni_csv(
         return b_res.inserted_id
 
     pending_updates = []
+    pending_user_updates = []
     pending_inserts = []
 
     for raw_row in raw_rows:
         total += 1
         row = _normalize_row(raw_row)
 
-        alumni_id_raw = (row.get("alumni_id") or "").strip()
+        alumni_id_raw = _clean_cell(row.get("alumni_id"))
         name = (row.get("name") or "").strip()
         batch_year = (row.get("batch_year") or "").strip()
+        adm_no = (row.get("admission_number") or "").strip().lower()
+        email = (row.get("email") or "").strip().lower()
+        mobile_raw = (row.get("mobile") or "").strip()
+        mobile_digits = re.sub(r"\D", "", mobile_raw)
+        roll_no = (row.get("roll_no") or "").strip().lower()
 
-        # -------- CASE A: Alumni ID present --------
-        if alumni_id_raw:
-            # --- Excel-corruption guard ---
-            if _looks_like_excel_corruption(alumni_id_raw) or not _is_valid_objectid_hex(alumni_id_raw):
-                err_msg = (
-                    f"Alumni ID appears corrupted by Excel: '{alumni_id_raw}'. "
-                    f"Re-export the CSV and do NOT open it in Excel before importing. "
-                    f"(Expected 24-character hex string.)"
-                )
-                errors.append(f"Row {total}: {err_msg}")
-                error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
-                failed += 1
-                continue
-
+        year_int = None
+        if batch_year:
             try:
-                oid = ObjectId(alumni_id_raw)
-            except Exception:
-                err_msg = f"Invalid Alumni ID format: {alumni_id_raw}"
-                errors.append(f"Row {total}: {err_msg}")
-                error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
-                failed += 1
-                continue
+                year_int = int(float(batch_year))
+            except (ValueError, TypeError):
+                year_int = None
 
-            existing = existing_docs_map.get(oid)
-            if existing is None:
-                # ID provided but not found in this school — create with that exact ID.
-                if not name or not batch_year:
-                    err_msg = f"Alumni ID {alumni_id_raw} not found; also missing Name/Batch to create."
-                    errors.append(f"Row {total}: {err_msg}")
-                    error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
-                    failed += 1
-                    continue
-                try:
-                    year_int = int(float(batch_year))
-                except (ValueError, TypeError):
-                    err_msg = f"Invalid Batch year: {batch_year}"
-                    errors.append(f"Row {total}: {err_msg}")
-                    error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
-                    failed += 1
-                    continue
+        existing = None
+        target_oid = None
 
-                batch_id = await get_or_create_batch(year_int)
-
-                new_doc = _build_alumni_doc(row, school_id, batch_id, oid)
-                new_doc["verification_notes"] = "Uploaded via CSV (with explicit Alumni ID)"
-                pending_inserts.append(new_doc)
-                existing_docs_map[oid] = new_doc
-                created += 1
-                continue
+        # Step 1: Match by Alumni ID (if valid 24-character hex ObjectId)
+        if alumni_id_raw and _is_valid_objectid_hex(alumni_id_raw):
+            try_oid = ObjectId(alumni_id_raw)
+            if try_oid in existing_by_id:
+                existing = existing_by_id[try_oid]
+                target_oid = try_oid
             else:
-                # UPDATE path
-                batch_id_for_update = None
-                if batch_year:
-                    try:
-                        year_int = int(float(batch_year))
-                        batch_id_for_update = await get_or_create_batch(year_int)
-                    except (ValueError, TypeError):
-                        batch_id_for_update = None
+                # Direct DB check to ensure we never attempt a duplicate key insert
+                direct_doc = await db.alumni.find_one({"_id": try_oid})
+                if direct_doc:
+                    existing = direct_doc
+                    target_oid = try_oid
+                    existing_by_id[try_oid] = direct_doc
 
-                field_updates = _compute_field_updates(row, existing, batch_id_for_update)
+        # Step 2: Fallback Match (if not matched by ID or ID corrupted by Excel)
+        if existing is None:
+            if adm_no and adm_no in existing_by_adm_no:
+                existing = existing_by_adm_no[adm_no]
+                target_oid = existing["_id"]
+            elif email and "@" in email and email in existing_by_email:
+                existing = existing_by_email[email]
+                target_oid = existing["_id"]
+            elif len(mobile_digits) >= 10 and mobile_digits[-10:] in existing_by_mobile:
+                existing = existing_by_mobile[mobile_digits[-10:]]
+                target_oid = existing["_id"]
+            elif roll_no and year_int and (roll_no, year_int) in existing_by_roll_year:
+                existing = existing_by_roll_year[(roll_no, year_int)]
+                target_oid = existing["_id"]
 
-                if existing.get("verification_status") == "PENDING" and "verification_status" not in field_updates:
-                    field_updates["verification_status"] = "APPROVED"
-                    field_updates["verification_notes"] = "Auto-verified via CSV import (existing ID)"
-                    field_updates["verified_at"] = datetime.now(timezone.utc)
-                    matched += 1
+        # =====================================================================
+        # UPDATE PATH: Record exists in database
+        # =====================================================================
+        if existing is not None and target_oid is not None:
+            batch_id_for_update = None
+            if year_int:
+                batch_id_for_update = await get_or_create_batch(year_int)
 
-                if not field_updates:
-                    unchanged += 1
-                    continue
+            field_updates = _compute_field_updates(row, existing, batch_id_for_update)
 
-                field_updates["updated_at"] = datetime.now(timezone.utc)
-                pending_updates.append(UpdateOne({"_id": oid}, {"$set": field_updates}))
-                existing.update(field_updates)
-                updated += 1
+            # Normalize mobile numbers to standard E.164 +91
+            if "mobile" in field_updates:
+                m_val = field_updates["mobile"]
+                if is_valid_indian_mobile(m_val):
+                    field_updates["mobile"] = normalize_indian_mobile(m_val)
+
+            # Auto-approve if pending verification
+            if existing.get("verification_status") == "PENDING" and "verification_status" not in field_updates:
+                field_updates["verification_status"] = "APPROVED"
+                field_updates["verification_notes"] = "Auto-verified via roster bulk import"
+                field_updates["verified_at"] = datetime.now(timezone.utc)
+                matched += 1
+
+            if not field_updates:
+                unchanged += 1
                 continue
 
-        # -------- CASE B: No Alumni ID, but Name + Batch present --------
+            field_updates["updated_at"] = datetime.now(timezone.utc)
+            pending_updates.append(UpdateOne({"_id": target_oid}, {"$set": field_updates}))
+            existing.update(field_updates)
+
+            # Keep linked user profile in sync
+            if existing.get("user_id"):
+                user_sync = {}
+                if "full_name" in field_updates:
+                    user_sync["full_name"] = field_updates["full_name"]
+                if "email" in field_updates:
+                    user_sync["email"] = field_updates["email"]
+                if "mobile" in field_updates:
+                    user_sync["mobile"] = field_updates["mobile"]
+                if user_sync:
+                    try:
+                        u_oid = ObjectId(existing["user_id"]) if ObjectId.is_valid(existing["user_id"]) else existing["user_id"]
+                        pending_user_updates.append(UpdateOne({"_id": u_oid}, {"$set": user_sync}))
+                    except Exception:
+                        pass
+
+            updated += 1
+            continue
+
+        # =====================================================================
+        # INSERT PATH: Record does not exist -> Create new alumnus
+        # =====================================================================
         if not name or not batch_year:
-            err_msg = "Missing required Name or Batch (and no Alumni ID provided)"
+            err_msg = f"Missing required Name or Passing Year (Alumni ID: '{alumni_id_raw or 'None'}')"
             errors.append(f"Row {total}: {err_msg}")
             error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
             failed += 1
             continue
 
-        try:
-            year_int = int(float(batch_year))
-        except (ValueError, TypeError):
-            err_msg = f"Invalid Batch year: {batch_year}"
+        if not year_int:
+            err_msg = f"Invalid Batch passing year: '{batch_year}'"
             errors.append(f"Row {total}: {err_msg}")
             error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
             failed += 1
@@ -727,11 +827,24 @@ async def import_alumni_csv(
             batch_id = await get_or_create_batch(year_int)
             new_oid = ObjectId()
             new_doc = _build_alumni_doc(row, school_id, batch_id, new_oid)
-            if not new_doc["admission_number"]:
-                new_doc["admission_number"] = f"CSV-{year_int}-{total:03d}"
-            new_doc["verification_notes"] = "Uploaded via CSV (no Alumni ID provided)"
+            if not new_doc.get("admission_number"):
+                new_doc["admission_number"] = f"ROSTER-{year_int}-{total:03d}"
+            new_doc["verification_notes"] = "Uploaded via roster bulk import"
             pending_inserts.append(new_doc)
-            existing_docs_map[new_oid] = new_doc
+
+            # Register in in-memory indexes to prevent intra-file duplicates
+            existing_by_id[new_oid] = new_doc
+            if new_doc.get("admission_number"):
+                existing_by_adm_no[new_doc["admission_number"].strip().lower()] = new_doc
+            if new_doc.get("email"):
+                existing_by_email[new_doc["email"].strip().lower()] = new_doc
+            if new_doc.get("mobile"):
+                m_d = re.sub(r"\D", "", new_doc["mobile"])
+                if len(m_d) >= 10:
+                    existing_by_mobile[m_d[-10:]] = new_doc
+            if new_doc.get("roll_no") and new_doc.get("passing_year"):
+                existing_by_roll_year[(new_doc["roll_no"].strip().lower(), new_doc["passing_year"])] = new_doc
+
             created += 1
         except Exception as e:
             err_msg = str(e)
@@ -746,26 +859,35 @@ async def import_alumni_csv(
             try:
                 await db.alumni.insert_many(chunk, ordered=False)
             except BulkWriteError as bwe:
-                logger.error(f"Bulk insert error in CSV import: {bwe.details}")
+                logger.error(f"Bulk insert error in roster import: {bwe.details}")
                 for werr in bwe.details.get("writeErrors", []):
                     errors.append(f"Bulk insert error: {werr.get('errmsg', 'Unknown insert error')}")
             except Exception as e:
                 logger.error(f"Bulk insert error: {e}")
                 errors.append(f"Bulk insert error: {str(e)}")
 
-    # 4. Execute bulk updates via bulk_write in chunks of 500
+    # 4. Execute bulk updates in chunks of 500
     if pending_updates:
         for i in range(0, len(pending_updates), 500):
             chunk = pending_updates[i:i + 500]
             try:
                 await db.alumni.bulk_write(chunk, ordered=False)
             except BulkWriteError as bwe:
-                logger.error(f"Bulk write error in CSV import: {bwe.details}")
+                logger.error(f"Bulk write error in roster import: {bwe.details}")
                 for werr in bwe.details.get("writeErrors", []):
                     errors.append(f"Bulk update error: {werr.get('errmsg', 'Unknown write error')}")
             except Exception as e:
                 logger.error(f"Bulk update error: {e}")
                 errors.append(f"Bulk update error: {str(e)}")
+
+    # 5. Execute user sync updates if any
+    if pending_user_updates:
+        for i in range(0, len(pending_user_updates), 500):
+            u_chunk = pending_user_updates[i:i + 500]
+            try:
+                await db.users.bulk_write(u_chunk, ordered=False)
+            except Exception as e:
+                logger.warning(f"User collection sync warning: {e}")
 
     LAST_CSV_ERRORS = error_details
 
@@ -780,7 +902,7 @@ async def import_alumni_csv(
         created=created,
         failed=failed,
         errors=errors[:15],
-        error_details=error_details[:15]
+        error_details=error_details[:50]
     )
 
 @router.get("/export-import-errors")
@@ -1255,7 +1377,7 @@ async def admin_create_alumni(
 
     # Check if mobile is already active with another account
     existing_user = await db.users.find_one({
-        "$or": [{"mobile": request.mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}],
+        "$or": build_mobile_query_filter(request.mobile),
         "account_status": "ACTIVE"
     })
     if existing_user:
@@ -1268,7 +1390,7 @@ async def admin_create_alumni(
     email_str = str(request.email).lower().strip() if request.email else None
 
     # Find or create user doc with PENDING_ACTIVATION
-    user_query = [{"mobile": request.mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}]
+    user_query = build_mobile_query_filter(request.mobile)
     if email_str:
         user_query.append({"email": {"$regex": f"^{email_str}$", "$options": "i"}})
     

@@ -25,8 +25,10 @@ from app.core.config import settings
 # =============================================================================
 from app.services.email import send_otp_email
 
-# ACTIVE 2FACTOR SMS OTP SERVICE
-from app.services.sms import send_sms_otp, normalize_indian_mobile, is_valid_indian_mobile, send_invitation_sms
+from app.services.sms import (
+    send_sms_otp, normalize_indian_mobile, is_valid_indian_mobile, send_invitation_sms,
+    get_mobile_query_variants, build_mobile_query_filter
+)
 
 from app.schemas.models import (
     SendOTPRequest, SendOTPResponse, VerifyOTPRequest, TokenResponse,
@@ -67,9 +69,7 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
     """
     keys = []
     if mobile:
-        norm_mob = normalize_indian_mobile(mobile)
-        clean_mob = norm_mob.replace("+91", "")
-        keys.extend([mobile, norm_mob, clean_mob])
+        keys.extend(get_mobile_query_variants(mobile))
     if email:
         keys.append(email.lower())
 
@@ -281,7 +281,7 @@ async def send_otp(request: SendOTPRequest):
         db = get_db()
         query = []
         if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
-        if mobile: query.append({"mobile": mobile})
+        if mobile: query.extend(build_mobile_query_filter(mobile))
 
         user = await db.users.find_one({"$or": query}) if query else None
         alumni_rec = await db.alumni.find_one({"$or": query}) if query else None
@@ -299,9 +299,7 @@ async def send_otp(request: SendOTPRequest):
         if email:
             query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
         if mobile:
-            norm_mob = normalize_indian_mobile(mobile)
-            clean_mob = norm_mob.replace("+91", "")
-            query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
+            query.extend(build_mobile_query_filter(mobile))
 
         user = await db.users.find_one({"$or": query}) if query else None
         if not user:
@@ -338,9 +336,7 @@ async def send_otp(request: SendOTPRequest):
                 )
 
             clean_mob = digits_only[-10:]  # last 10 digits
-            query.append({"mobile": mobile})
-            query.append({"mobile": clean_mob})
-            query.append({"mobile": f"+91{clean_mob}"})
+            query.extend(build_mobile_query_filter(mobile))
 
             init_digits = re.sub(r"\D", "", settings.INITIAL_ADMIN_MOBILE)[-10:]
             if clean_mob == init_digits:
@@ -364,7 +360,7 @@ async def send_otp(request: SendOTPRequest):
         if email:
             query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
         if mobile:
-            query.append({"mobile": mobile})
+            query.extend(build_mobile_query_filter(mobile))
             
         user = await db.users.find_one({"$or": query}) if query else None
         if not user:
@@ -386,11 +382,16 @@ async def send_otp(request: SendOTPRequest):
                 detail=f"PASSWORD_NOT_CREATED: Your account '{identifier}' does not have a login password set yet. Please create a password first."
             )
 
-        if request.password and user_pass != request.password:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Incorrect password entered for '{identifier}'. Please check your password and try again."
-            )
+        if request.password:
+            if not verify_password(request.password, user_pass):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Incorrect password entered for '{identifier}'. Please check your password and try again."
+                )
+            if not user_pass.startswith("$pbkdf2") and not user_pass.startswith("$2b$") and not user_pass.startswith("$2a$"):
+                new_hash = get_password_hash(request.password)
+                if user and user.get("_id"):
+                    await db.users.update_one({"_id": user["_id"]}, {"$set": {"password": new_hash, "password_hash": new_hash}})
 
     # Resolve & Validate Target Mobile for 2Factor SMS OTP Dispatch
     target_mobile = None
@@ -442,8 +443,11 @@ async def send_otp(request: SendOTPRequest):
         "max_attempts": 5,
         "mobile": target_mobile
     }
-    OTP_STORE[target_mobile] = otp_entry
-    OTP_STORE[clean_mob] = otp_entry
+    for k in get_mobile_query_variants(target_mobile):
+        OTP_STORE[k] = otp_entry
+    if mobile:
+        for k in get_mobile_query_variants(mobile):
+            OTP_STORE[k] = otp_entry
     if email:
         OTP_STORE[email] = otp_entry
 
@@ -542,8 +546,7 @@ async def login(request: LoginRequest):
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        clean_mob = mobile.replace("+91", "").strip()
-        query.extend([{"mobile": mobile}, {"mobile": clean_mob}, {"mobile": f"+91{clean_mob}"}])
+        query.extend(build_mobile_query_filter(mobile))
 
     user = await db.users.find_one({"$or": query}) if query else None
     alumni = None
@@ -574,7 +577,8 @@ async def login(request: LoginRequest):
                 if email or alumni.get("email"):
                     new_user["email"] = email or alumni.get("email")
                 if mobile or alumni.get("mobile"):
-                    new_user["mobile"] = mobile or alumni.get("mobile")
+                    raw_mob = mobile or alumni.get("mobile")
+                    new_user["mobile"] = normalize_indian_mobile(raw_mob) if is_valid_indian_mobile(raw_mob) else raw_mob.strip()
 
                 res = await db.users.insert_one(new_user)
                 user = new_user
@@ -698,9 +702,7 @@ async def verify_otp(request: VerifyOTPRequest):
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        norm_mob = normalize_indian_mobile(mobile)
-        clean_mob = norm_mob.replace("+91", "")
-        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
+        query.extend(build_mobile_query_filter(mobile))
 
     user = await db.users.find_one({"$or": query}) if query else None
     school_id = user.get("school_id") if user else None
@@ -720,7 +722,7 @@ async def verify_otp(request: VerifyOTPRequest):
         if email:
             new_user["email"] = email
         if mobile:
-            new_user["mobile"] = mobile
+            new_user["mobile"] = normalize_indian_mobile(mobile) if is_valid_indian_mobile(mobile) else mobile.strip()
 
         res = await db.users.insert_one(new_user)
         user_id = str(res.inserted_id)
@@ -800,9 +802,7 @@ async def verify_admin_otp(request: VerifyOTPRequest):
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        norm_mob = normalize_indian_mobile(mobile)
-        clean_mob = norm_mob.replace("+91", "")
-        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
+        query.extend(build_mobile_query_filter(mobile))
 
     user = await db.users.find_one({"$or": query}) if query else None
     
@@ -887,9 +887,7 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        norm_mob = normalize_indian_mobile(mobile)
-        clean_mob = norm_mob.replace("+91", "")
-        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
+        query.extend(build_mobile_query_filter(mobile))
 
     user = await db.users.find_one({"$or": query}) if query else None
     if not user:
@@ -1013,7 +1011,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
 
     # Check if a pre-imported CSV roster record exists with user_id: None matching mobile/email/admission_number
     dup_query = []
-    if request.mobile: dup_query.append({"mobile": request.mobile})
+    if request.mobile: dup_query.extend(build_mobile_query_filter(request.mobile))
     if request.email: dup_query.append({"email": str(request.email)})
     if request.admission_number: dup_query.append({"admission_number": request.admission_number})
 
@@ -1027,11 +1025,12 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
     }) if dup_query else None
 
     now = datetime.now(timezone.utc)
+    norm_mobile = normalize_indian_mobile(request.mobile) if (request.mobile and is_valid_indian_mobile(request.mobile)) else (request.mobile.strip().replace(" ", "") if request.mobile else None)
 
     # Check if mobile number is already registered by another user account
     if request.mobile:
         existing_mobile_user = await db.users.find_one({
-            "mobile": request.mobile,
+            "$or": build_mobile_query_filter(request.mobile),
             "_id": {"$ne": ObjectId(user_id)}
         })
         if existing_mobile_user:
@@ -1043,7 +1042,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
     # Update user record with name and contact details
     user_update = {
         "email": str(request.email) if request.email else None,
-        "mobile": request.mobile,
+        "mobile": norm_mobile,
         "full_name": request.full_name,
         "phone_verified": True,
         "account_status": "ACTIVE",
@@ -1065,7 +1064,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         "country_code": request.country_code or "+91",
         "school_name": request.school_name,
         "joining_year": request.joining_year,
-        "leaving_class": request.leaving_class or "12th",
+        "leaving_class": request.leaving_class or "10th",
         "no_higher_education": request.no_higher_education or False,
         "college_name": request.college_name,
         "degree": request.degree,
@@ -1105,7 +1104,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         alumni_doc = {
             "user_id": user_id,
             "full_name": request.full_name or pre_imported.get("full_name"),
-            "mobile": request.mobile or pre_imported.get("mobile"),
+            "mobile": norm_mobile or pre_imported.get("mobile"),
             "email": str(request.email) if request.email else pre_imported.get("email"),
             "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
             "passing_year": effective_batch_year or pre_imported.get("passing_year", 2010),
@@ -1126,7 +1125,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "school_id": school_id,
             "user_id": user_id,
             "full_name": request.full_name,
-            "mobile": request.mobile,
+            "mobile": norm_mobile,
             "email": str(request.email) if request.email else None,
             "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
             "passing_year": effective_batch_year,
@@ -1278,7 +1277,7 @@ async def link_mobile(
     
     # Check if mobile is already registered by another account
     existing_user = await db.users.find_one({
-        "mobile": normalized_mobile,
+        "$or": build_mobile_query_filter(mobile_input),
         "_id": {"$ne": ObjectId(user_id)}
     })
     if existing_user:
@@ -1352,9 +1351,7 @@ async def reset_password_with_otp(data: ResetPasswordWithOTPRequest):
     if email:
         query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     if mobile:
-        norm_mob = normalize_indian_mobile(mobile)
-        clean_mob = norm_mob.replace("+91", "")
-        query.extend([{"mobile": mobile}, {"mobile": norm_mob}, {"mobile": clean_mob}])
+        query.extend(build_mobile_query_filter(mobile))
 
     user = await db.users.find_one({"$or": query}) if query else None
     if not user:
@@ -1515,8 +1512,8 @@ async def send_invitation_otp(request: SendInvitationOTPRequest):
         "token_hash": t_hash
     }
     OTP_STORE[session_key] = otp_entry
-    OTP_STORE[target_mobile] = otp_entry
-    OTP_STORE[target_mobile.replace("+91", "")] = otp_entry
+    for k in get_mobile_query_variants(target_mobile):
+        OTP_STORE[k] = otp_entry
 
     sms_success, session_or_err = await send_sms_otp(target_mobile, otp)
     if not sms_success:
@@ -1609,7 +1606,7 @@ async def activate_account_with_invitation(request: ActivateAccountWithInvitatio
 
     # If user doc wasn't created initially, create or find by mobile
     if not user:
-        user = await db.users.find_one({"mobile": normalized_mobile})
+        user = await db.users.find_one({"$or": build_mobile_query_filter(normalized_mobile)})
         if not user:
             school_id = invitation.get("school_id")
             if not school_id:
@@ -1657,7 +1654,7 @@ async def activate_account_with_invitation(request: ActivateAccountWithInvitatio
         except Exception:
             alumni_filter.append({"_id": alumni_id})
     alumni_filter.append({"user_id": str(user["_id"])})
-    alumni_filter.append({"mobile": normalized_mobile})
+    alumni_filter.extend(build_mobile_query_filter(normalized_mobile))
 
     await db.alumni.update_many(
         {"$or": alumni_filter},

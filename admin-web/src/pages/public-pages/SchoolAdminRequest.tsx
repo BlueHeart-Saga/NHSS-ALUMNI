@@ -24,7 +24,9 @@ export const SchoolAdminRequest: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const fullMobile = `${mobilePrefix} ${mobileNumber}`.trim();
+    const cleanDigits = mobileNumber.replace(/\D/g, '');
+    const prefix = (mobilePrefix || '+91').trim().replace(/\s+/g, '');
+    const fullMobile = mobileNumber.startsWith('+') ? mobileNumber.replace(/\s+/g, '') : `${prefix}${cleanDigits}`;
 
     if (!fullName || !email || !mobileNumber || !schoolName || !city || !state) {
       alertService.showError('Required Fields Missing', 'Please fill in all required fields marked with * to submit your request.');

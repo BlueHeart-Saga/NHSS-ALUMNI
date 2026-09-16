@@ -465,6 +465,15 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
+  const getFullMobile = () => {
+    const raw = mobile.trim();
+    if (!raw) return '';
+    if (raw.startsWith('+')) return raw.replace(/\s+/g, '');
+    const cleanDigits = raw.replace(/\D/g, '');
+    const prefix = (mobilePrefix || '+91').trim().replace(/\s+/g, '');
+    return `${prefix}${cleanDigits}`;
+  };
+
   // Step 2 Validation: Personal Information -> Step 3 (School Details)
   const handleStep2Next = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -549,7 +558,7 @@ export const AlumniRegister: React.FC = () => {
     }
 
     // Save Step 3 details immediately to DB
-    const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix} ${mobile}`.trim();
+    const fullMobile = getFullMobile();
     saveStepDataToDB({
       full_name: fullName.trim(),
       email: email.trim(),
@@ -597,7 +606,7 @@ export const AlumniRegister: React.FC = () => {
     }
 
     // Save Step 4 details immediately to DB
-    const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix} ${mobile}`.trim();
+    const fullMobile = getFullMobile();
     const finalDegree = degree === 'Other - write something' ? otherDegree : degree;
     saveStepDataToDB({
       full_name: fullName.trim(),
@@ -638,7 +647,7 @@ export const AlumniRegister: React.FC = () => {
     }
 
     // Save Step 5 details immediately to DB
-    const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix} ${mobile}`.trim();
+    const fullMobile = getFullMobile();
     saveStepDataToDB({
       full_name: fullName.trim(),
       email: email.trim(),

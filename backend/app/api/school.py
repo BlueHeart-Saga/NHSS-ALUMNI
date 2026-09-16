@@ -9,6 +9,7 @@ from app.schemas.models import (
 )
 from app.middleware.auth import get_current_user, require_roles
 from app.services.azure_blob import blob_service
+from app.services.sms import normalize_indian_mobile, is_valid_indian_mobile, build_mobile_query_filter
 
 router = APIRouter(prefix="/school", tags=["School Profile & Staff"])
 
@@ -329,28 +330,26 @@ async def create_school_admin(
 ):
     db = get_db()
     school_id = current_user.get("school_id")
-    mobile = request.mobile.strip()
-    if not mobile.startswith("+"):
-        mobile = f"+91{mobile.lstrip('0')}"
+    norm_mob = normalize_indian_mobile(request.mobile) if is_valid_indian_mobile(request.mobile) else request.mobile.strip()
 
     now = datetime.now(timezone.utc)
     assigned_roles = request.roles if request.roles else ([request.role.upper()] if request.role else ["SCHOOL_ADMIN"])
     assigned_roles = list(dict.fromkeys([r.upper() for r in assigned_roles if r]))
 
     # 1. Find or create user
-    user = await db.users.find_one({"mobile": mobile})
+    user = await db.users.find_one({"$or": build_mobile_query_filter(request.mobile)})
     if user:
         user_id = str(user["_id"])
         existing_roles = user.get("roles", [])
         combined_roles = list(dict.fromkeys(existing_roles + assigned_roles))
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"roles": combined_roles, "school_id": school_id}}
+            {"$set": {"roles": combined_roles, "school_id": school_id, "mobile": norm_mob}}
         )
     else:
         new_u = {
             "school_id": school_id,
-            "mobile": mobile,
+            "mobile": norm_mob,
             "email": str(request.email) if request.email else None,
             "roles": assigned_roles,
             "is_active": True,

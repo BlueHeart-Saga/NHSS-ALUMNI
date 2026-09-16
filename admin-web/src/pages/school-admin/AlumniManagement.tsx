@@ -702,12 +702,12 @@ export const AlumniManagement: React.FC = () => {
             Add New Alumni
           </Button>
 
-          <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="text-xs font-bold">
+          <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="text-xs font-bold" title="Import alumni roster via Excel (.xlsx) or CSV (.csv)">
             <Upload className="w-4 h-4 mr-1" />
-            Import CSV
+            Import Roster (Excel / CSV)
           </Button>
 
-          <button
+          {/* <button
             type="button"
             onClick={handleExportCSV}
             disabled={exportingCSV}
@@ -725,7 +725,7 @@ export const AlumniManagement: React.FC = () => {
                 Export CSV
               </>
             )}
-          </button>
+          </button> */}
 
           <button
             type="button"
@@ -2376,23 +2376,23 @@ export const AlumniManagement: React.FC = () => {
         </div>
       </Modal>
 
-      {/* CSV IMPORT MODAL */}
-      <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Alumni School Roster via CSV">
+      {/* SPREADSHEET (EXCEL / CSV) IMPORT MODAL */}
+      <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Alumni School Roster (Excel / CSV)">
         <form onSubmit={handleCSVUploadSubmit} className="space-y-4 text-xs font-medium">
           <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-[#854D0E] space-y-1.5">
             <div className="font-extrabold text-sm">Full 44-Field Spreadsheet Bulk Edit & Import:</div>
             <div className="space-y-1">
-              <div>• <strong>All 44 Fields Supported:</strong> Personal details, School details, Higher Education (College/Degree), Employment, and Social links can be edited in bulk.</div>
-              <div>• <strong>Safe in Excel / Google Sheets:</strong> IDs and Mobile numbers are formatted to prevent scientific notation corruption.</div>
-              <div>• <strong>Update Existing Records:</strong> Keep the <strong>Alumni ID</strong> column intact — the system will update only your modified cells.</div>
-              <div>• <strong>Add New Records:</strong> Any row without an <strong>Alumni ID</strong> will be created as a new record (requires Full Name and Passing Year).</div>
-              <div>• <strong>Partial Edits:</strong> Leave an existing cell unchanged or blank to retain its current database value. Enter <code>__CLEAR__</code> to explicitly clear a field.</div>
+              <div>• <strong>Excel (.xlsx) & CSV Supported:</strong> You can export the roster to Excel, edit any cells, and upload the <code>.xlsx</code> or <code>.csv</code> spreadsheet directly.</div>
+              <div>• <strong>Bulk Edit Existing Records:</strong> Keep the <strong>Alumni ID</strong> column intact — the system matches and updates only your modified cells.</div>
+              <div>• <strong>Smart Match Fallback:</strong> Even if Alumni ID is blank or altered, existing alumni are matched automatically by Admission Number, Mobile, Email, or Roll Number.</div>
+              <div>• <strong>Add New Records:</strong> Any row without an existing ID or match will be created as a new record (requires Full Name and Passing Year).</div>
+              <div>• <strong>Partial Edits:</strong> Leave unchanged cells as-is to retain current values. Enter <code>__CLEAR__</code> to explicitly clear a field.</div>
             </div>
           </div>
 
           <input
             type="file"
-            accept=".csv"
+            accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv"
             onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
             required
             className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl cursor-pointer"

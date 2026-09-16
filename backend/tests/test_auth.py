@@ -2,7 +2,10 @@ import pytest
 import time
 from fastapi import HTTPException
 from app.core.security import generate_otp, create_access_token, decode_token, generate_qr_ticket_token, decode_qr_ticket_token
-from app.services.sms import normalize_indian_mobile, is_valid_indian_mobile, send_sms_otp
+from app.services.sms import (
+    normalize_indian_mobile, is_valid_indian_mobile, send_sms_otp,
+    get_mobile_query_variants, build_mobile_query_filter
+)
 from app.api.auth import OTP_STORE, _validate_and_consume_otp
 
 def test_otp_generation():
@@ -16,6 +19,20 @@ def test_normalize_indian_mobile():
     assert normalize_indian_mobile("09876543210") == "+919876543210"
     assert normalize_indian_mobile("919876543210") == "+919876543210"
     assert normalize_indian_mobile("+919876543210") == "+919876543210"
+
+def test_get_mobile_query_variants():
+    # Test all variations mentioned by user: 7639191119, +917639191119, +91 7639191119, 917639191119
+    for input_val in ["7639191119", "+917639191119", "+91 7639191119", "917639191119", "07639191119"]:
+        variants = get_mobile_query_variants(input_val)
+        assert "7639191119" in variants
+        assert "+917639191119" in variants
+        assert "+91 7639191119" in variants
+        assert "917639191119" in variants
+
+    query_filter = build_mobile_query_filter("+91 7639191119")
+    assert {"mobile": "7639191119"} in query_filter
+    assert {"mobile": "+91 7639191119"} in query_filter
+    assert {"mobile": "+917639191119"} in query_filter
 
 def test_is_valid_indian_mobile():
     assert is_valid_indian_mobile("9876543210") is True
@@ -415,6 +432,48 @@ def test_link_mobile_endpoint():
 
     app.dependency_overrides.pop(get_current_user, None)
     api_v1.dependency_overrides.pop(get_current_user, None)
+
+def test_send_otp_with_hashed_password():
+    from unittest.mock import patch, MagicMock, AsyncMock
+    from bson import ObjectId
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.core.security import get_password_hash
+
+    client = TestClient(app)
+    mock_db = MagicMock()
+    hashed_pw = get_password_hash("12345678")
+
+    # 1. Correct password matches hashed password in DB
+    mock_db.users.find_one = AsyncMock(return_value={
+        "_id": ObjectId(),
+        "email": "admin@nhss.com",
+        "mobile": "+919876543210",
+        "password_hash": hashed_pw,
+        "roles": ["SCHOOL_ADMIN"]
+    })
+    mock_db.users.update_one = AsyncMock()
+
+    with patch("app.api.auth.get_db", return_value=mock_db), \
+         patch("app.api.auth.send_sms_otp", return_value=(True, "mock-session")):
+        resp = client.post("/api/v1/auth/send-otp", json={
+            "email": "admin@nhss.com",
+            "check_user": True,
+            "password": "12345678"
+        })
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    # 2. Incorrect password fails with 400
+    with patch("app.api.auth.get_db", return_value=mock_db):
+        resp = client.post("/api/v1/auth/send-otp", json={
+            "email": "admin@nhss.com",
+            "check_user": True,
+            "password": "wrongpassword"
+        })
+        assert resp.status_code == 400
+        assert "Incorrect password" in resp.json()["detail"]
+
 
 
 
