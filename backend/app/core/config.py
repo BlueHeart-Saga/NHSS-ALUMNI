@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # Database Settings
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DATABASE: str = "school_alumni_db"
+    MONGODB_MAX_POOL_SIZE: int = 20
+    MONGODB_MIN_POOL_SIZE: int = 1
+    MONGODB_MAX_IDLE_TIME_MS: int = 30000
 
     # JWT & Auth Settings
     JWT_SECRET: str = "justgathernow-super-secret-production-jwt-key-2026-auth-v1-secure-token"

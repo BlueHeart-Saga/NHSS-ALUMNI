@@ -477,7 +477,7 @@ async def send_otp(request: SendOTPRequest):
     # =========================================================================
 
     # =========================================================================
-    # ACTIVE 2FACTOR SMS OTP IMPLEMENTATION
+    # ACTIVE TRANSACTIONAL SMS OTP IMPLEMENTATION (BREVO PRIMARY)
     # =========================================================================
     sms_success, session_or_err = await send_sms_otp(target_mobile, otp)
     if not sms_success:
@@ -486,19 +486,20 @@ async def send_otp(request: SendOTPRequest):
         OTP_STORE.pop(clean_mob, None)
         if email:
             OTP_STORE.pop(email, None)
-        logger.error(f"2Factor SMS dispatch failed for {target_mobile}: {session_or_err}")
+        logger.error(f"SMS dispatch failed for {target_mobile}: {session_or_err}")
         raise HTTPException(
             status_code=502,
             detail="Unable to send OTP. Please try again."
         )
 
+    provider_name = "Brevo" if (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "")) else "2Factor"
     # Secure terminal output for developers in dev mode (never in production logs)
     if settings.is_dev:
         print("\n" + "="*70)
-        print(f" [2FACTOR SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Mobile: {target_mobile} (Session: {session_or_err})")
+        print(f" [{provider_name.upper()} SMS OTP DISPATCH] Sent OTP Code: [{otp}] to Mobile: {target_mobile} (Ref/Session: {session_or_err})")
         print("="*70 + "\n")
     else:
-        logger.info(f"SMS OTP Dispatched via 2Factor to: {target_mobile}")
+        logger.info(f"SMS OTP Dispatched via {provider_name} to: {target_mobile} (Ref/Session: {session_or_err})")
 
     return SendOTPResponse(
         success=True,

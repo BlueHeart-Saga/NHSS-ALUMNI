@@ -19,9 +19,22 @@ def redact_uri(uri: str) -> str:
     return re.sub(r"://([^:]+):([^@]+)@", "://[REDACTED]:[REDACTED]@", uri)
 
 async def connect_to_mongo():
+    if db_instance.client is not None and db_instance.db is not None:
+        try:
+            await db_instance.client.admin.command('ping')
+            logger.info("Existing MongoDB client is active and healthy. Reusing singleton connection.")
+            return
+        except Exception:
+            logger.warning("Existing MongoDB client unhealthy; closing and re-initializing...")
+            try:
+                db_instance.client.close()
+            except Exception:
+                pass
+            db_instance.client = None
+            db_instance.db = None
+
     logger.info(f"Connecting to MongoDB at {redact_uri(settings.MONGODB_URI)} (Environment: {settings.APP_ENV})...")
 
-    
     # In production, validate configuration secrets first
     settings.validate_production_secrets()
 
@@ -37,16 +50,17 @@ async def connect_to_mongo():
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=10000,
                 socketTimeoutMS=45000,
-                maxIdleTimeMS=45000,
-                maxPoolSize=50,
-                minPoolSize=5
+                maxIdleTimeMS=settings.MONGODB_MAX_IDLE_TIME_MS,
+                maxPoolSize=settings.MONGODB_MAX_POOL_SIZE,
+                minPoolSize=settings.MONGODB_MIN_POOL_SIZE,
+                uuidRepresentation="standard"
             )
             # Verify connection
             await client.admin.command('ping')
             db_instance.client = client
             db_instance.db = client[settings.MONGODB_DATABASE]
             connected = True
-            logger.info(f"Successfully connected to MongoDB database: {settings.MONGODB_DATABASE}")
+            logger.info(f"Successfully connected to MongoDB database: {settings.MONGODB_DATABASE} (pool: min={settings.MONGODB_MIN_POOL_SIZE}, max={settings.MONGODB_MAX_POOL_SIZE})")
             break
         except Exception as e:
             last_error = e
@@ -116,20 +130,26 @@ async def safe_create_indexes_bulk(collection, index_specs):
         except Exception as e:
             logger.debug(f"Index notice on {collection.name}: {e}")
 
+_indexes_verified = False
+
 async def create_indexes():
+    global _indexes_verified
+    if _indexes_verified:
+        return
+
     db = db_instance.db
     if db is None:
         return
 
     try:
-        # Check and ensure indexes for each collection efficiently
-        await asyncio.gather(
-            safe_create_indexes_bulk(db.users, [
+        # Check and ensure indexes collection by collection to avoid opening 11 concurrent sessions on Cosmos DB
+        collections_specs = [
+            (db.users, [
                 ("mobile", {"unique": True, "sparse": True}),
                 ("email", {"sparse": True}),
                 "school_id"
             ]),
-            safe_create_indexes_bulk(db.alumni, [
+            (db.alumni, [
                 ("user_id", {"unique": True, "sparse": True, "name": "user_id_1"}),
                 [("school_id", 1), ("verification_status", 1), ("passing_year", 1)],
                 [("school_id", 1), ("full_name", 1)],
@@ -140,42 +160,45 @@ async def create_indexes():
                 "mobile",
                 ("admission_number", {"sparse": True})
             ]),
-            safe_create_indexes_bulk(db.batches, [
+            (db.batches, [
                 ([("school_id", 1), ("passing_year", 1)], {"unique": True}),
                 [("school_id", 1), ("status", 1)]
             ]),
-            safe_create_indexes_bulk(db.events, [
+            (db.events, [
                 [("school_id", 1), ("event_date", 1)],
                 [("school_id", 1), ("batch_id", 1)],
                 [("status", 1), ("event_date", 1)],
                 [("event_date", -1)]
             ]),
-            safe_create_indexes_bulk(db.event_attendance, [
+            (db.event_attendance, [
                 ([("event_id", 1), ("alumni_id", 1)], {"unique": True}),
                 [("event_id", 1), ("rsvp_status", 1)]
             ]),
-            safe_create_indexes_bulk(db.checkins, [
+            (db.checkins, [
                 ([("event_id", 1), ("alumni_id", 1)], {"unique": True})
             ]),
-            safe_create_indexes_bulk(db.announcements, [
+            (db.announcements, [
                 [("school_id", 1), ("target", 1)]
             ]),
-            safe_create_indexes_bulk(db.memories, [
+            (db.memories, [
                 [("school_id", 1), ("batch_id", 1)],
                 [("school_id", 1), ("event_id", 1)]
             ]),
-            safe_create_indexes_bulk(db.account_invitations, [
+            (db.account_invitations, [
                 ("token_hash", {"unique": True, "sparse": True}),
                 [("alumni_id", 1), ("used", 1)],
                 ("expires_at", {"expireAfterSeconds": 0})
             ]),
-            safe_create_indexes_bulk(db.schools, [
+            (db.schools, [
                 ("code", {"sparse": True})
             ]),
-            safe_create_indexes_bulk(db.audit_logs, [
+            (db.audit_logs, [
                 [("school_id", 1), ("timestamp", -1)]
             ])
-        )
+        ]
+        for col, specs in collections_specs:
+            await safe_create_indexes_bulk(col, specs)
+        _indexes_verified = True
         logger.info("MongoDB indexes verified and ensured successfully.")
     except Exception as e:
         logger.warning(f"Index verification notice: {e}")
