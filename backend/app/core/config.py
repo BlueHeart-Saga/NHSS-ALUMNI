@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     TWO_FACTOR_API_KEY: str = ""
     TWO_FACTOR_TEMPLATE: str = "NHSS Alumni"
     TWO_FACTOR_OTP_TEMPLATE: str = ""
-    TWO_FACTOR_SENDER_ID: str = "SMSNHS"
+    TWO_FACTOR_SENDER_ID: str = "NHSSAL"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

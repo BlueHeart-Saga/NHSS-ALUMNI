@@ -285,7 +285,7 @@ async def send_invitation_sms(mobile: str, activation_url: str) -> Tuple[bool, O
     if settings.TWO_FACTOR_API_KEY:
         try:
             api_key = settings.TWO_FACTOR_API_KEY.strip()
-            sender_id = getattr(settings, "TWO_FACTOR_SENDER_ID", "SMSNHS")
+            sender_id = getattr(settings, "TWO_FACTOR_SENDER_ID", "NHSSAL")
             clean_mobile = digits[-10:] if len(digits) >= 10 else digits
             url = f"https://2factor.in/API/V1/{api_key}/ADDON_SERVICES/SEND/TSMS"
             payload = {

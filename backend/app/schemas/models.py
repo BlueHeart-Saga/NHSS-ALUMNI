@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -145,6 +145,14 @@ class UserRegistrationRequest(BaseModel):
     other_stream: Optional[str] = None
     other_passing_year: Optional[int] = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        """Treat empty/whitespace-only email strings as None so Optional[EmailStr] accepts them."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
 class AdminCreateAlumniRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -164,6 +172,7 @@ class AdminCreateAlumniRequest(BaseModel):
     address: Optional[str] = None
     current_city: Optional[str] = None
     current_state: Optional[str] = None
+    state: Optional[str] = None
     country: Optional[str] = "India"
     school_name: Optional[str] = None
     joining_year: Optional[Any] = None
@@ -200,6 +209,14 @@ class AdminCreateAlumniRequest(BaseModel):
     willing_to_donate: Optional[Any] = "NO"
     verification_status: Optional[str] = "APPROVED"
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        """Treat empty/whitespace-only email strings as None so Optional[EmailStr] accepts them."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
 class CreateAdminRequest(BaseModel):
     full_name: str
     mobile: str
@@ -207,6 +224,14 @@ class CreateAdminRequest(BaseModel):
     role: Optional[str] = None
     roles: List[str] = ["SCHOOL_ADMIN"]
     passing_year: Optional[int] = 2005
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        """Treat empty/whitespace-only email strings as None so Optional[EmailStr] accepts them."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 # --- User & Profile Schemas ---
 class UserProfileResponse(BaseModel):
@@ -317,6 +342,14 @@ class UpdateProfileRequest(BaseModel):
     is_volunteer: Optional[str] = None
     willing_to_donate: Optional[str] = None
     skills: Optional[List[str]] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        """Treat empty/whitespace-only email strings as None so Optional[EmailStr] accepts them."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 # --- Verification Schemas ---
 class VerificationDecisionRequest(BaseModel):

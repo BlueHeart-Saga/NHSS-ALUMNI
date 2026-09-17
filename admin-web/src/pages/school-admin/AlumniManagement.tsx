@@ -35,6 +35,9 @@ export const AlumniManagement: React.FC = () => {
   const [editedRows, setEditedRows] = useState<Record<string, Partial<AlumniProfile>>>({});
   const [savingSheet, setSavingSheet] = useState(false);
 
+  // Per-row photo-upload loading indicator (key = alumni id)
+  const [photoUploadingIds, setPhotoUploadingIds] = useState<Set<string>>(new Set());
+
   // Table & Sheet horizontal scroll container refs & helpers
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const scrollTable = (offset: number) => {
@@ -55,6 +58,9 @@ export const AlumniManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Add-form photo upload state (for the wizard's Step 1)
+  const [addFormPhotoUploading, setAddFormPhotoUploading] = useState(false);
 
   // Paginated Add form step (1..5)
   const [addFormStep, setAddFormStep] = useState<number>(1);
@@ -237,6 +243,120 @@ export const AlumniManagement: React.FC = () => {
       });
     } catch (err: any) {
       console.error(`Failed to auto-save alumni row ${id}:`, err);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // PROFILE PHOTO UPLOAD (Editable Sheet)
+  // Uploads the file to the existing backend storage (Azure Blob via
+  // /school/upload-image), gets back a permanent URL, then stores that URL
+  // against the specific alumni row using the same handleCellEdit + auto-save
+  // pattern as every other column. No new upload system is introduced.
+  // ---------------------------------------------------------------------------
+  const handleSheetPhotoUpload = async (
+    alumniId: string,
+    file: File
+  ) => {
+    // 1. Client-side validation: must be an image
+    if (!file.type.startsWith('image/')) {
+      alertService.showWarning(
+        'Invalid File Type',
+        'Please select a valid image file (JPG, PNG, WEBP, etc.).'
+      );
+      return;
+    }
+
+    // 2. Track loading state for this specific row
+    setPhotoUploadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(alumniId);
+      return next;
+    });
+
+    try {
+      // 3. Reuse the existing upload pipeline:
+      //    - convertFileToWebP() (inside api.uploadSchoolImage) compresses to WebP
+      //    - POST /school/upload-image uploads to Azure Blob
+      //    - response returns { url, image_url, filename }
+      const res = await api.uploadSchoolImage(file);
+      const newUrl = res.url || res.image_url || '';
+
+      if (!newUrl) {
+        throw new Error('Upload succeeded but no URL was returned.');
+      }
+
+      // 4. Store the URL against ONLY this row's profile_photo_url.
+      //    handleCellEdit updates local state and marks the row dirty.
+      handleCellEdit(alumniId, 'profile_photo_url', newUrl);
+
+      // 5. Immediately persist (same auto-save behavior as other cell edits).
+      try {
+        await api.updateAlumniAdmin(alumniId, { profile_photo_url: newUrl });
+        // Clear this row from editedRows since it's already saved.
+        setEditedRows((prev) => {
+          const next = { ...prev };
+          if (next[alumniId]) {
+            const remaining = { ...next[alumniId] };
+            delete (remaining as any).profile_photo_url;
+            if (Object.keys(remaining).length === 0) {
+              delete next[alumniId];
+            } else {
+              next[alumniId] = remaining;
+            }
+          }
+          return next;
+        });
+      } catch (saveErr: any) {
+        // The URL is in local state but not yet persisted — leave the row dirty
+        // so the admin can retry via the "Save Edited Row(s)" button.
+        console.error('Photo uploaded but failed to persist to alumni record:', saveErr);
+        alertService.showWarning(
+          'Photo Uploaded, Not Yet Saved',
+          'The image was uploaded but could not be linked to the alumni record. Click "Save Edited Row(s)" to retry.'
+        );
+      }
+
+      alertService.showSuccess('Photo Updated', 'Profile photo uploaded successfully.');
+    } catch (err: any) {
+      // Do NOT modify profile_photo_url on failure — the existing value stays intact.
+      alertService.handleApiError(err, 'Failed to upload profile photo.');
+    } finally {
+      // 6. Clear loading state for this row
+      setPhotoUploadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(alumniId);
+        return next;
+      });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // PROFILE PHOTO UPLOAD (Add New Alumni wizard — Step 1)
+  // Same pipeline as above: uploads via api.uploadSchoolImage() and stores the
+  // returned URL in the newAlumnus draft. This replaces the previous
+  // FileReader.readAsDataURL() approach (which produced huge base64 strings).
+  // ---------------------------------------------------------------------------
+  const handleAddFormPhotoUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alertService.showWarning(
+        'Invalid File Type',
+        'Please select a valid image file (JPG, PNG, WEBP, etc.).'
+      );
+      return;
+    }
+
+    setAddFormPhotoUploading(true);
+    try {
+      const res = await api.uploadSchoolImage(file);
+      const newUrl = res.url || res.image_url || '';
+      if (!newUrl) throw new Error('Upload succeeded but no URL was returned.');
+
+      setNewAlumnus((prev) => ({ ...prev, profile_photo_url: newUrl }));
+      alertService.showSuccess('Photo Uploaded', 'Profile photo uploaded successfully.');
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to upload profile photo.');
+    } finally {
+      setAddFormPhotoUploading(false);
     }
   };
 
@@ -1207,6 +1327,7 @@ export const AlumniManagement: React.FC = () => {
               <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700 z-10 shadow-sm">
                 <tr>
                   <th className="py-2.5 px-3 border-r border-gray-300 w-16 text-center">S.No</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[220px]">Profile Photo</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">Full Name</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Name in Tamil</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Mobile Number</th>
@@ -1245,7 +1366,6 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Instagram URL</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">WhatsApp Number</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Website URL</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Profile Photo URL</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Status</th>
                   <th className="py-2.5 px-3 text-center min-w-[80px] sticky right-0 bg-gray-100 shadow-left z-20">Action</th>
                 </tr>
@@ -1260,11 +1380,78 @@ export const AlumniManagement: React.FC = () => {
                   };
 
                   const isRowEdited = Boolean(editedRows[a.id]);
+                  const isPhotoUploading = photoUploadingIds.has(a.id);
+                  const currentPhoto = getValue('profile_photo_url') as string;
+                  const photoPreviewSrc = currentPhoto ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(String(getValue('full_name') || a.full_name || 'A'))}&background=F3F4F6&color=111111`;
 
                   return (
                     <tr key={a.id} className={isRowEdited ? 'bg-amber-50/80 hover:bg-amber-100/80 transition-colors' : 'hover:bg-gray-50 transition-colors'}>
                       <td className="p-1 border-r border-gray-200 text-center font-mono font-semibold text-gray-600 text-xs align-middle">
                         {index + 1}
+                      </td>
+
+                      {/* ================= PROFILE PHOTO CELL (UPLOAD) — MOVED TO 2nd COLUMN ================= */}
+                      <td className="p-1 border-r border-gray-200">
+                        <div className="flex items-center gap-2 px-1 py-1">
+                          {/* Thumbnail preview */}
+                          <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center shrink-0">
+                            {isPhotoUploading ? (
+                              <RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" />
+                            ) : (
+                              <img
+                                src={photoPreviewSrc}
+                                alt=""
+                                className="w-full h-full object-contain p-0.5"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src =
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(String(a.full_name || 'A'))}&background=F3F4F6&color=111111`;
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          {/* Upload / Replace controls */}
+                          <div className="flex flex-col gap-0.5">
+                            <label
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer transition-colors ${
+                                isPhotoUploading
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-amber-50 hover:bg-amber-100 text-[#854D0E] border border-amber-200'
+                              }`}
+                              title={currentPhoto ? 'Replace existing photo' : 'Upload a new photo'}
+                            >
+                              <Upload className="w-3 h-3" />
+                              <span>{isPhotoUploading ? 'Uploading...' : (currentPhoto ? 'Replace' : 'Upload')}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={isPhotoUploading}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handleSheetPhotoUpload(a.id, file);
+                                  }
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+
+                            {currentPhoto && !isPhotoUploading && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleCellEdit(a.id, 'profile_photo_url', '');
+                                }}
+                                className="text-[9px] font-bold text-rose-600 hover:underline text-left cursor-pointer px-0.5"
+                                title="Remove this profile photo"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       <td className="p-1 border-r border-gray-200">
@@ -1662,16 +1849,6 @@ export const AlumniManagement: React.FC = () => {
                       </td>
 
                       <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="text"
-                          value={getValue('profile_photo_url')}
-                          onChange={(e) => handleCellEdit(a.id, 'profile_photo_url', e.target.value)}
-                          onBlur={() => handleCellBlur(a.id)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
-                        />
-                      </td>
-
-                      <td className="p-1 border-r border-gray-200">
                         <select
                           value={getValue('verification_status', 'APPROVED')}
                           onChange={(e) => handleCellEdit(a.id, 'verification_status', e.target.value)}
@@ -1853,70 +2030,72 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-  <label className={addLabelCls}>Profile Photo</label>
+                  <label className={addLabelCls}>Profile Photo</label>
 
-  {/* Preview + Upload row */}
-  <div className="flex items-center gap-3 mb-2">
-    <div className="w-16 h-16 rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
-      {newAlumnus.profile_photo_url ? (
-        <img
-          src={newAlumnus.profile_photo_url}
-          alt="Profile preview"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <Users className="w-6 h-6 text-gray-400" />
-      )}
-    </div>
+                  {/* Preview + Upload row */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
+                      {addFormPhotoUploading ? (
+                        <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
+                      ) : newAlumnus.profile_photo_url ? (
+                        <img
+                          src={newAlumnus.profile_photo_url}
+                          alt="Profile preview"
+                          className="w-full h-full object-contain p-0.5"
+                        />
+                      ) : (
+                        <Users className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
 
-    <div className="flex flex-col gap-2">
-      <label className="inline-flex items-center space-x-2 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-semibold rounded-xl cursor-pointer transition-all border border-gray-200">
-        <Upload className="w-3.5 h-3.5" />
-        <span>Upload Photo</span>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              setNewAlumnus((prev) => ({
-                ...prev,
-                profile_photo_url: reader.result as string,
-              }));
-            };
-            reader.readAsDataURL(file);
-          }}
-        />
-      </label>
+                    <div className="flex flex-col gap-2">
+                      <label className={`inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all border ${
+                        addFormPhotoUploading
+                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                          : 'bg-gray-100 hover:bg-gray-200 text-[#111111] border-gray-200 cursor-pointer'
+                      }`}>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{addFormPhotoUploading ? 'Uploading...' : 'Upload Photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={addFormPhotoUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleAddFormPhotoUpload(file);
+                            }
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
 
-      {newAlumnus.profile_photo_url && (
-        <button
-          type="button"
-          onClick={() =>
-            setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))
-          }
-          className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
-        >
-          Remove photo
-        </button>
-      )}
-    </div>
-  </div>
+                      {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))
+                          }
+                          className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
+                        >
+                          Remove photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-  {/* Optional: paste URL directly */}
-  <input
-    type="text"
-    value={newAlumnus.profile_photo_url || ''}
-    onChange={(e) =>
-      setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
-    }
-    placeholder="Or paste an image URL (https://...)"
-    className={addInputCls + ' font-mono'}
-  />
-</div>
+                  {/* Optional: paste URL directly */}
+                  <input
+                    type="text"
+                    value={newAlumnus.profile_photo_url || ''}
+                    onChange={(e) =>
+                      setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
+                    }
+                    placeholder="Or paste an image URL (https://...)"
+                    className={addInputCls + ' font-mono'}
+                  />
+                </div>
               </div>
             )}
 

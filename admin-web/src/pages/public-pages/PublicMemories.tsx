@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Trophy, Search, Award, User, X
+  Trophy, Search, Award, User, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -17,7 +17,10 @@ export const PublicMemories: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedHolderModal, setSelectedHolderModal] = useState<RankHolder | null>(null);
-  const [visibleCount, setVisibleCount] = useState<number>(8);
+
+  // Pagination state (10 records per page by default)
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   useEffect(() => {
     // Fetch Rank Holders from Backend DB
@@ -27,9 +30,9 @@ export const PublicMemories: React.FC = () => {
       .finally(() => setLoadingRankHolders(false));
   }, []);
 
-  // Reset pagination count when search or filter changes
+  // Reset to page 1 whenever the search or academic year filter changes
   useEffect(() => {
-    setVisibleCount(8);
+    setCurrentPage(1);
   }, [searchTerm, selectedYear]);
 
   // Extract unique academic years sorted descending
@@ -47,7 +50,13 @@ export const PublicMemories: React.FC = () => {
     return matchesSearch && matchesYear;
   });
 
-  const displayedRankHolders = filteredRankHolders.slice(0, visibleCount);
+  // Pagination math
+  const totalFiltered = filteredRankHolders.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages); // guards against stale page > total
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+  const displayedRankHolders = filteredRankHolders.slice(startIndex, endIndex);
 
   return (
     <div className="bg-white text-[#111111] animate-fadeIn font-sans min-h-screen">
@@ -93,7 +102,7 @@ export const PublicMemories: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setVisibleCount(8);
+                    setCurrentPage(1);
                   }}
                   className="w-full pl-10 pr-4 py-2.5 sm:py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] bg-gray-50 font-medium"
                 />
@@ -104,7 +113,7 @@ export const PublicMemories: React.FC = () => {
                   value={selectedYear}
                   onChange={(e) => {
                     setSelectedYear(e.target.value);
-                    setVisibleCount(8);
+                    setCurrentPage(1);
                   }}
                   className="w-full text-xs p-2.5 sm:py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-[#F4C542] font-semibold bg-gray-50 cursor-pointer"
                 >
@@ -140,9 +149,17 @@ export const PublicMemories: React.FC = () => {
             <div className="bg-white border-2 border-[#111111] rounded-3xl shadow-[4px_4px_0px_0px_#111111] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
+                  {/* Column widths — reduces horizontal gaps between columns while keeping table full-width */}
+                  <colgroup>
+                    <col style={{ width: '3%' }} />
+                    <col style={{ width: '2%' }} />
+                    <col style={{ width: '3%' }} />
+                    <col style={{ width: '3%' }} />
+                    <col style={{ width: '3%' }} />
+                  </colgroup>
                   <thead>
                     <tr className="bg-[#111111] text-white uppercase text-[11px] font-extrabold tracking-wider">
-                      <th className="py-3.5 px-4 text-center w-12">{language === 'ta' ? 'எண்' : '#'}</th>
+                      <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'எண்' : '#'}</th>
                       <th className="py-3.5 px-4">{language === 'ta' ? 'மாணவர் பெயர்' : 'Student Name'}</th>
                       <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'கல்வியாண்டு' : 'Academic Year'}</th>
                       <th className="py-3.5 px-4 text-center">{language === 'ta' ? 'வகுப்பு' : 'Class / Standard'}</th>
@@ -157,7 +174,7 @@ export const PublicMemories: React.FC = () => {
                         className="hover:bg-[#FFF7D6]/60 transition-colors cursor-pointer group"
                       >
                         <td className="py-3.5 px-4 text-center font-bold text-gray-400 text-xs">
-                          {idx + 1}
+                          {startIndex + idx + 1}
                         </td>
                         <td className="py-3.5 px-4">
                           <p className="font-extrabold text-sm text-[#111111] group-hover:text-[#854D0E] transition-colors">
@@ -188,14 +205,54 @@ export const PublicMemories: React.FC = () => {
                 </table>
               </div>
 
-              {visibleCount < filteredRankHolders.length && (
-                <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
-                  <button
-                    onClick={() => setVisibleCount(prev => prev + 8)}
-                    className="px-6 py-2 bg-white border border-gray-300 text-[#111111] hover:bg-gray-100 font-bold text-xs rounded-full shadow-sm transition-all"
-                  >
-                    {language === 'ta' ? `மேலும் பார்க்க (${filteredRankHolders.length - visibleCount} மீதம்)` : `View More (${filteredRankHolders.length - visibleCount} remaining)`}
-                  </button>
+              {/* Pagination Footer — matches Table.tsx visual language */}
+              {totalFiltered > 0 && totalPages > 1 && (
+                <div className="px-4 py-3 bg-[#FAFAFA] border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6B7280]">
+                  <span className="text-center sm:text-left">
+                    {language === 'ta' ? (
+                      <>
+                        மொத்தம் <strong className="text-[#111111]">{totalFiltered}</strong> இல்{' '}
+                        <strong className="text-[#111111]">{startIndex + 1}</strong> –{' '}
+                        <strong className="text-[#111111]">{Math.min(endIndex, totalFiltered)}</strong> காட்டப்படுகிறது
+                      </>
+                    ) : (
+                      <>
+                        Showing <strong className="text-[#111111]">{startIndex + 1}</strong> –{' '}
+                        <strong className="text-[#111111]">{Math.min(endIndex, totalFiltered)}</strong> of{' '}
+                        <strong className="text-[#111111]">{totalFiltered}</strong> entries
+                      </>
+                    )}
+                  </span>
+
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safeCurrentPage === 1}
+                      className="p-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#111111] hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                      aria-label="Previous page"
+                      title={language === 'ta' ? 'முந்தைய பக்கம்' : 'Previous Page'}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <span className="px-3 py-1 font-semibold text-[#111111] bg-white border border-[#E5E7EB] rounded-lg text-xs whitespace-nowrap">
+                      {language === 'ta'
+                        ? `பக்கம் ${safeCurrentPage} / ${totalPages}`
+                        : `Page ${safeCurrentPage} of ${totalPages}`}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safeCurrentPage === totalPages}
+                      className="p-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#111111] hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                      aria-label="Next page"
+                      title={language === 'ta' ? 'அடுத்த பக்கம்' : 'Next Page'}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

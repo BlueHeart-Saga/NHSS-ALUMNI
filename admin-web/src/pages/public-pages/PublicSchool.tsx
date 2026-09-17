@@ -280,45 +280,94 @@ export const PublicSchool: React.FC = () => {
 
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#111111] leading-tight">
               {language === 'ta'
-                ? 'நமது பள்ளியைப் பற்றி'
-                : 'About Our School'}
+                ? 'நடராஜன் மேல்நிலைப்பள்ளியின் வரலாறு'
+                : 'History of Natarajan Higher Secondary School'}
             </h2>
 
             <div className="space-y-4 text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
-              <p className="font-semibold text-gray-900 border-l-4 border-[#F4C542] pl-3 py-1 bg-[#FAFAFA] rounded-r-xl">
-                {language === 'ta'
-                  ? '1924 ஆம் ஆண்டு இந்து நாடார் துவக்கப்பள்ளி தொடங்கப்பட்டது முதல் நடராஜன் மேல்நிலைப்பள்ளி வரை நூற்றாண்டு கண்டது நமது பள்ளி.'
-                  : 'Founded in 1924 as Hindu Nadar Primary School and flourishing into Natarajan Higher Secondary School, our school has proudly celebrated its centenary (100 Years of Excellence).'}
-              </p>
-              <p>
-                {language === 'ta'
-                  ? 'பள்ளியில் பயின்ற மாணவர்கள் நல்லாசிரியர்களாகவும், IIT போன்ற உயர்கல்வி நிறுவனங்களில் பயின்று பேராசிரியர்களாகவும், விஞ்ஞானிகளாகவும், மருத்துவர்களாகவும், பொறியாளர்களாகவும், வழக்கறிஞர்களாகவும், நீதிபதிகளாகவும், சிறந்த விவசாயப் பெருமக்களாகவும் அனைத்துத் துறைகளிலும் உயர்ந்து உலகம் முழுக்கப் பெருமையுடன் சேவையாற்றி வருகின்றனர். அதற்கு முதன்மைக்காரணம் பள்ளியின் மேன்மைமிகு நிர்வாகிகளின் திறமையும்... சேவை உள்ளம் கொண்ட ஆசிரியர்களுமே ஆகும்.'
-                  : 'Our alumni have achieved remarkable success across all walks of life — as noble teachers, professors at premier institutions like IITs, scientists, doctors, engineers, lawyers, judges, and progressive agricultural leaders/farmers, serving with honor around the globe. This legacy is owed to the visionary leadership of our management and the dedicated service of our teachers.'}
-              </p>
-              <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/60 rounded-2xl space-y-2 text-[#854D0E] font-medium text-xs sm:text-sm">
-                <p>
-                  <strong>{language === 'ta' ? 'இலவச மதிய உணவு திட்டம் (23/07/1956):' : 'Historic Midday Meal Scheme (23/07/1956):'}</strong>{' '}
-                  {language === 'ta'
-                    ? '23/07/1956 ல் அன்றைய தமிழகத்தின் முதல்வர் கர்மவீரர் காமராஜர் அவர்களால் நமது பள்ளி குழந்தைகளுக்கு இலவச மதிய உணவு திட்டத்தை தொடங்கி வைத்து சிறப்பு பெற்றது நமது பள்ளி.'
-                    : 'On July 23, 1956, our school earned historic honor when former Chief Minister Karma Veerar K. Kamarajar inaugurated the landmark Free Midday Meal Scheme for our school children.'}
-                </p>
-                <p>
-                  <strong>{language === 'ta' ? 'பள்ளி கட்டிடம் திறப்பு விழா (12/06/1967):' : 'School Building Opening (12/06/1967):'}</strong>{' '}
-                  {language === 'ta'
-                    ? '12/06/1967 ல் நமது பள்ளி கட்டிடம் அன்றைய கல்வி அமைச்சர் மாண்புமிகு. ரா.நெடுஞ்செழியன் அவர்களால் திறந்து வைக்கப்பட்டு சிறப்பு பெற்றது.'
-                    : 'On June 12, 1967, our main school building was officially inaugurated by the then Education Minister, Hon. V. R. Nedunchezhiyan.'}
-                </p>
-              </div>
-              <p>
-                {language === 'ta'
-                  ? 'கல்வித்தரத்திலும், விளையாட்டுத்துறையிலும், ஒழுக்கத்திலும், சுற்றுப்புறச் சூழலிலும் தூத்துக்குடி கல்வி மாவட்டத்தில் முதன்மையானதாக இருந்தது நமது பள்ளி. இந்த பள்ளியில் பயின்றதால் நாங்கள் அறிவிலும், ஒழுக்கத்திலும், நற்பண்புகளிலும் இன்றளவும் சிறந்து விளங்குகிறோம்.'
-                  : 'Recognized as the premier institution in Thoothukudi Educational District for academic standard, sports, discipline, and environmental care, our school instills wisdom, character, and values.'}
-              </p>
-              <p className="text-xs sm:text-sm bg-gray-50 p-3 rounded-xl border border-gray-200 text-gray-800 font-medium">
-                {language === 'ta'
-                  ? '1962 – 63 முதல் 2025 – 26 வரை 64 வருட மாணவ – மாணவியர்கள் நமது பள்ளியில் பத்தாம் வகுப்பும், 1992-93 முதல் 2025 – 26 வரை 34 வருட மாணவ – மாணவியர்கள் நமது பள்ளியில் பன்னிரண்டாம் வகுப்பும் முடித்து இன்று நல்ல நிலையில் நமது பள்ளியை நினைவில் நிறுத்தி வாழ்கின்றனர்.'
-                  : 'Across 64 years of 10th Standard batches (1962-63 to 2025-26) and 34 years of 12th Standard batches (1992-93 to 2025-26), thousands of alumni have graduated, pursued higher achievements, and continue to cherish our school with pride.'}
-              </p>
+              {language === 'ta' ? (
+                <>
+                  <p className="font-semibold text-gray-900 border-l-4 border-[#F4C542] pl-3 py-1 bg-[#FAFAFA] rounded-r-xl">
+                    நமது கிராமத்தில் வாழ்ந்த பெரியோர்களான K.S. பொன்னு நாடார் மற்றும் K.S. சண்முகவேல் நாடார் ஆகியோரால், 1924 ஆம் ஆண்டு இந்து நாடார் ஆரம்ப பாடசாலை தொடங்கப்பட்டது. அதன் பின்னர் அது இந்து நாடார் நடுநிலைப் பள்ளியாக மாற்றம் பெற்றது.
+                  </p>
+
+                  <p>
+                    29–07–1960 ஆம் ஆண்டு உயர்நிலைப் பள்ளியாக தரம் உயர்த்தப்பட்டு, நடராஜன் உயர்நிலைப் பள்ளி எனப் பெயர் பெற்றது. 1991–92 கல்வியாண்டு முதல் மேல்நிலைப் பள்ளியாக தரம் உயர்த்தப்பட்டது.
+                  </p>
+
+                  <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/60 rounded-2xl space-y-2 text-[#854D0E] font-medium text-xs sm:text-sm">
+                    <p>
+                      <strong>இலவச சத்துணவு திட்டம் (23–07–1956):</strong>{' '}
+                      23–07–1956 ஆம் ஆண்டு, அன்றைய தமிழகத்தின் முதல்வர் கர்மவீரர் காமராஜர் அவர்களால் நமது பள்ளிக் குழந்தைகளுக்கு இலவச சத்துணவு திட்டம் தொடங்கி வைக்கப்பட்டு, சிறப்பு பெற்றது நமது பள்ளி.
+                    </p>
+                    <p>
+                      <strong>பள்ளி கட்டிடம் திறப்பு விழா (12–06–1967):</strong>{' '}
+                      12–06–1967 ஆம் ஆண்டு நமது பள்ளியின் புதிய கட்டிடம், அன்றைய கல்வி அமைச்சர் மாண்புமிகு நாவலர் இரா. நெடுஞ்செழியன் அவர்களால் திறந்து வைக்கப்பட்டு சிறப்பு பெற்றது.
+                    </p>
+                  </div>
+
+                  <p>
+                    1962–63 முதல் 2025–26 வரை 64 வருடங்களாக மாணவ–மாணவியர்கள் நமது பள்ளியில் பத்தாம் வகுப்பையும், 1992–93 முதல் 2025–26 வரை 34 வருடங்களாக மாணவ–மாணவியர்கள் நமது பள்ளியில் பன்னிரண்டாம் வகுப்பையும் முடித்து, பின்னர் கல்லூரிப் படிப்புகளை முடித்து, இன்று நல்ல நிலையில் நமது பள்ளியை நினைவில் நிறுத்தி வாழ்ந்து வருகின்றனர்.
+                  </p>
+
+                  <p>
+                    நமது பள்ளியில் பயின்ற மாணவர்கள் நல்லாசிரியர்களாகவும், பல்வேறு அரசுத் துறைகளில் அதிகாரிகளாகவும், மத்திய மற்றும் மாநில உயர்கல்வி நிறுவனங்களில் பயின்று பேராசிரியர்களாகவும், பொறியாளர்களாகவும், மென்பொருள் வல்லுநர்களாகவும், விஞ்ஞானிகளாகவும், மருத்துவர்களாகவும், வழக்கறிஞர்களாகவும், நீதிபதிகளாகவும் உயர்ந்து, உலகம் முழுக்கப் பயணிக்க உருவாக்கியது நம் பள்ளி. அதற்கு முதன்மைக் காரணம், பள்ளியின் மேன்மைமிகு நிர்வாகிகளின் திறமையும், சேவை உள்ளம் கொண்ட ஆசிரியர்களுமே ஆகும்.
+                  </p>
+
+                  <p>
+                    கல்வித் தரத்திலும், விளையாட்டுத் துறையிலும், ஒழுக்கத்திலும், சுற்றுப்புறச் சூழலிலும் கோவில்பட்டி கல்வி மாவட்டத்தில் முதன்மையானதாக இருந்தது நமது பள்ளி. இந்தப் பள்ளியில் பயின்றதால், நாமெல்லாம் அறிவிலும், ஒழுக்கத்திலும், நற்பண்புகளிலும் இன்றளவும் சிறந்து விளங்குகிறோம்.
+                  </p>
+
+                  <p>
+                    ஒரு காலகட்டத்தில் புற்றீசல் போல தோன்றிய ஆங்கில வழிக் கல்வியின் ஈர்ப்பால், நமது பள்ளியின் மாணவர் எண்ணிக்கை வெகுவாக சரிந்தது.
+                  </p>
+
+                  <p className="text-xs sm:text-sm bg-gray-50 p-3 rounded-xl border border-gray-200 text-gray-800 font-medium">
+                    மீண்டும் நம் மாவட்டத்திலேயே முதன்மையான பள்ளியாக உருவாக்கிட, எங்கள் வாழ்வை வளமாக்கிய பள்ளிக்காக, நம் பள்ளியில் பயின்ற முன்னாள் மாணவர்களாகிய நாங்கள், நம் பள்ளியில் பயில்கின்ற மாணவ–மாணவியர்களின் எதிர்காலம் வளமாகிட ஆசிரியர்கள் மற்றும் நிர்வாகத்திற்கு உறுதுணையாக இருந்து, மீண்டும் நம் பள்ளியின் பொற்காலத்தை உருவாக்கிட எங்களை அர்ப்பணித்துக் கொள்கிறோம்.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-gray-900 border-l-4 border-[#F4C542] pl-3 py-1 bg-[#FAFAFA] rounded-r-xl">
+                    In 1924, the Hindu Nadar Primary School was founded by the village elders K.S. Ponnusamy Nadar and K.S. Shanmugavel Nadar. It later grew into the Hindu Nadar Middle School.
+                  </p>
+
+                  <p>
+                    On 29–07–1960, the school was upgraded to a High School and renamed Natarajan High School. From the 1991–92 academic year onwards, it was further upgraded to a Higher Secondary School.
+                  </p>
+
+                  <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/60 rounded-2xl space-y-2 text-[#854D0E] font-medium text-xs sm:text-sm">
+                    <p>
+                      <strong>Historic Midday Meal Scheme (23–07–1956):</strong>{' '}
+                      On 23 July 1956, our school earned historic honour when the then Chief Minister of Tamil Nadu, Karma Veerar K. Kamarajar, inaugurated the Free Midday Meal Scheme for our school children.
+                    </p>
+                    <p>
+                      <strong>School Building Inauguration (12–06–1967):</strong>{' '}
+                      On 12 June 1967, the new school building was officially inaugurated by the then Education Minister, Hon. Navalar V. R. Nedunchezhiyan.
+                    </p>
+                  </div>
+
+                  <p>
+                    Across 64 years of 10th Standard batches (1962–63 to 2025–26) and 34 years of 12th Standard batches (1992–93 to 2025–26), thousands of students have graduated from our school, pursued higher education, and continue to cherish our school with pride.
+                  </p>
+
+                  <p>
+                    Our alumni have achieved remarkable success — as noble teachers, officials in various government departments, professors at central and state higher education institutions, engineers, software professionals, scientists, doctors, lawyers, and judges — carrying the name of our school proudly across the world. This legacy is owed to the visionary leadership of our management and the dedicated service of our teachers.
+                  </p>
+
+                  <p>
+                    Our school was the leading institution in the Kovilpatti Educational District for academic excellence, sports, discipline, and environmental care. Having studied here, we continue to excel in knowledge, discipline, and character to this day.
+                  </p>
+
+                  <p>
+                    At one point, the growing attraction towards English-medium education caused a significant decline in our school's student strength.
+                  </p>
+
+                  <p className="text-xs sm:text-sm bg-gray-50 p-3 rounded-xl border border-gray-200 text-gray-800 font-medium">
+                    To restore our school as the foremost institution in our district once again, we — the alumni who studied here, whose lives were enriched by this school — dedicate ourselves to supporting the teachers and management in shaping a prosperous future for the current students, and to rebuilding our school's golden era.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
