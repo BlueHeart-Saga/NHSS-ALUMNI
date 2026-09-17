@@ -86,7 +86,7 @@ class Settings(BaseSettings):
 
     # Brevo API Configuration
     BREVO_API_KEY: str = ""
-    BREVO_SMS_SENDER: str = "NHSSALUMNI"
+    BREVO_SMS_SENDER: str = "NHSSAL"
 
     # 2Factor SMS Configuration (SMS OTP ONLY — NO VOICE CALLS)
     TWO_FACTOR_API_KEY: str = ""

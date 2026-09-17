@@ -118,7 +118,7 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
     else:
         recipient = digits
 
-    sender = (getattr(settings, "BREVO_SMS_SENDER", "") or getattr(settings, "EMAILS_FROM_NAME", "") or "NHSSALUMNI")[:11]
+    sender = (getattr(settings, "BREVO_SMS_SENDER", "") or getattr(settings, "EMAILS_FROM_NAME", "") or "NHSSAL")[:11]
     content = f"Your NHSS Alumni OTP is {otp_code}. Valid for 5 minutes."
 
     headers = {
@@ -142,8 +142,8 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
             if resp.status_code in (200, 201):
                 data = resp.json()
                 ref = str(data.get("messageId") or data.get("reference") or "SUCCESS")
-                logger.info(f"operation=brevo_sms_send status=success duration_ms={duration_ms} to={recipient} ref={ref}")
-                print(f" [BREVO SUCCESS] SMS OTP successfully sent to {recipient} (Message ID: {ref})")
+                logger.info(f"operation=brevo_sms_send status=accepted duration_ms={duration_ms} to={recipient} message_id={ref}")
+                print(f" [BREVO ACCEPTED] Brevo accepted SMS OTP request for {recipient} (Message ID: {ref})")
                 return True, ref
             else:
                 resp_text = resp.text
@@ -259,7 +259,7 @@ async def send_invitation_sms(mobile: str, activation_url: str) -> Tuple[bool, O
     # 1. Try Brevo SMS
     brevo_key = (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "") or "").strip()
     if brevo_key:
-        sender = (getattr(settings, "BREVO_SMS_SENDER", "") or "NHSSALUMNI")[:11]
+        sender = (getattr(settings, "BREVO_SMS_SENDER", "") or "NHSSAL")[:11]
         content = f"NHSS Alumni: You have been invited to activate your account. Setup here: {activation_url}"
         headers = {
             "accept": "application/json",
@@ -276,8 +276,8 @@ async def send_invitation_sms(mobile: str, activation_url: str) -> Tuple[bool, O
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post("https://api.brevo.com/v3/transactionalSMS/sms", json=payload, headers=headers)
                 if resp.status_code in (200, 201):
-                    logger.info(f"Invitation SMS dispatched via Brevo to {recipient}")
-                    return True, "BREVO_INVITATION_SENT"
+                    logger.info(f"Brevo accepted invitation SMS request for {recipient}")
+                    return True, "BREVO_INVITATION_ACCEPTED"
         except Exception as exc:
             logger.warning(f"Brevo invitation SMS failed: {exc}")
 
