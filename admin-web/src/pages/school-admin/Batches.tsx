@@ -8,9 +8,11 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Batch } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const Batches: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,10 @@ export const Batches: React.FC = () => {
     setCreating(true);
     try {
       await api.createBatch(name, passingYear, description);
-      alertService.showSuccess('Batch Created Successfully', `Batch cohort for Class of ${passingYear} has been initialized.`);
+      alertService.showSuccess(
+        t('admin_batches_success_title'),
+        t('admin_batches_success_msg').replace('{year}', String(passingYear))
+      );
       setIsCreateOpen(false);
       setName('');
       fetchBatches();
@@ -65,24 +70,36 @@ export const Batches: React.FC = () => {
     });
   }, [batches, search]);
 
+  // Helper for member count pluralization
+  const formatMemberCount = (count: number) => {
+    if (count === 1) {
+      return t('admin_batches_member_count_singular').replace('{count}', String(count));
+    }
+    return t('admin_batches_member_count_plural').replace('{count}', String(count));
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111111]">Batches &amp; Cohorts ({batches.length})</h2>
-          <p className="text-xs text-[#6B7280]">School passing year cohorts and assigned batch coordinators</p>
+          <h2 className="text-2xl font-bold text-[#111111]">
+            {t('admin_batches_page_title')} ({batches.length})
+          </h2>
+          <p className="text-xs text-[#6B7280]">
+            {t('admin_batches_page_subtitle')}
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <Input
-            placeholder="🔍 Search batch year or name..."
+            placeholder={`🔍 ${t('admin_batches_search_placeholder')}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full sm:w-64"
           />
           <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto shrink-0">
             <Plus className="w-4 h-4 mr-1.5" />
-            Create New Batch
+            {t('admin_batches_create_btn')}
           </Button>
         </div>
       </div>
@@ -106,7 +123,7 @@ export const Batches: React.FC = () => {
                     <GraduationCap className="w-5 h-5 text-[#854D0E]" />
                   </div>
                   <span className="text-[#854D0E] font-bold bg-[#FFF7D6] border border-[#F4C542]/40 px-2.5 py-1 rounded-full text-[11px] shadow-2xs">
-                    Batch {batch.passing_year}
+                    {t('admin_batches_card_badge')} {batch.passing_year}
                   </span>
                 </div>
 
@@ -115,16 +132,16 @@ export const Batches: React.FC = () => {
                   {batch.name}
                 </h3>
                 <p className="text-xs text-[#6B7280] mt-1 line-clamp-2">
-                  {batch.description || `Class of ${batch.passing_year} Alumni Cohort`}
+                  {batch.description || t('admin_batches_card_desc_default').replace('{year}', String(batch.passing_year))}
                 </p>
 
                 {/* Batch Coordinators Profile Photos Section */}
                 <div className="mt-4 pt-3 border-t border-gray-100">
                   <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>Batch Coordinators</span>
+                    <span>{t('admin_batches_coordinator_title')}</span>
                     {coords.length > 0 && (
                       <span className="text-[10px] text-[#854D0E] font-bold bg-[#FFF7D6] px-1.5 py-0.5 rounded">
-                        {coords.length} Assigned
+                        {coords.length} {t('admin_batches_coordinator_assigned')}
                       </span>
                     )}
                   </div>
@@ -155,7 +172,7 @@ export const Batches: React.FC = () => {
                   ) : (
                     <div className="flex items-center text-xs text-[#9CA3AF] bg-gray-50 border border-dashed border-gray-200 rounded-lg p-2 font-medium">
                       <UserPlus className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
-                      No Coordinator Assigned
+                      {t('admin_batches_coordinator_none')}
                     </div>
                   )}
                 </div>
@@ -165,11 +182,11 @@ export const Batches: React.FC = () => {
               <div className="pt-4 border-t border-[#E5E7EB] mt-5 flex items-center justify-between text-xs">
                 <span className="font-bold text-[#111111] flex items-center bg-gray-100/80 px-2.5 py-1 rounded-lg">
                   <Users className="w-3.5 h-3.5 mr-1.5 text-[#854D0E]" />
-                  {batch.total_members} Members
+                  {formatMemberCount(batch.total_members)}
                 </span>
 
                 <span className="text-[11px] font-bold text-[#854D0E] group-hover:translate-x-0.5 transition-transform flex items-center">
-                  View Batch &rarr;
+                  {t('admin_batches_view_btn')} &rarr;
                 </span>
               </div>
             </div>
@@ -179,18 +196,22 @@ export const Batches: React.FC = () => {
       )}
 
       {/* Create Batch Modal */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create New Batch Cohort">
+      <Modal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)} 
+        title={t('admin_batches_modal_title')}
+      >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <Input
-            label="Batch Name"
-            placeholder="Class of 2026"
+            label={t('admin_batches_modal_name_label')}
+            placeholder={t('admin_batches_modal_name_placeholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
 
           <Input
-            label="Passing Year"
+            label={t('admin_batches_modal_year_label')}
             type="number"
             value={passingYear}
             onChange={(e) => setPassingYear(Number(e.target.value))}
@@ -198,18 +219,18 @@ export const Batches: React.FC = () => {
           />
 
           <Input
-            label="Description / Motto"
-            placeholder="The Golden Jubilee Batch..."
+            label={t('admin_batches_modal_desc_label')}
+            placeholder={t('admin_batches_modal_desc_placeholder')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
 
           <div className="flex justify-end space-x-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Cancel
+              {t('admin_batches_modal_cancel')}
             </Button>
             <Button type="submit" isLoading={creating}>
-              Save Batch Cohort
+              {t('admin_batches_modal_save')}
             </Button>
           </div>
         </form>

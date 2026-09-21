@@ -53,6 +53,7 @@ export const PublicLayout: React.FC = () => {
     { label: t('nav_batches'), path: '/batches' },
     { label: t('nav_events'), path: '/events' },
     { label: t('nav_memories'), path: '/memories' },
+    { label: t('nav_audit'), path: '/audit' },
     { label: t('nav_contact'), path: '/contact' }
   ];
 
@@ -215,6 +216,7 @@ export const PublicLayout: React.FC = () => {
             <Link to="/batches" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_batches')}</Link>
             <Link to="/events" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_events')}</Link>
             <Link to="/memories" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_memories')}</Link>
+            <Link to="/audit" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_audit')}</Link>
             <Link to="/contact" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_contact')}</Link>
             <button
               onClick={() => setIsAppModalOpen(true)}

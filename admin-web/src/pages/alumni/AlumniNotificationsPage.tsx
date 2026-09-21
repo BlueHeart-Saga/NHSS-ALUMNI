@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { 
-  Bell, Calendar, Sparkles, FileText, Megaphone, CheckCircle2, Clock, 
-  Filter, RotateCcw, Loader2, Info, ChevronRight 
+import {
+  Bell, Calendar, Sparkles, FileText, Megaphone, CheckCircle2, Clock,
+  Filter, RotateCcw, Loader2, Info, ChevronRight, XCircle
 } from 'lucide-react';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import type { Notification } from '../../types';
 
 export interface LiveNotificationItem {
   id: string;
-  category: 'ANNOUNCEMENT' | 'SCHOOL_EVENT' | 'REUNION' | 'DOCUMENT';
+  category: 'ANNOUNCEMENT' | 'SCHOOL_EVENT' | 'REUNION' | 'DOCUMENT' | 'SYSTEM';
   title: string;
   message: string;
   timestamp: string;
   statusTag?: string;
   isRead: boolean;
   linkUrl?: string;
+  /** True when this row came from the persisted `/notifications/my` endpoint. */
+  persisted?: boolean;
 }
 
 export const AlumniNotificationsPage: React.FC = () => {
@@ -25,11 +28,34 @@ export const AlumniNotificationsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<LiveNotificationItem[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
+  const [markingAll, setMarkingAll] = useState(false);
 
   const fetchLiveNotifications = async () => {
     setLoading(true);
     try {
       const items: LiveNotificationItem[] = [];
+
+      // 0. NEW — persisted notifications (sponsor rejections, etc.)
+      //    These come from the notifications collection and include read state.
+      try {
+        const persisted = await api.getMyNotifications();
+        (persisted || []).forEach((n: Notification) => {
+          items.push({
+            id: `notif-${n.id}`,
+            category: 'SYSTEM',
+            title: n.title,
+            message: n.body,
+            timestamp: n.created_at || 'Recent',
+            statusTag: n.kind === 'SPONSOR_REJECTED' ? 'REJECTED' : (n.kind || 'SYSTEM'),
+            isRead: !!n.is_read,
+            // Attach a raw id so mark-as-read on this specific row hits the API
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...({ persistedId: n.id } as any),
+          });
+        });
+      } catch (err) {
+        console.warn('Persisted notifications fetch error:', err);
+      }
 
       // 1. Fetch Official Announcements (Batch + Global)
       try {
@@ -106,6 +132,14 @@ export const AlumniNotificationsPage: React.FC = () => {
         console.warn('Document requests fetch error:', err);
       }
 
+      // NEW — persist the read state across refreshes for persisted rows.
+      // We sort so persisted (system) notifications bubble to the top.
+      items.sort((a, b) => {
+        if (a.persisted && !b.persisted) return -1;
+        if (!a.persisted && b.persisted) return 1;
+        return 0;
+      });
+
       setNotifications(items);
     } catch (err) {
       console.error('Failed to compile live notifications:', err);
@@ -116,13 +150,52 @@ export const AlumniNotificationsPage: React.FC = () => {
 
   useEffect(() => {
     fetchLiveNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+  const handleMarkAllRead = async () => {
+    // Optimistic local update
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+
+    setMarkingAll(true);
+    try {
+      // Persist the read state for the server-side notifications too
+      await api.markAllNotificationsRead();
+    } catch (err) {
+      // Non-fatal — the local UI is already marked read
+      console.warn('markAllNotificationsRead failed:', err);
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
-  const filteredNotifications = notifications.filter(n => {
+  const handleItemClick = async (n: LiveNotificationItem) => {
+    // Persisted server-side notification — mark it read on the server
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const persistedId = (n as any).persistedId as string | undefined;
+    if (persistedId && !n.isRead) {
+      try {
+        await api.markNotificationRead(persistedId);
+        setNotifications((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+        );
+      } catch (err) {
+        console.warn('markNotificationRead failed:', err);
+      }
+    } else if (!n.isRead) {
+      // Local-only notification — just flip the flag in memory
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+      );
+    }
+
+    // Navigate if there is a link
+    if (n.linkUrl) {
+      window.location.href = n.linkUrl;
+    }
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
     if (filterCategory === 'ALL') return true;
     return n.category === filterCategory;
   });
@@ -137,6 +210,8 @@ export const AlumniNotificationsPage: React.FC = () => {
         return <Calendar className="w-4 h-4 text-amber-700" />;
       case 'DOCUMENT':
         return <FileText className="w-4 h-4 text-amber-700" />;
+      case 'SYSTEM':
+        return <XCircle className="w-4 h-4 text-rose-700" />;
       default:
         return <Bell className="w-4 h-4 text-amber-700" />;
     }
@@ -166,7 +241,8 @@ export const AlumniNotificationsPage: React.FC = () => {
           </button>
           <button
             onClick={handleMarkAllRead}
-            className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#111111] text-white hover:bg-black text-xs font-bold rounded-xl transition-all shadow-sm text-center"
+            disabled={markingAll}
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#111111] text-white hover:bg-black text-xs font-bold rounded-xl transition-all shadow-sm text-center disabled:opacity-60"
           >
             {language === 'ta' ? 'அனைத்தையும் படித்ததாகக் குறிக்க' : 'Mark All as Read'}
           </button>
@@ -177,6 +253,7 @@ export const AlumniNotificationsPage: React.FC = () => {
       <div className="flex overflow-x-auto gap-2 border-b border-[#E5E7EB] pb-2 text-xs font-bold scrollbar-none">
         {[
           { id: 'ALL', label: language === 'ta' ? `அனைத்து அறிவிப்புகள் (${notifications.length})` : `All Alerts (${notifications.length})` },
+          { id: 'SYSTEM', label: language === 'ta' ? `சிஸ்டம் (${notifications.filter(n => n.category === 'SYSTEM').length})` : `System (${notifications.filter(n => n.category === 'SYSTEM').length})` },
           { id: 'ANNOUNCEMENT', label: language === 'ta' ? `பள்ளி அறிவிப்புகள் (${notifications.filter(n => n.category === 'ANNOUNCEMENT').length})` : `Announcements (${notifications.filter(n => n.category === 'ANNOUNCEMENT').length})` },
           { id: 'SCHOOL_EVENT', label: language === 'ta' ? `பள்ளி விழாக்கள் (${notifications.filter(n => n.category === 'SCHOOL_EVENT').length})` : `School Events (${notifications.filter(n => n.category === 'SCHOOL_EVENT').length})` },
           { id: 'REUNION', label: language === 'ta' ? `மறுசந்திப்புகள் (${notifications.filter(n => n.category === 'REUNION').length})` : `Reunions (${notifications.filter(n => n.category === 'REUNION').length})` },
@@ -207,7 +284,11 @@ export const AlumniNotificationsPage: React.FC = () => {
           filteredNotifications.map(n => (
             <div
               key={n.id}
-              className={`p-4 rounded-2xl border transition-all flex items-start space-x-3.5 text-xs ${
+              onClick={() => handleItemClick(n)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleItemClick(n); }}
+              className={`p-4 rounded-2xl border transition-all flex items-start space-x-3.5 text-xs cursor-pointer ${
                 n.isRead ? 'bg-white border-[#E5E7EB]' : 'bg-[#FFF7D6]/40 border-[#F4C542]/60 hover:border-[#F4C542]'
               }`}
             >
@@ -219,22 +300,25 @@ export const AlumniNotificationsPage: React.FC = () => {
                   <h4 className="font-bold text-sm text-[#111111] truncate">{n.title}</h4>
                   <div className="flex items-center space-x-2 shrink-0">
                     {n.statusTag && (
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                        n.statusTag === 'REJECTED'
+                          ? 'bg-rose-100 text-rose-900 border-rose-200'
+                          : 'bg-amber-100 text-amber-900 border-amber-200'
+                      }`}>
                         {n.statusTag}
                       </span>
                     )}
                     <span className="text-[10px] text-gray-400 font-medium">{n.timestamp}</span>
                   </div>
                 </div>
-                <p className="text-gray-600 leading-relaxed">{n.message}</p>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{n.message}</p>
                 {n.linkUrl && (
-                  <a
-                    href={n.linkUrl}
+                  <span
                     className="inline-flex items-center space-x-1 text-xs text-amber-800 font-bold hover:underline pt-1"
                   >
                     <span>View Section</span>
                     <ChevronRight className="w-3.5 h-3.5" />
-                  </a>
+                  </span>
                 )}
               </div>
             </div>

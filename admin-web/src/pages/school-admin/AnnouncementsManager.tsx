@@ -23,18 +23,21 @@ import { ImageUploadAndEdit } from '../../components/ImageUploadAndEdit';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Announcement, Batch } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
-// Categories Configuration with bilingual labels & badge colors
+// Category config with translation keys for labels.
+// Icons and badge colors remain unchanged.
 export const ANNOUNCEMENT_CATEGORIES = [
-  { id: 'GENERAL', labelEn: 'General Notice', labelTa: 'பொது அறிவிப்பு', icon: Megaphone, color: 'bg-amber-100 text-amber-900 border-amber-300' },
-  { id: 'CIRCULAR', labelEn: 'Official Circular', labelTa: 'அதிகாரப்பூர்வ சுற்றறிக்கை', icon: FileText, color: 'bg-blue-100 text-blue-900 border-blue-300' },
-  { id: 'EVENT_NOTICE', labelEn: 'Event / Reunion', labelTa: 'நிகழ்வு / சந்திப்பு', icon: Calendar, color: 'bg-purple-100 text-purple-900 border-purple-300' },
-  { id: 'CELEBRATION', labelEn: 'Celebration & Festival', labelTa: 'விழா & கொண்டாட்டம்', icon: PartyPopper, color: 'bg-rose-100 text-rose-900 border-rose-300' },
-  { id: 'ACADEMIC', labelEn: 'Academic & Exams', labelTa: 'கல்வி & தேர்வுகள்', icon: BookOpen, color: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
-  { id: 'ACHIEVEMENT', labelEn: 'School Achievement', labelTa: 'பள்ளி சாதனை', icon: Award, color: 'bg-orange-100 text-orange-900 border-orange-300' },
+  { id: 'GENERAL', labelKey: 'admin_announcements_cat_general', icon: Megaphone, color: 'bg-amber-100 text-amber-900 border-amber-300' },
+  { id: 'CIRCULAR', labelKey: 'admin_announcements_cat_circular', icon: FileText, color: 'bg-blue-100 text-blue-900 border-blue-300' },
+  { id: 'EVENT_NOTICE', labelKey: 'admin_announcements_cat_event_notice', icon: Calendar, color: 'bg-purple-100 text-purple-900 border-purple-300' },
+  { id: 'CELEBRATION', labelKey: 'admin_announcements_cat_celebration', icon: PartyPopper, color: 'bg-rose-100 text-rose-900 border-rose-300' },
+  { id: 'ACADEMIC', labelKey: 'admin_announcements_cat_academic', icon: BookOpen, color: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+  { id: 'ACHIEVEMENT', labelKey: 'admin_announcements_cat_achievement', icon: Award, color: 'bg-orange-100 text-orange-900 border-orange-300' },
 ];
 
 export const AnnouncementsManager: React.FC = () => {
+  const { t } = useLanguage();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +83,7 @@ export const AnnouncementsManager: React.FC = () => {
       setBatches(bData);
     } catch (err) {
       console.error('Failed to load announcements:', err);
-      alertService.handleApiError(err, 'Failed to load announcements');
+      alertService.handleApiError(err, t('admin_announcements_alert_load_error'));
     } finally {
       setLoading(false);
     }
@@ -117,11 +120,17 @@ export const AnnouncementsManager: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() && !titleTa.trim()) {
-      alertService.showError('Missing Title', 'Please enter at least an English or Tamil title for the announcement.');
+      alertService.showError(
+        t('admin_announcements_alert_missing_title_title'),
+        t('admin_announcements_alert_missing_title_body')
+      );
       return;
     }
     if (!content.trim() && !contentTa.trim()) {
-      alertService.showError('Missing Content', 'Please enter at least English or Tamil content details.');
+      alertService.showError(
+        t('admin_announcements_alert_missing_content_title'),
+        t('admin_announcements_alert_missing_content_body')
+      );
       return;
     }
 
@@ -140,36 +149,52 @@ export const AnnouncementsManager: React.FC = () => {
 
       if (editingItem) {
         await api.updateAnnouncement(editingItem.id, payload);
-        alertService.showSuccess('Updated Successfully', 'The announcement details have been updated.');
+        alertService.showSuccess(
+          t('admin_announcements_alert_updated_title'),
+          t('admin_announcements_alert_updated_body')
+        );
       } else {
         await api.createAnnouncement(payload);
-        alertService.showSuccess('Broadcast Published', 'The announcement has been broadcasted and saved.');
+        alertService.showSuccess(
+          t('admin_announcements_alert_published_title'),
+          t('admin_announcements_alert_published_body')
+        );
       }
 
       setIsModalOpen(false);
       loadData();
     } catch (err: any) {
-      alertService.handleApiError(err, editingItem ? 'Update failed' : 'Broadcast failed');
+      alertService.handleApiError(
+        err,
+        editingItem
+          ? t('admin_announcements_alert_update_error')
+          : t('admin_announcements_alert_create_error')
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string, titleText: string) => {
-    const confirmed = window.confirm(`Are you sure you want to delete announcement "${titleText}"? This action cannot be undone.`);
+    const confirmed = window.confirm(
+      t('admin_announcements_alert_delete_confirm').replace('{title}', titleText)
+    );
     if (!confirmed) return;
 
     try {
       await api.deleteAnnouncement(id);
-      alertService.showSuccess('Deleted', 'The announcement has been deleted.');
+      alertService.showSuccess(
+        t('admin_announcements_alert_deleted_title'),
+        t('admin_announcements_alert_deleted_body')
+      );
       loadData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to delete announcement');
+      alertService.handleApiError(err, t('admin_announcements_alert_delete_error'));
     }
   };
 
   const batchOptions = [
-    { label: 'Select Target Batch...', value: '' },
+    { label: t('admin_announcements_form_batch_label'), value: '' },
     ...batches.map((b) => ({ label: `${b.name} (Year ${b.passing_year})`, value: b.id }))
   ];
 
@@ -205,17 +230,17 @@ export const AnnouncementsManager: React.FC = () => {
               <Megaphone className="w-5 h-5" />
             </span>
             <h2 className="text-2xl font-bold text-[#111111]">
-              Announcements & News Manager
+              {t('admin_announcements_page_title')}
             </h2>
           </div>
           <p className="text-xs text-[#6B7280] mt-1 ml-10">
-            Publish school news, posters, circulars, and notices in English & தமிழ் (Tamil) with built-in image crop and editing
+            {t('admin_announcements_page_subtitle')}
           </p>
         </div>
 
         <Button onClick={handleOpenCompose} className="w-full md:w-auto shadow-md">
           <Plus className="w-4 h-4 mr-1.5" />
-          Compose New Notice
+          {t('admin_announcements_compose_btn')}
         </Button>
       </div>
 
@@ -225,7 +250,7 @@ export const AnnouncementsManager: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search news by title, Tamil keyword, content..."
+            placeholder={t('admin_announcements_search_placeholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-xs bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542] text-[#111111]"
@@ -239,10 +264,10 @@ export const AnnouncementsManager: React.FC = () => {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="w-full md:w-auto text-xs bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-2 text-[#111111] focus:outline-none focus:border-[#F4C542]"
           >
-            <option value="ALL">All Categories (அனைத்து வகைகள்)</option>
+            <option value="ALL">{t('admin_announcements_filter_all_categories')}</option>
             {ANNOUNCEMENT_CATEGORIES.map((cat) => (
               <option key={cat.id} value={cat.id}>
-                {cat.labelEn} ({cat.labelTa})
+                {t(cat.labelKey)}
               </option>
             ))}
           </select>
@@ -253,9 +278,9 @@ export const AnnouncementsManager: React.FC = () => {
             onChange={(e) => setTargetFilter(e.target.value)}
             className="w-full md:w-auto text-xs bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3 py-2 text-[#111111] focus:outline-none focus:border-[#F4C542]"
           >
-            <option value="ALL">All Audiences</option>
-            <option value="SCHOOL">School-wide (Public)</option>
-            <option value="BATCH">Batch Targeted</option>
+            <option value="ALL">{t('admin_announcements_filter_all_audiences')}</option>
+            <option value="SCHOOL">{t('admin_announcements_filter_school_wide')}</option>
+            <option value="BATCH">{t('admin_announcements_filter_batch_targeted')}</option>
           </select>
         </div>
       </div>
@@ -263,11 +288,15 @@ export const AnnouncementsManager: React.FC = () => {
       {/* Announcements List Grid */}
       {filteredAnnouncements.length === 0 ? (
         <EmptyState
-          title="No Announcements Found"
-          description={searchTerm || categoryFilter !== 'ALL' ? "No notices match your selected filters." : "Publish your first school announcement with poster flyers and bilingual text."}
+          title={t('admin_announcements_empty_title')}
+          description={
+            searchTerm || categoryFilter !== 'ALL'
+              ? t('admin_announcements_empty_filtered')
+              : t('admin_announcements_empty_default')
+          }
           action={
             <Button variant="primary" onClick={handleOpenCompose}>
-              Create Announcement
+              {t('admin_announcements_empty_create_btn')}
             </Button>
           }
         />
@@ -298,7 +327,7 @@ export const AnnouncementsManager: React.FC = () => {
                     >
                       <span className="px-3.5 py-1.5 bg-black/70 hover:bg-black rounded-xl text-xs font-semibold flex items-center space-x-1.5 border border-white/20 shadow-md">
                         <Eye className="w-3.5 h-3.5" />
-                        <span>View Full Poster</span>
+                        <span>{t('admin_announcements_view_full_poster')}</span>
                       </span>
                     </div>
                   </div>
@@ -306,9 +335,9 @@ export const AnnouncementsManager: React.FC = () => {
                   <div className="h-20 bg-gradient-to-r from-amber-50 to-[#FFF7D6] flex items-center justify-between px-5 border-b border-amber-100">
                     <div className="flex items-center space-x-2 text-amber-800">
                       <CatIcon className="w-6 h-6 stroke-[1.8]" />
-                      <span className="text-xs font-bold">{catMeta.labelEn}</span>
+                      <span className="text-xs font-bold">{t(catMeta.labelKey)}</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-amber-700/80">No Poster Attached</span>
+                    <span className="text-[11px] font-semibold text-amber-700/80">{t('admin_announcements_no_poster')}</span>
                   </div>
                 )}
 
@@ -319,11 +348,11 @@ export const AnnouncementsManager: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
                       <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center space-x-1 ${catMeta.color}`}>
                         <CatIcon className="w-3 h-3 mr-1 inline" />
-                        <span>{catMeta.labelEn}</span>
+                        <span>{t(catMeta.labelKey)}</span>
                       </span>
 
                       <span className="text-[10px] font-semibold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/60 px-2 py-0.5 rounded-full">
-                        {item.target === 'SCHOOL' ? '🌐 School-wide (Public)' : '🎯 Batch Cohort'}
+                        {item.target === 'SCHOOL' ? t('admin_announcements_badge_school_wide') : t('admin_announcements_badge_batch')}
                       </span>
                     </div>
 
@@ -343,7 +372,7 @@ export const AnnouncementsManager: React.FC = () => {
                     </p>
                     {item.content_ta && item.content_ta !== item.content && (
                       <p className="text-xs text-[#6B7280] mt-1.5 italic line-clamp-2">
-                        தமிழ்: {item.content_ta}
+                        {t('admin_announcements_tamil_prefix')} {item.content_ta}
                       </p>
                     )}
                   </div>
@@ -351,7 +380,9 @@ export const AnnouncementsManager: React.FC = () => {
                   {/* Metadata Footer */}
                   <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between text-[11px] text-[#9CA3AF]">
                     <div className="flex flex-col">
-                      <span className="text-[#4B5563] font-medium">By {item.created_by_name}</span>
+                      <span className="text-[#4B5563] font-medium">
+                        {t('admin_announcements_by_prefix').replace('{name}', item.created_by_name)}
+                      </span>
                       <span>{new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
 
@@ -361,7 +392,7 @@ export const AnnouncementsManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setPreviewPosterUrl(item.poster_url!)}
-                          title="View Full Poster"
+                          title={t('admin_announcements_view_full_poster')}
                           className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
@@ -396,14 +427,14 @@ export const AnnouncementsManager: React.FC = () => {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingItem ? "Edit Announcement Notice" : "Compose Announcement & School News"}
+        title={editingItem ? t('admin_announcements_modal_title_edit') : t('admin_announcements_modal_title_create')}
       >
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
           {/* 1. Category & Scope Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-[#111111] mb-1.5">
-                Notice Category (அறிவிப்பு வகை)
+                {t('admin_announcements_form_category_label')}
               </label>
               <select
                 value={category}
@@ -412,7 +443,7 @@ export const AnnouncementsManager: React.FC = () => {
               >
                 {ANNOUNCEMENT_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.labelEn} ({c.labelTa})
+                    {t(c.labelKey)}
                   </option>
                 ))}
               </select>
@@ -420,22 +451,22 @@ export const AnnouncementsManager: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-[#111111] mb-1.5">
-                Audience Scope (பார்வையாளர்கள்)
+                {t('admin_announcements_form_audience_label')}
               </label>
               <select
                 value={target}
                 onChange={(e) => setTarget(e.target.value as any)}
                 className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
               >
-                <option value="SCHOOL">School-wide & Public Homepage (அனைவருக்கும்)</option>
-                <option value="BATCH">Specific Batch Cohort (குறிப்பிட்ட ஆண்டு)</option>
+                <option value="SCHOOL">{t('admin_announcements_form_audience_school')}</option>
+                <option value="BATCH">{t('admin_announcements_form_audience_batch')}</option>
               </select>
             </div>
           </div>
 
           {target === 'BATCH' && (
             <Select
-              label="Select Target Batch Cohort"
+              label={t('admin_announcements_form_batch_label')}
               options={batchOptions}
               value={batchId}
               onChange={(e) => setBatchId(e.target.value)}
@@ -446,8 +477,8 @@ export const AnnouncementsManager: React.FC = () => {
           {/* 2. Interactive Image Upload & Editor Component */}
           <div className="bg-[#FFFDF5] border border-amber-200/80 rounded-2xl p-4">
             <ImageUploadAndEdit
-              label="Notice Poster / Flyer (சுவரொட்டி அல்லது படம்)"
-              sublabel="Drag & drop, upload WebP, crop to 16:9 banner, rotate, or adjust colors."
+              label={t('admin_announcements_form_poster_label')}
+              sublabel={t('admin_announcements_form_poster_sublabel')}
               value={posterUrl}
               onChange={setPosterUrl}
               aspectRatioPreset="16:9"
@@ -466,7 +497,7 @@ export const AnnouncementsManager: React.FC = () => {
                     : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <span>🇬🇧 English Notice Details</span>
+                <span>{t('admin_announcements_form_tab_en')}</span>
               </button>
               <button
                 type="button"
@@ -477,7 +508,7 @@ export const AnnouncementsManager: React.FC = () => {
                     : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <span>🇮🇳 தமிழ் விவரங்கள் (Tamil Details)</span>
+                <span>{t('admin_announcements_form_tab_ta')}</span>
               </button>
             </div>
 
@@ -485,8 +516,8 @@ export const AnnouncementsManager: React.FC = () => {
             {activeLangTab === 'en' && (
               <div className="space-y-3 animate-fadeIn">
                 <Input
-                  label="Title (English)"
-                  placeholder="e.g. Annual Alumni Meet 2026 Registration Open"
+                  label={t('admin_announcements_form_title_en')}
+                  placeholder={t('admin_announcements_form_title_en_placeholder')}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required={!titleTa}
@@ -494,11 +525,11 @@ export const AnnouncementsManager: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#111111] mb-1.5">
-                    Announcement Details (English)
+                    {t('admin_announcements_form_content_en')}
                   </label>
                   <textarea
                     rows={4}
-                    placeholder="Provide full announcement details, timings, guidelines..."
+                    placeholder={t('admin_announcements_form_content_en_placeholder')}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
@@ -512,19 +543,19 @@ export const AnnouncementsManager: React.FC = () => {
             {activeLangTab === 'ta' && (
               <div className="space-y-3 animate-fadeIn">
                 <Input
-                  label="அறிவிப்பு தலைப்பு (Tamil Title)"
-                  placeholder="எ.கா: முன்னாள் மாணவர் சங்க ஆண்டு விழா 2026 பதிவு தொடக்கம்"
+                  label={t('admin_announcements_form_title_ta')}
+                  placeholder={t('admin_announcements_form_title_ta_placeholder')}
                   value={titleTa}
                   onChange={(e) => setTitleTa(e.target.value)}
                 />
 
                 <div>
                   <label className="block text-xs font-semibold text-[#111111] mb-1.5">
-                    முழு விவரம் / செய்தி (Tamil Content)
+                    {t('admin_announcements_form_content_ta')}
                   </label>
                   <textarea
                     rows={4}
-                    placeholder="அறிவிப்பின் முழு விவரங்கள், நேரம், விதிகளினை உள்ளிடவும்..."
+                    placeholder={t('admin_announcements_form_content_ta_placeholder')}
                     value={contentTa}
                     onChange={(e) => setContentTa(e.target.value)}
                     className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
@@ -537,11 +568,11 @@ export const AnnouncementsManager: React.FC = () => {
           {/* Action Footer */}
           <div className="flex justify-end space-x-3 pt-3 border-t border-gray-100">
             <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t('admin_announcements_form_cancel_btn')}
             </Button>
             <Button type="submit" isLoading={submitting}>
               <Send className="w-4 h-4 mr-1.5" />
-              {editingItem ? 'Update Announcement' : 'Publish Broadcast'}
+              {editingItem ? t('admin_announcements_form_update_btn') : t('admin_announcements_form_publish_btn')}
             </Button>
           </div>
         </form>

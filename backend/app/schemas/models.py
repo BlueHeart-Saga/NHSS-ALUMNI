@@ -845,3 +845,254 @@ class AssociationTeamMemberResponse(BaseModel):
     bio: Optional[str] = None
     status: str = "ACTIVE"
     created_at: datetime
+
+# =============================================================================
+# AUDIT & FINANCIAL STATEMENTS SCHEMAS
+# =============================================================================
+class AuditStatementCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str = Field(..., example="Auditing Statement – Academic Year (2025 - 2026)")
+    title_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+
+    financial_year: str = Field(..., example="2025 - 2026")
+    period_start: str = Field(..., example="01.04.2025")
+    period_end: str = Field(..., example="31.03.2026")
+    posted_date: Optional[str] = Field(None, example="14th May, 2026")
+
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    pdf_blob_path: Optional[str] = None
+
+    is_published: bool = False
+    display_order: int = 1
+    status: str = "ACTIVE"
+
+class AuditStatementUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: Optional[str] = None
+    title_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    financial_year: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    posted_date: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    pdf_blob_path: Optional[str] = None
+    is_published: Optional[bool] = None
+    display_order: Optional[int] = None
+    status: Optional[str] = None
+
+class AuditStatementResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    school_id: Optional[str] = None
+    title: str
+    title_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    financial_year: str
+    period_start: str
+    period_end: str
+    posted_date: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    is_published: bool = False
+    display_order: int = 1
+    status: str = "ACTIVE"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+# =============================================================================
+# CONTRIBUTIONS SCHEMAS
+# =============================================================================
+class ContributionCreateRequest(BaseModel):
+    """Alumni contribution creation payload.
+
+    `extra="allow"` ensures that any future form fields are not silently
+    dropped by Pydantic's default `extra="ignore"` behaviour. All alumni-form
+    fields below are optional to keep backwards compatibility with older
+    clients that only send `amount`/`purpose`.
+    """
+    model_config = ConfigDict(extra="allow")
+
+    amount: float = Field(..., gt=0, example=5000)
+    currency: str = "INR"
+    purpose: Optional[str] = Field("GENERAL", example="SCHOLARSHIP")  # GENERAL | SCHOLARSHIP | INFRASTRUCTURE | EVENT | OTHER
+    purpose_note: Optional[str] = None
+    contribution_date: Optional[str] = None   # ISO date; defaults to today if omitted
+    financial_year: Optional[str] = None      # auto-derived if omitted
+    # Legacy payment fields retained for backwards compatibility but no
+    # longer sent by the alumni form.
+    payment_method: Optional[str] = None
+    payment_reference: Optional[str] = None
+    proof_url: Optional[str] = None
+    public_visibility: bool = False           # conservative default
+    remarks: Optional[str] = None
+
+    # --- NEW alumni-form structured fields ---
+    contact_number: Optional[str] = None
+    address: Optional[str] = None
+    specific_purpose: Optional[str] = None    # only meaningful when purpose == "OTHER"
+    receipt_required: Optional[bool] = None
+
+class ContributionUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    amount: Optional[float] = None
+    purpose: Optional[str] = None
+    purpose_note: Optional[str] = None
+    contribution_date: Optional[str] = None
+    financial_year: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_reference: Optional[str] = None
+    proof_url: Optional[str] = None
+    status: Optional[str] = None              # PENDING | COMPLETED | REJECTED
+    public_visibility: Optional[bool] = None
+    admin_remarks: Optional[str] = None
+
+    # --- NEW alumni-form structured fields (editable by admin) ---
+    contact_number: Optional[str] = None
+    address: Optional[str] = None
+    specific_purpose: Optional[str] = None
+    receipt_required: Optional[bool] = None
+    remarks: Optional[str] = None
+
+class ContributionResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    school_id: Optional[str] = None
+    alumni_id: Optional[str] = None
+    user_id: Optional[str] = None
+    contributor_name: str
+    contributor_name_ta: Optional[str] = None
+    batch_year: Optional[int] = None
+    amount: float
+    currency: str = "INR"
+    purpose: Optional[str] = "GENERAL"
+    purpose_note: Optional[str] = None
+    contribution_date: Optional[str] = None
+    financial_year: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_reference: Optional[str] = None
+    proof_url: Optional[str] = None
+    status: str = "PENDING"
+    public_visibility: bool = False
+    admin_remarks: Optional[str] = None
+
+    # --- NEW alumni-form structured fields ---
+    contact_number: Optional[str] = None
+    address: Optional[str] = None
+    specific_purpose: Optional[str] = None
+    receipt_required: Optional[bool] = None
+    remarks: Optional[str] = None
+
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class AdminContributionCreateRequest(ContributionCreateRequest):
+    """Admin-entered contribution recorded on behalf of an alumni.
+
+    Inherits every field from ContributionCreateRequest (amount, purpose,
+    purpose_note, contribution_date, contact_number, address,
+    specific_purpose, receipt_required, public_visibility, remarks) and
+    adds:
+      - alumni_id: the alumni the contribution belongs to (required)
+      - status: defaults to COMPLETED since admin is recording money
+                already received.
+    """
+    model_config = ConfigDict(extra="allow")
+
+    alumni_id: str
+    status: Optional[str] = "COMPLETED"    # PENDING | COMPLETED | REJECTED
+# =============================================================================
+# SPONSORS SCHEMAS
+# =============================================================================
+class SponsorCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    name: str = Field(..., example="TCS")
+    name_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    logo_url: Optional[str] = None
+    website_url: Optional[str] = None
+    financial_year: str = Field(..., example="2025 - 2026")
+    amount: Optional[float] = Field(None, ge=0, example=50000)
+    sponsored_item: Optional[str] = None
+    sponsor_tier: Optional[str] = "STANDARD"    # PLATINUM | GOLD | SILVER | STANDARD
+    display_order: int = 1
+    is_published: bool = False
+    status: str = "ACTIVE"
+
+class SponsorUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    name: Optional[str] = None
+    name_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    logo_url: Optional[str] = None
+    website_url: Optional[str] = None
+    financial_year: Optional[str] = None
+    amount: Optional[float] = Field(None, ge=0, example=50000)
+    sponsored_item: Optional[str] = None
+    sponsor_tier: Optional[str] = None
+    display_order: Optional[int] = None
+    is_published: Optional[bool] = None
+    status: Optional[str] = None
+    approval_status: Optional[str] = None          # PENDING | PUBLISHED | REJECTED
+    rejection_reason: Optional[str] = None 
+
+class UserSponsorCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    name_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    logo_url: Optional[str] = None
+    website_url: Optional[str] = None
+    financial_year: str = Field(..., min_length=1)
+    amount: Optional[float] = Field(None, ge=0)
+    sponsored_item: Optional[str] = None
+
+class UserSponsorUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    name_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    logo_url: Optional[str] = None
+    website_url: Optional[str] = None
+    financial_year: Optional[str] = None
+    amount: Optional[float] = Field(None, ge=0)
+    sponsored_item: Optional[str] = None
+
+class SponsorResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    school_id: Optional[str] = None
+    name: str
+    name_ta: Optional[str] = None
+    description: Optional[str] = None
+    description_ta: Optional[str] = None
+    logo_url: Optional[str] = None
+    website_url: Optional[str] = None
+    financial_year: str
+    amount: Optional[float] = None
+    sponsored_item: Optional[str] = None
+    sponsor_tier: Optional[str] = "STANDARD"
+    display_order: int = 1
+    is_published: bool = False
+    status: str = "ACTIVE"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

@@ -11,6 +11,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Memory, AlumniProfile } from '../../types';
 import { getAssetUrl } from '../../utils/asset';
+import { useLanguage } from '../../context/LanguageContext';
 
 const DEFAULT_ALBUMS = [
   'General School Gallery',
@@ -24,6 +25,7 @@ const DEFAULT_ALBUMS = [
 ];
 
 export const MemoriesModeration: React.FC = () => {
+  const { t } = useLanguage();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [albums, setAlbums] = useState<{ album_name: string; count: number; cover_image_url: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,18 +144,18 @@ export const MemoriesModeration: React.FC = () => {
     try {
       await api.updateMemoryStatus(reviewingMemory.id, chosenStatus, adminRemarks);
 
-      const statusLabels = {
-        APPROVED: 'Memory Approved & Published!',
-        REJECTED: 'Memory Rejected.',
-        CHANGES_REQUESTED: 'Changes Requested from Uploader.'
+      const statusLabels: Record<string, string> = {
+        APPROVED: t('admin_memories_alert_approved_body'),
+        REJECTED: t('admin_memories_alert_rejected_body'),
+        CHANGES_REQUESTED: t('admin_memories_alert_changes_body')
       };
 
-      await alertService.showSuccess('Moderation Complete', statusLabels[chosenStatus]);
+      await alertService.showSuccess(t('admin_memories_alert_moderation_complete'), statusLabels[chosenStatus]);
       setReviewingMemory(null);
       fetchMemories();
       fetchAlbums();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to update memory moderation status.');
+      alertService.handleApiError(err, t('admin_memories_alert_moderation_failed'));
     } finally {
       setSubmittingModeration(false);
     }
@@ -162,23 +164,22 @@ export const MemoriesModeration: React.FC = () => {
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const confirmed = await alertService.showConfirm(
-      'Delete Memory Record?',
-      'Are you sure you want to permanently delete this memory item and its media files?',
-      'Delete Memory',
-      'Cancel'
+      t('admin_memories_alert_delete_confirm_title'),
+      t('admin_memories_alert_delete_confirm_body'),
+      t('admin_memories_alert_delete_confirm_btn'),
+      t('admin_memories_alert_delete_cancel_btn')
     );
     if (!confirmed) return;
     try {
       await api.deleteMemory(id);
-      alertService.showSuccess('Memory Deleted', 'The memory record has been removed.');
+      alertService.showSuccess(t('admin_memories_alert_deleted_title'), t('admin_memories_alert_deleted_body'));
       fetchMemories();
       fetchAlbums();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to delete photo memory.');
+      alertService.handleApiError(err, t('admin_memories_alert_delete_error'));
     }
   };
 
-  // Upload Cover / Gallery Media Files (One-by-one sequential upload with cancel capability)
   const handleCoverFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -191,7 +192,12 @@ export const MemoriesModeration: React.FC = () => {
     let successCount = 0;
     for (let i = 0; i < fileList.length; i++) {
       if (uploadAbortRef.current) {
-        alertService.showInfo('Upload Stopped', `Cancelled upload. ${successCount} of ${fileList.length} files uploaded.`);
+        alertService.showInfo(
+          t('admin_memories_alert_upload_stopped_title'),
+          t('admin_memories_alert_upload_stopped_files')
+            .replace('{done}', String(successCount))
+            .replace('{total}', String(fileList.length))
+        );
         break;
       }
 
@@ -223,11 +229,13 @@ export const MemoriesModeration: React.FC = () => {
     setUploadingMedia(false);
     setUploadProgress(null);
     if (!uploadAbortRef.current && successCount > 0) {
-      alertService.showSuccess('File(s) Uploaded', `Uploaded ${successCount} file(s) successfully.`);
+      alertService.showSuccess(
+        t('admin_memories_alert_files_uploaded_title'),
+        t('admin_memories_alert_files_uploaded_body').replace('{count}', String(successCount))
+      );
     }
   };
 
-  // Upload Multiple Gallery Files (One-by-one with real-time UI preview & cancel support)
   const handleMultipleFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -240,7 +248,12 @@ export const MemoriesModeration: React.FC = () => {
     let successCount = 0;
     for (let i = 0; i < fileList.length; i++) {
       if (uploadAbortRef.current) {
-        alertService.showInfo('Upload Stopped', `Cancelled upload. ${successCount} of ${fileList.length} photos uploaded.`);
+        alertService.showInfo(
+          t('admin_memories_alert_upload_stopped_title'),
+          t('admin_memories_alert_upload_stopped_photos')
+            .replace('{done}', String(successCount))
+            .replace('{total}', String(fileList.length))
+        );
         break;
       }
 
@@ -268,11 +281,13 @@ export const MemoriesModeration: React.FC = () => {
     setUploadingMedia(false);
     setUploadProgress(null);
     if (!uploadAbortRef.current && successCount > 0) {
-      alertService.showSuccess('Photos Added', `Successfully uploaded ${successCount} photo(s) to album gallery.`);
+      alertService.showSuccess(
+        t('admin_memories_alert_photos_added_title'),
+        t('admin_memories_alert_photos_added_body').replace('{count}', String(successCount))
+      );
     }
   };
 
-  // Open Create Modal with clean empty state
   const handleOpenCreateModal = () => {
     setEditingMemory(null);
     setMediaType('IMAGE');
@@ -295,7 +310,6 @@ export const MemoriesModeration: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  // Open Edit Modal with pre-filled memory record details
   const handleOpenEditModal = (memory: Memory, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setEditingMemory(memory);
@@ -325,7 +339,6 @@ export const MemoriesModeration: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  // Replace/Swap a Particular Single Image at index in media_urls list
   const handleReplaceSingleImage = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -342,11 +355,11 @@ export const MemoriesModeration: React.FC = () => {
         setCreateCoverImageUrl(res.url);
       }
       alertService.showSuccess(
-        'Image Replaced!',
-        `Image #${idx + 1} updated successfully with new file.`
+        t('admin_memories_alert_image_replaced_title'),
+        t('admin_memories_alert_image_replaced_body').replace('{index}', String(idx + 1))
       );
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to replace target image file.');
+      alertService.handleApiError(err, t('admin_memories_alert_image_replace_error'));
     } finally {
       setUploadingMedia(false);
     }
@@ -357,7 +370,6 @@ export const MemoriesModeration: React.FC = () => {
     setCreateMediaUrls(updated);
   };
 
-  // Bulk Selection Handlers
   const handleToggleSelectMemory = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (selectedMemoryIds.includes(id)) {
@@ -378,28 +390,34 @@ export const MemoriesModeration: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedMemoryIds.length === 0) return;
     const confirmed = await alertService.showConfirm(
-      'Bulk Delete Selected Memories?',
-      `Are you sure you want to permanently delete ${selectedMemoryIds.length} selected memory record(s)?`,
-      `Delete ${selectedMemoryIds.length} Items`,
-      'Cancel'
+      t('admin_memories_alert_bulk_delete_title'),
+      t('admin_memories_alert_bulk_delete_body').replace('{count}', String(selectedMemoryIds.length)),
+      t('admin_memories_alert_bulk_delete_btn').replace('{count}', String(selectedMemoryIds.length)),
+      t('admin_memories_alert_delete_cancel_btn')
     );
     if (!confirmed) return;
 
     try {
       await api.bulkDeleteMemories(selectedMemoryIds);
-      alertService.showSuccess('Bulk Delete Complete', `Successfully deleted ${selectedMemoryIds.length} memory records.`);
+      alertService.showSuccess(
+        t('admin_memories_alert_bulk_delete_done_title'),
+        t('admin_memories_alert_bulk_delete_done_body').replace('{count}', String(selectedMemoryIds.length))
+      );
       setSelectedMemoryIds([]);
       fetchMemories();
       fetchAlbums();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to bulk delete memory items.');
+      alertService.handleApiError(err, t('admin_memories_alert_bulk_delete_error'));
     }
   };
 
   const handleCreateMemorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createTitle.trim()) {
-      alertService.showWarning('Title Required', 'Please enter an English title for this memory item.');
+      alertService.showWarning(
+        t('admin_memories_alert_title_required_title'),
+        t('admin_memories_alert_title_required_body')
+      );
       return;
     }
     const finalAlbumName = (customAlbumInput.trim() || createAlbumName.trim()) || 'General School Gallery';
@@ -430,10 +448,10 @@ export const MemoriesModeration: React.FC = () => {
 
       if (editingMemory) {
         await api.updateMemory(editingMemory.id, payload);
-        alertService.showSuccess('Memory Record Updated', 'Memory details and gallery images updated successfully!');
+        alertService.showSuccess(t('admin_memories_alert_updated_title'), t('admin_memories_alert_updated_body'));
       } else {
         await api.createMemory(payload);
-        alertService.showSuccess('Memory Published', 'New memory item/album created and published!');
+        alertService.showSuccess(t('admin_memories_alert_published_title'), t('admin_memories_alert_published_body'));
       }
 
       setIsCreateModalOpen(false);
@@ -451,33 +469,33 @@ export const MemoriesModeration: React.FC = () => {
       fetchMemories();
       fetchAlbums();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to save memory record.');
+      alertService.handleApiError(err, t('admin_memories_alert_save_error'));
     } finally {
       setSubmittingCreate(false);
     }
   };
 
   const statusTabs = [
-    { key: 'ALL', label: 'All Statuses' },
-    { key: 'PENDING', label: 'Pending Review' },
-    { key: 'APPROVED', label: 'Approved & Published' },
-    { key: 'REJECTED', label: 'Rejected' },
-    { key: 'CHANGES_REQUESTED', label: 'Changes Requested' },
+    { key: 'ALL', labelKey: 'admin_memories_tab_all' },
+    { key: 'PENDING', labelKey: 'admin_memories_tab_pending' },
+    { key: 'APPROVED', labelKey: 'admin_memories_tab_approved' },
+    { key: 'REJECTED', labelKey: 'admin_memories_tab_rejected' },
+    { key: 'CHANGES_REQUESTED', labelKey: 'admin_memories_tab_changes' },
   ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
       case 'PUBLISHED':
-        return <span className="text-[11px] font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Approved</span>;
+        return <span className="text-[11px] font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{t('admin_memories_status_approved')}</span>;
       case 'SUBMITTED':
       case 'UNDER_REVIEW':
       case 'PENDING':
-        return <span className="text-[11px] font-extrabold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Review</span>;
+        return <span className="text-[11px] font-extrabold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{t('admin_memories_status_pending')}</span>;
       case 'REJECTED':
-        return <span className="text-[11px] font-extrabold text-rose-800 bg-rose-100 border border-rose-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Rejected</span>;
+        return <span className="text-[11px] font-extrabold text-rose-800 bg-rose-100 border border-rose-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{t('admin_memories_status_rejected')}</span>;
       case 'CHANGES_REQUESTED':
-        return <span className="text-[11px] font-extrabold text-blue-800 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Changes Requested</span>;
+        return <span className="text-[11px] font-extrabold text-blue-800 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{t('admin_memories_status_changes')}</span>;
       default:
         return <span className="text-[11px] font-extrabold text-gray-800 bg-gray-100 border border-gray-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{status}</span>;
     }
@@ -488,7 +506,7 @@ export const MemoriesModeration: React.FC = () => {
       return (
         <span className="text-[10px] font-extrabold bg-purple-950/90 text-purple-300 border border-purple-400/50 px-2 py-0.5 rounded-full flex items-center space-x-1">
           <Film className="w-3 h-3 text-purple-400" />
-          <span>Video</span>
+          <span>{t('admin_memories_badge_video')}</span>
         </span>
       );
     }
@@ -496,14 +514,14 @@ export const MemoriesModeration: React.FC = () => {
       return (
         <span className="text-[10px] font-extrabold bg-blue-950/90 text-blue-300 border border-blue-400/50 px-2 py-0.5 rounded-full flex items-center space-x-1">
           <Layers className="w-3 h-3 text-blue-400" />
-          <span>{urlCount} Photos Album</span>
+          <span>{t('admin_memories_badge_album_photos').replace('{count}', String(urlCount))}</span>
         </span>
       );
     }
     return (
       <span className="text-[10px] font-extrabold bg-gray-900/90 text-gray-200 border border-gray-700 px-2 py-0.5 rounded-full flex items-center space-x-1">
         <ImageIcon className="w-3 h-3 text-amber-400" />
-        <span>Photo</span>
+        <span>{t('admin_memories_badge_photo')}</span>
       </span>
     );
   };
@@ -519,13 +537,13 @@ export const MemoriesModeration: React.FC = () => {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-bold text-[#111111]">Memories, Video &amp; Photo Albums</h2>
+              <h2 className="text-2xl font-bold text-[#111111]">{t('admin_memories_page_title')}</h2>
               <span className="px-2.5 py-0.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] text-[11px] font-extrabold rounded-full uppercase tracking-wider">
-                Multi-Album Module
+                {t('admin_memories_page_badge')}
               </span>
             </div>
             <p className="text-xs text-[#6B7280] mt-0.5">
-              Moderate alumni uploads, organize high-resolution image albums, videos, and campus heritage archives.
+              {t('admin_memories_page_subtitle')}
             </p>
           </div>
         </div>
@@ -533,7 +551,7 @@ export const MemoriesModeration: React.FC = () => {
         <div className="w-full sm:w-auto flex items-center shrink-0">
           <Button onClick={handleOpenCreateModal} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-1.5" />
-            <span>Create Album / Upload Media</span>
+            <span>{t('admin_memories_create_btn')}</span>
           </Button>
         </div>
       </div>
@@ -551,7 +569,7 @@ export const MemoriesModeration: React.FC = () => {
               }`}
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              <span>All Media Gallery ({memories.length})</span>
+              <span>{t('admin_memories_view_gallery').replace('{count}', String(memories.length))}</span>
             </button>
 
             <button
@@ -561,7 +579,7 @@ export const MemoriesModeration: React.FC = () => {
               }`}
             >
               <FolderPlus className="w-3.5 h-3.5" />
-              <span>Albums View ({albums.length})</span>
+              <span>{t('admin_memories_view_albums').replace('{count}', String(albums.length))}</span>
             </button>
           </div>
 
@@ -573,7 +591,7 @@ export const MemoriesModeration: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') fetchMemories(); }}
-              placeholder="Search title, album, uploader..."
+              placeholder={t('admin_memories_search_placeholder')}
               className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111] focus:bg-white"
             />
           </div>
@@ -594,24 +612,24 @@ export const MemoriesModeration: React.FC = () => {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             ))}
           </div>
 
           {/* Media Type Pills */}
           <div className="flex items-center space-x-2 shrink-0">
-            {['ALL', 'IMAGE', 'VIDEO', 'ALBUM'].map((mt) => (
+            {(['ALL', 'IMAGE', 'VIDEO', 'ALBUM'] as const).map((mt) => (
               <button
                 key={mt}
-                onClick={() => setMediaTypeFilter(mt as any)}
+                onClick={() => setMediaTypeFilter(mt)}
                 className={`px-3 py-1 text-[11px] font-bold rounded-full border transition-all cursor-pointer ${
                   mediaTypeFilter === mt
                     ? 'bg-[#FFF7D6] text-[#854D0E] border-[#F4C542]'
                     : 'bg-white text-gray-600 border-[#E5E7EB] hover:bg-gray-50'
                 }`}
               >
-                {mt === 'ALL' ? 'All Types' : mt === 'IMAGE' ? 'Photos' : mt === 'VIDEO' ? 'Videos' : 'Photo Albums'}
+                {mt === 'ALL' ? t('admin_memories_type_all') : mt === 'IMAGE' ? t('admin_memories_type_photos') : mt === 'VIDEO' ? t('admin_memories_type_videos') : t('admin_memories_type_albums')}
               </button>
             ))}
           </div>
@@ -631,12 +649,12 @@ export const MemoriesModeration: React.FC = () => {
                 ) : (
                   <Square className="w-4 h-4 text-gray-500" />
                 )}
-                <span>Select All ({memories.length}) / அனைத்தும் தேர்வாக</span>
+                <span>{t('admin_memories_select_all').replace('{count}', String(memories.length))}</span>
               </button>
               
               {selectedMemoryIds.length > 0 && (
                 <span className="font-extrabold text-[#111111] bg-white border border-[#F4C542] px-2.5 py-0.5 rounded-full text-[11px]">
-                  {selectedMemoryIds.length} Selected
+                  {t('admin_memories_selected_count').replace('{count}', String(selectedMemoryIds.length))}
                 </span>
               )}
             </div>
@@ -648,7 +666,7 @@ export const MemoriesModeration: React.FC = () => {
                 className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-xs cursor-pointer transition-all"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Bulk Delete ({selectedMemoryIds.length}) / மொத்தமாக நீக்குக</span>
+                <span>{t('admin_memories_bulk_delete').replace('{count}', String(selectedMemoryIds.length))}</span>
               </button>
             )}
           </div>
@@ -661,13 +679,15 @@ export const MemoriesModeration: React.FC = () => {
       {viewMode === 'ALBUMS' ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-[#111111]">School Photo &amp; Video Albums ({albums.length})</h3>
+            <h3 className="text-lg font-bold text-[#111111]">
+              {t('admin_memories_albums_section_title').replace('{count}', String(albums.length))}
+            </h3>
             {selectedAlbum !== 'ALL' && (
               <button
                 onClick={() => setSelectedAlbum('ALL')}
                 className="text-xs font-bold text-[#854D0E] underline"
               >
-                ← Back to All Albums
+                {t('admin_memories_back_to_albums')}
               </button>
             )}
           </div>
@@ -696,18 +716,18 @@ export const MemoriesModeration: React.FC = () => {
                     <div className="absolute top-3 left-3">
                       <span className="text-[10px] font-extrabold bg-[#111111] text-[#F4C542] border border-[#F4C542]/60 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center space-x-1">
                         <FolderPlus className="w-3 h-3" />
-                        <span>Album</span>
+                        <span>{t('admin_memories_badge_album')}</span>
                       </span>
                     </div>
 
                     <div className="absolute bottom-3 left-3 right-3 text-white z-10">
                       <h4 className="font-bold text-base leading-snug line-clamp-1 drop-shadow-md">{alb.album_name}</h4>
-                      <p className="text-[11px] text-gray-300 font-medium">{alb.count} items recorded</p>
+                      <p className="text-[11px] text-gray-300 font-medium">{t('admin_memories_album_items_recorded').replace('{count}', String(alb.count))}</p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-gray-50 flex items-center justify-between text-xs font-bold text-[#111111]">
-                    <span>View Album Gallery</span>
+                    <span>{t('admin_memories_view_album_gallery')}</span>
                     <span className="text-[#854D0E]">→</span>
                   </div>
                 </div>
@@ -723,12 +743,12 @@ export const MemoriesModeration: React.FC = () => {
           <LoadingState />
         ) : memories.length === 0 ? (
           <EmptyState
-            title="No Memory Media Items Found"
-            description={`No photos or videos match status "${activeTab}" or search query.`}
+            title={t('admin_memories_empty_title')}
+            description={t('admin_memories_empty_description').replace('{status}', activeTab)}
             action={
               <Button onClick={() => setIsCreateModalOpen(true)}>
                 <Plus className="w-4 h-4 mr-1.5" />
-                <span>Upload First Memory</span>
+                <span>{t('admin_memories_empty_upload_btn')}</span>
               </Button>
             }
           />
@@ -787,7 +807,7 @@ export const MemoriesModeration: React.FC = () => {
                     {/* Album Name & Title Bar */}
                     <div className="absolute bottom-3 left-3 right-3 z-10">
                       <span className="text-[10px] font-bold text-gray-200 bg-black/60 px-2 py-0.5 rounded-md truncate max-w-full inline-block">
-                        Album: {photo.album_name || 'General Gallery'}
+                        {t('admin_memories_album_prefix')} {photo.album_name || t('admin_memories_general_gallery')}
                       </span>
                       <h4 className="font-bold text-white text-sm leading-snug truncate drop-shadow-md">{photo.title || 'School Memory'}</h4>
                       {photo.title_ta && (
@@ -799,11 +819,11 @@ export const MemoriesModeration: React.FC = () => {
                   {/* Body & Actions */}
                   <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                     <div>
-                      <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{photo.description || 'No description provided.'}</p>
+                      <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{photo.description || t('admin_memories_no_description')}</p>
                       <div className="text-[11px] text-gray-500 font-medium mt-2 space-y-1">
-                        <div>Submitted by: <strong className="text-[#111111]">{photo.uploader_name}</strong></div>
+                        <div>{t('admin_memories_submitted_by')} <strong className="text-[#111111]">{photo.uploader_name}</strong></div>
                         {photo.batch_year && (
-                          <div>Batch: <strong className="text-[#854D0E]">{photo.batch_year}</strong></div>
+                          <div>{t('admin_memories_batch_label')} <strong className="text-[#854D0E]">{photo.batch_year}</strong></div>
                         )}
                       </div>
                     </div>
@@ -815,24 +835,24 @@ export const MemoriesModeration: React.FC = () => {
                         onClick={(e) => { e.stopPropagation(); handleOpenReview(photo); }}
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" />
-                        Review
+                        {t('admin_memories_review_btn')}
                       </Button>
 
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleOpenEditModal(photo); }}
                         className="px-2.5 py-1.5 text-[#854D0E] bg-amber-50 hover:bg-amber-100 border border-[#F4C542]/50 rounded-xl transition-colors font-bold text-xs flex items-center space-x-1 cursor-pointer"
-                        title="Edit Memory Record / திருத்து"
+                        title={t('admin_memories_edit_btn')}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Edit</span>
+                        <span className="hidden sm:inline">{t('admin_memories_edit_btn')}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={(e) => handleDelete(photo.id, e)}
                         className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                        title="Delete Memory"
+                        title={t('admin_memories_delete_title')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -859,8 +879,8 @@ export const MemoriesModeration: React.FC = () => {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-[#111111]">Review Memory &amp; Media</h3>
-                  <p className="text-xs text-gray-500 font-medium">Album: <strong>{reviewingMemory.album_name || 'General Gallery'}</strong></p>
+                  <h3 className="text-xl font-bold text-[#111111]">{t('admin_memories_review_modal_title')}</h3>
+                  <p className="text-xs text-gray-500 font-medium">{t('admin_memories_album_prefix')} <strong>{reviewingMemory.album_name || t('admin_memories_general_gallery')}</strong></p>
                 </div>
               </div>
 
@@ -881,7 +901,7 @@ export const MemoriesModeration: React.FC = () => {
                   autoPlay
                   className="w-full h-full max-h-[400px] object-contain"
                 >
-                  Your browser does not support HTML5 video streaming.
+                  {t('admin_memories_video_unsupported')}
                 </video>
               </div>
             ) : (
@@ -915,7 +935,9 @@ export const MemoriesModeration: React.FC = () => {
                       </button>
 
                       <div className="absolute bottom-3 bg-black/75 px-3 py-1 rounded-full text-white text-xs font-bold">
-                        {activeImageIndex + 1} / {reviewingMemory.media_urls.length} Photos
+                        {t('admin_memories_photos_count')
+                          .replace('{current}', String(activeImageIndex + 1))
+                          .replace('{total}', String(reviewingMemory.media_urls.length))}
                       </div>
                     </>
                   )}
@@ -948,13 +970,13 @@ export const MemoriesModeration: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-gray-600">
-                <div>Uploader: <strong className="text-[#111111]">{reviewingMemory.uploader_name}</strong></div>
-                <div>Batch Year: <strong className="text-[#854D0E]">{reviewingMemory.batch_year || 'N/A'}</strong></div>
+                <div>{t('admin_memories_label_uploader')} <strong className="text-[#111111]">{reviewingMemory.uploader_name}</strong></div>
+                <div>{t('admin_memories_label_batch_year')} <strong className="text-[#854D0E]">{reviewingMemory.batch_year || 'N/A'}</strong></div>
               </div>
 
               {reviewingMemory.description && (
                 <div className="pt-2 border-t border-gray-200">
-                  <span className="font-semibold text-gray-700 block mb-1">Description:</span>
+                  <span className="font-semibold text-gray-700 block mb-1">{t('admin_memories_label_description')}</span>
                   <p className="text-gray-600 italic leading-relaxed">{reviewingMemory.description}</p>
                 </div>
               )}
@@ -963,13 +985,13 @@ export const MemoriesModeration: React.FC = () => {
             {/* Admin Remarks Input */}
             <div className="space-y-2">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-[#111111]">
-                Moderation Feedback / Admin Remarks
+                {t('admin_memories_remarks_label')}
               </label>
               <textarea
                 rows={2}
                 value={adminRemarks}
                 onChange={(e) => setAdminRemarks(e.target.value)}
-                placeholder="Enter feedback shown to uploader..."
+                placeholder={t('admin_memories_remarks_placeholder')}
                 className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl text-xs text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
               />
             </div>
@@ -982,7 +1004,7 @@ export const MemoriesModeration: React.FC = () => {
                 onClick={() => handleExecuteModeration('REJECTED')}
                 className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all"
               >
-                Reject
+                {t('admin_memories_reject_btn')}
               </button>
 
               <button
@@ -991,7 +1013,7 @@ export const MemoriesModeration: React.FC = () => {
                 onClick={() => handleExecuteModeration('CHANGES_REQUESTED')}
                 className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all"
               >
-                Request Changes
+                {t('admin_memories_request_changes_btn')}
               </button>
 
               <button
@@ -1001,7 +1023,7 @@ export const MemoriesModeration: React.FC = () => {
                 className="w-full sm:w-auto px-6 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs rounded-xl border border-[#F4C542]/50 flex items-center justify-center space-x-1.5"
               >
                 <CheckCircle2 className="w-4 h-4 text-[#F4C542]" />
-                <span>Approve &amp; Publish</span>
+                <span>{t('admin_memories_approve_btn')}</span>
               </button>
             </div>
           </div>
@@ -1009,7 +1031,7 @@ export const MemoriesModeration: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ADMIN CREATE ALBUM / UPLOAD MULTIPLE MEDIA MODAL (Bilingual, Audience Ticks, Blur Upload) */}
+      {/* ADMIN CREATE ALBUM / UPLOAD MULTIPLE MEDIA MODAL */}
       {/* ========================================================================= */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -1020,15 +1042,13 @@ export const MemoriesModeration: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-[#111111] flex items-center gap-2">
                   <FolderPlus className="w-6 h-6 text-[#854D0E]" />
-                  <span>{editingMemory ? 'Edit Memory Album' : 'Create Album & Upload Media'}</span>
-                  <span className="text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-2.5 py-0.5 rounded-full">
-                    {editingMemory ? 'நினைவகம் திருத்து' : 'நினைவுக் ஆல்பம்'}
-                  </span>
+                  <span>{editingMemory ? t('admin_memories_modal_title_edit') : t('admin_memories_modal_title_create')}</span>
+                  
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {editingMemory
-                    ? 'Update title, Tamil translation, batch year, audience, or replace individual gallery photos.'
-                    : 'Supports English & Tamil, Audience Ticking, Cover Image & Multiple Photo Gallery Upload'}
+                    ? t('admin_memories_modal_subtitle_edit')
+                    : t('admin_memories_modal_subtitle_create')}
                 </p>
               </div>
               <button
@@ -1044,7 +1064,7 @@ export const MemoriesModeration: React.FC = () => {
               {/* 1. Media Type Category Chooser */}
               <div>
                 <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-2">
-                  Select Media Category / ஊடக வகை
+                  {t('admin_memories_form_media_type_label')}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
@@ -1055,8 +1075,8 @@ export const MemoriesModeration: React.FC = () => {
                     }`}
                   >
                     <ImageIcon className="w-5 h-5" />
-                    <span>Single Photo ({createMediaUrls.length})</span>
-                    <span className="text-[10px] text-gray-500 font-normal">புகைப்படம்</span>
+                    <span>{t('admin_memories_form_media_photo').replace('{count}', String(createMediaUrls.length))}</span>
+                    <span className="text-[10px] text-gray-500 font-normal">{t('admin_memories_form_media_photo_sub')}</span>
                   </button>
 
                   <button
@@ -1067,8 +1087,8 @@ export const MemoriesModeration: React.FC = () => {
                     }`}
                   >
                     <Layers className="w-5 h-5" />
-                    <span>Photo Album ({createMediaUrls.length})</span>
-                    <span className="text-[10px] text-gray-500 font-normal">ஆல்பம்</span>
+                    <span>{t('admin_memories_form_media_album').replace('{count}', String(createMediaUrls.length))}</span>
+                    <span className="text-[10px] text-gray-500 font-normal">{t('admin_memories_form_media_album_sub')}</span>
                   </button>
 
                   <button
@@ -1079,8 +1099,8 @@ export const MemoriesModeration: React.FC = () => {
                     }`}
                   >
                     <Video className="w-5 h-5" />
-                    <span>Video Memory</span>
-                    <span className="text-[10px] text-gray-500 font-normal">வீடியோ</span>
+                    <span>{t('admin_memories_form_media_video')}</span>
+                    <span className="text-[10px] text-gray-500 font-normal">{t('admin_memories_form_media_video_sub')}</span>
                   </button>
                 </div>
               </div>
@@ -1089,29 +1109,29 @@ export const MemoriesModeration: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Title (English) *</span>
-                    <span className="text-[10px] text-gray-500 font-normal">ஆங்கிலத் தலைப்பு</span>
+                    <span>{t('admin_memories_form_title_en_label')}</span>
+                    
                   </label>
                   <input
                     type="text"
                     required
                     value={createTitle}
                     onChange={(e) => setCreateTitle(e.target.value)}
-                    placeholder="e.g. Annual Day Cultural Fest 2025"
+                    placeholder={t('admin_memories_form_title_en_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm text-[#111111] focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Title (Tamil / தமிழ்)</span>
-                    <span className="text-[10px] text-gray-500 font-normal">தமிழ் தலைப்பு</span>
+                    <span>{t('admin_memories_form_title_ta_label')}</span>
+                    
                   </label>
                   <input
                     type="text"
                     value={createTitleTa}
                     onChange={(e) => setCreateTitleTa(e.target.value)}
-                    placeholder="எ.கா. ஆண்டு விழா கலை நிகழ்ச்சிகள் 2025"
+                    placeholder={t('admin_memories_form_title_ta_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm text-[#111111] focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
@@ -1121,7 +1141,7 @@ export const MemoriesModeration: React.FC = () => {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                    Target Album Name / ஆல்பம் பெயர்
+                    {t('admin_memories_form_album_label')}
                   </label>
                   <select
                     value={createAlbumName}
@@ -1131,7 +1151,7 @@ export const MemoriesModeration: React.FC = () => {
                     {DEFAULT_ALBUMS.map(alb => (
                       <option key={alb} value={alb}>{alb}</option>
                     ))}
-                    <option value="CUSTOM">+ Create New Custom Album / புதிய ஆல்பம்</option>
+                    <option value="CUSTOM">{t('admin_memories_form_album_custom_option')}</option>
                   </select>
                 </div>
 
@@ -1139,13 +1159,13 @@ export const MemoriesModeration: React.FC = () => {
                   <div className="p-3 bg-amber-50/50 border border-[#F4C542] rounded-2xl animate-fadeIn">
                     <label className="block text-xs font-bold text-[#854D0E] uppercase tracking-wider mb-1 flex items-center space-x-1.5">
                       <FolderPlus className="w-4 h-4 text-[#854D0E]" />
-                      <span>New Custom Album Name * / புதிய ஆல்பத்தின் பெயர்</span>
+                      <span>{t('admin_memories_form_album_custom_label')}</span>
                     </label>
                     <input
                       type="text"
                       value={customAlbumInput}
                       onChange={(e) => setCustomAlbumInput(e.target.value)}
-                      placeholder="e.g. 1995 Golden Jubilee Reunion Album"
+                      placeholder={t('admin_memories_form_album_custom_placeholder')}
                       required={createAlbumName === 'CUSTOM'}
                       className="w-full px-4 py-2.5 bg-white border border-[#F4C542] rounded-xl text-xs sm:text-sm font-semibold text-[#111111] focus:border-[#854D0E] focus:outline-none shadow-xs"
                     />
@@ -1159,10 +1179,10 @@ export const MemoriesModeration: React.FC = () => {
                   <div>
                     <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center space-x-1.5">
                       <User className="w-3.5 h-3.5 text-[#854D0E]" />
-                      <span>Uploader / Submitted By Name (பதிவேற்றியவர் / சமர்ப்பித்தவர் பெயர்) *</span>
+                      <span>{t('admin_memories_form_uploader_label')}</span>
                     </label>
                     <span className="text-[10px] text-gray-500">
-                      Write submitter name or use quick presets below
+                      {t('admin_memories_form_uploader_hint')}
                     </span>
                   </div>
                   <button
@@ -1171,7 +1191,7 @@ export const MemoriesModeration: React.FC = () => {
                     className="text-xs font-bold text-[#854D0E] hover:text-[#713f0c] flex items-center space-x-1 cursor-pointer self-start sm:self-auto px-2.5 py-1 bg-[#FFF7D6] hover:bg-[#F4C542] border border-[#F4C542]/70 rounded-lg transition-colors"
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
-                    <span>{showAlumniPicker ? 'Hide Alumni List' : 'Search & Pick Alumnus'}</span>
+                    <span>{showAlumniPicker ? t('admin_memories_form_uploader_hide_picker') : t('admin_memories_form_uploader_show_picker')}</span>
                   </button>
                 </div>
 
@@ -1184,7 +1204,7 @@ export const MemoriesModeration: React.FC = () => {
                     type="text"
                     value={createUploaderName}
                     onChange={(e) => setCreateUploaderName(e.target.value)}
-                    placeholder="e.g. School Admin / D. Selwyn / 1995 Batch Alumni"
+                    placeholder={t('admin_memories_form_uploader_placeholder')}
                     required
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm font-semibold text-[#111111] focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542] focus:outline-none shadow-xs"
                   />
@@ -1193,7 +1213,7 @@ export const MemoriesModeration: React.FC = () => {
                 {/* Quick Selection Preset Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mr-0.5">
-                    Quick Fill:
+                    {t('admin_memories_form_uploader_quick_fill')}
                   </span>
                   
                   {currentUser?.full_name && (
@@ -1204,10 +1224,10 @@ export const MemoriesModeration: React.FC = () => {
                         if (currentUser.email) setCreateUploaderEmail(currentUser.email);
                       }}
                       className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-[#854D0E] border border-[#F4C542]/70 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer shadow-2xs"
-                      title="Click to set your admin name as uploader"
+                      title={t('admin_memories_form_uploader_show_picker')}
                     >
                       <User className="w-3 h-3 text-[#854D0E]" />
-                      <span>{currentUser.full_name} (Admin)</span>
+                      <span>{currentUser.full_name} {t('admin_memories_form_uploader_admin_suffix')}</span>
                     </button>
                   )}
 
@@ -1217,7 +1237,7 @@ export const MemoriesModeration: React.FC = () => {
                     className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
                   >
                     <Building2 className="w-3 h-3 text-gray-500" />
-                    <span>School Administration</span>
+                    <span>{t('admin_memories_form_uploader_school_admin')}</span>
                   </button>
 
                   <button
@@ -1226,7 +1246,7 @@ export const MemoriesModeration: React.FC = () => {
                     className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
                   >
                     <GraduationCap className="w-3 h-3 text-blue-600" />
-                    <span>Alumni Association</span>
+                    <span>{t('admin_memories_form_uploader_association')}</span>
                   </button>
 
                   <button
@@ -1234,7 +1254,7 @@ export const MemoriesModeration: React.FC = () => {
                     onClick={() => setCreateUploaderName('Alumni Member')}
                     className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
                   >
-                    <span>Alumni Member</span>
+                    <span>{t('admin_memories_form_uploader_member')}</span>
                   </button>
                 </div>
 
@@ -1244,7 +1264,7 @@ export const MemoriesModeration: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <label className="block text-xs font-bold text-[#854D0E] flex items-center space-x-1">
                         <GraduationCap className="w-3.5 h-3.5 text-[#854D0E]" />
-                        <span>Select Submitter from Registered Alumni ({alumniList.length} alumni in school):</span>
+                        <span>{t('admin_memories_form_alumni_picker_label').replace('{count}', String(alumniList.length))}</span>
                       </label>
                       <button
                         type="button"
@@ -1261,7 +1281,7 @@ export const MemoriesModeration: React.FC = () => {
                         type="text"
                         value={alumniFilterQuery}
                         onChange={(e) => setAlumniFilterQuery(e.target.value)}
-                        placeholder="Search alumnus by name, mobile, or batch year..."
+                        placeholder={t('admin_memories_form_alumni_search_placeholder')}
                         className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs text-[#111111] focus:border-[#F4C542] focus:outline-none"
                       />
                     </div>
@@ -1291,7 +1311,13 @@ export const MemoriesModeration: React.FC = () => {
                                 setTargetAudience('BATCH');
                               }
                               setShowAlumniPicker(false);
-                              alertService.showSuccess('Submitter Selected', `Set uploader to ${a.full_name}${a.passing_year ? ` (Class of ${a.passing_year})` : ''}`);
+                              alertService.showSuccess(
+                                t('admin_memories_form_alumni_selected_title'),
+                                t('admin_memories_form_alumni_selected_body').replace(
+                                  '{name}',
+                                  `${a.full_name}${a.passing_year ? ` (${t('admin_memories_form_alumni_class_of').replace('{year}', String(a.passing_year))})` : ''}`
+                                )
+                              );
                             }}
                             className="pt-1.5 pb-1 flex items-center justify-between text-xs hover:bg-[#FFF7D6] px-2 rounded-lg cursor-pointer transition-colors"
                           >
@@ -1302,7 +1328,7 @@ export const MemoriesModeration: React.FC = () => {
                               )}
                               {a.passing_year && (
                                 <span className="text-amber-800 text-[10px] ml-2 font-semibold bg-amber-100/60 px-1.5 py-0.5 rounded">
-                                  Class of {a.passing_year}
+                                  {t('admin_memories_form_alumni_class_of').replace('{year}', String(a.passing_year))}
                                 </span>
                               )}
                               {a.current_city && (
@@ -1310,13 +1336,13 @@ export const MemoriesModeration: React.FC = () => {
                               )}
                             </div>
                             <span className="text-[10px] font-bold text-[#854D0E] bg-[#FFF7D6] hover:bg-[#F4C542] px-2.5 py-1 rounded-md border border-[#F4C542]/70 shrink-0">
-                              Use Name
+                              {t('admin_memories_form_alumni_use_name')}
                             </span>
                           </div>
                         ))}
                       {alumniList.length === 0 && (
                         <div className="py-2 text-center text-xs text-gray-400">
-                          No alumni records found. You can type any name directly in the input box above.
+                          {t('admin_memories_form_alumni_empty')}
                         </div>
                       )}
                     </div>
@@ -1327,8 +1353,8 @@ export const MemoriesModeration: React.FC = () => {
               {/* 4. Audience Target Category Selection with Check Ticks */}
               <div className="space-y-2 border-t border-gray-100 pt-3">
                 <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>Audience &amp; Batch Category (Tick Choice)</span>
-                  <span className="text-[10px] text-gray-500 font-normal">பார்வையாளர்கள் வகை (டிக் தேர்வு)</span>
+                  <span>{t('admin_memories_form_audience_label')}</span>
+                  
                 </label>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1351,10 +1377,10 @@ export const MemoriesModeration: React.FC = () => {
                     <div>
                       <div className="flex items-center space-x-1.5 font-bold text-xs">
                         <Globe className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Public / School-Wide Gallery</span>
+                        <span>{t('admin_memories_form_audience_public_title')}</span>
                       </div>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        அனைவருக்கும் பொதுவானது (Visible to all public visitors &amp; alumni)
+                        {t('admin_memories_form_audience_public_sub')}
                       </p>
                     </div>
                   </div>
@@ -1378,10 +1404,10 @@ export const MemoriesModeration: React.FC = () => {
                     <div>
                       <div className="flex items-center space-x-1.5 font-bold text-xs">
                         <Calendar className="w-3.5 h-3.5 text-[#854D0E]" />
-                        <span>Specific Batch Year Only</span>
+                        <span>{t('admin_memories_form_audience_batch_title')}</span>
                       </div>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        குறிப்பிட்ட பேட்ச் ஆண்டு (Tagged for a specific batch)
+                        {t('admin_memories_form_audience_batch_sub')}
                       </p>
                     </div>
                   </div>
@@ -1391,13 +1417,13 @@ export const MemoriesModeration: React.FC = () => {
                 {targetAudience === 'BATCH' && (
                   <div className="pt-2 animate-fadeIn">
                     <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                      Enter Batch Year * / பேட்ச் ஆண்டு
+                      {t('admin_memories_form_batch_year_label')}
                     </label>
                     <input
                       type="text"
                       value={createBatchYear}
                       onChange={(e) => setCreateBatchYear(e.target.value)}
-                      placeholder="e.g. 2025 or 1998"
+                      placeholder={t('admin_memories_form_batch_year_placeholder')}
                       className="w-full px-4 py-2.5 bg-amber-50/50 border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#111111] font-semibold focus:outline-none"
                     />
                   </div>
@@ -1407,19 +1433,19 @@ export const MemoriesModeration: React.FC = () => {
               {/* 5. Cover Image & Media Upload Section */}
               <div className="space-y-3 border-t border-gray-100 pt-3">
                 <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                  Cover Image URL / Upload Cover File
+                  {t('admin_memories_form_cover_label')}
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={createCoverImageUrl}
                     onChange={(e) => setCreateCoverImageUrl(e.target.value)}
-                    placeholder="https://... or click upload file button"
+                    placeholder={t('admin_memories_form_cover_placeholder')}
                     className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                   <label className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-[#111111] rounded-xl cursor-pointer border border-gray-300 flex items-center space-x-1.5 shrink-0 transition-all">
                     <Upload className="w-4 h-4 text-[#854D0E]" />
-                    <span>{uploadingMedia ? 'Uploading...' : 'Upload Cover / Files'}</span>
+                    <span>{uploadingMedia ? t('admin_memories_form_cover_uploading') : t('admin_memories_form_cover_upload_btn')}</span>
                     <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleCoverFileUpload} />
                   </label>
                 </div>
@@ -1430,16 +1456,14 @@ export const MemoriesModeration: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider">
-                          Gallery Images List ({createMediaUrls.length} photos selected)
+                          {t('admin_memories_form_gallery_label').replace('{count}', String(createMediaUrls.length))}
                         </label>
-                        <span className="text-[10px] text-gray-500">
-                          ஆல்பத்தில் சேர்க்கப்பட்ட புகைப்படங்கள் ({createMediaUrls.length})
-                        </span>
+                        
                       </div>
 
                       <label className="px-4 py-2 bg-[#FFF7D6] hover:bg-[#F4C542] text-[#854D0E] text-xs font-bold rounded-xl cursor-pointer border border-[#F4C542] flex items-center space-x-1.5 shadow-xs transition-all">
                         <Plus className="w-4 h-4 text-[#854D0E]" />
-                        <span>{uploadingMedia ? 'Uploading Photos...' : '+ Select & Add Multiple Photos'}</span>
+                        <span>{uploadingMedia ? t('admin_memories_form_gallery_uploading_btn') : t('admin_memories_form_gallery_add_btn')}</span>
                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultipleFilesUpload} />
                       </label>
                     </div>
@@ -1451,10 +1475,13 @@ export const MemoriesModeration: React.FC = () => {
                           <Loader2 className="w-5 h-5 text-[#854D0E] animate-spin shrink-0" />
                           <div>
                             <div className="text-xs font-bold text-[#854D0E]">
-                              Uploading photo {uploadProgress.current} of {uploadProgress.total} ({Math.round((uploadProgress.current / uploadProgress.total) * 100)}%)
+                              {t('admin_memories_form_upload_progress')
+                                .replace('{current}', String(uploadProgress.current))
+                                .replace('{total}', String(uploadProgress.total))
+                                .replace('{percent}', String(Math.round((uploadProgress.current / uploadProgress.total) * 100)))}
                             </div>
                             <div className="text-[10px] text-[#854D0E]/80">
-                              படங்கள் ஒன்றன்பின் ஒன்றாக ஏற்றப்படுகின்றன
+                              {t('admin_memories_form_upload_progress_sub')}
                             </div>
                           </div>
                         </div>
@@ -1463,10 +1490,10 @@ export const MemoriesModeration: React.FC = () => {
                           type="button"
                           onClick={handleCancelUpload}
                           className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1 shadow-xs transition-all cursor-pointer"
-                          title="Cancel remaining photo uploads"
+                          title={t('admin_memories_form_upload_cancel_btn')}
                         >
                           <X className="w-3.5 h-3.5" />
-                          <span>Cancel Upload / நிறுத்து</span>
+                          <span>{t('admin_memories_form_upload_cancel_btn')}</span>
                         </button>
                       </div>
                     )}
@@ -1480,14 +1507,16 @@ export const MemoriesModeration: React.FC = () => {
                           <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-dashed border-[#F4C542] bg-[#FFF7D6]/70 backdrop-blur-md flex flex-col items-center justify-center p-2 text-center shadow-md animate-pulse shrink-0">
                             <Loader2 className="w-5 h-5 text-[#854D0E] animate-spin mb-1" />
                             <span className="text-[10px] font-bold text-[#854D0E] leading-tight">
-                              {uploadProgress ? `${uploadProgress.current}/${uploadProgress.total}` : 'Uploading...'}
+                              {uploadProgress
+                                ? `${uploadProgress.current}/${uploadProgress.total}`
+                                : t('admin_memories_form_uploading_label')}
                             </span>
                             <button
                               type="button"
                               onClick={handleCancelUpload}
                               className="mt-1 text-[9px] font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 px-1.5 py-0.5 rounded border border-rose-300 transition-colors cursor-pointer"
                             >
-                              Cancel
+                              {t('admin_memories_form_upload_cancel_short')}
                             </button>
                           </div>
                         )}
@@ -1507,7 +1536,7 @@ export const MemoriesModeration: React.FC = () => {
                                 {isCover && (
                                   <span className="bg-[#F4C542] text-[#111111] text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
                                     <Star className="w-2.5 h-2.5 fill-[#111111]" />
-                                    <span>Cover</span>
+                                    <span>{t('admin_memories_form_thumb_cover_badge')}</span>
                                   </span>
                                 )}
                               </div>
@@ -1520,14 +1549,14 @@ export const MemoriesModeration: React.FC = () => {
                                     onClick={() => setCreateCoverImageUrl(url)}
                                     className="px-2 py-0.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-bold text-[9px] rounded shadow-xs cursor-pointer"
                                   >
-                                    Set Cover
+                                    {t('admin_memories_form_thumb_set_cover')}
                                   </button>
                                 )}
                                 
                                 {/* Single Image Replace Button */}
                                 <label className="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[9px] rounded shadow-xs cursor-pointer flex items-center space-x-1 transition-all">
                                   <RefreshCw className="w-2.5 h-2.5" />
-                                  <span>Replace / மாற்றுக</span>
+                                  <span>{t('admin_memories_form_thumb_replace')}</span>
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -1540,7 +1569,7 @@ export const MemoriesModeration: React.FC = () => {
                                   type="button"
                                   onClick={() => handleRemoveGalleryUrl(idx)}
                                   className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all cursor-pointer"
-                                  title="Remove image"
+                                  title={t('admin_memories_form_thumb_remove_title')}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -1551,7 +1580,7 @@ export const MemoriesModeration: React.FC = () => {
 
                         {createMediaUrls.length === 0 && !uploadingMedia && (
                           <div className="w-full py-6 text-center text-xs text-gray-400 font-normal">
-                            No photos added yet. Click &quot;+ Add Multiple Photos&quot; to upload images.
+                            {t('admin_memories_form_gallery_empty')}
                           </div>
                         )}
 
@@ -1564,13 +1593,13 @@ export const MemoriesModeration: React.FC = () => {
                 {mediaType === 'VIDEO' && (
                   <div className="space-y-2 border-t border-gray-100 pt-3">
                     <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1">
-                      Video Stream / File URL
+                      {t('admin_memories_form_video_url_label')}
                     </label>
                     <input
                       type="text"
                       value={createVideoUrl}
                       onChange={(e) => setCreateVideoUrl(e.target.value)}
-                      placeholder="/uploads/video_file.mp4 or YouTube / Video URL"
+                      placeholder={t('admin_memories_form_video_url_placeholder')}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
                     />
                   </div>
@@ -1581,28 +1610,27 @@ export const MemoriesModeration: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-3">
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Description (English)</span>
-                    <span className="text-[10px] text-gray-500 font-normal">ஆங்கில விவரம்</span>
+                    <span>{t('admin_memories_form_desc_en_label')}</span>
                   </label>
                   <textarea
                     rows={2}
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
-                    placeholder="Enter memory description in English..."
+                    placeholder={t('admin_memories_form_desc_en_placeholder')}
                     className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl text-xs text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-[#111111] uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Description (Tamil / தமிழ்)</span>
-                    <span className="text-[10px] text-gray-500 font-normal">தமிழ் விவரம்</span>
+                    <span>{t('admin_memories_form_desc_ta_label')}</span>
+              
                   </label>
                   <textarea
                     rows={2}
                     value={createDescriptionTa}
                     onChange={(e) => setCreateDescriptionTa(e.target.value)}
-                    placeholder="நினைவுகள் பற்றிய விவரங்களை தமிழில் உள்ளிடவும்..."
+                    placeholder={t('admin_memories_form_desc_ta_placeholder')}
                     className="w-full p-3 bg-gray-50 border border-gray-300 rounded-xl text-xs text-[#111111] focus:bg-white focus:border-[#F4C542] focus:outline-none"
                   />
                 </div>
@@ -1611,11 +1639,11 @@ export const MemoriesModeration: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <Button type="button" variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
-                  Cancel / ரத்து செய்க
+                  {t('admin_memories_form_cancel_btn')}
                 </Button>
                 <Button type="submit" isLoading={submittingCreate}>
                   <CheckCircle2 className="w-4 h-4 mr-1 text-[#F4C542]" />
-                  <span>{editingMemory ? 'Update Memory Record / புதுப்பிக்க' : 'Save & Publish Media Record'}</span>
+                  <span>{editingMemory ? t('admin_memories_form_update_btn') : t('admin_memories_form_publish_btn')}</span>
                 </Button>
               </div>
             </form>

@@ -119,7 +119,7 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
         recipient = digits
 
     sender = (getattr(settings, "BREVO_SMS_SENDER", "") or getattr(settings, "EMAILS_FROM_NAME", "") or "NHSSAL")[:11]
-    content = f"Your NHSS Alumni OTP is {otp_code}. Valid for 5 minutes."
+    content = f"Your NHSS Alumni OTP is {otp_code}. Valid for 5 minutes.Do not share this with anyone."
 
     headers = {
         "accept": "application/json",

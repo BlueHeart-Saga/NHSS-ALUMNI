@@ -463,3 +463,186 @@ export interface CreateFeedbackPayload {
   feedback_text_ta?: string;
   rating?: number;
 }
+
+// =============================================================================
+// AUDIT & FINANCIAL STATEMENTS
+// =============================================================================
+export interface AuditStatement {
+  id: string;
+  school_id?: string;
+  title: string;
+  title_ta?: string;
+  description?: string;
+  description_ta?: string;
+  financial_year: string;
+  period_start: string;
+  period_end: string;
+  posted_date?: string;
+  pdf_url?: string;
+  pdf_file_name?: string;
+  pdf_file_size?: number;
+  is_published: boolean;
+  display_order: number;
+  status: 'ACTIVE' | 'ARCHIVED';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type AuditStatementDetail = AuditStatement;
+
+export interface AuditStatementListSummary {
+  id: string;
+  title: string;
+  title_ta?: string;
+  description?: string;
+  description_ta?: string;
+  financial_year: string;
+  period_start: string;
+  period_end: string;
+  posted_date?: string;
+}
+
+// =============================================================================
+// CONTRIBUTIONS
+// =============================================================================
+export type ContributionPurpose =
+  | 'GENERAL'
+  | 'SCHOLARSHIP'
+  | 'INFRASTRUCTURE'
+  | 'EVENT'
+  | 'OTHER';
+
+export type ContributionStatus = 'PENDING' | 'COMPLETED' | 'REJECTED';
+
+export interface Contribution {
+  id: string;
+  school_id?: string;
+  alumni_id?: string;
+  user_id?: string;
+  contributor_name: string;
+  contributor_name_ta?: string;
+  batch_year?: number;
+  amount: number;
+  currency: string;
+  purpose: ContributionPurpose;
+  purpose_note?: string;
+  contribution_date?: string;
+  financial_year?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  proof_url?: string;
+  status: ContributionStatus;
+  public_visibility: boolean;
+  admin_remarks?: string;
+
+  // NEW — alumni-form structured fields (returned by admin list API)
+  contact_number?: string;
+  address?: string;
+  specific_purpose?: string;
+  receipt_required?: boolean;
+  remarks?: string;
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TopContributor {
+  id: string;
+  name: string;
+  name_ta?: string;
+  batch?: number;
+  amount: number;
+  contribution_date?: string;
+}
+
+export interface CreateContributionPayload {
+  amount: number;
+  currency?: string;
+  purpose?: ContributionPurpose;
+  purpose_note?: string;
+  contribution_date?: string;
+  financial_year?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  proof_url?: string;
+  public_visibility?: boolean;
+  remarks?: string;
+
+  // NEW — alumni-form structured fields
+  contact_number?: string;
+  address?: string;
+  specific_purpose?: string;
+  receipt_required?: boolean;
+}
+
+export interface ContributionAnalyticsRow {
+  financial_year: string;
+  total_amount: number;
+  count: number;
+  completed: number;
+  pending: number;
+}
+
+export interface AdminCreateContributionPayload extends CreateContributionPayload {
+  alumni_id: string;
+  status?: 'PENDING' | 'COMPLETED' | 'REJECTED';
+}
+
+// =============================================================================
+// SPONSORS
+// =============================================================================
+export type SponsorTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'STANDARD';
+
+export interface Sponsor {
+  id: string;
+  school_id?: string;
+  created_by?: string;
+  name: string;
+  name_ta?: string;
+  description?: string;
+  description_ta?: string;
+  logo_url?: string;
+  website_url?: string;
+  financial_year: string;
+  amount?: number;
+  sponsored_item?: string;
+  sponsor_tier?: SponsorTier;
+  display_order?: number;
+  is_published: boolean;
+  status: 'ACTIVE' | 'INACTIVE';
+
+  // ── Approval workflow ──────────────────────────────────────────────────
+  // PENDING   = alumni-submitted, awaiting admin review
+  // PUBLISHED = visible on the public Audit / Sponsors page
+  // REJECTED  = admin declined; not publicly visible
+  approval_status?: 'PENDING' | 'PUBLISHED' | 'REJECTED';
+
+  // ── Source of submission ───────────────────────────────────────────────
+  // ALUMNI = created by an alumnus via /sponsors/my (starts as PENDING)
+  // ADMIN  = created by a school admin via /sponsors/admin (starts as PUBLISHED)
+  created_by_role?: 'ALUMNI' | 'ADMIN';
+
+  // ── Rejection metadata ─────────────────────────────────────────────────
+  // Populated when the admin rejects the sponsor; also becomes the body of
+  // the alumni notification for alumni-submitted sponsors.
+  rejection_reason?: string;
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+export interface Notification {
+  id: string;
+  user_id?: string;
+  kind?: string;                 // 'SPONSOR_REJECTED' | 'GENERAL' | etc.
+  title: string;
+  body: string;
+  related_type?: string;         // 'sponsor' | 'contribution' | ...
+  related_id?: string;
+  is_read: boolean;
+  created_at?: string;
+  read_at?: string;
+}

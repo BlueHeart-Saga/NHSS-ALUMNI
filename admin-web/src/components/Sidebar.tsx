@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
+import { NavLink, useLocation } from 'react-router-dom';
+import {
   LayoutDashboard, Users, UserCheck, GraduationCap, Calendar, Sparkles,
   Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Award, Trophy,
-  MessageSquareQuote
+  MessageSquareQuote, FileText, HandCoins, HandHeart, Landmark, ChevronDown
 } from 'lucide-react';
 import { SchoolProfile } from '../types';
 import { api } from '../services/api';
@@ -15,8 +15,16 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const { t, logoUrl } = useLanguage();
+  const location = useLocation();
   const [school, setSchool] = useState<SchoolProfile | null>(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const financialPaths = ['/school-admin/audit', '/school-admin/contributions', '/school-admin/sponsors'];
+  const isFinancialActive = financialPaths.some((path) => location.pathname.startsWith(path));
+  const [isFinancialOpen, setIsFinancialOpen] = useState(isFinancialActive);
+
+  useEffect(() => {
+    if (isFinancialActive) setIsFinancialOpen(true);
+  }, [isFinancialActive]);
 
   useEffect(() => {
     api.getSchoolProfile().then(setSchool).catch(console.error);
@@ -92,7 +100,76 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
           {/* Navigation Menu */}
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {navItems.slice(0, 11).map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                      isActive
+                        ? 'bg-[#FFF7D6] text-[#111111] border border-[#F4C542]/40 font-semibold shadow-2xs'
+                        : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111111]'
+                    }`
+                  }
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </NavLink>
+              );
+            })}
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsFinancialOpen((open) => !open)}
+                aria-expanded={isFinancialOpen}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  isFinancialActive
+                    ? 'bg-[#FFF7D6] text-[#111111] border border-[#F4C542]/40 font-semibold shadow-2xs'
+                    : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111111]'
+                }`}
+              >
+                <span className="flex items-center space-x-3 min-w-0">
+                  <Landmark className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{t('admin_financial_management')}</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${isFinancialOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isFinancialOpen && (
+                <div className="ml-4 pl-3 border-l border-[#E5E7EB] space-y-1 mt-1">
+                  {[
+                    { label: t('admin_audit_page_title'), path: '/school-admin/audit', icon: FileText },
+                    { label: t('admin_contributions_page_title'), path: '/school-admin/contributions', icon: HandCoins },
+                    { label: t('admin_sponsors_page_title'), path: '/school-admin/sponsors', icon: HandHeart },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center space-x-3 px-3 py-2 rounded-xl font-medium text-sm transition-all ${
+                            isActive
+                              ? 'bg-[#FFF7D6] text-[#111111] border border-[#F4C542]/40 font-semibold shadow-2xs'
+                              : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111111]'
+                          }`
+                        }
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {navItems.slice(11).map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink

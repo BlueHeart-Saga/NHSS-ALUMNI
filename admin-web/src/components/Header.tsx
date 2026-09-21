@@ -2,18 +2,22 @@ import React from 'react';
 import { Search, ShieldCheck } from 'lucide-react';
 import { AlumniProfile } from '../types';
 import { LanguageSelector } from './LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeaderProps {
   user: AlumniProfile | null;
-  title: string;
+  /** Translation key for the page title (e.g. "admin_page_title_overview") */
+  titleKey: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, title }) => {
+export const Header: React.FC<HeaderProps> = ({ user, titleKey }) => {
+  const { t } = useLanguage();
+
   return (
     <header className="bg-white border-b border-[#E5E7EB] px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-20">
       <div className="min-w-0 flex-1 pr-3">
-        <h2 className="text-base sm:text-xl font-bold text-[#111111] truncate">{title}</h2>
-        <p className="text-[11px] sm:text-xs text-[#6B7280] truncate">School Alumni Management System</p>
+        <h2 className="text-base sm:text-xl font-bold text-[#111111] truncate">{t(titleKey)}</h2>
+        <p className="text-[11px] sm:text-xs text-[#6B7280] truncate">{t('admin_header_subtitle')}</p>
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
@@ -22,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title }) => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
           <input
             type="text"
-            placeholder="Search alumni, batch..."
+            placeholder={t('admin_header_search_placeholder')}
             className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-9 pr-4 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542] focus:bg-white transition-all"
           />
         </div>
@@ -33,19 +37,23 @@ export const Header: React.FC<HeaderProps> = ({ user, title }) => {
         {/* Status Chip */}
         <div className="hidden sm:flex items-center space-x-1.5 bg-[#FFF7D6] border border-[#F4C542]/50 text-[#854D0E] px-3 py-1.5 rounded-full text-xs font-semibold">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-          <span>School Admin</span>
+          <span>{t('admin_header_role_chip')}</span>
         </div>
 
         {/* User Avatar */}
         <div className="flex items-center space-x-2 sm:space-x-3 pl-2 border-l border-[#E5E7EB]">
           <img
-            src={user?.profile_photo_url || `https://ui-avatars.com/api/?name=${user?.full_name || 'Admin'}&background=111111&color=ffffff`}
-            alt="Avatar"
+            src={user?.profile_photo_url || `https://ui-avatars.com/api/?name=${user?.full_name || t('admin_header_default_user_name')}&background=111111&color=ffffff`}
+            alt={t('admin_header_avatar_alt')}
             className="w-8 sm:w-9 h-8 sm:h-9 rounded-full object-cover border border-[#E5E7EB] shrink-0"
           />
           <div className="hidden lg:block text-left">
-            <div className="text-xs font-bold text-[#111111] truncate">{user?.full_name || "School Admin"}</div>
-            <div className="text-[11px] text-[#6B7280] truncate">{user?.email || user?.mobile || "Administrator"}</div>
+            <div className="text-xs font-bold text-[#111111] truncate">
+              {user?.full_name || t('admin_header_default_user_name')}
+            </div>
+            <div className="text-[11px] text-[#6B7280] truncate">
+              {user?.email || user?.mobile || t('admin_header_default_user_role')}
+            </div>
           </div>
         </div>
       </div>

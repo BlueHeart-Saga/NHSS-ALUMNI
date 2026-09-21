@@ -12,50 +12,33 @@ import { ImageUploadAndEdit } from '../../components/ImageUploadAndEdit';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AssociationTeamMember, AlumniProfile } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
+// Common positions — the `key` is the English DB value; the `labelKey` is the
+// translation key for display in the dropdown.
 const COMMON_POSITIONS = [
-  'President',
-  'Vice President',
-  'Secretary',
-  'Joint Secretary',
-  'Treasurer',
-  'Executive Committee Member',
-  'Other'
+  { key: 'President',                labelKey: 'admin_association_pos_president' },
+  { key: 'Vice President',           labelKey: 'admin_association_pos_vice_president' },
+  { key: 'Secretary',                labelKey: 'admin_association_pos_secretary' },
+  { key: 'Joint Secretary',          labelKey: 'admin_association_pos_joint_secretary' },
+  { key: 'Treasurer',                labelKey: 'admin_association_pos_treasurer' },
+  { key: 'Executive Committee Member', labelKey: 'admin_association_pos_executive' },
+  { key: 'Other',                    labelKey: 'admin_association_pos_other' },
 ];
 
-const POSITION_TA_MAP: Record<string, string> = {
-  'President': 'தலைவர்',
-  'Vice President': 'துணைத் தலைவர்',
-  'Secretary': 'செயலாளர்',
-  'Joint Secretary': 'துணைச் செயலாளர்',
-  'Treasurer': 'பொருளாளர்',
-  'Executive Committee Member': 'செயற்குழு உறுப்பினர்',
-  'Other': 'உறுப்பினர்'
-};
-
-const POSITION_TA_HINTS: Record<string, string> = {
-  'President': 'President (தலைவர்)',
-  'Vice President': 'Vice President (துணைத் தலைவர்)',
-  'Secretary': 'Secretary (செயலாளர்)',
-  'Joint Secretary': 'Joint Secretary (துணைச் செயலாளர்)',
-  'Treasurer': 'Treasurer (பொருளாளர்)',
-  'Executive Committee Member': 'Executive Committee Member (செயற்குழு உறுப்பினர்)',
-  'Other': 'Other (உறுப்பினர் பொறுப்பு)'
-};
-
-const getPositionDisplayWithTa = (position: string) => {
-  if (!position) return '';
-  const lower = position.toLowerCase();
-  if (lower.includes('president') || lower.includes('thalaivar')) return `${position} (தலைவர்)`;
-  if (lower.includes('vice president')) return `${position} (துணைத் தலைவர்)`;
-  if (lower.includes('secretary') || lower.includes('seyalalar')) return `${position} (செயலாளர்)`;
-  if (lower.includes('joint secretary')) return `${position} (துணைச் செயலாளர்)`;
-  if (lower.includes('treasurer') || lower.includes('porulalar')) return `${position} (பொருளாளர்)`;
-  if (lower.includes('committee') || lower.includes('member')) return `${position} (செயற்குழு)`;
-  return position;
+// Maps an English position value to its translation key (used for display in the table)
+const POSITION_KEY_MAP: Record<string, string> = {
+  'President': 'admin_association_pos_president',
+  'Vice President': 'admin_association_pos_vice_president',
+  'Secretary': 'admin_association_pos_secretary',
+  'Joint Secretary': 'admin_association_pos_joint_secretary',
+  'Treasurer': 'admin_association_pos_treasurer',
+  'Executive Committee Member': 'admin_association_pos_executive',
+  'Other': 'admin_association_pos_other',
 };
 
 export const AssociationTeam: React.FC = () => {
+  const { t } = useLanguage();
   const [teamList, setTeamList] = useState<AssociationTeamMember[]>([]);
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +96,23 @@ export const AssociationTeam: React.FC = () => {
     }
   };
 
+  // Returns localized display label for a position (English or Tamil value).
+  const getPositionLabel = (position: string): string => {
+    if (!position) return '';
+    // Direct match against common positions
+    const key = POSITION_KEY_MAP[position];
+    if (key) return t(key);
+    // Fuzzy fallback for custom positions
+    const lower = position.toLowerCase();
+    if (lower.includes('president') && lower.includes('vice')) return t('admin_association_pos_vice_president');
+    if (lower.includes('president')) return t('admin_association_pos_president');
+    if (lower.includes('joint') && lower.includes('secretary')) return t('admin_association_pos_joint_secretary');
+    if (lower.includes('secretary')) return t('admin_association_pos_secretary');
+    if (lower.includes('treasurer')) return t('admin_association_pos_treasurer');
+    if (lower.includes('committee') || lower.includes('member')) return t('admin_association_pos_executive');
+    return position;
+  };
+
   // Filter alumni in search tab of modal
   const filteredAlumni = useMemo(() => {
     if (!alumniSearchTerm.trim()) return alumniList.slice(0, 10);
@@ -159,9 +159,12 @@ export const AssociationTeam: React.FC = () => {
     try {
       const res = await api.uploadSchoolImage(file);
       setPhotoUrl(res.url);
-      alertService.showSuccess('Photo Uploaded', 'Profile photo uploaded successfully.');
+      alertService.showSuccess(
+        t('admin_association_alert_photo_uploaded_title'),
+        t('admin_association_alert_photo_uploaded_body')
+      );
     } catch (err: any) {
-      alertService.handleApiError(err, 'Photo upload failed.');
+      alertService.handleApiError(err, t('admin_association_alert_photo_error'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -205,14 +208,16 @@ export const AssociationTeam: React.FC = () => {
     setOccupation(member.occupation || '');
     setBatchYear(member.batch_year || '');
 
-    if (COMMON_POSITIONS.includes(member.position)) {
+    // Match against common positions by English key
+    const isCommon = COMMON_POSITIONS.some(p => p.key === member.position);
+    if (isCommon) {
       setPositionSelect(member.position);
       setCustomPosition('');
     } else {
       setPositionSelect('Other');
       setCustomPosition(member.position);
     }
-    setPositionTa(member.position_ta || POSITION_TA_MAP[member.position] || '');
+    setPositionTa(member.position_ta || '');
 
     setResponsibility(member.responsibility || '');
     setTermStart(member.term_start || '2024');
@@ -226,7 +231,10 @@ export const AssociationTeam: React.FC = () => {
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      alertService.showWarning('Required Field', 'Please provide member full name.');
+      alertService.showWarning(
+        t('admin_association_alert_required_title'),
+        t('admin_association_alert_required_body')
+      );
       return;
     }
 
@@ -258,29 +266,40 @@ export const AssociationTeam: React.FC = () => {
 
       if (editingMemberId) {
         await api.updateAssociationTeamMember(editingMemberId, payload);
-        alertService.showSuccess('Profile Updated', `${fullName} association profile updated.`);
+        alertService.showSuccess(
+          t('admin_association_alert_updated_title'),
+          t('admin_association_alert_updated_body').replace('{name}', fullName)
+        );
       } else {
         await api.createAssociationTeamMember(payload);
-        alertService.showSuccess('Team Member Added', `${fullName} added as ${finalPosition}.`);
+        alertService.showSuccess(
+          t('admin_association_alert_created_title'),
+          t('admin_association_alert_created_body')
+            .replace('{name}', fullName)
+            .replace('{position}', getPositionLabel(finalPosition))
+        );
       }
 
       setIsModalOpen(false);
       loadData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to save association team profile.');
+      alertService.handleApiError(err, t('admin_association_alert_save_error'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteMember = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${name} from the Alumni Association Team?`)) return;
+    if (!window.confirm(t('admin_association_alert_confirm_delete').replace('{name}', name))) return;
     try {
       await api.deleteAssociationTeamMember(id);
-      alertService.showSuccess('Removed', `${name} removed from association team.`);
+      alertService.showSuccess(
+        t('admin_association_alert_removed_title'),
+        t('admin_association_alert_removed_body').replace('{name}', name)
+      );
       loadData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to remove team member.');
+      alertService.handleApiError(err, t('admin_association_alert_delete_error'));
     }
   };
 
@@ -288,10 +307,15 @@ export const AssociationTeam: React.FC = () => {
     const newStatus = member.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
       await api.updateAssociationTeamMember(member.id, { status: newStatus });
-      alertService.showSuccess('Status Updated', `${member.full_name} status set to ${newStatus}.`);
+      alertService.showSuccess(
+        t('admin_association_alert_status_updated_title'),
+        t('admin_association_alert_status_updated_body')
+          .replace('{name}', member.full_name)
+          .replace('{status}', newStatus === 'ACTIVE' ? t('admin_association_status_active') : t('admin_association_status_inactive'))
+      );
       loadData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to update status.');
+      alertService.handleApiError(err, t('admin_association_alert_status_error'));
     }
   };
 
@@ -299,7 +323,7 @@ export const AssociationTeam: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'Team Leader / Member',
+      header: t('admin_association_col_member'),
       accessor: (row: AssociationTeamMember) => (
         <div className="flex items-center space-x-3">
           <img 
@@ -316,7 +340,9 @@ export const AssociationTeam: React.FC = () => {
               <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                 row.profile_type === 'alumni' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
               }`}>
-                {row.profile_type === 'alumni' ? `Alumni ' ${row.batch_year || ''}` : 'Common Profile'}
+                {row.profile_type === 'alumni'
+                  ? t('admin_association_badge_alumni').replace('{year}', String(row.batch_year || ''))
+                  : t('admin_association_badge_common')}
               </span>
             </div>
             {row.occupation && <div className="text-xs text-[#6B7280]">{row.occupation}</div>}
@@ -325,18 +351,18 @@ export const AssociationTeam: React.FC = () => {
       )
     },
     {
-      header: 'Association Position',
+      header: t('admin_association_col_position'),
       accessor: (row: AssociationTeamMember) => (
         <div>
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-3 py-1 rounded-full inline-block">
-            {row.position} {row.position_ta ? `(${row.position_ta})` : (getPositionDisplayWithTa(row.position) !== row.position ? `(${getPositionDisplayWithTa(row.position).replace(row.position, '').replace(/[()]/g, '').trim()})` : '')}
+            {getPositionLabel(row.position)}
           </span>
           {row.responsibility && <div className="text-xs text-[#6B7280] mt-1">{row.responsibility}</div>}
         </div>
       )
     },
     {
-      header: 'Term Period',
+      header: t('admin_association_col_term'),
       accessor: (row: AssociationTeamMember) => (
         <div className="text-xs font-semibold text-[#111111]">
           {row.term_start || '2024'} - {row.term_end || '2026'}
@@ -344,16 +370,16 @@ export const AssociationTeam: React.FC = () => {
       )
     },
     {
-      header: 'Contact & Location',
+      header: t('admin_association_col_contact'),
       accessor: (row: AssociationTeamMember) => (
         <div className="text-xs space-y-0.5">
           <div className="font-medium text-[#111111]">{row.mobile || row.email || 'N/A'}</div>
-          <div className="text-[#6B7280]">{row.location || 'Thoothukudi'}</div>
+          <div className="text-[#6B7280]">{row.location || t('admin_association_default_location')}</div>
         </div>
       )
     },
     {
-      header: 'Order',
+      header: t('admin_association_col_order'),
       accessor: (row: AssociationTeamMember) => (
         <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg">
           #{row.display_order}
@@ -361,7 +387,7 @@ export const AssociationTeam: React.FC = () => {
       )
     },
     {
-      header: 'Status',
+      header: t('admin_association_col_status'),
       accessor: (row: AssociationTeamMember) => (
         <button
           onClick={() => handleToggleStatus(row)}
@@ -369,25 +395,25 @@ export const AssociationTeam: React.FC = () => {
             row.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {row.status}
+          {row.status === 'ACTIVE' ? t('admin_association_status_active') : t('admin_association_status_inactive')}
         </button>
       )
     },
     {
-      header: 'Action',
+      header: t('admin_association_col_action'),
       accessor: (row: AssociationTeamMember) => (
         <div className="flex items-center space-x-2">
           <button
             onClick={() => openEditModal(row)}
             className="p-1.5 text-gray-600 hover:text-[#111111] hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-            title="Edit Profile"
+            title={t('admin_association_action_edit')}
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleDeleteMember(row.id, row.full_name)}
             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-            title="Delete Team Member"
+            title={t('admin_association_action_delete')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -403,16 +429,16 @@ export const AssociationTeam: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <Award className="w-6 h-6 text-[#854D0E]" />
-            <h2 className="text-2xl font-bold text-[#111111]">Alumni Association Team</h2>
+            <h2 className="text-2xl font-bold text-[#111111]">{t('admin_association_page_title')}</h2>
           </div>
           <p className="text-xs text-[#6B7280]">
-            Manage Sangam central leadership committee &amp; common profiles (Independent of student records)
+            {t('admin_association_page_subtitle')}
           </p>
         </div>
 
         <Button onClick={openAddModal} className="w-full sm:w-auto">
           <UserPlus className="w-4 h-4 mr-1.5" />
-          + Add Team Member
+          {t('admin_association_add_btn')}
         </Button>
       </div>
 
@@ -424,7 +450,7 @@ export const AssociationTeam: React.FC = () => {
           </div>
           <div>
             <div className="text-2xl font-black text-[#111111]">{teamList.length}</div>
-            <div className="text-xs text-[#6B7280]">Total Team Profiles</div>
+            <div className="text-xs text-[#6B7280]">{t('admin_association_stat_total')}</div>
           </div>
         </div>
 
@@ -436,7 +462,7 @@ export const AssociationTeam: React.FC = () => {
             <div className="text-2xl font-black text-[#111111]">
               {teamList.filter((t) => t.status === 'ACTIVE').length}
             </div>
-            <div className="text-xs text-[#6B7280]">Active Leaders</div>
+            <div className="text-xs text-[#6B7280]">{t('admin_association_stat_active')}</div>
           </div>
         </div>
 
@@ -448,7 +474,7 @@ export const AssociationTeam: React.FC = () => {
             <div className="text-2xl font-black text-[#111111]">
               {teamList.filter((t) => t.profile_type === 'alumni').length}
             </div>
-            <div className="text-xs text-[#6B7280]">Linked Alumni Leaders</div>
+            <div className="text-xs text-[#6B7280]">{t('admin_association_stat_linked')}</div>
           </div>
         </div>
 
@@ -460,7 +486,7 @@ export const AssociationTeam: React.FC = () => {
             <div className="text-2xl font-black text-[#111111]">
               {teamList.filter((t) => t.profile_type === 'common').length}
             </div>
-            <div className="text-xs text-[#6B7280]">Common Profiles</div>
+            <div className="text-xs text-[#6B7280]">{t('admin_association_stat_common')}</div>
           </div>
         </div>
       </div>
@@ -468,13 +494,15 @@ export const AssociationTeam: React.FC = () => {
       {/* Directory Table Card */}
       <div className="bg-white border border-[#E5E7EB] rounded-3xl p-4 sm:p-8 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
-          <h3 className="font-bold text-lg text-[#111111]">Association Leadership Directory ({filteredTeam.length})</h3>
+          <h3 className="font-bold text-lg text-[#111111]">
+            {t('admin_association_directory_title').replace('{count}', String(filteredTeam.length))}
+          </h3>
 
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search team member..."
+              placeholder={t('admin_association_search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-9 pr-4 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
@@ -486,12 +514,16 @@ export const AssociationTeam: React.FC = () => {
       </div>
 
       {/* ADD / EDIT TEAM MEMBER MODAL */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingMemberId ? "Edit Association Team Member" : "Add Association Team Member"}>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingMemberId ? t('admin_association_modal_title_edit') : t('admin_association_modal_title_add')}
+      >
         <form onSubmit={handleSaveMember} className="space-y-5">
           {/* Creation Mode Radio Selection (Only if adding new) */}
           {!editingMemberId && (
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#111111]">How do you want to add this team member?</label>
+              <label className="block text-xs font-bold text-[#111111]">{t('admin_association_mode_label')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label
                   onClick={() => setCreationMode('alumni')}
@@ -509,8 +541,8 @@ export const AssociationTeam: React.FC = () => {
                     className="text-[#854D0E]"
                   />
                   <div>
-                    <div className="font-bold text-xs text-[#111111]">Select from Alumni</div>
-                    <div className="text-[11px] text-[#6B7280]">Search alumni DB &amp; pre-fill info</div>
+                    <div className="font-bold text-xs text-[#111111]">{t('admin_association_mode_alumni_title')}</div>
+                    <div className="text-[11px] text-[#6B7280]">{t('admin_association_mode_alumni_sub')}</div>
                   </div>
                 </label>
 
@@ -530,8 +562,8 @@ export const AssociationTeam: React.FC = () => {
                     className="text-[#854D0E]"
                   />
                   <div>
-                    <div className="font-bold text-xs text-[#111111]">Create Common Profile</div>
-                    <div className="text-[11px] text-[#6B7280]">Add independent leadership profile</div>
+                    <div className="font-bold text-xs text-[#111111]">{t('admin_association_mode_common_title')}</div>
+                    <div className="text-[11px] text-[#6B7280]">{t('admin_association_mode_common_sub')}</div>
                   </div>
                 </label>
               </div>
@@ -541,12 +573,12 @@ export const AssociationTeam: React.FC = () => {
           {/* Option 1: Alumni Search Selector */}
           {!editingMemberId && creationMode === 'alumni' && (
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
-              <label className="block text-xs font-bold text-[#111111]">Search Alumni Database</label>
+              <label className="block text-xs font-bold text-[#111111]">{t('admin_association_alumni_search_label')}</label>
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Type Name, Mobile, Email, or Admission ID..."
+                  placeholder={t('admin_association_alumni_search_placeholder')}
                   value={alumniSearchTerm}
                   onChange={(e) => setAlumniSearchTerm(e.target.value)}
                   className="w-full bg-white border border-[#E5E7EB] rounded-xl pl-9 pr-4 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
@@ -556,18 +588,22 @@ export const AssociationTeam: React.FC = () => {
               {selectedAlumnus && (
                 <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-bold text-[#854D0E]">Selected: {selectedAlumnus.full_name}</span>
-                    <span className="text-[#6B7280] ml-2">(Class of {selectedAlumnus.passing_year})</span>
+                    <span className="font-bold text-[#854D0E]">
+                      {t('admin_association_alumni_selected_prefix')} {selectedAlumnus.full_name}
+                    </span>
+                    <span className="text-[#6B7280] ml-2">
+                      {t('admin_association_alumni_class_of').replace('{year}', String(selectedAlumnus.passing_year))}
+                    </span>
                   </div>
                   <span className="text-emerald-700 font-bold flex items-center">
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Data Prefilled
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t('admin_association_alumni_prefilled')}
                   </span>
                 </div>
               )}
 
               <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100 bg-white">
                 {filteredAlumni.length === 0 ? (
-                  <div className="p-3 text-center text-xs text-gray-400">No matching alumni found</div>
+                  <div className="p-3 text-center text-xs text-gray-400">{t('admin_association_alumni_empty')}</div>
                 ) : (
                   filteredAlumni.map((a) => (
                     <div key={a.id} className="p-2.5 flex items-center justify-between hover:bg-gray-50">
@@ -579,7 +615,9 @@ export const AssociationTeam: React.FC = () => {
                         />
                         <div>
                           <div className="text-xs font-bold text-[#111111]">{a.full_name}</div>
-                          <div className="text-[10px] text-gray-500">Batch {a.passing_year} • {a.current_city || 'Thoothukudi'}</div>
+                          <div className="text-[10px] text-gray-500">
+                            {t('admin_association_alumni_batch_prefix').replace('{year}', String(a.passing_year))} • {a.current_city || t('admin_association_default_location')}
+                          </div>
                         </div>
                       </div>
                       <button
@@ -587,7 +625,7 @@ export const AssociationTeam: React.FC = () => {
                         onClick={() => handleSelectAlumnus(a)}
                         className="px-3 py-1 bg-[#F4C542] hover:bg-[#e0b236] text-[#111111] font-bold text-xs rounded-lg transition-colors cursor-pointer"
                       >
-                        Select
+                        {t('admin_association_alumni_select_btn')}
                       </button>
                     </div>
                   ))
@@ -598,19 +636,21 @@ export const AssociationTeam: React.FC = () => {
 
           {/* Personal Details */}
           <div className="border-t border-gray-200 pt-3 space-y-4">
-            <h4 className="font-bold text-xs text-[#111111] uppercase tracking-wider text-gray-500">1. Personal &amp; Contact Details</h4>
+            <h4 className="font-bold text-xs text-[#111111] uppercase tracking-wider text-gray-500">
+              {t('admin_association_form_section_personal')}
+            </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Full Name (English) *"
-                placeholder="e.g. D. Selwyn"
+                label={t('admin_association_form_name_en_label')}
+                placeholder={t('admin_association_form_name_en_placeholder')}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
               <Input
-                label="Full Name in Tamil (தமிழ் பெயர்)"
-                placeholder="e.g. D. செல்வின்"
+                label={t('admin_association_form_name_ta_label')}
+                placeholder={t('admin_association_form_name_ta_placeholder')}
                 value={fullNameTa}
                 onChange={(e) => setFullNameTa(e.target.value)}
               />
@@ -618,15 +658,15 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Email Address"
+                label={t('admin_association_form_email_label')}
                 type="email"
-                placeholder="email@example.com"
+                placeholder={t('admin_association_form_email_placeholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Input
-                label="Mobile Number"
-                placeholder="+91 98765 43210"
+                label={t('admin_association_form_mobile_label')}
+                placeholder={t('admin_association_form_mobile_placeholder')}
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
               />
@@ -634,14 +674,14 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Current Location / City"
-                placeholder="e.g. Thoothukudi / Chennai"
+                label={t('admin_association_form_location_label')}
+                placeholder={t('admin_association_form_location_placeholder')}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
               <Input
-                label="Occupation / Profession"
-                placeholder="e.g. Software Architect / Retired"
+                label={t('admin_association_form_occupation_label')}
+                placeholder={t('admin_association_form_occupation_placeholder')}
                 value={occupation}
                 onChange={(e) => setOccupation(e.target.value)}
               />
@@ -649,9 +689,9 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Batch Year (If Alumni)"
+                label={t('admin_association_form_batch_label')}
                 type="number"
-                placeholder="e.g. 1976"
+                placeholder={t('admin_association_form_batch_placeholder')}
                 value={batchYear}
                 onChange={(e) => setBatchYear(e.target.value ? Number(e.target.value) : '')}
               />
@@ -660,8 +700,8 @@ export const AssociationTeam: React.FC = () => {
             {/* Profile Photo Upload with Image Editor */}
             <div className="pt-2">
               <ImageUploadAndEdit
-                label="Profile Photo (சுயவிவரப் படம்)"
-                sublabel="Upload, crop to square 1:1, rotate, or adjust colors."
+                label={t('admin_association_form_photo_label')}
+                sublabel={t('admin_association_form_photo_sublabel')}
                 value={photoUrl}
                 onChange={setPhotoUrl}
                 aspectRatioPreset="1:1"
@@ -671,36 +711,45 @@ export const AssociationTeam: React.FC = () => {
 
           {/* Association Position & Term Details */}
           <div className="border-t border-gray-200 pt-3 space-y-4">
-            <h4 className="font-bold text-xs text-[#111111] uppercase tracking-wider text-gray-500">2. Association Position &amp; Term</h4>
+            <h4 className="font-bold text-xs text-[#111111] uppercase tracking-wider text-gray-500">
+              {t('admin_association_form_section_position')}
+            </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#111111] mb-1.5">
-                  Association Position (English) *
+                  {t('admin_association_form_position_en_label')}
                 </label>
                 <select
                   value={positionSelect}
                   onChange={(e) => {
                     const val = e.target.value;
                     setPositionSelect(val);
-                    if (POSITION_TA_MAP[val]) {
-                      setPositionTa(POSITION_TA_MAP[val]);
-                    }
+                    // Auto-fill Tamil position when a preset is chosen
+                    const POSITION_TA_PRESET: Record<string, string> = {
+                      'President': 'தலைவர்',
+                      'Vice President': 'துணைத் தலைவர்',
+                      'Secretary': 'செயலாளர்',
+                      'Joint Secretary': 'இணைச் செயலாளர்',
+                      'Treasurer': 'பொருளாளர்',
+                      'Executive Committee Member': 'செயற்குழு உறுப்பினர்',
+                    };
+                    if (POSITION_TA_PRESET[val]) setPositionTa(POSITION_TA_PRESET[val]);
                   }}
                   className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] font-semibold"
                   required
                 >
                   {COMMON_POSITIONS.map((pos) => (
-                    <option key={pos} value={pos}>
-                      {POSITION_TA_HINTS[pos] || pos}
+                    <option key={pos.key} value={pos.key}>
+                      {t(pos.labelKey)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <Input
-                label="Position in Tamil (பதவி - தமிழ்)"
-                placeholder="e.g. தலைவர் / செயலாளர் / துணைத் தலைவர் / பொருளாளர்"
+                label={t('admin_association_form_position_ta_label')}
+                placeholder={t('admin_association_form_position_ta_placeholder')}
                 value={positionTa}
                 onChange={(e) => setPositionTa(e.target.value)}
               />
@@ -708,15 +757,15 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Responsibility / Role Overview"
-                placeholder="e.g. Managing Executive Meetings & Events"
+                label={t('admin_association_form_responsibility_label')}
+                placeholder={t('admin_association_form_responsibility_placeholder')}
                 value={responsibility}
                 onChange={(e) => setResponsibility(e.target.value)}
               />
               {positionSelect === 'Other' ? (
                 <Input
-                  label="Specify Custom Position (English) *"
-                  placeholder="e.g. Academic Committee Head"
+                  label={t('admin_association_form_custom_position_label')}
+                  placeholder={t('admin_association_form_custom_position_placeholder')}
                   value={customPosition}
                   onChange={(e) => setCustomPosition(e.target.value)}
                   required
@@ -726,21 +775,21 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input
-                label="Term Start Year"
-                placeholder="2024"
+                label={t('admin_association_form_term_start_label')}
+                placeholder={t('admin_association_form_term_start_placeholder')}
                 value={termStart}
                 onChange={(e) => setTermStart(e.target.value)}
               />
               <Input
-                label="Term End Year"
-                placeholder="2026"
+                label={t('admin_association_form_term_end_label')}
+                placeholder={t('admin_association_form_term_end_placeholder')}
                 value={termEnd}
                 onChange={(e) => setTermEnd(e.target.value)}
               />
               <Input
-                label="Display Order #"
+                label={t('admin_association_form_order_label')}
                 type="number"
-                placeholder="1"
+                placeholder={t('admin_association_form_order_placeholder')}
                 value={displayOrder}
                 onChange={(e) => setDisplayOrder(Number(e.target.value))}
               />
@@ -748,20 +797,20 @@ export const AssociationTeam: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-[#111111] mb-1.5">Status</label>
+                <label className="block text-xs font-bold text-[#111111] mb-1.5">{t('admin_association_form_status_label')}</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
                   className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] font-semibold"
                 >
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
+                  <option value="ACTIVE">{t('admin_association_form_status_active')}</option>
+                  <option value="INACTIVE">{t('admin_association_form_status_inactive')}</option>
                 </select>
               </div>
 
               <Input
-                label="Profile Description / Bio"
-                placeholder="Brief leadership overview..."
+                label={t('admin_association_form_bio_label')}
+                placeholder={t('admin_association_form_bio_placeholder')}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />
@@ -771,10 +820,10 @@ export const AssociationTeam: React.FC = () => {
           {/* Form Actions */}
           <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
             <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t('admin_association_form_cancel')}
             </Button>
             <Button type="submit" isLoading={saving}>
-              {editingMemberId ? 'Save Changes' : 'Add Team Member'}
+              {editingMemberId ? t('admin_association_form_save_changes') : t('admin_association_form_add_submit')}
             </Button>
           </div>
         </form>

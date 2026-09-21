@@ -19,7 +19,7 @@ from app.services.sms import (
     send_invitation_sms, normalize_indian_mobile, is_valid_indian_mobile,
     get_mobile_query_variants, build_mobile_query_filter
 )
-from app.services.email import send_alumni_verified_email
+from app.services.email import send_alumni_verified_email, send_alumni_suspended_email
 from app.schemas.models import (
     UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest,
     AdminCreateAlumniRequest, BulkSendInvitationRequest, SendInvitationResponse
@@ -143,21 +143,63 @@ async def verify_alumni(
     except Exception:
         await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
 
-    # Dispatch Email Notification asynchronously on Approval
-    if request.status == "APPROVED" and alumni.get("email"):
-        alumni_email = alumni["email"]
-        alumni_name = alumni.get("full_name", "Alumnus")
-        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
+    # -------------------------------------------------------------------------
+    # Email notification dispatch (non-blocking, non-fatal).
+    #
+    #   - APPROVED  → send the existing verification-approval email
+    #   - SUSPENDED → send the new account-suspension email (with the admin's reason)
+    #
+    # Email failure MUST NEVER roll back the status update that was already
+    # persisted above. We capture the outcome and report it in the response so
+    # the frontend can show an accurate success/warning toast.
+    # -------------------------------------------------------------------------
+    email_sent = False
+    email_error: Optional[str] = None
+    email_missing = False
 
-        if school_id:
+    target_email = (alumni.get("email") or "").strip()
+    alumni_name = alumni.get("full_name", "Alumnus")
+
+    # Resolve the school display name once (best effort)
+    school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
+    if school_id:
+        try:
+            s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
+            if s_doc and s_doc.get("name"):
+                school_name = s_doc["name"]
+        except Exception:
+            pass
+
+    if request.status == "APPROVED":
+        if target_email:
             try:
-                s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
-                if s_doc and s_doc.get("name"):
-                    school_name = s_doc["name"]
-            except Exception:
-                pass
+                await asyncio.to_thread(send_alumni_verified_email, target_email, alumni_name, school_name)
+                email_sent = True
+            except Exception as e:
+                email_error = str(e)
+                logger.warning(f"Approval email dispatch failed for {target_email}: {e}")
+        else:
+            email_missing = True
 
-        asyncio.create_task(asyncio.to_thread(send_alumni_verified_email, alumni_email, alumni_name, school_name))
+    elif request.status == "SUSPENDED":
+        # The admin-supplied reason is stored in verification_notes.
+        reason = (request.notes or "").strip() or "No reason was provided by the school administration."
+
+        if target_email:
+            try:
+                await asyncio.to_thread(
+                    send_alumni_suspended_email,
+                    target_email,
+                    alumni_name,
+                    reason,
+                    school_name,
+                )
+                email_sent = True
+            except Exception as e:
+                email_error = str(e)
+                logger.warning(f"Suspension email dispatch failed for {target_email}: {e}")
+        else:
+            email_missing = True
 
     # Log audit
     await db.audit_logs.insert_one({
@@ -166,11 +208,37 @@ async def verify_alumni(
         "action": f"ALUMNI_{request.status}",
         "resource_type": "alumni",
         "resource_id": alumni_id,
-        "metadata": {"previous": alumni.get("verification_status"), "new": request.status},
+        "metadata": {
+            "previous": alumni.get("verification_status"),
+            "new": request.status,
+            "reason": request.notes,
+            "email_sent": email_sent,
+            "email_missing": email_missing,
+            "email_error": email_error,
+        },
         "timestamp": now
     })
 
-    return {"success": True, "message": f"Alumni application status updated to {request.status}"}
+    # Build a clear, scenario-aware response message.
+    base_msg = f"Alumni application status updated to {request.status}"
+    if request.status == "SUSPENDED":
+        if email_sent:
+            message = f"{base_msg}. Notification email sent."
+        elif email_missing:
+            message = f"{base_msg}, but notification email could not be sent because no email address is available."
+        else:
+            message = f"{base_msg}, but the notification email could not be sent."
+    else:
+        message = base_msg
+
+    return {
+        "success": True,
+        "message": message,
+        "status": request.status,
+        "email_sent": email_sent,
+        "email_missing": email_missing,
+        "email_error": email_error,
+    }
 
 @router.post("/{alumni_id}/suspend")
 async def suspend_alumni(
@@ -964,14 +1032,12 @@ async def search_directory(
             {"profession": {"$regex": search, "$options": "i"}}
         ]
 
-    cursor = db.alumni.find(
-        query,
-        {
-            # Exclude the giant base64 photo from the listing response.
-            # The photo will be fetched separately via /alumni/{id}/photo.
-            "profile_photo_url": 0,
-        }
-    ).sort("full_name", 1)
+    # NOTE: Do NOT project out `profile_photo_url`. The value stored is a small
+    # URL string (Azure Blob public URL or GridFS path like /api/v1/files/<id>),
+    # not a base64 blob. Excluding it caused uploaded photos to disappear from the
+    # admin Editable Sheet after every page refresh (the DB was correct, but the
+    # GET response omitted the field, so the frontend fell back to the placeholder).
+    cursor = db.alumni.find(query).sort("full_name", 1)
 
     limit_val = min(limit, 500) if limit is not None else 5000
     if skip > 0:

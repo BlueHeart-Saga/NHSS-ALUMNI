@@ -35,21 +35,25 @@ export const SchoolAdminLayout: React.FC = () => {
       });
   }, []);
 
-  const getPageTitle = (pathname: string) => {
-    if (pathname.includes('/school-admin/alumni/import')) return 'CSV Alumni Roster Import';
-    if (pathname.includes('/school-admin/alumni')) return 'Alumni Directory & Management';
-    if (pathname.includes('/school-admin/verification')) return 'Verification Queue';
-    if (pathname.includes('/school-admin/batches')) return 'Batches & Cohorts';
-    if (pathname.includes('/school-admin/events/create')) return 'Create Reunion Event';
-    if (pathname.includes('/school-admin/school-events')) return 'School Events & Celebrations';
-    if (pathname.includes('/school-admin/events')) return 'Alumni Events & Get-Togethers';
-    if (pathname.includes('/school-admin/announcements')) return 'Announcements Feed';
-    if (pathname.includes('/school-admin/memories')) return 'Memories & Photo Moderation';
-    if (pathname.includes('/school-admin/association-team')) return 'Association Leadership Team';
-    if (pathname.includes('/school-admin/rank-holders')) return 'Academic Rank Holders & Toppers';
-    if (pathname.includes('/school-admin/reports')) return 'Reports & Analytics';
-    if (pathname.includes('/school-admin/settings')) return 'School Settings';
-    return 'School Admin Overview';
+  // Returns a translation KEY (not the string itself) — Header will resolve it via t().
+  const getPageTitleKey = (pathname: string) => {
+    if (pathname.includes('/school-admin/alumni/import')) return 'admin_page_title_csv_import';
+    if (pathname.includes('/school-admin/alumni')) return 'admin_page_title_alumni_directory';
+    if (pathname.includes('/school-admin/verification')) return 'admin_page_title_verification';
+    if (pathname.includes('/school-admin/batches')) return 'admin_page_title_batches';
+    if (pathname.includes('/school-admin/events/create')) return 'admin_page_title_create_event';
+    if (pathname.includes('/school-admin/school-events')) return 'admin_page_title_school_events';
+    if (pathname.includes('/school-admin/events')) return 'admin_page_title_events';
+    if (pathname.includes('/school-admin/announcements')) return 'admin_page_title_announcements';
+    if (pathname.includes('/school-admin/memories')) return 'admin_page_title_memories';
+    if (pathname.includes('/school-admin/association-team')) return 'admin_page_title_association';
+    if (pathname.includes('/school-admin/rank-holders')) return 'admin_page_title_rank_holders';
+    if (pathname.includes('/school-admin/reports')) return 'admin_page_title_reports';
+    if (pathname.includes('/school-admin/settings')) return 'admin_page_title_settings';
+    if (pathname.includes('/school-admin/audit')) return 'admin_audit_page_title';
+    if (pathname.includes('/school-admin/contributions')) return 'admin_contributions_page_title';
+    if (pathname.includes('/school-admin/sponsors')) return 'admin_sponsors_page_title';
+    return 'admin_page_title_overview';
   };
 
   return (
@@ -57,7 +61,7 @@ export const SchoolAdminLayout: React.FC = () => {
       <Sidebar onLogout={handleLogout} />
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <div className="pt-14 lg:pt-0">
-          <Header user={user} title={getPageTitle(location.pathname)} />
+          <Header user={user} titleKey={getPageTitleKey(location.pathname)} />
         </div>
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8">
           <Outlet context={{ user }} />

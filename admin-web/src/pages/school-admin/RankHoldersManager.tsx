@@ -7,8 +7,65 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { RankHolder, AlumniProfile } from '../../types';
 import { getAssetUrl } from '../../utils/asset';
+import { useLanguage } from '../../context/LanguageContext';
+
+// Rank options — value stays English for DB, label is translated at render
+const RANK_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: '1st Rank',            labelKey: 'admin_rank_opt_1st' },
+  { value: '2nd Rank',            labelKey: 'admin_rank_opt_2nd' },
+  { value: '3rd Rank',            labelKey: 'admin_rank_opt_3rd' },
+  { value: 'School First',        labelKey: 'admin_rank_opt_school_first' },
+  { value: 'District First',      labelKey: 'admin_rank_opt_district_first' },
+  { value: 'District Second',     labelKey: 'admin_rank_opt_district_second' },
+  { value: 'District Third',      labelKey: 'admin_rank_opt_district_third' },
+  { value: 'State First',         labelKey: 'admin_rank_opt_state_first' },
+  { value: 'State Second',        labelKey: 'admin_rank_opt_state_second' },
+  { value: 'State Third',         labelKey: 'admin_rank_opt_state_third' },
+  { value: 'Other Achievement',   labelKey: 'admin_rank_opt_other' },
+];
+
+// Class options — value stays English for DB
+const CLASS_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: '10th', labelKey: 'admin_rank_class_10' },
+  { value: '12th', labelKey: 'admin_rank_class_12' },
+  { value: '11th', labelKey: 'admin_rank_class_11' },
+  { value: '9th',  labelKey: 'admin_rank_class_9' },
+];
+
+// Year options — value stays English for DB
+const YEAR_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: '2025–26', labelKey: 'admin_rank_year_2025_26' },
+  { value: '2024–25', labelKey: 'admin_rank_year_2024_25' },
+  { value: '2023–24', labelKey: 'admin_rank_year_2023_24' },
+  { value: '2022–23', labelKey: 'admin_rank_year_2022_23' },
+  { value: '2021–22', labelKey: 'admin_rank_year_2021_22' },
+];
+
+// Maps DB value → translation key for rank display in the table
+const RANK_DISPLAY_KEY: Record<string, string> = {
+  '1st Rank': 'admin_rank_opt_1st',
+  '2nd Rank': 'admin_rank_opt_2nd',
+  '3rd Rank': 'admin_rank_opt_3rd',
+  'School First': 'admin_rank_opt_school_first',
+  'District First': 'admin_rank_opt_district_first',
+  'District Second': 'admin_rank_opt_district_second',
+  'District Third': 'admin_rank_opt_district_third',
+  'State First': 'admin_rank_opt_state_first',
+  'State Second': 'admin_rank_opt_state_second',
+  'State Third': 'admin_rank_opt_state_third',
+  'Other Achievement': 'admin_rank_opt_other',
+};
+
+// Maps DB class value → translation key
+const CLASS_DISPLAY_KEY: Record<string, string> = {
+  '10th': 'admin_rank_class_10',
+  '12th': 'admin_rank_class_12',
+  '11th': 'admin_rank_class_11',
+  '9th':  'admin_rank_class_9',
+};
 
 export const RankHoldersManager: React.FC = () => {
+  const { t } = useLanguage();
   const [rankHolders, setRankHolders] = useState<RankHolder[]>([]);
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +181,10 @@ export const RankHoldersManager: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!studentName || !academicYear || !classStandard || !rank) {
-      alertService.showWarning('Required Fields Missing', 'Please fill in Student Name, Academic Year, Class, and Rank.');
+      alertService.showWarning(
+        t('admin_rank_alert_required_title'),
+        t('admin_rank_alert_required_body')
+      );
       return;
     }
 
@@ -150,15 +210,21 @@ export const RankHoldersManager: React.FC = () => {
     try {
       if (editingId) {
         await api.updateRankHolder(editingId, payload);
-        alertService.showSuccess('Rank Holder Updated', `"${studentName}" details updated successfully.`);
+        alertService.showSuccess(
+          t('admin_rank_alert_updated_title'),
+          t('admin_rank_alert_updated_body').replace('{name}', studentName)
+        );
       } else {
         await api.createRankHolder(payload);
-        alertService.showSuccess('Rank Holder Added', `"${studentName}" has been added to Rank Holders.`);
+        alertService.showSuccess(
+          t('admin_rank_alert_added_title'),
+          t('admin_rank_alert_added_body').replace('{name}', studentName)
+        );
       }
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      alertService.handleApiError(err, 'Failed to save rank holder record.');
+      alertService.handleApiError(err, t('admin_rank_alert_save_error'));
     } finally {
       setSubmitting(false);
     }
@@ -166,49 +232,27 @@ export const RankHoldersManager: React.FC = () => {
 
   const handleDelete = async (id: string, name: string) => {
     const confirmed = await alertService.showConfirm(
-      'Delete Rank Holder?',
-      `Are you sure you want to delete "${name}" from rank holders list?`
+      t('admin_rank_alert_delete_confirm_title'),
+      t('admin_rank_alert_delete_confirm_body').replace('{name}', name)
     );
     if (confirmed) {
       try {
         await api.deleteRankHolder(id);
-        alertService.showSuccess('Deleted', `"${name}" removed from rank holders.`);
+        alertService.showSuccess(
+          t('admin_rank_alert_deleted_title'),
+          t('admin_rank_alert_deleted_body').replace('{name}', name)
+        );
         fetchData();
       } catch (err) {
-        alertService.handleApiError(err, 'Failed to delete rank holder.');
+        alertService.handleApiError(err, t('admin_rank_alert_delete_error'));
       }
     }
   };
 
-  // Rank Options for Dropdown
-  const rankOptions = [
-    { label: '1st Rank', value: '1st Rank' },
-    { label: '2nd Rank', value: '2nd Rank' },
-    { label: '3rd Rank', value: '3rd Rank' },
-    { label: 'School First', value: 'School First' },
-    { label: 'District First', value: 'District First' },
-    { label: 'District Second', value: 'District Second' },
-    { label: 'District Third', value: 'District Third' },
-    { label: 'State First', value: 'State First' },
-    { label: 'State Second', value: 'State Second' },
-    { label: 'State Third', value: 'State Third' },
-    { label: 'Other Achievement', value: 'Other Achievement' },
-  ];
-
-  const classOptions = [
-    { label: '10th Standard', value: '10th' },
-    { label: '12th Standard', value: '12th' },
-    { label: '11th Standard', value: '11th' },
-    { label: '9th Standard', value: '9th' },
-  ];
-
-  const yearOptions = [
-    { label: '2025–2026', value: '2025–26' },
-    { label: '2024–2025', value: '2024–25' },
-    { label: '2023–2024', value: '2023–24' },
-    { label: '2022–2023', value: '2022–23' },
-    { label: '2021–2022', value: '2021–22' },
-  ];
+  // Localized dropdown options
+  const rankOptions = RANK_OPTIONS.map(o => ({ label: t(o.labelKey), value: o.value }));
+  const classOptions = CLASS_OPTIONS.map(o => ({ label: t(o.labelKey), value: o.value }));
+  const yearOptions = YEAR_OPTIONS.map(o => ({ label: t(o.labelKey), value: o.value }));
 
   const filteredHolders = rankHolders.filter(h => {
     const matchesSearch = !searchTerm ||
@@ -228,14 +272,14 @@ export const RankHoldersManager: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-[#111111] flex items-center space-x-2">
             <Trophy className="w-6 h-6 text-[#854D0E]" />
-            <span>School Rank Holders Management</span>
+            <span>{t('admin_rank_page_title')}</span>
           </h2>
-          <p className="text-xs text-[#6B7280]">Showcase students & alumni who achieved top academic rank excellence</p>
+          <p className="text-xs text-[#6B7280]">{t('admin_rank_page_subtitle')}</p>
         </div>
 
         <Button onClick={handleOpenCreateModal} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1.5" />
-          Add Rank Holder
+          {t('admin_rank_add_btn')}
         </Button>
       </div>
 
@@ -245,7 +289,7 @@ export const RankHoldersManager: React.FC = () => {
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
           <input
             type="text"
-            placeholder="Search by student name, rank, or achievement..."
+            placeholder={t('admin_rank_search_placeholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#F4C542]"
@@ -257,7 +301,7 @@ export const RankHoldersManager: React.FC = () => {
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
             options={[
-              { label: 'All Academic Years', value: '' },
+              { label: t('admin_rank_all_years'), value: '' },
               ...yearOptions
             ]}
           />
@@ -267,12 +311,12 @@ export const RankHoldersManager: React.FC = () => {
       {/* Table List View */}
       {filteredHolders.length === 0 ? (
         <EmptyState
-          title="No Rank Holders Found"
-          description="Click 'Add Rank Holder' above to record student academic achievements."
+          title={t('admin_rank_empty_title')}
+          description={t('admin_rank_empty_description')}
           action={
             <Button onClick={handleOpenCreateModal}>
               <Plus className="w-4 h-4 mr-1.5" />
-              Add First Rank Holder
+              {t('admin_rank_empty_add_btn')}
             </Button>
           }
         />
@@ -282,19 +326,21 @@ export const RankHoldersManager: React.FC = () => {
             <table className="w-full text-left text-xs text-[#111111]">
               <thead className="bg-[#FAFAFA] border-b border-[#E5E7EB] uppercase text-[11px] font-bold text-gray-500 tracking-wider">
                 <tr>
-                  <th className="p-4">Photo</th>
-                  <th className="p-4">Student / Alumni Name</th>
-                  <th className="p-4">Academic Year</th>
-                  <th className="p-4">Class</th>
-                  <th className="p-4">Rank</th>
-                  <th className="p-4">Score / Marks</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">{t('admin_rank_col_photo')}</th>
+                  <th className="p-4">{t('admin_rank_col_name')}</th>
+                  <th className="p-4">{t('admin_rank_col_year')}</th>
+                  <th className="p-4">{t('admin_rank_col_class')}</th>
+                  <th className="p-4">{t('admin_rank_col_rank')}</th>
+                  <th className="p-4">{t('admin_rank_col_score')}</th>
+                  <th className="p-4">{t('admin_rank_col_status')}</th>
+                  <th className="p-4 text-right">{t('admin_rank_col_actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
                 {filteredHolders.map((h) => {
                   const photoSrc = getAssetUrl(h.photograph) || `https://ui-avatars.com/api/?name=${encodeURIComponent(h.student_name)}&background=111111&color=ffffff`;
+                  const rankKey = RANK_DISPLAY_KEY[h.rank];
+                  const rankLabel = rankKey ? t(rankKey) : h.rank;
 
                   return (
                     <tr key={h.id} className="hover:bg-gray-50 transition-colors">
@@ -319,7 +365,7 @@ export const RankHoldersManager: React.FC = () => {
                       <td className="p-4">
                         <span className="inline-flex items-center space-x-1 font-extrabold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-2.5 py-0.5 rounded-full">
                           <Star className="w-3 h-3 text-[#854D0E]" />
-                          <span>{h.rank}</span>
+                          <span>{rankLabel}</span>
                         </span>
                       </td>
                       <td className="p-4 font-extrabold text-[#854D0E]">
@@ -333,7 +379,7 @@ export const RankHoldersManager: React.FC = () => {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
                           h.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {h.status}
+                          {h.status === 'Active' ? t('admin_rank_status_active') : t('admin_rank_status_inactive')}
                         </span>
                       </td>
                       <td className="p-4 text-right space-x-2">
@@ -341,7 +387,7 @@ export const RankHoldersManager: React.FC = () => {
                           type="button"
                           onClick={() => handleOpenEditModal(h)}
                           className="p-1.5 text-gray-600 hover:text-[#111111] hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Rank Holder"
+                          title={t('admin_rank_action_edit')}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -349,7 +395,7 @@ export const RankHoldersManager: React.FC = () => {
                           type="button"
                           onClick={() => handleDelete(h.id, h.student_name)}
                           className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Rank Holder"
+                          title={t('admin_rank_action_delete')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -371,7 +417,7 @@ export const RankHoldersManager: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5 text-[#854D0E]" />
                 <h3 className="text-lg font-bold text-[#111111]">
-                  {editingId ? 'Edit Rank Holder' : 'Add School Rank Holder'}
+                  {editingId ? t('admin_rank_modal_title_edit') : t('admin_rank_modal_title_add')}
                 </h3>
               </div>
               <button
@@ -386,17 +432,19 @@ export const RankHoldersManager: React.FC = () => {
               {/* Select Existing Alumni Profile */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Select Alumni Profile (Optional)
+                  {t('admin_rank_form_alumni_select_label')}
                 </label>
                 <select
                   value={alumniId}
                   onChange={(e) => handleAlumniSelect(e.target.value)}
                   className="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:border-[#F4C542] focus:outline-none"
                 >
-                  <option value="">-- Choose Existing Alumni (Autofills details) --</option>
+                  <option value="">{t('admin_rank_form_alumni_select_placeholder')}</option>
                   {alumniList.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.full_name} ({a.passing_year} Batch)
+                      {t('admin_rank_form_alumni_option_format')
+                        .replace('{name}', a.full_name)
+                        .replace('{year}', String(a.passing_year))}
                     </option>
                   ))}
                 </select>
@@ -405,15 +453,15 @@ export const RankHoldersManager: React.FC = () => {
               {/* Student / Alumni Name */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Student / Alumni Name *"
-                  placeholder="e.g. Arun Kumar"
+                  label={t('admin_rank_form_name_label')}
+                  placeholder={t('admin_rank_form_name_placeholder')}
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
                   required
                 />
                 <Input
-                  label="Student Name (Tamil)"
-                  placeholder="e.g. அருண் குமார்"
+                  label={t('admin_rank_form_name_ta_label')}
+                  placeholder={t('admin_rank_form_name_ta_placeholder')}
                   value={studentNameTa}
                   onChange={(e) => setStudentNameTa(e.target.value)}
                 />
@@ -422,14 +470,14 @@ export const RankHoldersManager: React.FC = () => {
               {/* Academic Year & Class Standard */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
-                  label="Academic Year *"
+                  label={t('admin_rank_form_year_label')}
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
                   options={yearOptions}
                 />
 
                 <Select
-                  label="Class / Standard *"
+                  label={t('admin_rank_form_class_label')}
                   value={classStandard}
                   onChange={(e) => setClassStandard(e.target.value)}
                   options={classOptions}
@@ -439,15 +487,15 @@ export const RankHoldersManager: React.FC = () => {
               {/* Rank & Exam Type */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
-                  label="Rank *"
+                  label={t('admin_rank_form_rank_label')}
                   value={rank}
                   onChange={(e) => setRank(e.target.value)}
                   options={rankOptions}
                 />
 
                 <Input
-                  label="Exam / Achievement *"
-                  placeholder="e.g. SSLC / Public Examination"
+                  label={t('admin_rank_form_exam_label')}
+                  placeholder={t('admin_rank_form_exam_placeholder')}
                   value={achievementType}
                   onChange={(e) => setAchievementType(e.target.value)}
                 />
@@ -456,38 +504,38 @@ export const RankHoldersManager: React.FC = () => {
               {/* Student Marks & Score Details */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Input
-                  label="Total Score / Marks *"
-                  placeholder="e.g. 485 or 1150"
+                  label={t('admin_rank_form_total_marks_label')}
+                  placeholder={t('admin_rank_form_total_marks_placeholder')}
                   value={totalMarks}
                   onChange={(e) => setTotalMarks(e.target.value)}
                 />
 
                 <Input
-                  label="Out of (Max Marks)"
-                  placeholder="e.g. 500 or 1200"
+                  label={t('admin_rank_form_max_marks_label')}
+                  placeholder={t('admin_rank_form_max_marks_placeholder')}
                   value={maxMarks}
                   onChange={(e) => setMaxMarks(e.target.value)}
                 />
 
                 <Input
-                  label="Percentage / Grade"
-                  placeholder="e.g. 97.0% or A+"
+                  label={t('admin_rank_form_percentage_label')}
+                  placeholder={t('admin_rank_form_percentage_placeholder')}
                   value={marksPercentage}
                   onChange={(e) => setMarksPercentage(e.target.value)}
                 />
               </div>
 
               <Input
-                label="Subject / Stream (Optional)"
-                placeholder="e.g. Science Stream / Biology-Maths"
+                label={t('admin_rank_form_stream_label')}
+                placeholder={t('admin_rank_form_stream_placeholder')}
                 value={subjectStream}
                 onChange={(e) => setSubjectStream(e.target.value)}
               />
 
               {/* Achievement Title */}
               <Input
-                label="Achievement Title"
-                placeholder="e.g. School First Rank"
+                label={t('admin_rank_form_title_label')}
+                placeholder={t('admin_rank_form_title_placeholder')}
                 value={achievementTitle}
                 onChange={(e) => setAchievementTitle(e.target.value)}
               />
@@ -495,7 +543,7 @@ export const RankHoldersManager: React.FC = () => {
               {/* Photograph Upload / URL */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Photograph Photo
+                  {t('admin_rank_form_photo_label')}
                 </label>
                 <div className="flex items-center space-x-3">
                   {photograph && (
@@ -512,10 +560,10 @@ export const RankHoldersManager: React.FC = () => {
 
               {/* Short Description */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Short Description (Optional)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">{t('admin_rank_form_description_label')}</label>
                 <textarea
                   rows={2}
-                  placeholder="Brief note about the student's achievement..."
+                  placeholder={t('admin_rank_form_description_placeholder')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:border-[#F4C542] focus:outline-none"
@@ -524,22 +572,22 @@ export const RankHoldersManager: React.FC = () => {
 
               {/* Status */}
               <Select
-                label="Status"
+                label={t('admin_rank_form_status_label')}
                 value={status}
                 onChange={(e) => setStatus(e.target.value as any)}
                 options={[
-                  { label: 'Active (Show in Public Portal)', value: 'Active' },
-                  { label: 'Inactive (Hidden)', value: 'Inactive' }
+                  { label: t('admin_rank_form_status_active_option'), value: 'Active' },
+                  { label: t('admin_rank_form_status_inactive_option'), value: 'Inactive' }
                 ]}
               />
 
               {/* Form Buttons */}
               <div className="pt-4 flex items-center justify-end space-x-3 border-t border-gray-200">
                 <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-                  Cancel
+                  {t('admin_rank_form_cancel')}
                 </Button>
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Saving...' : 'Save Rank Holder'}
+                  {submitting ? t('admin_rank_form_saving') : t('admin_rank_form_save')}
                 </Button>
               </div>
             </form>

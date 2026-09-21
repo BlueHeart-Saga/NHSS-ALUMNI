@@ -4,7 +4,8 @@ import {
   LayoutDashboard, User, Users, Compass, MessageSquare, GraduationCap,
   Calendar, Bell, Camera, Award, Settings, LogOut, Menu, X, Search,
   ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Clock, ShieldAlert,
-  AlertTriangle, RefreshCw, Mail, MessageSquareQuote
+  AlertTriangle, RefreshCw, Mail, MessageSquareQuote,
+  HandHeart
 } from 'lucide-react';
 import { api } from '../services/api';
 import { AlumniProfile, SchoolProfile } from '../types';
@@ -494,6 +495,20 @@ export const AlumniLayout: React.FC = () => {
               </div>
             </div>
           </nav>
+            {/* SECTION 5: SUPPORT SCHOOL */}
+            <div>
+              {!sidebarCollapsed && (
+                <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">
+                  {t('alumni_section_support')}
+                </p>
+              )}
+              <div className="space-y-1">
+                <NavLink to="/alumni/support" end className={navItemClass} title={t('alumni_nav_support_school')}>
+                  <HandHeart className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_support_school')}</span>}
+                </NavLink>
+              </div>
+            </div>
 
           {/* Sidebar Footer info */}
           {!sidebarCollapsed && (

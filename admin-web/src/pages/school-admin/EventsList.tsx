@@ -8,9 +8,11 @@ import { alertService } from '../../services/alertService';
 import { EventItem } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { getAssetUrl } from '../../utils/asset';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const EventsList: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST'>('UPCOMING');
@@ -62,13 +64,13 @@ export const EventsList: React.FC = () => {
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111111]">Events & Get-Togethers</h2>
-          <p className="text-xs text-[#6B7280]">School reunions, batch get-togethers, and attendance rosters</p>
+          <h2 className="text-2xl font-bold text-[#111111]">{t('admin_events_page_title')}</h2>
+          <p className="text-xs text-[#6B7280]">{t('admin_events_page_subtitle')}</p>
         </div>
 
         <Button onClick={() => navigate('/school-admin/events/create')} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1.5" />
-          Create Get-Together
+          {t('admin_events_create_btn')}
         </Button>
       </div>
 
@@ -83,7 +85,7 @@ export const EventsList: React.FC = () => {
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          <span>Upcoming Events ({upcomingEvents.length})</span>
+          <span>{t('admin_events_tab_upcoming').replace('{count}', String(upcomingEvents.length))}</span>
         </button>
 
         <button
@@ -95,22 +97,22 @@ export const EventsList: React.FC = () => {
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
-          <span>Past / Expired Events ({pastEvents.length})</span>
+          <span>{t('admin_events_tab_past').replace('{count}', String(pastEvents.length))}</span>
         </button>
       </div>
 
       {displayedEvents.length === 0 ? (
         <EmptyState
-          title={activeTab === 'UPCOMING' ? 'No Upcoming Events' : 'No Expired Events'}
+          title={activeTab === 'UPCOMING' ? t('admin_events_empty_upcoming_title') : t('admin_events_empty_past_title')}
           description={
             activeTab === 'UPCOMING'
-              ? 'No upcoming get-togethers are scheduled yet.'
-              : 'No past or expired events recorded in history.'
+              ? t('admin_events_empty_upcoming_desc')
+              : t('admin_events_empty_past_desc')
           }
           action={
             <Button onClick={() => navigate('/school-admin/events/create')}>
               <Plus className="w-4 h-4 mr-1.5" />
-              Create Reunion
+              {t('admin_events_create_reunion_btn')}
             </Button>
           }
         />
@@ -138,7 +140,7 @@ export const EventsList: React.FC = () => {
                   {/* Batch & Status Badge */}
                   <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
                     <span className="text-[11px] font-bold bg-[#111111] text-[#F4C542] border border-[#F4C542]/60 px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
-                      {ev.batch_name || 'School-wide'}
+                      {ev.batch_name || t('admin_events_school_wide')}
                     </span>
                     <div className="flex items-center space-x-1.5">
                       {ev.title_ta && (
@@ -174,7 +176,7 @@ export const EventsList: React.FC = () => {
                     {ev.registration_url && (
                       <div className="flex items-center space-x-2 text-blue-600 font-semibold pt-0.5">
                         <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">Registration Link Configured</span>
+                        <span className="truncate">{t('admin_events_registration_configured')}</span>
                       </div>
                     )}
                   </div>
@@ -183,7 +185,7 @@ export const EventsList: React.FC = () => {
                   <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
                     <span className="font-bold text-[#111111] flex items-center">
                       <Users className="w-4 h-4 mr-1 text-[#854D0E]" />
-                      {ev.attending_count} Confirmed
+                      {t('admin_events_confirmed_count').replace('{count}', String(ev.attending_count))}
                     </span>
 
                     <div className="flex items-center space-x-1">

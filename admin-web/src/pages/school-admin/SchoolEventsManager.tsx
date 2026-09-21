@@ -10,25 +10,47 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { SchoolEventItem } from '../../types';
 import { getAssetUrl } from '../../utils/asset';
+import { useLanguage } from '../../context/LanguageContext';
 
-const CATEGORIES = [
-  { key: 'ALL', label: 'All Celebrations' },
-  { key: 'ANNUAL_DAY', label: 'Annual Day' },
-  { key: 'SPORTS_DAY', label: 'Sports Day' },
-  { key: 'CULTURAL_FEST', label: 'Cultural Fest' },
-  { key: 'NATIONAL_DAY', label: 'National Days' },
-  { key: 'EXHIBITION', label: 'Science / Tech Expo' },
-  { key: 'CELEBRATION', label: 'Festivals & Celebrations' },
-  { key: 'GRADUATION_DAY', label: 'Graduation / Convocation' },
-  { key: 'OTHER', label: 'Other School Events' },
+// Maps category keys to their translation key. Used for the category badges on the event cards.
+const CATEGORY_TRANSLATION_KEY: Record<string, string> = {
+  ANNUAL_DAY: 'admin_school_events_cat_annual_day',
+  SPORTS_DAY: 'admin_school_events_cat_sports_day',
+  CULTURAL_FEST: 'admin_school_events_cat_cultural_fest',
+  NATIONAL_DAY: 'admin_school_events_cat_national_day',
+  EXHIBITION: 'admin_school_events_cat_exhibition',
+  CELEBRATION: 'admin_school_events_cat_celebration',
+  GRADUATION_DAY: 'admin_school_events_cat_graduation_day',
+  OTHER: 'admin_school_events_cat_other',
+};
+
+const AUDIENCE_TRANSLATION_KEY: Record<string, string> = {
+  ALL_STUDENTS: 'admin_school_events_aud_all_students',
+  PARENTS: 'admin_school_events_aud_parents',
+  STAFF: 'admin_school_events_aud_staff',
+  PUBLIC: 'admin_school_events_aud_public',
+  ALUMNI_GUESTS: 'admin_school_events_aud_alumni_guests',
+};
+
+// Category chips are now purely sub-filters. "ALL" was removed — it's handled
+// by the top-level filter row (All Celebrations / Upcoming / Past).
+const CATEGORIES: { key: string; labelKey: string }[] = [
+  { key: 'ANNUAL_DAY',     labelKey: 'admin_school_events_cat_annual_day' },
+  { key: 'SPORTS_DAY',     labelKey: 'admin_school_events_cat_sports_day' },
+  { key: 'CULTURAL_FEST',  labelKey: 'admin_school_events_cat_cultural_fest' },
+  { key: 'NATIONAL_DAY',   labelKey: 'admin_school_events_cat_national_day' },
+  { key: 'EXHIBITION',     labelKey: 'admin_school_events_cat_exhibition' },
+  { key: 'CELEBRATION',    labelKey: 'admin_school_events_cat_celebration' },
+  { key: 'GRADUATION_DAY', labelKey: 'admin_school_events_cat_graduation_day' },
+  { key: 'OTHER',          labelKey: 'admin_school_events_cat_other' },
 ];
 
-const TARGET_AUDIENCES = [
-  { key: 'ALL_STUDENTS', label: 'All Students' },
-  { key: 'PARENTS', label: 'Parents & Guardians' },
-  { key: 'STAFF', label: 'Teachers & Staff' },
-  { key: 'PUBLIC', label: 'Public & Visitors' },
-  { key: 'ALUMNI_GUESTS', label: 'Alumni & Special Guests' },
+const TARGET_AUDIENCES: { key: string; labelKey: string }[] = [
+  { key: 'ALL_STUDENTS',  labelKey: 'admin_school_events_aud_all_students' },
+  { key: 'PARENTS',       labelKey: 'admin_school_events_aud_parents' },
+  { key: 'STAFF',         labelKey: 'admin_school_events_aud_staff' },
+  { key: 'PUBLIC',        labelKey: 'admin_school_events_aud_public' },
+  { key: 'ALUMNI_GUESTS', labelKey: 'admin_school_events_aud_alumni_guests' },
 ];
 
 const DEFAULT_COVER_IMAGES = [
@@ -40,10 +62,18 @@ const DEFAULT_COVER_IMAGES = [
   { label: 'Cultural & Student Events', url: '/school-images/students-events.png' },
 ];
 
+// Top-level scope filter — mutually exclusive.
+type EventsTopFilter = 'ALL' | 'UPCOMING' | 'PAST';
+
 export const SchoolEventsManager: React.FC = () => {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<SchoolEventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST'>('UPCOMING');
+
+  // NEW: unified top-level filter (defaults to ALL so every event shows on load)
+  const [topFilter, setTopFilter] = useState<EventsTopFilter>('ALL');
+
+  // Category sub-filter (defaults to no narrowing)
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -114,11 +144,17 @@ export const SchoolEventsManager: React.FC = () => {
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title?.trim()) {
-      alertService.showWarning('Event Title Required', 'Please enter the title for the school event.');
+      alertService.showWarning(
+        t('admin_school_events_alert_title_required_title'),
+        t('admin_school_events_alert_title_required_body')
+      );
       return;
     }
     if (!formData.event_date) {
-      alertService.showWarning('Event Date Required', 'Please select a date for the event.');
+      alertService.showWarning(
+        t('admin_school_events_alert_date_required_title'),
+        t('admin_school_events_alert_date_required_body')
+      );
       return;
     }
 
@@ -126,15 +162,21 @@ export const SchoolEventsManager: React.FC = () => {
     try {
       if (editingEvent) {
         await api.updateSchoolEvent(editingEvent.id, formData);
-        alertService.showSuccess('School Event Updated', `"${formData.title}" details have been saved.`);
+        alertService.showSuccess(
+          t('admin_school_events_alert_updated_title'),
+          t('admin_school_events_alert_updated_body').replace('{title}', formData.title || '')
+        );
       } else {
         await api.createSchoolEvent(formData);
-        alertService.showSuccess('School Event Created', `"${formData.title}" has been published.`);
+        alertService.showSuccess(
+          t('admin_school_events_alert_created_title'),
+          t('admin_school_events_alert_created_body').replace('{title}', formData.title || '')
+        );
       }
       setIsModalOpen(false);
       fetchSchoolEvents();
     } catch (err) {
-      alertService.handleApiError(err, 'Failed to save school event.');
+      alertService.handleApiError(err, t('admin_school_events_alert_error_save'));
     } finally {
       setSubmitting(false);
     }
@@ -143,16 +185,19 @@ export const SchoolEventsManager: React.FC = () => {
   const handleDelete = async (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const confirmed = await alertService.showConfirm(
-      'Delete School Event?',
-      `Are you sure you want to delete "${title}"? This celebration record will be permanently removed.`
+      t('admin_school_events_alert_delete_confirm_title'),
+      t('admin_school_events_alert_delete_confirm_body').replace('{title}', title)
     );
     if (confirmed) {
       try {
         await api.deleteSchoolEvent(id);
-        alertService.showSuccess('Event Removed', `"${title}" has been deleted.`);
+        alertService.showSuccess(
+          t('admin_school_events_alert_deleted_title'),
+          t('admin_school_events_alert_deleted_body').replace('{title}', title)
+        );
         fetchSchoolEvents();
       } catch (err) {
-        alertService.handleApiError(err, 'Failed to delete event.');
+        alertService.handleApiError(err, t('admin_school_events_alert_error_delete'));
       }
     }
   };
@@ -161,10 +206,13 @@ export const SchoolEventsManager: React.FC = () => {
     try {
       setLoading(true);
       await api.seedSchoolEvents();
-      alertService.showSuccess('School Events Seeded', 'Default school celebrations have been restored.');
+      alertService.showSuccess(
+        t('admin_school_events_alert_seeded_title'),
+        t('admin_school_events_alert_seeded_body')
+      );
       fetchSchoolEvents();
     } catch (err) {
-      alertService.handleApiError(err, 'Failed to seed school events.');
+      alertService.handleApiError(err, t('admin_school_events_alert_error_seed'));
     } finally {
       setLoading(false);
     }
@@ -172,10 +220,16 @@ export const SchoolEventsManager: React.FC = () => {
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Filtering Logic
+  // Filtering Logic — three mutually exclusive top-level filters (topFilter),
+  // plus an optional secondary category narrowing and search.
   const filteredEvents = events.filter(e => {
     const isPast = e.event_date && e.event_date < todayStr;
-    const matchesTab = activeTab === 'UPCOMING' ? (!isPast || e.status === 'UPCOMING') : (isPast || e.status === 'COMPLETED');
+
+    const matchesTopFilter =
+      topFilter === 'ALL'      ? true :
+      topFilter === 'UPCOMING' ? !isPast :
+      /* PAST */                 isPast;
+
     const matchesCategory = selectedCategory === 'ALL' || e.category === selectedCategory;
     const matchesSearch = !searchQuery || 
       e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -183,7 +237,7 @@ export const SchoolEventsManager: React.FC = () => {
       (e.venue && e.venue.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    return matchesTab && matchesCategory && matchesSearch;
+    return matchesTopFilter && matchesCategory && matchesSearch;
   });
 
   const upcomingCount = events.filter(e => !e.event_date || e.event_date >= todayStr).length;
@@ -202,13 +256,13 @@ export const SchoolEventsManager: React.FC = () => {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-bold text-[#111111]">School Events &amp; Celebrations</h2>
+              <h2 className="text-2xl font-bold text-[#111111]">{t('admin_school_events_page_title')}</h2>
               <span className="px-2.5 py-0.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] text-[11px] font-extrabold rounded-full uppercase tracking-wider">
-                Official School Module
+                {t('admin_school_events_page_badge')}
               </span>
             </div>
             <p className="text-xs text-[#6B7280] mt-0.5">
-              Manage official school annual days, sports meets, cultural festivals, science exhibitions, and national celebrations.
+              {t('admin_school_events_page_subtitle')}
             </p>
           </div>
         </div>
@@ -218,15 +272,15 @@ export const SchoolEventsManager: React.FC = () => {
             type="button"
             onClick={handleSeedData}
             className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer border border-gray-200 w-full sm:w-auto"
-            title="Restore Default Sample Events"
+            title={t('admin_school_events_reset_samples_tooltip')}
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reset Samples</span>
+            <span>{t('admin_school_events_reset_samples_btn')}</span>
           </button>
 
           <Button onClick={handleOpenCreateModal} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-1.5" />
-            <span>Create School Event</span>
+            <span>{t('admin_school_events_create_btn')}</span>
           </Button>
         </div>
       </div>
@@ -239,7 +293,7 @@ export const SchoolEventsManager: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-[#111111]">{events.length}</div>
-            <div className="text-xs text-gray-500 font-medium">Total Celebrations</div>
+            <div className="text-xs text-gray-500 font-medium">{t('admin_school_events_stat_total')}</div>
           </div>
         </div>
 
@@ -249,7 +303,7 @@ export const SchoolEventsManager: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-[#111111]">{upcomingCount}</div>
-            <div className="text-xs text-gray-500 font-medium">Upcoming School Events</div>
+            <div className="text-xs text-gray-500 font-medium">{t('admin_school_events_stat_upcoming')}</div>
           </div>
         </div>
 
@@ -259,7 +313,7 @@ export const SchoolEventsManager: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-[#111111]">{pastCount}</div>
-            <div className="text-xs text-gray-500 font-medium">Past Celebrations</div>
+            <div className="text-xs text-gray-500 font-medium">{t('admin_school_events_stat_past')}</div>
           </div>
         </div>
 
@@ -271,39 +325,51 @@ export const SchoolEventsManager: React.FC = () => {
             <div className="text-xl font-extrabold text-[#111111]">
               {new Set(events.map(e => e.category)).size}
             </div>
-            <div className="text-xs text-gray-500 font-medium">Event Categories</div>
+            <div className="text-xs text-gray-500 font-medium">{t('admin_school_events_stat_categories')}</div>
           </div>
         </div>
       </div>
 
-      {/* Tabs & Search Bar */}
+      {/* Top-Level Scope Filters + Search Bar */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-3">
           
-          {/* Main Date Tabs (Upcoming vs Past Celebrations) */}
-          <div className="flex items-center space-x-2">
+          {/* Mutually Exclusive Top Filters: All | Upcoming | Past */}
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
             <button
-              onClick={() => setActiveTab('UPCOMING')}
+              onClick={() => setTopFilter('ALL')}
               className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
-                activeTab === 'UPCOMING'
+                topFilter === 'ALL'
+                  ? 'bg-[#111111] text-[#F4C542] shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{t('admin_school_events_cat_all')} ({events.length})</span>
+            </button>
+
+            <button
+              onClick={() => setTopFilter('UPCOMING')}
+              className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+                topFilter === 'UPCOMING'
                   ? 'bg-[#111111] text-[#F4C542] shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               <Calendar className="w-4 h-4" />
-              <span>Upcoming Events ({upcomingCount})</span>
+              <span>{t('admin_school_events_tab_upcoming').replace('{count}', String(upcomingCount))}</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('PAST')}
+              onClick={() => setTopFilter('PAST')}
               className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
-                activeTab === 'PAST'
+                topFilter === 'PAST'
                   ? 'bg-[#111111] text-[#F4C542] shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>Past Celebrations ({pastCount})</span>
+              <span>{t('admin_school_events_tab_past').replace('{count}', String(pastCount))}</span>
             </button>
           </div>
 
@@ -314,14 +380,25 @@ export const SchoolEventsManager: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search school events, guest..."
+              placeholder={t('admin_school_events_search_placeholder')}
               className="w-full pl-9 pr-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
             />
           </div>
         </div>
 
-        {/* Category Pill Filters */}
+        {/* Category Pill Filters (secondary narrowing) */}
         <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            onClick={() => setSelectedCategory('ALL')}
+            className={`px-3 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer whitespace-nowrap border ${
+              selectedCategory === 'ALL'
+                ? 'bg-[#FFF7D6] text-[#854D0E] border-[#F4C542]'
+                : 'bg-white text-gray-600 border-[#E5E7EB] hover:bg-gray-50'
+            }`}
+          >
+            {t('admin_school_events_cat_all')}
+          </button>
+
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.key;
             return (
@@ -334,7 +411,7 @@ export const SchoolEventsManager: React.FC = () => {
                     : 'bg-white text-gray-600 border-[#E5E7EB] hover:bg-gray-50'
                 }`}
               >
-                {cat.label}
+                {t(cat.labelKey)}
               </button>
             );
           })}
@@ -344,18 +421,26 @@ export const SchoolEventsManager: React.FC = () => {
       {/* Event Cards Grid Display */}
       {filteredEvents.length === 0 ? (
         <EmptyState
-          title={activeTab === 'UPCOMING' ? 'No Upcoming School Events' : 'No Past Celebrations'}
+          title={
+            topFilter === 'ALL'
+              ? t('admin_school_events_empty_all_title')
+              : topFilter === 'UPCOMING'
+              ? t('admin_school_events_empty_upcoming_title')
+              : t('admin_school_events_empty_past_title')
+          }
           description={
             searchQuery || selectedCategory !== 'ALL'
-              ? 'No school events match your current filter parameters.'
-              : activeTab === 'UPCOMING'
-              ? 'No upcoming school celebrations scheduled yet.'
-              : 'No historical school celebrations recorded.'
+              ? t('admin_school_events_empty_filtered_desc')
+              : topFilter === 'ALL'
+              ? t('admin_school_events_empty_all_desc')
+              : topFilter === 'UPCOMING'
+              ? t('admin_school_events_empty_upcoming_desc')
+              : t('admin_school_events_empty_past_desc')
           }
           action={
             <Button onClick={handleOpenCreateModal}>
               <Plus className="w-4 h-4 mr-1.5" />
-              <span>Create First School Event</span>
+              <span>{t('admin_school_events_create_first_btn')}</span>
             </Button>
           }
         />
@@ -365,8 +450,11 @@ export const SchoolEventsManager: React.FC = () => {
             const isPast = ev.event_date && ev.event_date < todayStr;
             const coverImg = getAssetUrl(ev.cover_image_url) || DEFAULT_COVER_IMAGES[0].url;
 
-            const categoryLabel = CATEGORIES.find(c => c.key === ev.category)?.label || ev.category;
-            const audienceLabel = TARGET_AUDIENCES.find(a => a.key === ev.target_audience)?.label || ev.target_audience;
+            const categoryKey = CATEGORY_TRANSLATION_KEY[ev.category];
+            const categoryLabel = categoryKey ? t(categoryKey) : ev.category;
+
+            const audienceKey = AUDIENCE_TRANSLATION_KEY[ev.target_audience || ''];
+            const audienceLabel = audienceKey ? t(audienceKey) : (ev.target_audience || '');
 
             return (
               <div
@@ -419,7 +507,9 @@ export const SchoolEventsManager: React.FC = () => {
                     {ev.chief_guest && (
                       <div className="flex items-center space-x-2 text-gray-700">
                         <UserCheck className="w-4 h-4 text-[#854D0E] shrink-0" />
-                        <span className="truncate">Chief Guest: <strong className="text-[#111111]">{ev.chief_guest}</strong></span>
+                        <span className="truncate">
+                          {t('admin_school_events_chief_guest_prefix')} <strong className="text-[#111111]">{ev.chief_guest}</strong>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -470,9 +560,9 @@ export const SchoolEventsManager: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-[#111111]">
-                    {editingEvent ? 'Edit School Celebration' : 'Create New School Event'}
+                    {editingEvent ? t('admin_school_events_modal_title_edit') : t('admin_school_events_modal_title_create')}
                   </h3>
-                  <p className="text-xs text-gray-500">Official School Celebrations &amp; Event Management</p>
+                  <p className="text-xs text-gray-500">{t('admin_school_events_modal_subtitle')}</p>
                 </div>
               </div>
 
@@ -488,13 +578,13 @@ export const SchoolEventsManager: React.FC = () => {
             <form onSubmit={handleSaveEvent} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#111111] mb-1">
-                  Event Title <span className="text-rose-500">*</span>
+                  {t('admin_school_events_form_title_label')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.title || ''}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Annual Sports Meet 2026 or Science Expo"
+                  placeholder={t('admin_school_events_form_title_placeholder')}
                   className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-sm font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   required
                 />
@@ -502,27 +592,27 @@ export const SchoolEventsManager: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Category</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_category_label')}</label>
                   <select
                     value={formData.category || 'ANNUAL_DAY'}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   >
-                    {CATEGORIES.filter(c => c.key !== 'ALL').map(c => (
-                      <option key={c.key} value={c.key}>{c.label}</option>
+                    {CATEGORIES.map(c => (
+                      <option key={c.key} value={c.key}>{t(c.labelKey)}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Target Audience</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_audience_label')}</label>
                   <select
                     value={formData.target_audience || 'ALL_STUDENTS'}
                     onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   >
                     {TARGET_AUDIENCES.map(a => (
-                      <option key={a.key} value={a.key}>{a.label}</option>
+                      <option key={a.key} value={a.key}>{t(a.labelKey)}</option>
                     ))}
                   </select>
                 </div>
@@ -531,7 +621,7 @@ export const SchoolEventsManager: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#111111] mb-1">
-                    Event Date <span className="text-rose-500">*</span>
+                    {t('admin_school_events_form_event_date_label')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -543,7 +633,7 @@ export const SchoolEventsManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">End Date (Optional)</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_end_date_label')}</label>
                   <input
                     type="date"
                     value={formData.end_date || ''}
@@ -555,23 +645,23 @@ export const SchoolEventsManager: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Start Time</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_start_time_label')}</label>
                   <input
                     type="text"
                     value={formData.start_time || ''}
                     onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                    placeholder="09:00 AM"
+                    placeholder={t('admin_school_events_form_start_time_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">End Time</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_end_time_label')}</label>
                   <input
                     type="text"
                     value={formData.end_time || ''}
                     onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    placeholder="04:00 PM"
+                    placeholder={t('admin_school_events_form_end_time_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   />
                 </div>
@@ -579,35 +669,35 @@ export const SchoolEventsManager: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Venue / Location</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_venue_label')}</label>
                   <input
                     type="text"
                     value={formData.venue || ''}
                     onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                    placeholder="e.g. NHSS Main Play Grounds"
+                    placeholder={t('admin_school_events_form_venue_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Chief Guest (Optional)</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_chief_guest_label')}</label>
                   <input
                     type="text"
                     value={formData.chief_guest || ''}
                     onChange={(e) => setFormData({ ...formData, chief_guest: e.target.value })}
-                    placeholder="e.g. Honorable Minister or Alumnus"
+                    placeholder={t('admin_school_events_form_chief_guest_placeholder')}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#111111] mb-1">Banner Cover Image URL</label>
+                <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_banner_label')}</label>
                 <input
                   type="url"
                   value={formData.cover_image_url || ''}
                   onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-                  placeholder="https://..."
+                  placeholder={t('admin_school_events_form_banner_placeholder')}
                   className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                 />
                 
@@ -620,19 +710,19 @@ export const SchoolEventsManager: React.FC = () => {
                       onClick={() => setFormData({ ...formData, cover_image_url: preset.url })}
                       className="px-2 py-1 text-[10px] bg-gray-100 hover:bg-gray-200 rounded-md font-medium text-gray-700"
                     >
-                      Preset: {preset.label}
+                      {t('admin_school_events_form_banner_preset_prefix')} {preset.label}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#111111] mb-1">Description &amp; Agenda</label>
+                <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_description_label')}</label>
                 <textarea
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  placeholder="Enter details, schedule, highlights of the school celebration..."
+                  placeholder={t('admin_school_events_form_description_placeholder')}
                   className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#111111]"
                 />
               </div>
@@ -644,11 +734,11 @@ export const SchoolEventsManager: React.FC = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="px-5 py-2.5 border border-[#E5E7EB] rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('admin_school_events_form_cancel_btn')}
                 </button>
                 <Button type="submit" isLoading={submitting}>
                   <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                  <span>{editingEvent ? 'Save Changes' : 'Publish School Event'}</span>
+                  <span>{editingEvent ? t('admin_school_events_form_save_btn') : t('admin_school_events_form_publish_btn')}</span>
                 </Button>
               </div>
             </form>
@@ -675,7 +765,10 @@ export const SchoolEventsManager: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 text-white">
                 <span className="text-[10px] font-extrabold bg-[#F4C542] text-[#111111] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  {CATEGORIES.find(c => c.key === viewingEvent.category)?.label || viewingEvent.category}
+                  {(() => {
+                    const key = CATEGORY_TRANSLATION_KEY[viewingEvent.category || ''];
+                    return key ? t(key) : viewingEvent.category;
+                  })()}
                 </span>
                 <h3 className="text-xl font-bold mt-1.5 leading-snug">{viewingEvent.title}</h3>
               </div>
@@ -696,13 +789,13 @@ export const SchoolEventsManager: React.FC = () => {
                 {viewingEvent.chief_guest && (
                   <div className="flex items-center space-x-2">
                     <UserCheck className="w-4 h-4 text-[#854D0E] shrink-0" />
-                    <span>Chief Guest: <strong className="text-[#111111]">{viewingEvent.chief_guest}</strong></span>
+                    <span>{t('admin_school_events_chief_guest_prefix')} <strong className="text-[#111111]">{viewingEvent.chief_guest}</strong></span>
                   </div>
                 )}
               </div>
 
               <div className="pt-2 flex justify-end">
-                <Button onClick={() => setViewingEvent(null)}>Close View</Button>
+                <Button onClick={() => setViewingEvent(null)}>{t('admin_school_events_view_close_btn')}</Button>
               </div>
             </div>
           </div>

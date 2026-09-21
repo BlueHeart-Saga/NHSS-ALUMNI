@@ -271,7 +271,8 @@ export const PublicSchool: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
 
         {/* 2. நமது பள்ளியைப் பற்றி (ABOUT OUR SCHOOL) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* FIX: Removed items-start to allow columns to stretch equally */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center space-x-2 text-xs font-bold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-full uppercase tracking-wider">
               <Building2 className="w-4 h-4 text-[#854D0E]" />
@@ -372,93 +373,96 @@ export const PublicSchool: React.FC = () => {
           </div>
 
           {/* Sticky Friendly Support & Contact Card */}
-          <div className="lg:col-span-5 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 lg:sticky lg:top-44 self-start transition-all relative">
-            {/* Header Badge */}
-            <div className="flex items-center space-x-3 border-b border-gray-100 pb-4">
-              <div className="w-10 h-10 rounded-2xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center text-[#854D0E] shrink-0">
-                <HeartHandshake className="w-5 h-5 text-[#854D0E]" />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight">
-                  {language === 'ta' ? 'உதவி & தொடர்பு' : 'Friendly Support & Contact'}
-                </h3>
-                <p className="text-xs text-gray-500 font-medium">
-                  {language === 'ta' ? 'எப்போதும் உங்களுக்கு உதவ தயாராக உள்ளோம்' : 'We are here to help you anytime'}
-                </p>
-              </div>
-            </div>
-
-            {/* Friendly Welcome Note */}
-            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal bg-gray-50 border border-gray-200 p-4 rounded-2xl">
-              {language === 'ta'
-                ? 'ஏதேனும் கேள்விகள், சந்தேகங்கள் அல்லது பள்ளி பற்றிய தகவல்கள் தேவையா? கீழே உள்ள வாட்ஸ்அப் அல்லது மின்னஞ்சல் வழியாக எங்களை உடனே தொடர்பு கொள்ளலாம்!'
-                : 'Have questions, need help, or want to connect with your school network? Send us a quick text or email — we will assist you right away!'}
-            </p>
-
-            {/* Contact Methods (Plain & Simple White Card Styling) */}
-            <div className="space-y-3">
-              {/* WhatsApp Support Button */}
-              <a
-                href={`https://wa.me/${(profile.phone || '918825905771').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  language === 'ta'
-                    ? 'வணக்கம்! எனக்கு NHS பள்ளி பற்றிய விவரங்கள் தேவை.'
-                    : 'Hello! I need information regarding NHSS Alumni.'
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-white hover:bg-emerald-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-emerald-500 transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
-              >
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <Phone className="w-5 h-5 text-emerald-700" />
-                  </div>
-                  <div className="min-w-0 text-left">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
-                      {language === 'ta' ? 'வாட்ஸ்அப் மெசேஜ் / அழைப்பு' : 'WhatsApp / Call Support'}
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
-                      {profile.phone || '+91 88259 05771'}
-                    </span>
-                  </div>
+          {/* FIX: Wrapped outer div for sticky behavior, inner div for card styling */}
+          <div className="lg:col-span-5 h-fit lg:sticky lg:top-24 transition-all relative">
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              {/* Header Badge */}
+              <div className="flex items-center space-x-3 border-b border-gray-100 pb-4">
+                <div className="w-10 h-10 rounded-2xl bg-[#FFF7D6] border border-[#F4C542] flex items-center justify-center text-[#854D0E] shrink-0">
+                  <HeartHandshake className="w-5 h-5 text-[#854D0E]" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </a>
-
-              {/* Email Support Button */}
-              <a
-                href={`mailto:${profile.email || 'info@nhssalumni.com'}?subject=${encodeURIComponent(
-                  language === 'ta' ? 'பள்ளித் தகவல் அறிய தொடர்பு' : 'Inquiry & Support Request'
-                )}`}
-                className="w-full bg-white hover:bg-amber-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-[#F4C542] transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
-              >
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#854D0E] flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5 text-[#854D0E]" />
-                  </div>
-                  <div className="min-w-0 text-left">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
-                      {language === 'ta' ? 'மின்னஞ்சல் அனுப்ப' : 'Send an Email'}
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
-                      {profile.email || 'info@nhssalumni.com'}
-                    </span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#854D0E] transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </a>
-            </div>
-
-            {/* School Location Box */}
-            <div className="pt-1 border-t border-gray-100">
-              <div className="flex items-start space-x-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 text-xs text-gray-800">
-                <MapPin className="w-4 h-4 text-[#854D0E] shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block font-bold mb-0.5">
-                    {language === 'ta' ? 'பள்ளி முகவரி' : 'School Location'}
-                  </span>
-                  <span className="font-semibold text-[#111111] leading-tight block">
-                    {profile.address || 'NHS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி'}
-                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight">
+                    {language === 'ta' ? 'உதவி & தொடர்பு' : 'Friendly Support & Contact'}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    {language === 'ta' ? 'எப்போதும் உங்களுக்கு உதவ தயாராக உள்ளோம்' : 'We are here to help you anytime'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Friendly Welcome Note */}
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal bg-gray-50 border border-gray-200 p-4 rounded-2xl">
+                {language === 'ta'
+                  ? 'ஏதேனும் கேள்விகள், சந்தேகங்கள் அல்லது பள்ளி பற்றிய தகவல்கள் தேவையா? கீழே உள்ள வாட்ஸ்அப் அல்லது மின்னஞ்சல் வழியாக எங்களை உடனே தொடர்பு கொள்ளலாம்!'
+                  : 'Have questions, need help, or want to connect with your school network? Send us a quick text or email — we will assist you right away!'}
+              </p>
+
+              {/* Contact Methods (Plain & Simple White Card Styling) */}
+              <div className="space-y-3">
+                {/* WhatsApp Support Button */}
+                <a
+                  href={`https://wa.me/${(profile.phone || '918825905771').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                    language === 'ta'
+                      ? 'வணக்கம்! எனக்கு NHS பள்ளி பற்றிய விவரங்கள் தேவை.'
+                      : 'Hello! I need information regarding NHSS Alumni.'
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-white hover:bg-emerald-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-emerald-500 transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <Phone className="w-5 h-5 text-emerald-700" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
+                        {language === 'ta' ? 'வாட்ஸ்அப் மெசேஜ் / அழைப்பு' : 'WhatsApp / Call Support'}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
+                        {profile.phone || '+91 88259 05771'}
+                      </span>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+                </a>
+
+                {/* Email Support Button */}
+                <a
+                  href={`mailto:${profile.email || 'info@nhssalumni.com'}?subject=${encodeURIComponent(
+                    language === 'ta' ? 'பள்ளித் தகவல் அறிய தொடர்பு' : 'Inquiry & Support Request'
+                  )}`}
+                  className="w-full bg-white hover:bg-amber-50/60 text-[#111111] p-3.5 rounded-2xl shadow-2xs hover:border-[#F4C542] transition-all flex items-center justify-between group cursor-pointer border border-gray-200"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#854D0E] flex items-center justify-center shrink-0">
+                      <Mail className="w-5 h-5 text-[#854D0E]" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
+                        {language === 'ta' ? 'மின்னஞ்சல் அனுப்ப' : 'Send an Email'}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
+                        {profile.email || 'info@nhssalumni.com'}
+                      </span>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#854D0E] transform group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+                </a>
+              </div>
+
+              {/* School Location Box */}
+              <div className="pt-1 border-t border-gray-100">
+                <div className="flex items-start space-x-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200 text-xs text-gray-800">
+                  <MapPin className="w-4 h-4 text-[#854D0E] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 block font-bold mb-0.5">
+                      {language === 'ta' ? 'பள்ளி முகவரி' : 'School Location'}
+                    </span>
+                    <span className="font-semibold text-[#111111] leading-tight block">
+                      {profile.address || 'NHS பள்ளி கட்டிடம், காட்டு நாயக்கன்பட்டி, தூத்துக்குடி'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

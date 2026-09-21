@@ -23,6 +23,14 @@ export const getAssetUrl = (url: string | undefined): string => {
     return `${API_BASE}${url}`;
   }
 
+  // GridFS-served uploads (returned by /school/upload-image and /memories/upload when
+  // Azure Blob is not configured). These are API-relative paths that must be prefixed
+  // with the backend API base so the browser fetches from the backend origin, not the
+  // frontend origin. Without this, uploaded photos 404 on refresh in GridFS mode.
+  if (url.startsWith('/api/v1/files/') || url.startsWith('/files/')) {
+    return `${API_BASE}${url}`;
+  }
+
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}v=${ASSET_VERSION}`;
 };

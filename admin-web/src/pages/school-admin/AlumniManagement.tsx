@@ -3,7 +3,8 @@ import {
   Search, Download, Upload, UserX, CheckCircle2, Trash2, Plus, 
   Table as TableIcon, Edit3, Save, RefreshCw, X, ShieldCheck, Clock, AlertCircle,
   Users, HandHeart, Heart, Droplet, Layers, CheckSquare, Square, Filter,
-  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Send, FileSpreadsheet
+  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Send, FileSpreadsheet,
+  ArrowDownUp
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -11,10 +12,49 @@ import { TableSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AlumniProfile } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ADD_FORM_TOTAL_STEPS = 5;
 
+// ---------------------------------------------------------------------------
+// Sort options for the Alumni Directory.
+//
+// IMPORTANT: the `value` (SortKey) drives the actual sort logic and must NEVER
+// change based on language. Only the `labelKey` is translated, and the display
+// label is resolved at render time via t(labelKey).
+// ---------------------------------------------------------------------------
+type SortKey = 'batch_asc' | 'batch_desc' | 'name_asc' | 'name_desc';
+
+const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
+  { value: 'batch_asc',  labelKey: 'admin_sort_batch_asc' },
+  { value: 'batch_desc', labelKey: 'admin_sort_batch_desc' },
+  { value: 'name_asc',   labelKey: 'admin_sort_name_asc' },
+  { value: 'name_desc',  labelKey: 'admin_sort_name_desc' },
+];
+
+// Safely coerce a `passing_year` value (number | string | null | undefined)
+// to an integer year. Returns `null` when the value is missing or invalid so
+// the caller can place it deterministically at the end of the sorted list.
+const parseBatchYear = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/\d{4}/);
+    if (match) {
+      const n = Number(match[0]);
+      if (Number.isFinite(n)) return n;
+    }
+    const n = Number(trimmed);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+};
+
 export const AlumniManagement: React.FC = () => {
+  const { t, language } = useLanguage();
+
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,6 +64,7 @@ export const AlumniManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [bloodGroupFilter, setBloodGroupFilter] = useState('');
   const [volunteerFilter, setVolunteerFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('batch_asc');
 
   // Mode: 'table' vs 'sheet'
   const [viewMode, setViewMode] = useState<'table' | 'sheet'>('table');
@@ -59,6 +100,14 @@ export const AlumniManagement: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Suspend modal state
+  const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false);
+  const [suspendTargetId, setSuspendTargetId] = useState<string>('');
+  const [suspendTargetName, setSuspendTargetName] = useState<string>('');
+  const [suspendReason, setSuspendReason] = useState<string>('');
+  const [suspending, setSuspending] = useState(false);
+  const [suspendValidationError, setSuspendValidationError] = useState<string>('');
+
   // Add-form photo upload state (for the wizard's Step 1)
   const [addFormPhotoUploading, setAddFormPhotoUploading] = useState(false);
 
@@ -73,7 +122,6 @@ export const AlumniManagement: React.FC = () => {
 
   // Add Single/Bulk Alumnus Form State — now includes ALL fields
   const [newAlumnus, setNewAlumnus] = useState<Partial<AlumniProfile>>({
-    // Page 1 — Personal Information
     full_name: '',
     name_ta: '',
     gender: '',
@@ -82,8 +130,6 @@ export const AlumniManagement: React.FC = () => {
     father_name: '',
     mother_name: '',
     profile_photo_url: '',
-
-    // Page 2 — Contact & Address
     mobile: '',
     country_code: '91',
     email: '',
@@ -91,8 +137,6 @@ export const AlumniManagement: React.FC = () => {
     current_city: '',
     current_state: '',
     country: 'India',
-
-    // Page 3 — School Education
     school_name: '',
     joining_year: undefined,
     passing_year: new Date().getFullYear(),
@@ -100,8 +144,6 @@ export const AlumniManagement: React.FC = () => {
     admission_number: '',
     section: 'A',
     no_higher_education: 'NO',
-
-    // Page 4 — Higher Education
     college_name: '',
     degree: '',
     custom_degree: '',
@@ -109,8 +151,6 @@ export const AlumniManagement: React.FC = () => {
     college_register_no: '',
     college_joining_year: undefined,
     college_passing_year: undefined,
-
-    // Page 5 — Professional & Social
     employment_status: '',
     company_name: '',
     profession: '',
@@ -121,8 +161,6 @@ export const AlumniManagement: React.FC = () => {
     instagram_url: '',
     whatsapp_number: '',
     website_url: '',
-
-    // Other
     is_volunteer: 'NO',
     willing_to_donate: 'NO',
     verification_status: 'APPROVED',
@@ -133,14 +171,6 @@ export const AlumniManagement: React.FC = () => {
     fetchAlumni();
   }, []);
 
-  // ---------------------------------------------------------------------------
-  // Fetch roster from backend.
-  //
-  // Pass forceFresh=true from any user-triggered refresh action (Refresh button,
-  // after delete/suspend/bulk-update/add/import/save-sheet) so we always bypass
-  // the ApiClient's 20-second GET cache. The initial mount uses forceFresh=false
-  // because the cache is empty at that point anyway.
-  // ---------------------------------------------------------------------------
   const fetchAlumni = async (forceFresh: boolean = false) => {
     try {
       if (forceFresh) {
@@ -159,9 +189,8 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Filtered Roster Computation
   const displayedAlumni = useMemo(() => {
-    return alumniList.filter((a) => {
+    const filtered = alumniList.filter((a) => {
       const q = search.toLowerCase().trim();
       const matchesSearch = !q || (
         (a.full_name || '').toLowerCase().includes(q) ||
@@ -183,9 +212,53 @@ export const AlumniManagement: React.FC = () => {
 
       return matchesSearch && matchesBatch && matchesStatus && matchesBlood && matchesVol;
     });
-  }, [alumniList, search, batchYear, statusFilter, bloodGroupFilter, volunteerFilter]);
 
-  // Selection Helper
+    const sorted = filtered.slice();
+
+    switch (sortBy) {
+      case 'batch_asc': {
+        sorted.sort((a, b) => {
+          const ya = parseBatchYear(a.passing_year);
+          const yb = parseBatchYear(b.passing_year);
+          if (ya === null && yb === null) return 0;
+          if (ya === null) return 1;
+          if (yb === null) return -1;
+          if (ya !== yb) return ya - yb;
+          return (a.full_name || '').localeCompare(b.full_name || '', undefined, { sensitivity: 'base' });
+        });
+        break;
+      }
+      case 'batch_desc': {
+        sorted.sort((a, b) => {
+          const ya = parseBatchYear(a.passing_year);
+          const yb = parseBatchYear(b.passing_year);
+          if (ya === null && yb === null) return 0;
+          if (ya === null) return 1;
+          if (yb === null) return -1;
+          if (ya !== yb) return yb - ya;
+          return (a.full_name || '').localeCompare(b.full_name || '', undefined, { sensitivity: 'base' });
+        });
+        break;
+      }
+      case 'name_asc': {
+        sorted.sort((a, b) =>
+          (a.full_name || '').localeCompare(b.full_name || '', undefined, { sensitivity: 'base' })
+        );
+        break;
+      }
+      case 'name_desc': {
+        sorted.sort((a, b) =>
+          (b.full_name || '').localeCompare(a.full_name || '', undefined, { sensitivity: 'base' })
+        );
+        break;
+      }
+      default:
+        break;
+    }
+
+    return sorted;
+  }, [alumniList, search, batchYear, statusFilter, bloodGroupFilter, volunteerFilter, sortBy]);
+
   const toggleSelectAll = () => {
     if (selectedIds.size === displayedAlumni.length) {
       setSelectedIds(new Set());
@@ -204,7 +277,6 @@ export const AlumniManagement: React.FC = () => {
     setSelectedIds(next);
   };
 
-  // Inline Sheet Cell Change Handler (Immediate local UI update)
   const handleCellEdit = (
     id: string,
     field: keyof AlumniProfile,
@@ -229,7 +301,6 @@ export const AlumniManagement: React.FC = () => {
     }));
   };
 
-  // Auto-save row updates seamlessly when user clicks away / tabs out
   const handleCellBlur = async (id: string) => {
     const rowUpdates = editedRows[id];
     if (!rowUpdates || Object.keys(rowUpdates).length === 0) return;
@@ -246,18 +317,10 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // PROFILE PHOTO UPLOAD (Editable Sheet)
-  // Uploads the file to the existing backend storage (Azure Blob via
-  // /school/upload-image), gets back a permanent URL, then stores that URL
-  // against the specific alumni row using the same handleCellEdit + auto-save
-  // pattern as every other column. No new upload system is introduced.
-  // ---------------------------------------------------------------------------
   const handleSheetPhotoUpload = async (
     alumniId: string,
     file: File
   ) => {
-    // 1. Client-side validation: must be an image
     if (!file.type.startsWith('image/')) {
       alertService.showWarning(
         'Invalid File Type',
@@ -266,7 +329,6 @@ export const AlumniManagement: React.FC = () => {
       return;
     }
 
-    // 2. Track loading state for this specific row
     setPhotoUploadingIds((prev) => {
       const next = new Set(prev);
       next.add(alumniId);
@@ -274,10 +336,6 @@ export const AlumniManagement: React.FC = () => {
     });
 
     try {
-      // 3. Reuse the existing upload pipeline:
-      //    - convertFileToWebP() (inside api.uploadSchoolImage) compresses to WebP
-      //    - POST /school/upload-image uploads to Azure Blob
-      //    - response returns { url, image_url, filename }
       const res = await api.uploadSchoolImage(file);
       const newUrl = res.url || res.image_url || '';
 
@@ -285,14 +343,10 @@ export const AlumniManagement: React.FC = () => {
         throw new Error('Upload succeeded but no URL was returned.');
       }
 
-      // 4. Store the URL against ONLY this row's profile_photo_url.
-      //    handleCellEdit updates local state and marks the row dirty.
       handleCellEdit(alumniId, 'profile_photo_url', newUrl);
 
-      // 5. Immediately persist (same auto-save behavior as other cell edits).
       try {
         await api.updateAlumniAdmin(alumniId, { profile_photo_url: newUrl });
-        // Clear this row from editedRows since it's already saved.
         setEditedRows((prev) => {
           const next = { ...prev };
           if (next[alumniId]) {
@@ -307,8 +361,6 @@ export const AlumniManagement: React.FC = () => {
           return next;
         });
       } catch (saveErr: any) {
-        // The URL is in local state but not yet persisted — leave the row dirty
-        // so the admin can retry via the "Save Edited Row(s)" button.
         console.error('Photo uploaded but failed to persist to alumni record:', saveErr);
         alertService.showWarning(
           'Photo Uploaded, Not Yet Saved',
@@ -318,10 +370,8 @@ export const AlumniManagement: React.FC = () => {
 
       alertService.showSuccess('Photo Updated', 'Profile photo uploaded successfully.');
     } catch (err: any) {
-      // Do NOT modify profile_photo_url on failure — the existing value stays intact.
       alertService.handleApiError(err, 'Failed to upload profile photo.');
     } finally {
-      // 6. Clear loading state for this row
       setPhotoUploadingIds((prev) => {
         const next = new Set(prev);
         next.delete(alumniId);
@@ -330,12 +380,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // PROFILE PHOTO UPLOAD (Add New Alumni wizard — Step 1)
-  // Same pipeline as above: uploads via api.uploadSchoolImage() and stores the
-  // returned URL in the newAlumnus draft. This replaces the previous
-  // FileReader.readAsDataURL() approach (which produced huge base64 strings).
-  // ---------------------------------------------------------------------------
   const handleAddFormPhotoUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alertService.showWarning(
@@ -360,7 +404,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Save All Sheet Changes Action (Manual bulk save button)
   const handleSaveSheetChanges = async () => {
     const idsToUpdate = Object.keys(editedRows);
     if (idsToUpdate.length === 0) return;
@@ -383,25 +426,70 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Single Actions
-  const handleSingleSuspend = async (id: string) => {
-    const confirmed = await alertService.showConfirm(
-      'Suspend Alumni Profile?',
-      'Are you sure you want to suspend this alumni profile? The user will be barred from portal access.',
-      'Suspend Profile',
-      'Cancel'
-    );
-    if (!confirmed) return;
+  const handleOpenSuspendModal = (id: string, name: string) => {
+    setSuspendTargetId(id);
+    setSuspendTargetName(name);
+    setSuspendReason('');
+    setSuspendValidationError('');
+    setIsSuspendModalOpen(true);
+  };
+
+  const handleCloseSuspendModal = () => {
+    if (suspending) return;
+    setIsSuspendModalOpen(false);
+    setSuspendTargetId('');
+    setSuspendTargetName('');
+    setSuspendReason('');
+    setSuspendValidationError('');
+  };
+
+  const handleSubmitSuspend = async () => {
+    const trimmedReason = suspendReason.trim();
+    if (!trimmedReason) {
+      setSuspendValidationError(t('admin_suspend_reason_required'));
+      return;
+    }
+    if (suspending) return;
+    setSuspendValidationError('');
+    setSuspending(true);
 
     try {
-      await api.verifyAlumni(id, 'SUSPENDED', 'Suspended by admin');
-      alertService.showSuccess('Alumni Suspended', 'The profile has been suspended.');
+      const res: any = await api.verifyAlumni(suspendTargetId, 'SUSPENDED', trimmedReason);
+
+      const emailSent = Boolean(res?.email_sent);
+      const emailMissing = Boolean(res?.email_missing);
+
+      if (emailSent) {
+        alertService.showSuccess(
+          'Alumni Suspended',
+          `"${suspendTargetName}" has been suspended. Notification email sent.`
+        );
+      } else if (emailMissing) {
+        alertService.showWarning(
+          'Suspended — Email Missing',
+          `"${suspendTargetName}" has been suspended successfully, but notification email could not be sent because no email address is available.`
+        );
+      } else {
+        alertService.showWarning(
+          'Suspended — Email Failed',
+          `"${suspendTargetName}" has been suspended successfully, but the notification email could not be sent.`
+        );
+      }
+
+      setIsSuspendModalOpen(false);
+      setSuspendTargetId('');
+      setSuspendTargetName('');
+      setSuspendReason('');
+      setSuspendValidationError('');
       fetchAlumni(true);
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to update alumni status.');
+      alertService.handleApiError(err, 'Failed to suspend alumni.');
+    } finally {
+      setSuspending(false);
     }
   };
-    const handleSingleActivate = async (id: string, name: string) => {
+
+  const handleSingleActivate = async (id: string, name: string) => {
     const confirmed = await alertService.showConfirm(
       'Activate Alumni Profile?',
       `Are you sure you want to reactivate "${name}"? The user will regain full portal access.`,
@@ -419,7 +507,7 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-      const handleSingleApprove = async (id: string, name: string) => {
+  const handleSingleApprove = async (id: string, name: string) => {
     const confirmed = await alertService.showConfirm(
       'Approve Alumni Profile?',
       `Are you sure you want to approve "${name}"? The user will receive an approval email and gain full portal access.`,
@@ -473,7 +561,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Bulk Actions
   const handleBulkSendInvitations = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -495,6 +582,7 @@ export const AlumniManagement: React.FC = () => {
       alertService.handleApiError(err, 'Failed to dispatch bulk invitations.');
     }
   };
+
   const handleBulkApprove = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -545,7 +633,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Reset the Add form to its initial (empty) state
   const resetAddForm = () => {
     setNewAlumnus({
       full_name: '',
@@ -594,7 +681,6 @@ export const AlumniManagement: React.FC = () => {
     setAddFormStep(1);
   };
 
-  // Validate the current step of the Add form before advancing
   const validateAddStep = (step: number): string[] => {
     const missing: string[] = [];
     if (step === 1) {
@@ -618,7 +704,6 @@ export const AlumniManagement: React.FC = () => {
     return missing;
   };
 
-  // Advance to next step of Add form
   const goToNextAddStep = () => {
     const missing = validateAddStep(addFormStep);
     if (missing.length > 0) {
@@ -633,11 +718,9 @@ export const AlumniManagement: React.FC = () => {
 
   const goToPrevAddStep = () => setAddFormStep((s) => Math.max(s - 1, 1));
 
-  // Add Single Alumnus Submission — runs at the final step
   const handleCreateAlumnus = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Final validation across all steps
     const allMissing: string[] = [];
     for (let s = 1; s <= ADD_FORM_TOTAL_STEPS; s++) {
       allMissing.push(...validateAddStep(s));
@@ -678,7 +761,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // CSV Roster Upload Submission — UPSERT semantics
   const handleCSVUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!csvFile) return;
@@ -725,7 +807,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Export CSV Handler (authenticated blob download)
   const handleExportCSV = async () => {
     setExportingCSV(true);
     try {
@@ -738,7 +819,6 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Export Excel (.xlsx) Handler (authenticated blob download with professional formatting)
   const handleExportExcel = async () => {
     setExportingExcel(true);
     try {
@@ -751,121 +831,108 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // Complete Batch List (1962–2026)
   const currentYear = new Date().getFullYear();
   const availableBatches = Array.from({ length: currentYear - 1962 + 1 }, (_, i) => currentYear - i);
   const editedCount = Object.keys(editedRows).length;
 
-  // Common input styling for the Add wizard
   const addInputCls = "w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none text-xs font-medium";
   const addLabelCls = "block font-bold text-[#111111] mb-1 text-xs";
 
   return (
     <div className="space-y-6 animate-fadeIn font-sans text-[#111111] pb-12">
       {/* Header Title & Top Controls */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
+      <div className="space-y-4">
+        <div className="w-full">
           <h2 className="text-2xl font-extrabold text-[#111111] tracking-tight">
-            Alumni Management & Sheet Editor
+            {t('admin_alumni_mgmt_title')}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Manage alumni directory records, inline sheet editing, bulk updates, additions & roster exports.
+            {t('admin_alumni_mgmt_subtitle')}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => fetchAlumni(true)}
-            disabled={loading}
-            className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-gray-300 flex items-center justify-center shadow-2xs"
-            title="Refresh Directory Roster"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-
-          {/* Mode Switcher */}
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-300">
+        {/* Action Button Row — Two Groups */}
+        {/* ENGLISH: justify-between pushes Left group left, Right group right. */}
+        {/* TAMIL: no justify-between, buttons flow naturally (current Tamil layout preserved). */}
+        <div className={`flex flex-wrap items-center gap-2 ${language === 'en' ? 'w-full justify-between' : ''}`}>
+          {/* ============ LEFT GROUP ============ */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer ${
-                viewMode === 'table' ? 'bg-white text-[#111111] shadow-2xs' : 'text-gray-600 hover:text-[#111111]'
-              }`}
+              onClick={() => fetchAlumni(true)}
+              disabled={loading}
+              className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-gray-300 flex items-center justify-center shadow-2xs"
+              title={t('admin_refresh_roster')}
             >
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Standard Table</span>
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+
+            {/* Mode Switcher */}
+            <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-300">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  viewMode === 'table' ? 'bg-white text-[#111111] shadow-2xs' : 'text-gray-600 hover:text-[#111111]'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span>{t('admin_view_standard_table')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('sheet')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  viewMode === 'sheet' ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111]'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{t('admin_view_editable_sheet')}</span>
+                {editedCount > 0 && (
+                  <span className="ml-1 bg-amber-400 text-black px-1.5 py-0.2 rounded-full text-[10px]">
+                    {editedCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <Button
+              variant="secondary"
+              onClick={() => { resetAddForm(); setIsAddModalOpen(true); }}
+              className="text-xs font-bold"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {t('admin_btn_add_new_alumni')}
+            </Button>
+          </div>
+
+          {/* ============ RIGHT GROUP ============ */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="text-xs font-bold" title={t('admin_btn_import_roster')}>
+              <Upload className="w-4 h-4 mr-1" />
+              {t('admin_btn_import_roster')}
+            </Button>
+
             <button
               type="button"
-              onClick={() => setViewMode('sheet')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer ${
-                viewMode === 'sheet' ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111]'
-              }`}
+              onClick={handleExportExcel}
+              disabled={exportingExcel}
+              className="inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all border border-emerald-600 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title={t('admin_btn_export_excel')}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Editable Sheet</span>
-              {editedCount > 0 && (
-                <span className="ml-1 bg-amber-400 text-black px-1.5 py-0.2 rounded-full text-[10px]">
-                  {editedCount}
-                </span>
+              {exportingExcel ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                  {t('admin_btn_exporting_excel')}
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="w-4 h-4 mr-1" />
+                  {t('admin_btn_export_excel')}
+                </>
               )}
             </button>
           </div>
-
-          <Button
-            variant="secondary"
-            onClick={() => { resetAddForm(); setIsAddModalOpen(true); }}
-            className="text-xs font-bold"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add New Alumni
-          </Button>
-
-          <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="text-xs font-bold" title="Import alumni roster via Excel (.xlsx) or CSV (.csv)">
-            <Upload className="w-4 h-4 mr-1" />
-            Import Roster (Excel / CSV)
-          </Button>
-
-          {/* <button
-            type="button"
-            onClick={handleExportCSV}
-            disabled={exportingCSV}
-            className="inline-flex items-center justify-center px-4 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-bold text-xs rounded-xl transition-all border border-[#E0B030] shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            title="Export raw CSV for editing, backup, or bulk import"
-          >
-            {exportingCSV ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                Exporting CSV...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-1" />
-                Export CSV
-              </>
-            )}
-          </button> */}
-
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            disabled={exportingExcel}
-            className="inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all border border-emerald-600 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            title="Download formatted Excel spreadsheet (.xlsx) with auto-filters and frozen headers"
-          >
-            {exportingExcel ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                Exporting Excel...
-              </>
-            ) : (
-              <>
-                <FileSpreadsheet className="w-4 h-4 mr-1" />
-                Export Excel
-              </>
-            )}
-          </button>
         </div>
       </div>
 
@@ -874,7 +941,7 @@ export const AlumniManagement: React.FC = () => {
         <div className="bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
           <div className="flex items-center space-x-2 text-xs font-extrabold">
             <CheckSquare className="w-4 h-4 text-amber-400" />
-            <span>{selectedIds.size} Alumni Profile(s) Selected</span>
+            <span>{selectedIds.size} {t('admin_bulk_selected_count')}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -882,10 +949,10 @@ export const AlumniManagement: React.FC = () => {
               type="button"
               onClick={handleBulkSendInvitations}
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer shadow-xs"
-              title="Send account activation SMS invitation to selected alumni"
+              title={t('admin_bulk_send_invitation')}
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Send Invitation ({selectedIds.size})</span>
+              <span>{t('admin_bulk_send_invitation')} ({selectedIds.size})</span>
             </button>
 
             <button
@@ -894,7 +961,7 @@ export const AlumniManagement: React.FC = () => {
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Bulk Approve</span>
+              <span>{t('admin_bulk_approve')}</span>
             </button>
 
             <button
@@ -903,7 +970,7 @@ export const AlumniManagement: React.FC = () => {
               className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer"
             >
               <UserX className="w-3.5 h-3.5" />
-              <span>Bulk Suspend</span>
+              <span>{t('admin_bulk_suspend')}</span>
             </button>
 
             <button
@@ -912,7 +979,7 @@ export const AlumniManagement: React.FC = () => {
               className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Bulk Delete</span>
+              <span>{t('admin_bulk_delete')}</span>
             </button>
 
             <button
@@ -920,7 +987,7 @@ export const AlumniManagement: React.FC = () => {
               onClick={() => setSelectedIds(new Set())}
               className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-xs font-semibold cursor-pointer"
             >
-              Deselect All
+              {t('admin_bulk_deselect_all')}
             </button>
           </div>
         </div>
@@ -928,12 +995,12 @@ export const AlumniManagement: React.FC = () => {
 
       {/* Search & Multi-Filter Control Bar */}
       <div className="bg-white border border-gray-200 rounded-3xl p-4 sm:p-5 shadow-2xs space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 text-xs">
           <div className="relative lg:col-span-2">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by name, admission no, mobile, email, city, profession..."
+              placeholder={t('admin_filter_search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-[#111111] focus:bg-white focus:border-[#111111] focus:outline-none transition-all"
@@ -942,13 +1009,26 @@ export const AlumniManagement: React.FC = () => {
 
           <div>
             <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-[#111111] focus:bg-white focus:outline-none appearance-none cursor-pointer"
+              title={t('admin_col_actions')}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
               value={batchYear}
               onChange={(e) => setBatchYear(e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-[#111111] focus:bg-white focus:outline-none appearance-none cursor-pointer"
             >
-              <option value="">All Batches (1962-2026)</option>
+              <option value="">{t('admin_filter_all_batches')}</option>
               {availableBatches.map((y) => (
-                <option key={y} value={String(y)}>Class of {y}</option>
+                <option key={y} value={String(y)}>{t('admin_filter_class_of')} {y}</option>
               ))}
             </select>
           </div>
@@ -959,11 +1039,11 @@ export const AlumniManagement: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-[#111111] focus:bg-white focus:outline-none appearance-none cursor-pointer"
             >
-              <option value="ALL">All Verification Statuses</option>
-              <option value="APPROVED">APPROVED Only</option>
-              <option value="PENDING">PENDING Only</option>
-              <option value="SUSPENDED">SUSPENDED Only</option>
-              <option value="REJECTED">REJECTED Only</option>
+              <option value="ALL">{t('admin_filter_all_statuses')}</option>
+              <option value="APPROVED">{t('admin_filter_status_approved')}</option>
+              <option value="PENDING">{t('admin_filter_status_pending')}</option>
+              <option value="SUSPENDED">{t('admin_filter_status_suspended')}</option>
+              <option value="REJECTED">{t('admin_filter_status_rejected')}</option>
             </select>
           </div>
 
@@ -973,9 +1053,9 @@ export const AlumniManagement: React.FC = () => {
               onChange={(e) => setBloodGroupFilter(e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-rose-700 focus:bg-white focus:outline-none appearance-none cursor-pointer font-bold"
             >
-              <option value="">All Blood Groups</option>
+              <option value="">{t('admin_filter_all_blood_groups')}</option>
               {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
-                <option key={bg} value={bg}>{bg} Blood Group</option>
+                <option key={bg} value={bg}>{bg} {t('admin_filter_blood_suffix')}</option>
               ))}
             </select>
           </div>
@@ -986,37 +1066,37 @@ export const AlumniManagement: React.FC = () => {
               onChange={(e) => setVolunteerFilter(e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-semibold text-[#111111] focus:bg-white focus:outline-none appearance-none cursor-pointer"
             >
-              <option value="">All Volunteers</option>
-              <option value="YES">Volunteers Only (YES)</option>
-              <option value="NO">Non-Volunteers</option>
+              <option value="">{t('admin_filter_all_volunteers')}</option>
+              <option value="YES">{t('admin_filter_volunteers_yes')}</option>
+              <option value="NO">{t('admin_filter_non_volunteers')}</option>
             </select>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 font-medium pt-2 border-t border-gray-100">
           <div>
-            Showing <strong className="text-[#111111]">{displayedAlumni.length}</strong> of {alumniList.length} total roster records
+            {t('admin_showing_count_prefix')} <strong className="text-[#111111]">{displayedAlumni.length}</strong> {t('admin_showing_count_middle')} {alumniList.length} {t('admin_showing_count_suffix')}
           </div>
 
           {viewMode === 'table' && (
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] text-gray-500 hidden sm:inline">Horizontal Scroll:</span>
+              <span className="text-[11px] text-gray-500 hidden sm:inline">{t('admin_horizontal_scroll')}</span>
               <div className="flex items-center bg-gray-100 hover:bg-gray-200/70 border border-gray-300 rounded-xl p-0.5 text-gray-700 shadow-2xs transition-all">
                 <button
                   type="button"
                   onClick={() => scrollTable(-300)}
-                  title="Scroll Left (or Shift + Mouse Wheel)"
+                  title={t('admin_sheet_scroll_left')}
                   className="p-1 hover:text-[#111111] hover:bg-white rounded-lg transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="text-[10px] font-bold px-2 text-gray-600 select-none tracking-tight">
-                  Pan Columns
+                  {t('admin_pan_columns')}
                 </span>
                 <button
                   type="button"
                   onClick={() => scrollTable(300)}
-                  title="Scroll Right (or Shift + Mouse Wheel)"
+                  title={t('admin_sheet_scroll_right')}
                   className="p-1 hover:text-[#111111] hover:bg-white rounded-lg transition-colors cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1027,7 +1107,7 @@ export const AlumniManagement: React.FC = () => {
 
           {viewMode === 'sheet' && (
             <span className="text-amber-800 font-bold bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 text-[11px]">
-              Sheet Mode Active: Edit any input directly below
+              {t('admin_sheet_mode_active')}
             </span>
           )}
         </div>
@@ -1056,16 +1136,16 @@ export const AlumniManagement: React.FC = () => {
                         )}
                       </button>
                     </th>
-                    <th className="py-3.5 px-3 w-16 text-center">S.No</th>
-                    <th className="py-3.5 px-4 min-w-[200px]">Alumnus Profile</th>
-                    <th className="py-3.5 px-4 min-w-[140px]">Batch & Section</th>
-                    <th className="py-3.5 px-4 min-w-[160px]">Contact Information</th>
-                    <th className="py-3.5 px-4 min-w-[190px]">Address</th>
-                    <th className="py-3.5 px-4 min-w-[110px]">Blood Group</th>
-                    <th className="py-3.5 px-4 min-w-[100px]">Volunteer</th>
-                    <th className="py-3.5 px-4 min-w-[110px]">Willing Donor</th>
-                    <th className="py-3.5 px-4 min-w-[140px]">Status</th>
-                    <th className="py-3.5 px-4 text-right min-w-[190px]">Actions</th>
+                    <th className="py-3.5 px-3 w-16 text-center">{t('admin_col_sno')}</th>
+                    <th className="py-3.5 px-4 min-w-[200px]">{t('admin_col_alumnus_profile')}</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_batch_section')}</th>
+                    <th className="py-3.5 px-4 min-w-[160px]">{t('admin_col_contact_info')}</th>
+                    <th className="py-3.5 px-4 min-w-[190px]">{t('admin_col_address')}</th>
+                    <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_blood_group')}</th>
+                    <th className="py-3.5 px-4 min-w-[100px]">{t('admin_col_volunteer')}</th>
+                    <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_willing_donor')}</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_status')}</th>
+                    <th className="py-3.5 px-4 text-right min-w-[190px]">{t('admin_col_actions')}</th>
                   </tr>
                 </thead>
 
@@ -1102,7 +1182,7 @@ export const AlumniManagement: React.FC = () => {
                               <div>
                                 <div className="font-bold text-[#111111]">{a.full_name}</div>
                                 {a.admission_number && (
-                                  <div className="text-[10px] text-gray-500">Adm: {a.admission_number}</div>
+                                  <div className="text-[10px] text-gray-500">{t('admin_label_adm_prefix')} {a.admission_number}</div>
                                 )}
                               </div>
                             </div>
@@ -1110,7 +1190,7 @@ export const AlumniManagement: React.FC = () => {
 
                           <td className="py-3 px-4 whitespace-nowrap">
                             <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
-                              Batch {a.passing_year} {a.section ? `(${a.section})` : ''}
+                              {t('admin_label_batch_prefix')} {a.passing_year} {a.section ? `(${a.section})` : ''}
                             </span>
                           </td>
 
@@ -1143,10 +1223,10 @@ export const AlumniManagement: React.FC = () => {
                             {a.is_volunteer === 'YES' ? (
                               <span className="inline-flex items-center space-x-1 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px]">
                                 <HandHeart className="w-3 h-3 text-emerald-600" />
-                                <span>YES</span>
+                                <span>{t('admin_label_yes')}</span>
                               </span>
                             ) : (
-                              <span className="text-gray-400">NO</span>
+                              <span className="text-gray-400">{t('admin_label_no')}</span>
                             )}
                           </td>
 
@@ -1154,10 +1234,10 @@ export const AlumniManagement: React.FC = () => {
                             {a.willing_to_donate === 'YES' ? (
                               <span className="inline-flex items-center space-x-1 font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-2 py-0.5 rounded-full text-[10px]">
                                 <Heart className="w-3 h-3 fill-[#854D0E] text-[#854D0E]" />
-                                <span>YES</span>
+                                <span>{t('admin_label_yes')}</span>
                               </span>
                             ) : (
-                              <span className="text-gray-400">NO</span>
+                              <span className="text-gray-400">{t('admin_label_no')}</span>
                             )}
                           </td>
 
@@ -1176,81 +1256,75 @@ export const AlumniManagement: React.FC = () => {
                                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                                 }`}>
-                                  {a.invitation_status === 'SENT' ? 'Invite Sent' : 'Pending Activation'}
+                                  {a.invitation_status === 'SENT' ? t('admin_status_invite_sent') : t('admin_status_pending_activation')}
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Active
+                                  {t('admin_status_active')}
                                 </span>
                               )}
                             </div>
                           </td>
 
                           <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
-  {/* Send / Resend Activation Invitation */}
   {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
     <button
       type="button"
       onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
       className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-      title="Send SMS Activation Invitation"
+      title={t('admin_action_send_invite')}
     >
       <Send className="w-3 h-3" />
-      <span>{a.invitation_status === 'SENT' ? 'Resend Invite' : 'Send Invite'}</span>
+      <span>{a.invitation_status === 'SENT' ? t('admin_action_resend_invite') : t('admin_action_send_invite')}</span>
     </button>
   )}
 
-  {/* PENDING → allow Approve */}
   {a.verification_status === 'PENDING' && (
     <button
       type="button"
       onClick={() => handleSingleApprove(a.id, a.full_name)}
       className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
     >
-      Approve
+      {t('admin_action_approve')}
     </button>
   )}
 
-  {/* REJECTED → allow Approve */}
   {a.verification_status === 'REJECTED' && (
     <button
       type="button"
       onClick={() => handleSingleApprove(a.id, a.full_name)}
       className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
     >
-      Approve
+      {t('admin_action_approve')}
     </button>
   )}
 
-  {/* APPROVED → allow Suspend */}
   {a.verification_status === 'APPROVED' && (
     <button
       type="button"
-      onClick={() => handleSingleSuspend(a.id)}
+      onClick={() => handleOpenSuspendModal(a.id, a.full_name)}
       className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
     >
-      Suspend
+      {t('admin_action_suspend')}
     </button>
   )}
 
-  {/* SUSPENDED → allow Activate */}
   {a.verification_status === 'SUSPENDED' && (
     <button
       type="button"
       onClick={() => handleSingleActivate(a.id, a.full_name)}
       className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
     >
-      Activate
+      {t('admin_action_activate')}
     </button>
   )}
 
-  {/* Delete is always available */}
   <button
     type="button"
     onClick={() => handleSingleDelete(a.id, a.full_name)}
     className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
   >
-    Delete
+    {t('admin_action_delete')}
   </button>
 </td>
                         </tr>
@@ -1259,7 +1333,7 @@ export const AlumniManagement: React.FC = () => {
                   ) : (
                     <tr>
                       <td colSpan={11} className="py-10 text-center text-gray-500 font-bold">
-                        No alumni records found matching filter criteria.
+                        {t('admin_no_alumni_found')}
                       </td>
                     </tr>
                   )}
@@ -1276,26 +1350,25 @@ export const AlumniManagement: React.FC = () => {
           <div className="px-5 py-3 bg-[#111111] text-white flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
             <div className="flex items-center space-x-2">
               <Edit3 className="w-4 h-4 text-amber-400" />
-              <span>Full Spreadsheet Editor — All 41 Fields Editable Directly Below</span>
+              <span>{t('admin_sheet_editor_title')}</span>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Quick horizontal scroll controls */}
               <div className="flex items-center bg-[#222222] border border-gray-700 rounded-lg p-0.5 text-gray-300 shadow-xs">
                 <button
                   type="button"
                   onClick={() => scrollSheet(-400)}
-                  title="Scroll Left (or Shift + Mouse Wheel)"
+                  title={t('admin_sheet_scroll_left')}
                   className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="text-[10px] font-mono px-2 text-gray-400 select-none tracking-tight">
-                  Pan Columns
+                  {t('admin_pan_columns')}
                 </span>
                 <button
                   type="button"
                   onClick={() => scrollSheet(400)}
-                  title="Scroll Right (or Shift + Mouse Wheel)"
+                  title={t('admin_sheet_scroll_right')}
                   className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1303,7 +1376,7 @@ export const AlumniManagement: React.FC = () => {
               </div>
 
               <span className="text-amber-300 font-mono bg-amber-950/50 px-2.5 py-1 rounded border border-amber-500/30">
-                {displayedAlumni.length} Rows Rendered
+                {displayedAlumni.length} {t('admin_sheet_rows_rendered')}
               </span>
               {Object.keys(editedRows).length > 0 && (
                 <button
@@ -1313,7 +1386,7 @@ export const AlumniManagement: React.FC = () => {
                   className="bg-amber-400 hover:bg-amber-300 text-[#111111] px-3.5 py-1 rounded-full text-xs font-extrabold flex items-center space-x-1.5 shadow transition-all cursor-pointer"
                 >
                   <Save className={`w-3.5 h-3.5 ${savingSheet ? 'animate-spin' : ''}`} />
-                  <span>{savingSheet ? 'Saving...' : `Save ${Object.keys(editedRows).length} Edited Row(s)`}</span>
+                  <span>{savingSheet ? t('admin_sheet_saving') : `${t('admin_sheet_save_edited')} ${Object.keys(editedRows).length} ${t('admin_sheet_edited_rows_suffix')}`}</span>
                 </button>
               )}
             </div>
@@ -1326,48 +1399,48 @@ export const AlumniManagement: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700 z-10 shadow-sm">
                 <tr>
-                  <th className="py-2.5 px-3 border-r border-gray-300 w-16 text-center">S.No</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[220px]">Profile Photo</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">Full Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Name in Tamil</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Mobile Number</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[90px]">Country Code</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Gender</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Date of Birth</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[200px]">Email</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Blood Group</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Father Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">Mother Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Current City</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Current State</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[200px]">Address</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Country</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">School Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Joining Year</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">Passing Year</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">Leaving Class</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Admission/Roll No</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px]">Section</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">No Higher Ed</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">College Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Degree / Course</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Custom Degree</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Department</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">College Reg No</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">College Joining Yr</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">College Passing Yr</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">Employment Status</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">Company Name</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Designation / Position</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Industry</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Total Experience</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Skills & Expertise</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">LinkedIn URL</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Instagram URL</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">WhatsApp Number</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">Website URL</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">Status</th>
-                  <th className="py-2.5 px-3 text-center min-w-[80px] sticky right-0 bg-gray-100 shadow-left z-20">Action</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 w-16 text-center">{t('admin_col_sno')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[220px]">{t('admin_sheet_profile_photo')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">{t('admin_sheet_full_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">{t('admin_sheet_name_tamil')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_mobile')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[90px]">{t('admin_sheet_country_code')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_gender')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_dob')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[200px]">{t('admin_sheet_email')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_blood_group')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">{t('admin_sheet_father_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">{t('admin_sheet_mother_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_current_city')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_current_state')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[200px]">{t('admin_sheet_address')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_country')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">{t('admin_sheet_school_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_joining_year')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_passing_year')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_leaving_class')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_admission_roll')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px]">{t('admin_sheet_section')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_no_higher_ed')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">{t('admin_sheet_college_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_degree')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_custom_degree')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_department')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_college_reg_no')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_college_joining_yr')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_college_passing_yr')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_employment_status')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">{t('admin_sheet_company_name')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_designation')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_industry')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_total_experience')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_skills')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_linkedin')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_instagram')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_whatsapp')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_website')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_status')}</th>
+                  <th className="py-2.5 px-3 text-center min-w-[80px] sticky right-0 bg-gray-100 shadow-left z-20">{t('admin_sheet_action')}</th>
                 </tr>
               </thead>
 
@@ -1391,10 +1464,8 @@ export const AlumniManagement: React.FC = () => {
                         {index + 1}
                       </td>
 
-                      {/* ================= PROFILE PHOTO CELL (UPLOAD) — MOVED TO 2nd COLUMN ================= */}
                       <td className="p-1 border-r border-gray-200">
                         <div className="flex items-center gap-2 px-1 py-1">
-                          {/* Thumbnail preview */}
                           <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center shrink-0">
                             {isPhotoUploading ? (
                               <RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" />
@@ -1411,7 +1482,6 @@ export const AlumniManagement: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Upload / Replace controls */}
                           <div className="flex flex-col gap-0.5">
                             <label
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer transition-colors ${
@@ -1419,10 +1489,10 @@ export const AlumniManagement: React.FC = () => {
                                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                   : 'bg-amber-50 hover:bg-amber-100 text-[#854D0E] border border-amber-200'
                               }`}
-                              title={currentPhoto ? 'Replace existing photo' : 'Upload a new photo'}
+                              title={currentPhoto ? t('admin_photo_upload_title_replace') : t('admin_photo_upload_title_new')}
                             >
                               <Upload className="w-3 h-3" />
-                              <span>{isPhotoUploading ? 'Uploading...' : (currentPhoto ? 'Replace' : 'Upload')}</span>
+                              <span>{isPhotoUploading ? t('admin_sheet_uploading') : (currentPhoto ? t('admin_sheet_replace') : t('admin_sheet_upload'))}</span>
                               <input
                                 type="file"
                                 accept="image/*"
@@ -1445,9 +1515,9 @@ export const AlumniManagement: React.FC = () => {
                                   handleCellEdit(a.id, 'profile_photo_url', '');
                                 }}
                                 className="text-[9px] font-bold text-rose-600 hover:underline text-left cursor-pointer px-0.5"
-                                title="Remove this profile photo"
+                                title={t('admin_photo_remove_title')}
                               >
-                                Remove
+                                {t('admin_sheet_remove')}
                               </button>
                             )}
                           </div>
@@ -1467,7 +1537,6 @@ export const AlumniManagement: React.FC = () => {
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          placeholder="பெயர் (Tamil)"
                           value={getValue('name_ta') || getValue('full_name_ta')}
                           onChange={(e) => handleCellEdit(a.id, 'name_ta', e.target.value, 'full_name_ta')}
                           onBlur={() => handleCellBlur(a.id)}
@@ -1511,7 +1580,6 @@ export const AlumniManagement: React.FC = () => {
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          placeholder="DD-MM-YYYY"
                           value={getValue('date_of_birth') || getValue('dob')}
                           onChange={(e) => handleCellEdit(a.id, 'date_of_birth', e.target.value, 'dob')}
                           onBlur={() => handleCellBlur(a.id)}
@@ -1536,7 +1604,7 @@ export const AlumniManagement: React.FC = () => {
                           onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold text-rose-700 cursor-pointer"
                         >
-                          <option value="">None</option>
+                          <option value="">-</option>
                           {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
                             <option key={bg} value={bg}>{bg}</option>
                           ))}
@@ -1673,8 +1741,8 @@ export const AlumniManagement: React.FC = () => {
                           onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-bold cursor-pointer text-center"
                         >
-                          <option value="YES">YES</option>
-                          <option value="NO">NO</option>
+                          <option value="YES">{t('admin_label_yes')}</option>
+                          <option value="NO">{t('admin_label_no')}</option>
                         </select>
                       </td>
 
@@ -1867,7 +1935,7 @@ export const AlumniManagement: React.FC = () => {
                           type="button"
                           onClick={() => handleSingleDelete(a.id, a.full_name)}
                           className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer transition-colors"
-                          title="Delete Row"
+                          title={t('admin_action_delete')}
                         >
                           <Trash2 className="w-3.5 h-3.5 mx-auto" />
                         </button>
@@ -1879,29 +1947,28 @@ export const AlumniManagement: React.FC = () => {
             </table>
           </div>
 
-          {/* SPREADSHEET FOOTER BAR — SCROLL & NAVIGATION HELPER */}
           <div className="px-5 py-2.5 bg-gray-100 border-t border-gray-300 flex flex-wrap items-center justify-between gap-2 text-gray-600 text-[11px] font-semibold">
             <div className="flex items-center space-x-2">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-              <span>Enhanced high-contrast scrollbar active. Tip: Use <b>Shift + Mouse Wheel</b> or drag the scrollbar below to navigate columns.</span>
+              <span>{t('admin_sheet_footer_tip')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 type="button"
                 onClick={() => scrollSheet(-500)}
                 className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
-                title="Pan Left"
+                title={t('admin_sheet_scroll_left')}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Scroll Left</span>
+                <span>{t('admin_sheet_scroll_left')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => scrollSheet(500)}
                 className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
-                title="Pan Right"
+                title={t('admin_sheet_scroll_right')}
               >
-                <span>Scroll Right</span>
+                <span>{t('admin_sheet_scroll_right')}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1915,20 +1982,19 @@ export const AlumniManagement: React.FC = () => {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => { setIsAddModalOpen(false); resetAddForm(); }}
-        title="Add New Alumni Profile"
+        title={t('admin_add_modal_title')}
       >
         <div className="text-xs font-medium">
 
-          {/* Progress bar / step indicator */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-gray-500 mb-2">
-              <span>Step {addFormStep} of {ADD_FORM_TOTAL_STEPS}</span>
+              <span>{t('admin_add_step_label')} {addFormStep} {t('admin_add_step_of')} {ADD_FORM_TOTAL_STEPS}</span>
               <span className="text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-2 py-0.5 rounded-full">
-                {addFormStep === 1 && 'Personal Information'}
-                {addFormStep === 2 && 'Contact & Address'}
-                {addFormStep === 3 && 'School Education'}
-                {addFormStep === 4 && 'Higher Education'}
-                {addFormStep === 5 && 'Professional & Social'}
+                {addFormStep === 1 && t('admin_add_step_personal')}
+                {addFormStep === 2 && t('admin_add_step_contact')}
+                {addFormStep === 3 && t('admin_add_step_school')}
+                {addFormStep === 4 && t('admin_add_step_higher')}
+                {addFormStep === 5 && t('admin_add_step_professional')}
               </span>
             </div>
             <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
@@ -1941,11 +2007,10 @@ export const AlumniManagement: React.FC = () => {
 
           <form onSubmit={handleCreateAlumnus} className="space-y-4">
 
-            {/* ---------- Step 1: Personal Information ---------- */}
             {addFormStep === 1 && (
               <div className="space-y-3 animate-fadeIn">
                 <div>
-                  <label className={addLabelCls}>Full Name *</label>
+                  <label className={addLabelCls}>{t('admin_sheet_full_name')} *</label>
                   <input
                     type="text"
                     value={newAlumnus.full_name || ''}
@@ -1956,7 +2021,7 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Name in Tamil</label>
+                  <label className={addLabelCls}>{t('admin_sheet_name_tamil')}</label>
                   <input
                     type="text"
                     value={newAlumnus.name_ta || ''}
@@ -1968,13 +2033,13 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Gender *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_gender')} *</label>
                     <select
                       value={newAlumnus.gender || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, gender: e.target.value })}
                       className={addInputCls}
                     >
-                      <option value="">Select Gender</option>
+                      <option value="">--</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                       <option value="Other">Other</option>
@@ -1982,7 +2047,7 @@ export const AlumniManagement: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className={addLabelCls}>Date of Birth *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_dob')} *</label>
                     <input
                       type="date"
                       value={newAlumnus.date_of_birth || ''}
@@ -1993,13 +2058,13 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Blood Group</label>
+                  <label className={addLabelCls}>{t('admin_sheet_blood_group')}</label>
                   <select
                     value={newAlumnus.blood_group || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, blood_group: e.target.value })}
                     className={addInputCls + ' font-bold text-rose-700'}
                   >
-                    <option value="">Select Blood Group</option>
+                    <option value="">--</option>
                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
                       <option key={bg} value={bg}>{bg}</option>
                     ))}
@@ -2008,31 +2073,28 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Father Name</label>
+                    <label className={addLabelCls}>{t('admin_sheet_father_name')}</label>
                     <input
                       type="text"
                       value={newAlumnus.father_name || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, father_name: e.target.value })}
-                      placeholder="Father's full name"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Mother Name</label>
+                    <label className={addLabelCls}>{t('admin_sheet_mother_name')}</label>
                     <input
                       type="text"
                       value={newAlumnus.mother_name || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, mother_name: e.target.value })}
-                      placeholder="Mother's full name"
                       className={addInputCls}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Profile Photo</label>
+                  <label className={addLabelCls}>{t('admin_sheet_profile_photo')}</label>
 
-                  {/* Preview + Upload row */}
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
                       {addFormPhotoUploading ? (
@@ -2055,7 +2117,7 @@ export const AlumniManagement: React.FC = () => {
                           : 'bg-gray-100 hover:bg-gray-200 text-[#111111] border-gray-200 cursor-pointer'
                       }`}>
                         <Upload className="w-3.5 h-3.5" />
-                        <span>{addFormPhotoUploading ? 'Uploading...' : 'Upload Photo'}</span>
+                        <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -2079,146 +2141,135 @@ export const AlumniManagement: React.FC = () => {
                           }
                           className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
                         >
-                          Remove photo
+                          {t('admin_sheet_remove')}
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Optional: paste URL directly */}
                   <input
                     type="text"
                     value={newAlumnus.profile_photo_url || ''}
                     onChange={(e) =>
                       setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
                     }
-                    placeholder="Or paste an image URL (https://...)"
+                    placeholder="https://..."
                     className={addInputCls + ' font-mono'}
                   />
                 </div>
               </div>
             )}
 
-            {/* ---------- Step 2: Contact & Address ---------- */}
             {addFormStep === 2 && (
               <div className="space-y-3 animate-fadeIn">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className={addLabelCls}>Country Code *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_country_code')} *</label>
                     <input
                       type="text"
                       value={newAlumnus.country_code || '91'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, country_code: e.target.value })}
-                      placeholder="91"
                       className={addInputCls + ' text-center font-semibold'}
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={addLabelCls}>Mobile Number *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_mobile')} *</label>
                     <input
                       type="text"
                       value={newAlumnus.mobile || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, mobile: e.target.value })}
-                      placeholder="e.g. +91 9876543210"
                       className={addInputCls + ' font-mono'}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Email Address (Optional)</label>
+                  <label className={addLabelCls}>{t('admin_sheet_email')}</label>
                   <input
                     type="email"
                     value={newAlumnus.email || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, email: e.target.value })}
-                    placeholder="e.g. alumni@example.com (optional)"
                     className={addInputCls + ' font-mono'}
                   />
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Address</label>
+                  <label className={addLabelCls}>{t('admin_sheet_address')}</label>
                   <textarea
                     rows={2}
                     value={newAlumnus.address || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, address: e.target.value })}
-                    placeholder="e.g. 12, North Street, Tuticorin, Tamil Nadu"
                     className={addInputCls + ' resize-none font-normal'}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Current City *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_current_city')} *</label>
                     <input
                       type="text"
                       value={newAlumnus.current_city || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, current_city: e.target.value })}
-                      placeholder="e.g. Chennai / Madurai"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Current State</label>
+                    <label className={addLabelCls}>{t('admin_sheet_current_state')}</label>
                     <input
                       type="text"
                       value={newAlumnus.current_state || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, current_state: e.target.value })}
-                      placeholder="e.g. Tamil Nadu"
                       className={addInputCls}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>Country</label>
+                  <label className={addLabelCls}>{t('admin_sheet_country')}</label>
                   <input
                     type="text"
                     value={newAlumnus.country || 'India'}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, country: e.target.value })}
-                    placeholder="India"
                     className={addInputCls}
                   />
                 </div>
               </div>
             )}
 
-            {/* ---------- Step 3: School Education ---------- */}
             {addFormStep === 3 && (
               <div className="space-y-3 animate-fadeIn">
                 <div>
-                  <label className={addLabelCls}>School Name</label>
+                  <label className={addLabelCls}>{t('admin_sheet_school_name')}</label>
                   <input
                     type="text"
                     value={newAlumnus.school_name || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, school_name: e.target.value })}
-                    placeholder="e.g. Natarajan Higher Secondary School"
                     className={addInputCls}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Joining Year</label>
+                    <label className={addLabelCls}>{t('admin_sheet_joining_year')}</label>
                     <select
                       value={newAlumnus.joining_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, joining_year: e.target.value ? Number(e.target.value) : undefined })}
                       className={addInputCls}
                     >
-                      <option value="">Select Year</option>
+                      <option value="">--</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>Passing Year *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_passing_year')} *</label>
                     <select
                       value={newAlumnus.passing_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, passing_year: e.target.value ? Number(e.target.value) : undefined })}
                       className={addInputCls + ' font-bold text-[#854D0E]'}
                     >
-                      <option value="">Select Year</option>
+                      <option value="">--</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
@@ -2228,83 +2279,76 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className={addLabelCls}>Leaving Class</label>
+                    <label className={addLabelCls}>{t('admin_sheet_leaving_class')}</label>
                     <input
                       type="text"
                       value={newAlumnus.leaving_class || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, leaving_class: e.target.value })}
-                      placeholder="e.g. 10th / 12th"
                       className={addInputCls + ' text-center'}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Admission / Roll No</label>
+                    <label className={addLabelCls}>{t('admin_sheet_admission_roll')}</label>
                     <input
                       type="text"
                       value={newAlumnus.admission_number || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, admission_number: e.target.value })}
-                      placeholder="e.g. ADM-2010-045"
                       className={addInputCls + ' font-mono'}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Section</label>
+                    <label className={addLabelCls}>{t('admin_sheet_section')}</label>
                     <input
                       type="text"
                       value={newAlumnus.section || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, section: e.target.value })}
-                      placeholder="A"
                       className={addInputCls + ' text-center uppercase'}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>No Higher Education</label>
+                  <label className={addLabelCls}>{t('admin_sheet_no_higher_ed')}</label>
                   <select
                     value={newAlumnus.no_higher_education || 'NO'}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, no_higher_education: e.target.value })}
                     className={addInputCls + ' font-bold'}
                   >
-                    <option value="NO">NO — Has higher education</option>
-                    <option value="YES">YES — No higher education</option>
+                    <option value="NO">{t('admin_label_no')}</option>
+                    <option value="YES">{t('admin_label_yes')}</option>
                   </select>
                 </div>
               </div>
             )}
 
-            {/* ---------- Step 4: Higher Education ---------- */}
             {addFormStep === 4 && (
               <div className="space-y-3 animate-fadeIn">
                 <div>
-                  <label className={addLabelCls}>College Name</label>
+                  <label className={addLabelCls}>{t('admin_sheet_college_name')}</label>
                   <input
                     type="text"
                     value={newAlumnus.college_name || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, college_name: e.target.value })}
-                    placeholder="e.g. Anna University"
                     className={addInputCls}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Degree / Course</label>
+                    <label className={addLabelCls}>{t('admin_sheet_degree')}</label>
                     <input
                       type="text"
                       value={newAlumnus.degree || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, degree: e.target.value })}
-                      placeholder="e.g. B.E. / B.Sc. / MBA"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Custom Degree</label>
+                    <label className={addLabelCls}>{t('admin_sheet_custom_degree')}</label>
                     <input
                       type="text"
                       value={newAlumnus.custom_degree || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, custom_degree: e.target.value })}
-                      placeholder="If degree is 'Other'"
                       className={addInputCls}
                     />
                   </div>
@@ -2312,22 +2356,20 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Department / Stream</label>
+                    <label className={addLabelCls}>{t('admin_sheet_department')}</label>
                     <input
                       type="text"
                       value={newAlumnus.department || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, department: e.target.value })}
-                      placeholder="e.g. Computer Science"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>College Register No</label>
+                    <label className={addLabelCls}>{t('admin_sheet_college_reg_no')}</label>
                     <input
                       type="text"
                       value={newAlumnus.college_register_no || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_register_no: e.target.value })}
-                      placeholder="e.g. 710015104001"
                       className={addInputCls + ' font-mono'}
                     />
                   </div>
@@ -2335,26 +2377,26 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>College Joining Year</label>
+                    <label className={addLabelCls}>{t('admin_sheet_college_joining_yr')}</label>
                     <select
                       value={newAlumnus.college_joining_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_joining_year: e.target.value ? Number(e.target.value) : undefined })}
                       className={addInputCls}
                     >
-                      <option value="">Select Year</option>
+                      <option value="">--</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>College Passing Year</label>
+                    <label className={addLabelCls}>{t('admin_sheet_college_passing_yr')}</label>
                     <select
                       value={newAlumnus.college_passing_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_passing_year: e.target.value ? Number(e.target.value) : undefined })}
                       className={addInputCls}
                     >
-                      <option value="">Select Year</option>
+                      <option value="">--</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
@@ -2364,27 +2406,24 @@ export const AlumniManagement: React.FC = () => {
               </div>
             )}
 
-            {/* ---------- Step 5: Professional & Social ---------- */}
             {addFormStep === 5 && (
               <div className="space-y-3 animate-fadeIn">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Employment Status</label>
+                    <label className={addLabelCls}>{t('admin_sheet_employment_status')}</label>
                     <input
                       type="text"
                       value={newAlumnus.employment_status || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, employment_status: e.target.value })}
-                      placeholder="e.g. Employed / Business"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Company Name</label>
+                    <label className={addLabelCls}>{t('admin_sheet_company_name')}</label>
                     <input
                       type="text"
                       value={newAlumnus.company_name || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, company_name: e.target.value })}
-                      placeholder="e.g. TCS / Google"
                       className={addInputCls}
                     />
                   </div>
@@ -2392,22 +2431,20 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Designation / Position</label>
+                    <label className={addLabelCls}>{t('admin_sheet_designation')}</label>
                     <input
                       type="text"
                       value={newAlumnus.profession || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, profession: e.target.value })}
-                      placeholder="e.g. Senior Software Engineer"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Industry</label>
+                    <label className={addLabelCls}>{t('admin_sheet_industry')}</label>
                     <input
                       type="text"
                       value={newAlumnus.industry || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, industry: e.target.value })}
-                      placeholder="e.g. Information Technology"
                       className={addInputCls}
                     />
                   </div>
@@ -2415,22 +2452,20 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>Total Experience</label>
+                    <label className={addLabelCls}>{t('admin_sheet_total_experience')}</label>
                     <input
                       type="text"
                       value={newAlumnus.total_experience || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, total_experience: e.target.value })}
-                      placeholder="e.g. 5 years"
                       className={addInputCls}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Skills & Expertise</label>
+                    <label className={addLabelCls}>{t('admin_sheet_skills')}</label>
                     <input
                       type="text"
                       value={Array.isArray(newAlumnus.skills) ? (newAlumnus.skills as string[]).join(', ') : (newAlumnus.skills as any) || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                      placeholder="Comma-separated: Python, React, Sales"
                       className={addInputCls}
                     />
                   </div>
@@ -2438,22 +2473,20 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>LinkedIn URL</label>
+                    <label className={addLabelCls}>{t('admin_sheet_linkedin')}</label>
                     <input
                       type="url"
                       value={newAlumnus.linkedin_url || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, linkedin_url: e.target.value })}
-                      placeholder="https://linkedin.com/in/..."
                       className={addInputCls + ' font-mono text-blue-700'}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Instagram URL</label>
+                    <label className={addLabelCls}>{t('admin_sheet_instagram')}</label>
                     <input
                       type="url"
                       value={newAlumnus.instagram_url || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, instagram_url: e.target.value })}
-                      placeholder="https://instagram.com/..."
                       className={addInputCls + ' font-mono text-pink-700'}
                     />
                   </div>
@@ -2461,22 +2494,20 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={addLabelCls}>WhatsApp Number</label>
+                    <label className={addLabelCls}>{t('admin_sheet_whatsapp')}</label>
                     <input
                       type="text"
                       value={newAlumnus.whatsapp_number || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, whatsapp_number: e.target.value })}
-                      placeholder="+919876543210"
                       className={addInputCls + ' font-mono text-emerald-800'}
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>Website URL</label>
+                    <label className={addLabelCls}>{t('admin_sheet_website')}</label>
                     <input
                       type="url"
                       value={newAlumnus.website_url || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, website_url: e.target.value })}
-                      placeholder="https://yourwebsite.com"
                       className={addInputCls + ' font-mono'}
                     />
                   </div>
@@ -2484,29 +2515,29 @@ export const AlumniManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-100">
                   <div>
-                    <label className={addLabelCls}>Volunteer</label>
+                    <label className={addLabelCls}>{t('admin_col_volunteer')}</label>
                     <select
                       value={newAlumnus.is_volunteer || 'NO'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, is_volunteer: e.target.value })}
                       className={addInputCls + ' font-bold'}
                     >
-                      <option value="NO">NO</option>
-                      <option value="YES">YES</option>
+                      <option value="NO">{t('admin_label_no')}</option>
+                      <option value="YES">{t('admin_label_yes')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>Willing to Donate</label>
+                    <label className={addLabelCls}>{t('admin_col_willing_donor')}</label>
                     <select
                       value={newAlumnus.willing_to_donate || 'NO'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, willing_to_donate: e.target.value })}
                       className={addInputCls + ' font-bold'}
                     >
-                      <option value="NO">NO</option>
-                      <option value="YES">YES</option>
+                      <option value="NO">{t('admin_label_no')}</option>
+                      <option value="YES">{t('admin_label_yes')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>Verification Status</label>
+                    <label className={addLabelCls}>{t('admin_col_status')}</label>
                     <select
                       value={newAlumnus.verification_status || 'APPROVED'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, verification_status: e.target.value as any })}
@@ -2522,7 +2553,6 @@ export const AlumniManagement: React.FC = () => {
               </div>
             )}
 
-            {/* ---------- Navigation Buttons ---------- */}
             <div className="flex justify-between items-center pt-3 border-t border-gray-200">
               <div className="flex items-center gap-2">
                 <Button
@@ -2530,11 +2560,11 @@ export const AlumniManagement: React.FC = () => {
                   variant="secondary"
                   onClick={() => { setIsAddModalOpen(false); resetAddForm(); }}
                 >
-                  Cancel
+                  {t('admin_add_cancel')}
                 </Button>
                 {addFormStep > 1 && (
                   <Button type="button" variant="secondary" onClick={goToPrevAddStep}>
-                    <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                    <ArrowLeft className="w-4 h-4 mr-1" /> {t('admin_add_back')}
                   </Button>
                 )}
               </div>
@@ -2542,11 +2572,11 @@ export const AlumniManagement: React.FC = () => {
               <div className="flex items-center gap-2">
                 {addFormStep < ADD_FORM_TOTAL_STEPS ? (
                   <Button type="button" onClick={goToNextAddStep} className="font-bold">
-                    Next <ArrowRight className="w-4 h-4 ml-1" />
+                    {t('admin_add_next')} <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 ) : (
                   <Button type="submit" isLoading={isAdding} className="font-bold">
-                    Create Alumni Profile
+                    {t('admin_add_submit')}
                   </Button>
                 )}
               </div>
@@ -2556,16 +2586,16 @@ export const AlumniManagement: React.FC = () => {
       </Modal>
 
       {/* SPREADSHEET (EXCEL / CSV) IMPORT MODAL */}
-      <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Alumni School Roster (Excel / CSV)">
+      <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title={t('admin_import_modal_title')}>
         <form onSubmit={handleCSVUploadSubmit} className="space-y-4 text-xs font-medium">
           <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-[#854D0E] space-y-1.5">
-            <div className="font-extrabold text-sm">Full 44-Field Spreadsheet Bulk Edit & Import:</div>
+            <div className="font-extrabold text-sm">{t('admin_import_modal_note_title')}</div>
             <div className="space-y-1">
-              <div>• <strong>Excel (.xlsx) & CSV Supported:</strong> You can export the roster to Excel, edit any cells, and upload the <code>.xlsx</code> or <code>.csv</code> spreadsheet directly.</div>
-              <div>• <strong>Bulk Edit Existing Records:</strong> Keep the <strong>Alumni ID</strong> column intact — the system matches and updates only your modified cells.</div>
-              <div>• <strong>Smart Match Fallback:</strong> Even if Alumni ID is blank or altered, existing alumni are matched automatically by Admission Number, Mobile, Email, or Roll Number.</div>
-              <div>• <strong>Add New Records:</strong> Any row without an existing ID or match will be created as a new record (requires Full Name and Passing Year).</div>
-              <div>• <strong>Partial Edits:</strong> Leave unchanged cells as-is to retain current values. Enter <code>__CLEAR__</code> to explicitly clear a field.</div>
+              <div>• {t('admin_import_modal_note_1')}</div>
+              <div>• {t('admin_import_modal_note_2')}</div>
+              <div>• {t('admin_import_modal_note_3')}</div>
+              <div>• {t('admin_import_modal_note_4')}</div>
+              <div>• {t('admin_import_modal_note_5')}</div>
             </div>
           </div>
 
@@ -2579,10 +2609,10 @@ export const AlumniManagement: React.FC = () => {
 
           <div className="flex justify-end space-x-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsImportModalOpen(false)}>
-              Cancel
+              {t('admin_add_cancel')}
             </Button>
             <Button type="submit" isLoading={uploading}>
-              Start Roster Import
+              {t('admin_import_modal_start')}
             </Button>
           </div>
         </form>
@@ -2593,34 +2623,34 @@ export const AlumniManagement: React.FC = () => {
         <Modal 
           isOpen={importSummaryModalOpen} 
           onClose={() => setImportSummaryModalOpen(false)} 
-          title="CSV Roster Import Results"
+          title={t('admin_import_result_title')}
         >
           <div className="space-y-4 text-xs font-medium">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                <div className="text-gray-500 font-bold uppercase tracking-wider text-[10px]">Total Rows</div>
+                <div className="text-gray-500 font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_total_rows')}</div>
                 <div className="text-lg font-black text-gray-900 mt-0.5">{lastImportResult.total_rows || 0}</div>
               </div>
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <div className="text-emerald-700 font-bold uppercase tracking-wider text-[10px]">Valid / Processed</div>
+                <div className="text-emerald-700 font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_valid')}</div>
                 <div className="text-lg font-black text-emerald-800 mt-0.5">
                   {(lastImportResult.created || 0) + (lastImportResult.updated || 0) + (lastImportResult.unchanged || 0) + (lastImportResult.matched_and_approved || 0)}
                 </div>
               </div>
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="text-blue-700 font-bold uppercase tracking-wider text-[10px]">Updated Rows</div>
+                <div className="text-blue-700 font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_updated')}</div>
                 <div className="text-lg font-black text-blue-800 mt-0.5">{lastImportResult.updated || 0}</div>
               </div>
               <div className="p-3 bg-green-50 border border-green-200 rounded-xl">
-                <div className="text-green-700 font-bold uppercase tracking-wider text-[10px]">New Created</div>
+                <div className="text-green-700 font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_created')}</div>
                 <div className="text-lg font-black text-green-800 mt-0.5">{lastImportResult.created || 0}</div>
               </div>
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <div className="text-amber-700 font-bold uppercase tracking-wider text-[10px]">Unchanged</div>
+                <div className="text-amber-700 font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_unchanged')}</div>
                 <div className="text-lg font-black text-amber-800 mt-0.5">{lastImportResult.unchanged || 0}</div>
               </div>
               <div className={`p-3 rounded-xl border ${lastImportResult.failed > 0 ? 'bg-red-50 border-red-200 text-red-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                <div className="font-bold uppercase tracking-wider text-[10px]">Failed / Skipped</div>
+                <div className="font-bold uppercase tracking-wider text-[10px]">{t('admin_import_result_failed')}</div>
                 <div className="text-lg font-black mt-0.5">{lastImportResult.failed || 0}</div>
               </div>
             </div>
@@ -2629,7 +2659,7 @@ export const AlumniManagement: React.FC = () => {
               <div className="space-y-2">
                 <div className="font-bold text-red-700 flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4" />
-                  <span>Validation & Import Errors ({lastImportResult.errors.length})</span>
+                  <span>{t('admin_import_result_errors_label')} ({lastImportResult.errors.length})</span>
                 </div>
                 <div className="max-h-40 overflow-y-auto p-3 bg-red-50/70 border border-red-200 rounded-xl space-y-1 font-mono text-[11px] text-red-900">
                   {lastImportResult.errors.map((err: string, idx: number) => (
@@ -2641,12 +2671,78 @@ export const AlumniManagement: React.FC = () => {
 
             <div className="flex justify-end space-x-3 pt-2">
               <Button type="button" onClick={() => setImportSummaryModalOpen(false)}>
-                Close
+                {t('admin_import_result_close')}
               </Button>
             </div>
           </div>
         </Modal>
       )}
+
+      {/* ============================================================
+          SUSPEND ALUMNI ACCOUNT MODAL — Reason required
+          ============================================================ */}
+      <Modal
+        isOpen={isSuspendModalOpen}
+        onClose={handleCloseSuspendModal}
+        title={t('admin_suspend_modal_title')}
+      >
+        <div className="space-y-4 text-xs font-medium">
+          <p className="text-gray-600 leading-relaxed">
+            {t('admin_suspend_modal_body')}
+            {suspendTargetName && (
+              <>
+                {' '}<strong className="text-[#111111]">{suspendTargetName}</strong> {t('admin_suspend_modal_body_suffix')}
+              </>
+            )}
+          </p>
+
+          <div>
+            <label className="block font-bold text-[#111111] mb-1 text-xs">
+              {t('admin_suspend_reason_label')} <span className="text-rose-600">*</span>
+            </label>
+            <textarea
+              rows={4}
+              value={suspendReason}
+              onChange={(e) => {
+                setSuspendReason(e.target.value);
+                if (suspendValidationError) setSuspendValidationError('');
+              }}
+              disabled={suspending}
+              placeholder={t('admin_suspend_reason_placeholder')}
+              className={`w-full p-3 bg-gray-50 border rounded-xl focus:bg-white focus:outline-none text-xs font-medium resize-none transition-colors ${
+                suspendValidationError
+                  ? 'border-rose-400 focus:border-rose-500'
+                  : 'border-gray-300 focus:border-[#111111]'
+              }`}
+            />
+            {suspendValidationError && (
+              <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                {suspendValidationError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCloseSuspendModal}
+              disabled={suspending}
+            >
+              {t('admin_suspend_cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleSubmitSuspend}
+              isLoading={suspending}
+              disabled={suspending || !suspendReason.trim()}
+            >
+              {suspending ? t('admin_suspend_in_progress') : t('admin_suspend_confirm')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

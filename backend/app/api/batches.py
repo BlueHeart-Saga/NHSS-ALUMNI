@@ -128,6 +128,60 @@ async def create_batch(
         created_at=doc["created_at"]
     )
 
+@router.put("/{batch_id}", response_model=BatchResponse)
+async def update_batch(
+    batch_id: str,
+    request: CreateBatchRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+):
+    db = get_db()
+    school_id = current_user["school_id"]
+
+    batch = await db.batches.find_one({"_id": ObjectId(batch_id), "school_id": school_id})
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    # Prevent year clash with a *different* batch
+    if request.passing_year != batch.get("passing_year"):
+        clash = await db.batches.find_one({
+            "school_id": school_id,
+            "passing_year": request.passing_year,
+            "_id": {"$ne": batch["_id"]}
+        })
+        if clash:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Another batch for year {request.passing_year} already exists"
+            )
+
+    await db.batches.update_one(
+        {"_id": batch["_id"]},
+        {"$set": {
+            "name": request.name,
+            "passing_year": request.passing_year,
+            "description": request.description,
+        }}
+    )
+
+    total_members = await db.alumni.count_documents({
+        "school_id": school_id,
+        "passing_year": request.passing_year,
+        "verification_status": "APPROVED"
+    })
+
+    return BatchResponse(
+        id=str(batch["_id"]),
+        school_id=school_id,
+        name=request.name,
+        passing_year=request.passing_year,
+        description=request.description,
+        coordinators=batch.get("coordinators", []),
+        coordinator_profiles=[],
+        total_members=total_members,
+        status=batch.get("status", "ACTIVE"),
+        created_at=batch.get("created_at", datetime.now(timezone.utc))
+    )
+
 @router.get("/{batch_id}", response_model=BatchResponse)
 async def get_batch_details(batch_id: str, current_user: dict = Depends(get_current_user)):
     db = get_db()
@@ -453,4 +507,3 @@ async def assign_coordinator(
         request=AssignCommitteeRoleRequest(alumni_id=request.alumni_id, role="EXECUTIVE_MEMBER"),
         current_user=current_user
     )
-

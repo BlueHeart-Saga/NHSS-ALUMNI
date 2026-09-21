@@ -1,6 +1,9 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-
+import { AuditListPage } from '../pages/public-pages/Audit/AuditListPage';
+import { AuditDetailPage } from '../pages/public-pages/Audit/AuditDetailPage';
+import { PublicContributorsPage } from '../pages/public-pages/PublicContributorsPage';
+import { PublicSponsorsPage } from '../pages/public-pages/PublicSponsorsPage';
 // Layouts
 import { PublicLayout } from '../layouts/PublicLayout';
 
@@ -42,7 +45,9 @@ const AlumniNotificationsPage = lazy(() => import('../pages/alumni/AlumniNotific
 const AlumniSettingsPage = lazy(() => import('../pages/alumni/AlumniSettingsPage').then(m => ({ default: m.AlumniSettingsPage })));
 const AlumniFeedback = lazy(() => import('../pages/alumni/AlumniFeedback').then(m => ({ default: m.AlumniFeedback })));
 const AlumniDataReportsModule = lazy(() => import('../pages/common-pages/AlumniDataReportsModule').then(m => ({ default: m.AlumniDataReportsModule })));
-
+const AlumniSupportSchool = lazy(() => import('../pages/alumni/AlumniSupportSchool').then(m => ({ default: m.AlumniSupportSchool })));
+const AlumniContribute = lazy(() => import('../pages/alumni/AlumniContribute').then(m => ({ default: m.AlumniContribute })));
+const AlumniMyContributions = lazy(() => import('../pages/alumni/AlumniMyContributions').then(m => ({ default: m.AlumniMyContributions })));
 // School Admin Pages (Lazy)
 const Dashboard = lazy(() => import('../pages/school-admin/Dashboard').then(m => ({ default: m.Dashboard })));
 const VerificationQueue = lazy(() => import('../pages/school-admin/VerificationQueue').then(m => ({ default: m.VerificationQueue })));
@@ -61,7 +66,9 @@ const SchoolSettings = lazy(() => import('../pages/school-admin/SchoolSettings')
 const AssociationTeam = lazy(() => import('../pages/school-admin/AssociationTeam').then(m => ({ default: m.AssociationTeam })));
 const RankHoldersManager = lazy(() => import('../pages/school-admin/RankHoldersManager').then(m => ({ default: m.RankHoldersManager })));
 const SchoolEventsManager = lazy(() => import('../pages/school-admin/SchoolEventsManager').then(m => ({ default: m.SchoolEventsManager })));
-
+const AuditManager = lazy(() => import('../pages/school-admin/AuditManager').then(m => ({ default: m.AuditManager })));
+const ContributionManager = lazy(() => import('../pages/school-admin/ContributionManager').then(m => ({ default: m.ContributionManager })));
+const SponsorManager = lazy(() => import('../pages/school-admin/SponsorManager').then(m => ({ default: m.SponsorManager })));
 // Developer Pages (Lazy)
 const DeveloperPortal = lazy(() => import('../pages/developer/DeveloperPortal').then(m => ({ default: m.DeveloperPortal })));
 
@@ -85,6 +92,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="batches" element={<PublicBatches />} />
         <Route path="events" element={<PublicEvents />} />
         <Route path="memories" element={<PublicMemories />} />
+        <Route path="audit" element={<AuditListPage />} />
+        <Route path="audit/:id" element={<AuditDetailPage />} />
+        <Route path="contributors" element={<PublicContributorsPage />} />
+        <Route path="sponsors" element={<PublicSponsorsPage />} />
         <Route path="contact" element={<PublicContact />} />
         <Route path="feedback" element={<PublicFeedback />} />
         <Route path="karuthukal" element={<PublicFeedback />} />
@@ -121,6 +132,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="notifications" element={<AlumniNotificationsPage />} />
         <Route path="feedback" element={<AlumniFeedback />} />
         <Route path="settings" element={<AlumniSettingsPage />} />
+        <Route path="support" element={<AlumniSupportSchool />} />
+        <Route path="support/contribute" element={<AlumniContribute />} />
+        <Route path="support/contributions" element={<AlumniMyContributions />} />
       </Route>
 
       {/* 3. SCHOOL ADMIN ROUTES */}
@@ -144,6 +158,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="rank-holders" element={<RankHoldersManager />} />
         <Route path="reports" element={<ReportsDashboard />} />
         <Route path="settings" element={<SchoolSettings />} />
+        <Route path="audit" element={<AuditManager />} />
+        <Route path="contributions" element={<ContributionManager />} />
+        <Route path="sponsors" element={<SponsorManager />} />
       </Route>
 
       {/* 4. PLATFORM DEVELOPER ROUTES */}

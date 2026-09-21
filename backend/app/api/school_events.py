@@ -115,10 +115,30 @@ async def create_school_event(
     doc["updated_at"] = now
 
     res = await db.school_events.insert_one(doc)
-    doc["id"] = str(res.inserted_id)
-    doc["created_at"] = now.isoformat()
-    doc["updated_at"] = now.isoformat()
-    return doc
+    new_id = str(res.inserted_id)
+
+    return {
+        "id": new_id,
+        "school_id": str(school_id) if school_id else None,
+        "title": payload.title,
+        "title_ta": payload.title_ta,
+        "category": payload.category,
+        "event_date": payload.event_date,
+        "end_date": payload.end_date,
+        "start_time": payload.start_time,
+        "end_time": payload.end_time,
+        "venue": payload.venue,
+        "chief_guest": payload.chief_guest,
+        "target_audience": payload.target_audience,
+        "description": payload.description,
+        "description_ta": payload.description_ta,
+        "cover_image_url": payload.cover_image_url,
+        "cover_image_url_ta": payload.cover_image_url_ta,
+        "gallery_urls": payload.gallery_urls or [],
+        "status": payload.status,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
 
 @router.get("/{event_id}")
 async def get_school_event(

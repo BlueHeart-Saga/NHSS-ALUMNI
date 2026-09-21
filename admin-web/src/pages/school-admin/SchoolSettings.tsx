@@ -12,35 +12,44 @@ import { LoadingState } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { SchoolProfile, SchoolStaffMember, SchoolPositionType } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
-const STANDARD_POSITIONS = [
-  'Principal',
-  'Vice Principal',
-  'Headmaster',
-  'Headmistress',
-  'Assistant Headmaster',
-  'Assistant Headmistress',
-  'Department Head',
-  'Senior Teacher',
-  'Teacher',
-  'Administrative Staff'
+// School positions — the `value` is the English DB value, `labelKey` and
+// `responsibilityKey` are translation keys resolved at render time.
+const SCHOOL_POSITION_OPTIONS: { value: string; labelKey: string; responsibilityKey: string }[] = [
+  { value: 'Principal',              labelKey: 'admin_settings_pos_principal',            responsibilityKey: 'admin_settings_pos_principal_resp' },
+  { value: 'Vice Principal',         labelKey: 'admin_settings_pos_vice_principal',       responsibilityKey: 'admin_settings_pos_vice_principal_resp' },
+  { value: 'Headmaster',             labelKey: 'admin_settings_pos_headmaster',           responsibilityKey: 'admin_settings_pos_headmaster_resp' },
+  { value: 'Headmistress',           labelKey: 'admin_settings_pos_headmistress',         responsibilityKey: 'admin_settings_pos_headmistress_resp' },
+  { value: 'Assistant Headmaster',   labelKey: 'admin_settings_pos_asst_headmaster',      responsibilityKey: 'admin_settings_pos_asst_headmaster_resp' },
+  { value: 'Assistant Headmistress', labelKey: 'admin_settings_pos_asst_headmistress',    responsibilityKey: 'admin_settings_pos_asst_headmistress_resp' },
+  { value: 'Department Head',        labelKey: 'admin_settings_pos_dept_head',            responsibilityKey: 'admin_settings_pos_dept_head_resp' },
+  { value: 'Senior Teacher',         labelKey: 'admin_settings_pos_senior_teacher',       responsibilityKey: 'admin_settings_pos_senior_teacher_resp' },
+  { value: 'Teacher',                labelKey: 'admin_settings_pos_teacher',              responsibilityKey: 'admin_settings_pos_teacher_resp' },
+  { value: 'Administrative Staff',   labelKey: 'admin_settings_pos_admin_staff',          responsibilityKey: 'admin_settings_pos_admin_staff_resp' },
+  { value: 'Other',                  labelKey: 'admin_settings_pos_other',                responsibilityKey: 'admin_settings_pos_other_resp' },
 ];
 
-const SCHOOL_POSITION_OPTIONS: { label: string; value: string; responsibility: string }[] = [
-  { label: 'Principal', value: 'Principal', responsibility: 'Highest school authority; full school portal management' },
-  { label: 'Vice Principal', value: 'Vice Principal', responsibility: 'Supports Principal and manages assigned school operations' },
-  { label: 'Headmaster', value: 'Headmaster', responsibility: 'School administration and academic management' },
-  { label: 'Headmistress', value: 'Headmistress', responsibility: 'School administration and academic management' },
-  { label: 'Assistant Headmaster', value: 'Assistant Headmaster', responsibility: 'Supports Headmaster and manages delegated responsibilities' },
-  { label: 'Assistant Headmistress', value: 'Assistant Headmistress', responsibility: 'Supports Headmaster and manages delegated responsibilities' },
-  { label: 'Department Head', value: 'Department Head', responsibility: 'Manages department/class-related activities' },
-  { label: 'Senior Teacher', value: 'Senior Teacher', responsibility: 'Manages department/class-related activities' },
-  { label: 'Teacher', value: 'Teacher', responsibility: 'Student/alumni-related activities assigned by management' },
-  { label: 'Administrative Staff', value: 'Administrative Staff', responsibility: 'Office and administrative operations' },
-  { label: 'Other (Write Custom Position)', value: 'Other', responsibility: 'Custom school position or designation' },
-];
+// Standard positions used to detect if a position is "custom"
+const STANDARD_POSITIONS = SCHOOL_POSITION_OPTIONS.map(o => o.value).filter(v => v !== 'Other');
+
+// Maps an English school position to its translation key for display in the table
+const POSITION_DISPLAY_KEY: Record<string, string> = {
+  'Principal': 'admin_settings_pos_principal',
+  'Vice Principal': 'admin_settings_pos_vice_principal',
+  'Headmaster': 'admin_settings_pos_headmaster',
+  'Headmistress': 'admin_settings_pos_headmistress',
+  'Assistant Headmaster': 'admin_settings_pos_asst_headmaster',
+  'Assistant Headmistress': 'admin_settings_pos_asst_headmistress',
+  'Department Head': 'admin_settings_pos_dept_head',
+  'Senior Teacher': 'admin_settings_pos_senior_teacher',
+  'Teacher': 'admin_settings_pos_teacher',
+  'Administrative Staff': 'admin_settings_pos_admin_staff',
+  'Other': 'admin_settings_pos_other',
+};
 
 export const SchoolSettings: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'profile' | 'controls' | 'staff'>('profile');
   const [profile, setProfile] = useState<SchoolProfile | null>(null);
   const [staffList, setStaffList] = useState<SchoolStaffMember[]>([]);
@@ -150,6 +159,12 @@ export const SchoolSettings: React.FC = () => {
     }
   };
 
+  const getPositionLabel = (position: string): string => {
+    if (!position) return '';
+    const key = POSITION_DISPLAY_KEY[position];
+    return key ? t(key) : position;
+  };
+
   const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -158,9 +173,12 @@ export const SchoolSettings: React.FC = () => {
     try {
       const res = await api.uploadSchoolImage(file);
       setLogoUrl(res.url);
-      alertService.showSuccess('Logo Uploaded', 'School logo image uploaded successfully.');
+      alertService.showSuccess(
+        t('admin_settings_alert_logo_uploaded_title'),
+        t('admin_settings_alert_logo_uploaded_body')
+      );
     } catch (err: any) {
-      alertService.handleApiError(err, 'Logo upload failed.');
+      alertService.handleApiError(err, t('admin_settings_alert_logo_error'));
     } finally {
       setUploadingLogo(false);
     }
@@ -174,9 +192,12 @@ export const SchoolSettings: React.FC = () => {
     try {
       const res = await api.uploadSchoolImage(file);
       setCoverUrl(res.url);
-      alertService.showSuccess('Cover Banner Uploaded', 'School banner image uploaded successfully.');
+      alertService.showSuccess(
+        t('admin_settings_alert_cover_uploaded_title'),
+        t('admin_settings_alert_cover_uploaded_body')
+      );
     } catch (err: any) {
-      alertService.handleApiError(err, 'Banner upload failed.');
+      alertService.handleApiError(err, t('admin_settings_alert_cover_error'));
     } finally {
       setUploadingCover(false);
     }
@@ -190,9 +211,12 @@ export const SchoolSettings: React.FC = () => {
     try {
       const res = await api.uploadSchoolImage(file);
       setStaffPhotoUrl(res.url);
-      alertService.showSuccess('Photo Uploaded', 'Staff profile photo uploaded successfully.');
+      alertService.showSuccess(
+        t('admin_settings_alert_staff_photo_uploaded_title'),
+        t('admin_settings_alert_staff_photo_uploaded_body')
+      );
     } catch (err: any) {
-      alertService.handleApiError(err, 'Staff photo upload failed.');
+      alertService.handleApiError(err, t('admin_settings_alert_staff_photo_error'));
     } finally {
       setUploadingStaffPhoto(false);
     }
@@ -226,10 +250,13 @@ export const SchoolSettings: React.FC = () => {
         event_registration_enabled: eventReg,
         announcement_notifications_enabled: announcementNotif
       });
-      alertService.showSuccess('School Profile Updated', 'School profile, branding, and contact details saved successfully.');
+      alertService.showSuccess(
+        t('admin_settings_alert_profile_updated_title'),
+        t('admin_settings_alert_profile_updated_body')
+      );
       loadAllData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to update school profile.');
+      alertService.handleApiError(err, t('admin_settings_alert_profile_update_error'));
     } finally {
       setSaving(false);
     }
@@ -295,7 +322,10 @@ export const SchoolSettings: React.FC = () => {
   const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffFullName) {
-      alertService.showWarning('Required Field', 'Please enter Full Name.');
+      alertService.showWarning(
+        t('admin_settings_alert_required_title'),
+        t('admin_settings_alert_required_body')
+      );
       return;
     }
 
@@ -330,16 +360,29 @@ export const SchoolSettings: React.FC = () => {
 
       if (editingStaffId) {
         await api.updateSchoolStaff(editingStaffId, payload);
-        alertService.showSuccess('Staff Record Updated', `${staffFullName} details updated.`);
+        alertService.showSuccess(
+          t('admin_settings_alert_staff_updated_title'),
+          t('admin_settings_alert_staff_updated_body').replace('{name}', staffFullName)
+        );
       } else {
         await api.createSchoolStaff(payload);
-        alertService.showSuccess('Staff Added', `${staffFullName} added to ${staffTypeSelect === 'PAST' ? 'Former Staff Records' : 'Current Management'}.`);
+        alertService.showSuccess(
+          t('admin_settings_alert_staff_added_title'),
+          t('admin_settings_alert_staff_added_body')
+            .replace('{name}', staffFullName)
+            .replace(
+              '{target}',
+              staffTypeSelect === 'PAST'
+                ? t('admin_settings_alert_staff_added_target_past')
+                : t('admin_settings_alert_staff_added_target_current')
+            )
+        );
       }
 
       setIsStaffModalOpen(false);
       loadAllData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to save staff record.');
+      alertService.handleApiError(err, t('admin_settings_alert_staff_save_error'));
     } finally {
       setSavingStaff(false);
     }
@@ -347,29 +390,46 @@ export const SchoolSettings: React.FC = () => {
 
   const handleToggleStaffType = async (s: any) => {
     const newType = (s.staff_type === 'PAST' || s.is_former) ? 'CURRENT' : 'PAST';
-    const targetLabel = newType === 'PAST' ? 'Former / Old Staff' : 'Current Active Staff';
-    if (!window.confirm(`Are you sure you want to move ${s.full_name} to ${targetLabel}?`)) return;
+    const targetLabel = newType === 'PAST'
+      ? t('admin_settings_alert_staff_move_target_past')
+      : t('admin_settings_alert_staff_move_target_current');
+
+    if (!window.confirm(
+      t('admin_settings_alert_staff_confirm_move')
+        .replace('{name}', s.full_name)
+        .replace('{target}', targetLabel)
+    )) return;
 
     try {
       await api.updateSchoolStaff(s.id, {
         staff_type: newType,
         is_former: newType === 'PAST'
       });
-      alertService.showSuccess('Staff Status Moved', `${s.full_name} moved to ${targetLabel}.`);
+      alertService.showSuccess(
+        t('admin_settings_alert_staff_moved_title'),
+        t('admin_settings_alert_staff_moved_body')
+          .replace('{name}', s.full_name)
+          .replace('{target}', targetLabel)
+      );
       loadAllData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to update staff status.');
+      alertService.handleApiError(err, t('admin_settings_alert_staff_move_error'));
     }
   };
 
   const handleDeleteStaff = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${name} from school staff records?`)) return;
+    if (!window.confirm(
+      t('admin_settings_alert_staff_confirm_delete').replace('{name}', name)
+    )) return;
     try {
       await api.deleteSchoolStaff(id);
-      alertService.showSuccess('Staff Removed', `${name} removed successfully.`);
+      alertService.showSuccess(
+        t('admin_settings_alert_staff_deleted_title'),
+        t('admin_settings_alert_staff_deleted_body').replace('{name}', name)
+      );
       loadAllData();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to remove staff member.');
+      alertService.handleApiError(err, t('admin_settings_alert_staff_delete_error'));
     }
   };
 
@@ -377,7 +437,7 @@ export const SchoolSettings: React.FC = () => {
 
   const staffColumns = [
     {
-      header: 'School Person / Staff Member',
+      header: t('admin_settings_col_member'),
       accessor: (row: any) => (
         <div className="flex items-center space-x-3">
           <img 
@@ -387,24 +447,28 @@ export const SchoolSettings: React.FC = () => {
           />
           <div>
             <div className="font-bold text-[#111111]">{row.full_name}</div>
-            <div className="text-xs text-[#6B7280]">Staff ID: {row.staff_id || 'N/A'}</div>
+            <div className="text-xs text-[#6B7280]">
+              {row.staff_id
+                ? t('admin_settings_staff_id_prefix').replace('{id}', String(row.staff_id))
+                : t('admin_settings_staff_id_na')}
+            </div>
           </div>
         </div>
       )
     },
     {
-      header: 'Designation / Position',
+      header: t('admin_settings_col_designation'),
       accessor: (row: any) => (
         <div>
           <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-3 py-1 rounded-full inline-block">
-            {row.school_position}
+            {getPositionLabel(row.school_position)}
           </span>
           {row.designation && <div className="text-xs text-[#6B7280] mt-1">{row.designation}</div>}
         </div>
       )
     },
     {
-      header: 'Staff Category & Tenure',
+      header: t('admin_settings_col_category'),
       accessor: (row: any) => {
         const isPast = row.staff_type === 'PAST' || row.is_former;
         return (
@@ -414,11 +478,16 @@ export const SchoolSettings: React.FC = () => {
                 ? 'bg-amber-100 text-amber-900 border-amber-300' 
                 : 'bg-blue-100 text-blue-900 border-blue-300'
             }`}>
-              {isPast ? 'Honoured Former Staff' : 'Current Staff'}
+              {isPast ? t('admin_settings_staff_past_badge') : t('admin_settings_staff_current_badge')}
             </span>
             {(row.service_start_year || row.service_end_year) && (
               <div className="text-[11px] font-semibold text-gray-600">
-                Service: {row.service_start_year || '?'} - {row.service_end_year || (isPast ? 'Retired' : 'Present')}
+                {t('admin_settings_staff_service')
+                  .replace('{start}', String(row.service_start_year || '?'))
+                  .replace(
+                    '{end}',
+                    String(row.service_end_year || (isPast ? t('admin_settings_staff_service_retired') : t('admin_settings_staff_service_present')))
+                  )}
               </div>
             )}
           </div>
@@ -426,45 +495,45 @@ export const SchoolSettings: React.FC = () => {
       }
     },
     {
-      header: 'Department',
+      header: t('admin_settings_col_department'),
       accessor: (row: any) => (
         <div className="text-xs font-semibold text-[#111111]">
-          {row.department || 'General Administration'}
+          {row.department || t('admin_settings_staff_department_default')}
         </div>
       )
     },
     {
-      header: 'Status',
+      header: t('admin_settings_col_status'),
       accessor: (row: any) => (
         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
           row.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'
         }`}>
-          {row.status}
+          {row.status === 'ACTIVE' ? t('admin_settings_staff_status_active') : t('admin_settings_staff_status_inactive')}
         </span>
       )
     },
     {
-      header: 'Action',
+      header: t('admin_settings_col_action'),
       accessor: (row: any) => (
         <div className="flex items-center space-x-2">
           <button
             onClick={() => handleToggleStaffType(row)}
             className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-            title={(row.staff_type === 'PAST' || row.is_former) ? "Restore to Current Staff" : "Move to Former Staff Records"}
+            title={(row.staff_type === 'PAST' || row.is_former) ? t('admin_settings_staff_action_move_to_current') : t('admin_settings_staff_action_move_to_past')}
           >
             <UserCheck className="w-4 h-4" />
           </button>
           <button
             onClick={() => openEditStaffModal(row)}
             className="p-1.5 text-gray-600 hover:text-[#111111] hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-            title="Edit Person Details"
+            title={t('admin_settings_staff_action_edit')}
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleDeleteStaff(row.id, row.full_name)}
             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-            title="Delete Staff Record"
+            title={t('admin_settings_staff_action_delete')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -478,8 +547,8 @@ export const SchoolSettings: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#111111]">School Settings &amp; Hierarchy</h2>
-          <p className="text-xs text-[#6B7280]">Configure institutional profile, portal controls, and management staff hierarchy</p>
+          <h2 className="text-2xl font-bold text-[#111111]">{t('admin_settings_page_title')}</h2>
+          <p className="text-xs text-[#6B7280]">{t('admin_settings_page_subtitle')}</p>
         </div>
       </div>
 
@@ -494,7 +563,7 @@ export const SchoolSettings: React.FC = () => {
           }`}
         >
           <School className="w-4 h-4" />
-          <span>School Profile &amp; Branding</span>
+          <span>{t('admin_settings_tab_profile')}</span>
         </button>
 
         <button
@@ -506,7 +575,7 @@ export const SchoolSettings: React.FC = () => {
           }`}
         >
           <Shield className="w-4 h-4" />
-          <span>Portal Controls &amp; Toggles</span>
+          <span>{t('admin_settings_tab_controls')}</span>
         </button>
 
         <button
@@ -518,7 +587,7 @@ export const SchoolSettings: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Management &amp; Staff Hierarchy</span>
+          <span>{t('admin_settings_tab_staff')}</span>
         </button>
       </div>
 
@@ -526,31 +595,31 @@ export const SchoolSettings: React.FC = () => {
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-[#E5E7EB] pb-4">
-            <h3 className="text-lg font-bold text-[#111111]">School Institutional Profile</h3>
-            <p className="text-xs text-[#6B7280]">General information and institutional identification</p>
+            <h3 className="text-lg font-bold text-[#111111]">{t('admin_settings_section_inst_profile')}</h3>
+            <p className="text-xs text-[#6B7280]">{t('admin_settings_section_inst_profile_sub')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input
-              label="School Official Name *"
+              label={t('admin_settings_form_name_label')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
             <Input
-              label="School Code *"
+              label={t('admin_settings_form_code_label')}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               required
             />
             <Input
-              label="School Type"
-              placeholder="e.g. Higher Secondary School"
+              label={t('admin_settings_form_type_label')}
+              placeholder={t('admin_settings_form_type_placeholder')}
               value={schoolType}
               onChange={(e) => setSchoolType(e.target.value)}
             />
             <Input
-              label="Established Year"
+              label={t('admin_settings_form_established_label')}
               type="number"
               value={establishedYear}
               onChange={(e) => setEstablishedYear(e.target.value ? Number(e.target.value) : '')}
@@ -558,25 +627,25 @@ export const SchoolSettings: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Motto &amp; Description</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1.5">{t('admin_settings_form_motto_label')}</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542]"
-              placeholder="Institutional overview, history, and motto..."
+              placeholder={t('admin_settings_form_motto_placeholder')}
             />
           </div>
 
           <div className="border-b border-[#E5E7EB] pt-4 pb-4">
-            <h3 className="text-lg font-bold text-[#111111]">Portal Branding &amp; Image Uploads</h3>
-            <p className="text-xs text-[#6B7280]">Upload or enter URLs for school logo and cover banner</p>
+            <h3 className="text-lg font-bold text-[#111111]">{t('admin_settings_section_branding')}</h3>
+            <p className="text-xs text-[#6B7280]">{t('admin_settings_section_branding_sub')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* School Logo Upload & URL */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#111111]">School Logo Image</label>
+              <label className="block text-xs font-bold text-[#111111]">{t('admin_settings_form_logo_label')}</label>
               <div className="flex items-center space-x-3">
                 <input
                   type="file"
@@ -592,12 +661,12 @@ export const SchoolSettings: React.FC = () => {
                   }`}
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{uploadingLogo ? 'Uploading...' : 'Choose Logo File'}</span>
+                  <span>{uploadingLogo ? t('admin_settings_form_logo_uploading') : t('admin_settings_form_logo_choose')}</span>
                 </label>
-                <span className="text-xs text-gray-400">or enter image URL</span>
+                <span className="text-xs text-gray-400">{t('admin_settings_form_logo_or_url')}</span>
               </div>
               <Input
-                placeholder="https://example.com/logo.png"
+                placeholder={t('admin_settings_form_logo_url_placeholder')}
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
               />
@@ -605,7 +674,7 @@ export const SchoolSettings: React.FC = () => {
 
             {/* Cover Banner Upload & URL */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#111111]">Banner Cover Image</label>
+              <label className="block text-xs font-bold text-[#111111]">{t('admin_settings_form_cover_label')}</label>
               <div className="flex items-center space-x-3">
                 <input
                   type="file"
@@ -621,26 +690,26 @@ export const SchoolSettings: React.FC = () => {
                   }`}
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{uploadingCover ? 'Uploading...' : 'Choose Cover Banner File'}</span>
+                  <span>{uploadingCover ? t('admin_settings_form_logo_uploading') : t('admin_settings_form_cover_choose')}</span>
                 </label>
-                <span className="text-xs text-gray-400">or enter image URL</span>
+                <span className="text-xs text-gray-400">{t('admin_settings_form_cover_or_url')}</span>
               </div>
               <Input
-                placeholder="https://example.com/cover.jpg"
+                placeholder={t('admin_settings_form_cover_url_placeholder')}
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
               />
             </div>
 
             <Input
-              label="Alumni Portal Name"
-              placeholder="NHSS Alumni Portal"
+              label={t('admin_settings_form_portal_name_label')}
+              placeholder={t('admin_settings_form_portal_name_placeholder')}
               value={portalName}
               onChange={(e) => setPortalName(e.target.value)}
             />
             <Input
-              label="Portal Tagline"
-              placeholder="Connected Forever. Progressing Together."
+              label={t('admin_settings_form_tagline_label')}
+              placeholder={t('admin_settings_form_tagline_placeholder')}
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
             />
@@ -651,13 +720,13 @@ export const SchoolSettings: React.FC = () => {
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex flex-wrap gap-6 items-center">
               {logoUrl && (
                 <div className="flex items-center space-x-3">
-                  <span className="text-xs font-bold text-gray-500">Logo Preview:</span>
+                  <span className="text-xs font-bold text-gray-500">{t('admin_settings_preview_logo')}</span>
                   <img src={logoUrl} alt="Logo preview" className="w-12 h-12 rounded-xl object-contain border bg-white p-1" />
                 </div>
               )}
               {coverUrl && (
                 <div className="flex items-center space-x-3">
-                  <span className="text-xs font-bold text-gray-500">Cover Banner Preview:</span>
+                  <span className="text-xs font-bold text-gray-500">{t('admin_settings_preview_cover')}</span>
                   <img src={coverUrl} alt="Cover preview" className="w-36 h-12 rounded-xl object-cover border" />
                 </div>
               )}
@@ -665,45 +734,45 @@ export const SchoolSettings: React.FC = () => {
           )}
 
           <div className="border-b border-[#E5E7EB] pt-4 pb-4">
-            <h3 className="text-lg font-bold text-[#111111]">Official Contact &amp; Location</h3>
-            <p className="text-xs text-[#6B7280]">Campus contact details displayed on public directory</p>
+            <h3 className="text-lg font-bold text-[#111111]">{t('admin_settings_section_contact')}</h3>
+            <p className="text-xs text-[#6B7280]">{t('admin_settings_section_contact_sub')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
-              label="Official Email *"
+              label={t('admin_settings_form_email_label')}
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
             />
             <Input
-              label="Contact Phone *"
+              label={t('admin_settings_form_phone_label')}
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
             />
             <Input
-              label="Official Website"
+              label={t('admin_settings_form_website_label')}
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />
           </div>
 
           <Input
-            label="Campus Address"
+            label={t('admin_settings_form_address_label')}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Input label="City" value={city} onChange={(e) => setCity(e.target.value)} />
-            <Input label="District" value={district} onChange={(e) => setDistrict(e.target.value)} />
-            <Input label="State" value={state} onChange={(e) => setState(e.target.value)} />
-            <Input label="PIN Code" value={pinCode} onChange={(e) => setPinCode(e.target.value)} />
+            <Input label={t('admin_settings_form_city_label')} value={city} onChange={(e) => setCity(e.target.value)} />
+            <Input label={t('admin_settings_form_district_label')} value={district} onChange={(e) => setDistrict(e.target.value)} />
+            <Input label={t('admin_settings_form_state_label')} value={state} onChange={(e) => setState(e.target.value)} />
+            <Input label={t('admin_settings_form_pincode_label')} value={pinCode} onChange={(e) => setPinCode(e.target.value)} />
           </div>
 
           <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
             <Button type="submit" isLoading={saving}>
               <Save className="w-4 h-4 mr-1.5" />
-              Save Profile Settings
+              {t('admin_settings_btn_save_profile')}
             </Button>
           </div>
         </form>
@@ -713,16 +782,16 @@ export const SchoolSettings: React.FC = () => {
       {activeTab === 'controls' && (
         <form onSubmit={handleSaveProfile} className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-[#E5E7EB] pb-4">
-            <h3 className="text-lg font-bold text-[#111111]">Portal Feature Control Switches</h3>
-            <p className="text-xs text-[#6B7280]">Enable or disable portal registration, approvals, directory access, and notifications</p>
+            <h3 className="text-lg font-bold text-[#111111]">{t('admin_settings_section_controls')}</h3>
+            <p className="text-xs text-[#6B7280]">{t('admin_settings_section_controls_sub')}</p>
           </div>
 
           <div className="space-y-4">
             {/* Switch 1: Alumni Registration */}
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-sm text-[#111111]">Alumni Registration</div>
-                <div className="text-xs text-[#6B7280]">Allow new alumni to register on the public portal</div>
+                <div className="font-bold text-sm text-[#111111]">{t('admin_settings_toggle_reg_title')}</div>
+                <div className="text-xs text-[#6B7280]">{t('admin_settings_toggle_reg_sub')}</div>
               </div>
               <button
                 type="button"
@@ -740,8 +809,8 @@ export const SchoolSettings: React.FC = () => {
             {/* Switch 2: Manual Approval */}
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-sm text-[#111111]">Manual Admin Verification / Approval</div>
-                <div className="text-xs text-[#6B7280]">Require school admin verification before granting full portal access</div>
+                <div className="font-bold text-sm text-[#111111]">{t('admin_settings_toggle_approval_title')}</div>
+                <div className="text-xs text-[#6B7280]">{t('admin_settings_toggle_approval_sub')}</div>
               </div>
               <button
                 type="button"
@@ -759,8 +828,8 @@ export const SchoolSettings: React.FC = () => {
             {/* Switch 3: Public Directory */}
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-sm text-[#111111]">Public Alumni Directory</div>
-                <div className="text-xs text-[#6B7280]">Allow verified alumni to browse directory and batch rosters</div>
+                <div className="font-bold text-sm text-[#111111]">{t('admin_settings_toggle_directory_title')}</div>
+                <div className="text-xs text-[#6B7280]">{t('admin_settings_toggle_directory_sub')}</div>
               </div>
               <button
                 type="button"
@@ -778,8 +847,8 @@ export const SchoolSettings: React.FC = () => {
             {/* Switch 4: Event Registration */}
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-sm text-[#111111]">Event RSVP &amp; Ticketing</div>
-                <div className="text-xs text-[#6B7280]">Enable event RSVP registrations and QR ticket check-ins</div>
+                <div className="font-bold text-sm text-[#111111]">{t('admin_settings_toggle_events_title')}</div>
+                <div className="text-xs text-[#6B7280]">{t('admin_settings_toggle_events_sub')}</div>
               </div>
               <button
                 type="button"
@@ -797,8 +866,8 @@ export const SchoolSettings: React.FC = () => {
             {/* Switch 5: Announcement Notifications */}
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-sm text-[#111111]">Announcement Broadcast Notifications</div>
-                <div className="text-xs text-[#6B7280]">Allow school management to send broadcast notices to alumni</div>
+                <div className="font-bold text-sm text-[#111111]">{t('admin_settings_toggle_announcements_title')}</div>
+                <div className="text-xs text-[#6B7280]">{t('admin_settings_toggle_announcements_sub')}</div>
               </div>
               <button
                 type="button"
@@ -817,7 +886,7 @@ export const SchoolSettings: React.FC = () => {
           <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
             <Button type="submit" isLoading={saving}>
               <Save className="w-4 h-4 mr-1.5" />
-              Save Portal Switches
+              {t('admin_settings_btn_save_controls')}
             </Button>
           </div>
         </form>
@@ -832,19 +901,19 @@ export const SchoolSettings: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-2">
                   <Crown className="w-5 h-5 text-[#854D0E]" />
-                  <h3 className="font-bold text-lg text-[#111111]">School Management &amp; Staff Records</h3>
+                  <h3 className="font-bold text-lg text-[#111111]">{t('admin_settings_section_staff')}</h3>
                 </div>
-                <p className="text-xs text-[#6B7280]">Manage current active staff hierarchy and record honoured former educators</p>
+                <p className="text-xs text-[#6B7280]">{t('admin_settings_section_staff_sub')}</p>
               </div>
 
               <div className="flex items-center space-x-3">
                 <Button onClick={() => openAddStaffModal('CURRENT')}>
                   <UserPlus className="w-4 h-4 mr-1.5" />
-                  Add Current Staff
+                  {t('admin_settings_btn_add_current')}
                 </Button>
                 <Button variant="secondary" onClick={() => openAddStaffModal('PAST')}>
                   <Award className="w-4 h-4 mr-1.5 text-amber-700" />
-                  Add Former / Old Staff
+                  {t('admin_settings_btn_add_past')}
                 </Button>
               </div>
             </div>
@@ -860,7 +929,10 @@ export const SchoolSettings: React.FC = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Current Staff ({staffList.filter(s => s.staff_type !== 'PAST' && !s.is_former).length})
+                {t('admin_settings_filter_current').replace(
+                  '{count}',
+                  String(staffList.filter(s => s.staff_type !== 'PAST' && !s.is_former).length)
+                )}
               </button>
 
               <button
@@ -872,7 +944,10 @@ export const SchoolSettings: React.FC = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Honoured Former / Old Staff ({staffList.filter(s => s.staff_type === 'PAST' || s.is_former).length})
+                {t('admin_settings_filter_past').replace(
+                  '{count}',
+                  String(staffList.filter(s => s.staff_type === 'PAST' || s.is_former).length)
+                )}
               </button>
 
               <button
@@ -884,7 +959,7 @@ export const SchoolSettings: React.FC = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                All Staff ({staffList.length})
+                {t('admin_settings_filter_all').replace('{count}', String(staffList.length))}
               </button>
             </div>
 
@@ -897,14 +972,14 @@ export const SchoolSettings: React.FC = () => {
                     <div key={pos.value} className="p-4 bg-gray-50/70 border border-[#E5E7EB] rounded-2xl space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-2.5 py-0.5 rounded-full border border-[#F4C542]/60">
-                          {pos.label}
+                          {t(pos.labelKey)}
                         </span>
                         <span className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-0.5 rounded-md">
-                          {assigned.length} Appointed
+                          {t('admin_settings_staff_appointed').replace('{count}', String(assigned.length))}
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-[#6B7280] line-clamp-2">{pos.responsibility}</p>
+                      <p className="text-[11px] text-[#6B7280] line-clamp-2">{t(pos.responsibilityKey)}</p>
 
                       {assigned.length > 0 && (
                         <div className="pt-2 border-t border-gray-200 space-y-1">
@@ -928,10 +1003,10 @@ export const SchoolSettings: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
               <h3 className="font-bold text-lg text-[#111111]">
                 {staffTypeTab === 'PAST' 
-                  ? 'Honoured Former / Old Staff Directory' 
+                  ? t('admin_settings_staff_directory_past')
                   : staffTypeTab === 'CURRENT' 
-                    ? 'Current School Management & Active Staff' 
-                    : 'Complete Staff Directory'}
+                    ? t('admin_settings_staff_directory_current')
+                    : t('admin_settings_staff_directory_all')}
               </h3>
             </div>
 
@@ -952,16 +1027,24 @@ export const SchoolSettings: React.FC = () => {
       )}
 
       {/* Add / Edit School Person Modal */}
-      <Modal isOpen={isStaffModalOpen} onClose={() => setIsStaffModalOpen(false)} title={editingStaffId ? "Edit School Staff Record" : (staffTypeSelect === 'PAST' ? "Add Honoured Former / Old Staff Member" : "Add Current School Staff Member")}>
+      <Modal
+        isOpen={isStaffModalOpen}
+        onClose={() => setIsStaffModalOpen(false)}
+        title={
+          editingStaffId
+            ? t('admin_settings_staff_modal_edit_title')
+            : (staffTypeSelect === 'PAST' ? t('admin_settings_staff_modal_add_past_title') : t('admin_settings_staff_modal_add_current_title'))
+        }
+      >
         <form onSubmit={handleSaveStaff} className="space-y-4">
           <div className="p-3.5 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] space-y-1">
             <div className="font-bold uppercase tracking-wider">
-              {staffTypeSelect === 'PAST' ? 'Former / Old Staff Record' : 'Current Active Staff Member'}
+              {staffTypeSelect === 'PAST' ? t('admin_settings_staff_modal_info_past_title') : t('admin_settings_staff_modal_info_current_title')}
             </div>
             <div>
               {staffTypeSelect === 'PAST' 
-                ? 'Record past headmasters, veteran teachers, and former employees to display in the school legacy archive.'
-                : 'Add or update active school staff members and assign their designation position in the school management hierarchy.'}
+                ? t('admin_settings_staff_modal_info_past_body')
+                : t('admin_settings_staff_modal_info_current_body')}
             </div>
           </div>
 
@@ -976,7 +1059,7 @@ export const SchoolSettings: React.FC = () => {
                 onChange={() => setStaffTypeSelect('CURRENT')}
                 className="text-[#F4C542] focus:ring-[#F4C542]"
               />
-              <span>Current Active Staff</span>
+              <span>{t('admin_settings_staff_radio_current')}</span>
             </label>
 
             <label className="flex items-center space-x-2 text-xs font-bold text-[#111111] cursor-pointer">
@@ -988,22 +1071,22 @@ export const SchoolSettings: React.FC = () => {
                 onChange={() => setStaffTypeSelect('PAST')}
                 className="text-[#F4C542] focus:ring-[#F4C542]"
               />
-              <span>Honoured Former / Old Staff</span>
+              <span>{t('admin_settings_staff_radio_past')}</span>
             </label>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Full Name (English) *"
-              placeholder="e.g. Dr. S. Ramesh"
+              label={t('admin_settings_form_staff_name_en_label')}
+              placeholder={t('admin_settings_form_staff_name_en_placeholder')}
               value={staffFullName}
               onChange={(e) => setStaffFullName(e.target.value)}
               required
             />
 
             <Input
-              label="Full Name (Tamil / தமிழ் பெயர்)"
-              placeholder="எ.கா. டாக்டர் எஸ். ரமேஷ்"
+              label={t('admin_settings_form_staff_name_ta_label')}
+              placeholder={t('admin_settings_form_staff_name_ta_placeholder')}
               value={staffFullNameTa}
               onChange={(e) => setStaffFullNameTa(e.target.value)}
             />
@@ -1012,7 +1095,7 @@ export const SchoolSettings: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-[#111111] mb-1.5">
-                Designation / School Position *
+                {t('admin_settings_form_staff_position_label')}
               </label>
               <select
                 value={staffPositionSelect}
@@ -1022,15 +1105,15 @@ export const SchoolSettings: React.FC = () => {
               >
                 {SCHOOL_POSITION_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </option>
                 ))}
               </select>
             </div>
 
             <Input
-              label="Position Title (Tamil / தமிழ் பதவி)"
-              placeholder="எ.கா. தலைமை ஆசிரியர் / மூத்த ஆசிரியர்"
+              label={t('admin_settings_form_staff_position_ta_label')}
+              placeholder={t('admin_settings_form_staff_position_ta_placeholder')}
               value={staffPositionTa}
               onChange={(e) => setStaffPositionTa(e.target.value)}
             />
@@ -1040,8 +1123,8 @@ export const SchoolSettings: React.FC = () => {
           {staffPositionSelect === 'Other' && (
             <div>
               <Input
-                label="Custom Designation / Position Title (English) *"
-                placeholder="e.g. Academic Coordinator, Former Senior Teacher, Former Warden"
+                label={t('admin_settings_form_staff_custom_position_label')}
+                placeholder={t('admin_settings_form_staff_custom_position_placeholder')}
                 value={customPositionTitle}
                 onChange={(e) => setCustomPositionTitle(e.target.value)}
                 required
@@ -1051,17 +1134,17 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Service Start Year"
+              label={t('admin_settings_form_staff_start_year_label')}
               type="number"
-              placeholder="e.g. 1985"
+              placeholder={t('admin_settings_form_staff_start_year_placeholder')}
               value={staffServiceStartYear}
               onChange={(e) => setStaffServiceStartYear(e.target.value ? Number(e.target.value) : '')}
             />
 
             <Input
-              label={staffTypeSelect === 'PAST' ? "Service End Year / Retirement" : "Service End Year (Optional)"}
+              label={staffTypeSelect === 'PAST' ? t('admin_settings_form_staff_end_year_past_label') : t('admin_settings_form_staff_end_year_label')}
               type="number"
-              placeholder="e.g. 2012"
+              placeholder={t('admin_settings_form_staff_end_year_placeholder')}
               value={staffServiceEndYear}
               onChange={(e) => setStaffServiceEndYear(e.target.value ? Number(e.target.value) : '')}
             />
@@ -1069,14 +1152,14 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Department (English)"
-              placeholder="e.g. Science / Mathematics / Tamil"
+              label={t('admin_settings_form_staff_department_en_label')}
+              placeholder={t('admin_settings_form_staff_department_en_placeholder')}
               value={staffDepartment}
               onChange={(e) => setStaffDepartment(e.target.value)}
             />
             <Input
-              label="Department (Tamil / தமிழ் துறை)"
-              placeholder="எ.கா. கணிதத் துறை / அறிவியல் துறை"
+              label={t('admin_settings_form_staff_department_ta_label')}
+              placeholder={t('admin_settings_form_staff_department_ta_placeholder')}
               value={staffDepartmentTa}
               onChange={(e) => setStaffDepartmentTa(e.target.value)}
             />
@@ -1084,16 +1167,16 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Official Email"
+              label={t('admin_settings_form_staff_email_label')}
               type="email"
-              placeholder="email@school.edu.in"
+              placeholder={t('admin_settings_form_staff_email_placeholder')}
               value={staffEmail}
               onChange={(e) => setStaffEmail(e.target.value)}
             />
 
             <Input
-              label="Mobile Number"
-              placeholder="+91 98765 43210"
+              label={t('admin_settings_form_staff_mobile_label')}
+              placeholder={t('admin_settings_form_staff_mobile_placeholder')}
               value={staffMobile}
               onChange={(e) => setStaffMobile(e.target.value)}
             />
@@ -1101,15 +1184,15 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Employee / Staff ID"
-              placeholder="NHSS-STAFF-001"
+              label={t('admin_settings_form_staff_employee_id_label')}
+              placeholder={t('admin_settings_form_staff_employee_id_placeholder')}
               value={staffEmployeeId}
               onChange={(e) => setStaffEmployeeId(e.target.value)}
             />
             
             {/* Staff Profile Photo File Upload & URL */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#111111]">Profile Photo</label>
+              <label className="block text-xs font-bold text-[#111111]">{t('admin_settings_form_staff_photo_label')}</label>
               <div className="flex items-center space-x-2">
                 <input
                   type="file"
@@ -1125,10 +1208,10 @@ export const SchoolSettings: React.FC = () => {
                   }`}
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{uploadingStaffPhoto ? 'Uploading...' : 'Upload Photo'}</span>
+                  <span>{uploadingStaffPhoto ? t('admin_settings_form_staff_photo_uploading') : t('admin_settings_form_staff_photo_upload_btn')}</span>
                 </label>
                 <Input
-                  placeholder="https://example.com/photo.jpg"
+                  placeholder={t('admin_settings_form_staff_photo_placeholder')}
                   value={staffPhotoUrl}
                   onChange={(e) => setStaffPhotoUrl(e.target.value)}
                 />
@@ -1138,14 +1221,14 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Achievements & Awards (English)"
-              placeholder="e.g. State Best Teacher Awardee (1998)"
+              label={t('admin_settings_form_staff_achievements_en_label')}
+              placeholder={t('admin_settings_form_staff_achievements_en_placeholder')}
               value={staffAchievements}
               onChange={(e) => setStaffAchievements(e.target.value)}
             />
             <Input
-              label="Achievements (Tamil / தமிழ் சாதனைகள்)"
-              placeholder="எ.கா. மாநில சிறந்த ஆசிரியர் விருது"
+              label={t('admin_settings_form_staff_achievements_ta_label')}
+              placeholder={t('admin_settings_form_staff_achievements_ta_placeholder')}
               value={staffAchievementsTa}
               onChange={(e) => setStaffAchievementsTa(e.target.value)}
             />
@@ -1153,26 +1236,26 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-[#111111] mb-1.5">Status</label>
+              <label className="block text-xs font-bold text-[#111111] mb-1.5">{t('admin_settings_form_staff_status_label')}</label>
               <select
                 value={staffStatus}
                 onChange={(e) => setStaffStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
                 className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 text-sm text-[#111111] focus:outline-none focus:border-[#F4C542] font-semibold"
               >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
+                <option value="ACTIVE">{t('admin_settings_form_staff_status_active')}</option>
+                <option value="INACTIVE">{t('admin_settings_form_staff_status_inactive')}</option>
               </select>
             </div>
 
             <Input
-              label="Notes (English)"
-              placeholder="Role responsibilities..."
+              label={t('admin_settings_form_staff_notes_en_label')}
+              placeholder={t('admin_settings_form_staff_notes_en_placeholder')}
               value={staffNotes}
               onChange={(e) => setStaffNotes(e.target.value)}
             />
             <Input
-              label="Notes (Tamil / தமிழ் குறிப்புகள்)"
-              placeholder="பங்களிப்பு குறிப்புகள்..."
+              label={t('admin_settings_form_staff_notes_ta_label')}
+              placeholder={t('admin_settings_form_staff_notes_ta_placeholder')}
               value={staffNotesTa}
               onChange={(e) => setStaffNotesTa(e.target.value)}
             />
@@ -1180,10 +1263,12 @@ export const SchoolSettings: React.FC = () => {
 
           <div className="flex justify-end space-x-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsStaffModalOpen(false)}>
-              Cancel
+              {t('admin_settings_staff_modal_cancel')}
             </Button>
             <Button type="submit" isLoading={savingStaff}>
-              {editingStaffId ? 'Save Changes' : (staffTypeSelect === 'PAST' ? 'Add Former Staff' : 'Add Current Staff')}
+              {editingStaffId
+                ? t('admin_settings_staff_modal_save_changes')
+                : (staffTypeSelect === 'PAST' ? t('admin_settings_staff_modal_add_past_submit') : t('admin_settings_staff_modal_add_current_submit'))}
             </Button>
           </div>
         </form>

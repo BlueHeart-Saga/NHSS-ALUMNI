@@ -8,8 +8,10 @@ import { Input } from '../../components/Input';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AlumniProfile } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const VerificationQueue: React.FC = () => {
+  const { t } = useLanguage();
   const [pendingList, setPendingList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,16 +43,24 @@ export const VerificationQueue: React.FC = () => {
     setActionLoading(true);
     try {
       await api.verifyAlumni(selectedAlumni.id, reviewAction, notes);
+
+      const isApproved = reviewAction === 'APPROVED';
       alertService.showSuccess(
-        reviewAction === 'APPROVED' ? 'Alumni Approved & Verification Email Sent' : 'Application Rejected',
-        `Alumni registration for ${selectedAlumni.full_name} has been ${reviewAction === 'APPROVED' ? 'approved and notification email dispatched' : 'rejected'} successfully.`
+        isApproved
+          ? t('admin_verify_alert_approved_title')
+          : t('admin_verify_alert_rejected_title'),
+        (isApproved
+          ? t('admin_verify_alert_approved_body')
+          : t('admin_verify_alert_rejected_body')
+        ).replace('{name}', selectedAlumni.full_name)
       );
+
       setSelectedAlumni(null);
       setReviewAction(null);
       setNotes('');
       fetchPending();
     } catch (err: any) {
-      alertService.handleApiError(err, 'Unable to submit verification decision.');
+      alertService.handleApiError(err, t('admin_verify_alert_error'));
     } finally {
       setActionLoading(false);
     }
@@ -61,14 +71,14 @@ export const VerificationQueue: React.FC = () => {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h2 className="text-2xl font-bold text-[#111111]">Alumni Verification Queue</h2>
-        <p className="text-xs text-[#6B7280]">Review pending registration applications against school records</p>
+        <h2 className="text-2xl font-bold text-[#111111]">{t('admin_verify_page_title')}</h2>
+        <p className="text-xs text-[#6B7280]">{t('admin_verify_page_subtitle')}</p>
       </div>
 
       {pendingList.length === 0 ? (
         <EmptyState
-          title="Verification Queue Empty"
-          description="All alumni registration applications have been verified. Excellent work!"
+          title={t('admin_verify_empty_title')}
+          description={t('admin_verify_empty_desc')}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -80,18 +90,41 @@ export const VerificationQueue: React.FC = () => {
                     <img src={item.profile_photo_url} alt="" className="w-12 h-12 rounded-full border border-[#E5E7EB] object-cover" />
                     <div>
                       <h3 className="font-bold text-[#111111] text-base">{item.full_name}</h3>
-                      <span className="text-xs text-[#6B7280]">Batch {item.passing_year} (Sec {item.section})</span>
+                      <span className="text-xs text-[#6B7280]">
+                        {t('admin_verify_batch_line')
+                          .replace('{batch}', String(item.passing_year))
+                          .replace('{section}', String(item.section))}
+                      </span>
                     </div>
                   </div>
                   <Badge status={item.verification_status} />
                 </div>
 
                 <div className="space-y-2 text-xs bg-[#FAFAFA] border border-[#E5E7EB] p-3 rounded-xl mb-4">
-                  <div><span className="text-[#6B7280]">Admission No:</span> <strong className="text-[#111111]">{item.admission_number}</strong></div>
-                  <div><span className="text-[#6B7280]">Mobile:</span> <strong className="text-[#111111]">{item.mobile}</strong></div>
-                  <div><span className="text-[#6B7280]">Email:</span> <strong className="text-[#111111]">{item.email}</strong></div>
-                  {item.current_city && <div><span className="text-[#6B7280]">City:</span> <strong className="text-[#111111]">{item.current_city}</strong></div>}
-                  {item.profession && <div><span className="text-[#6B7280]">Profession:</span> <strong className="text-[#111111]">{item.profession}</strong></div>}
+                  <div>
+                    <span className="text-[#6B7280]">{t('admin_verify_label_admission')}</span>{' '}
+                    <strong className="text-[#111111]">{item.admission_number}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[#6B7280]">{t('admin_verify_label_mobile')}</span>{' '}
+                    <strong className="text-[#111111]">{item.mobile}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[#6B7280]">{t('admin_verify_label_email')}</span>{' '}
+                    <strong className="text-[#111111]">{item.email}</strong>
+                  </div>
+                  {item.current_city && (
+                    <div>
+                      <span className="text-[#6B7280]">{t('admin_verify_label_city')}</span>{' '}
+                      <strong className="text-[#111111]">{item.current_city}</strong>
+                    </div>
+                  )}
+                  {item.profession && (
+                    <div>
+                      <span className="text-[#6B7280]">{t('admin_verify_label_profession')}</span>{' '}
+                      <strong className="text-[#111111]">{item.profession}</strong>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -101,11 +134,11 @@ export const VerificationQueue: React.FC = () => {
                   onClick={() => {
                     setSelectedAlumni(item);
                     setReviewAction('APPROVED');
-                    setNotes('Verified against permanent school roster');
+                    setNotes(t('admin_verify_default_approve_note'));
                   }}
                 >
                   <Check className="w-4 h-4 mr-1" />
-                  Approve
+                  {t('admin_verify_btn_approve')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -113,11 +146,11 @@ export const VerificationQueue: React.FC = () => {
                   onClick={() => {
                     setSelectedAlumni(item);
                     setReviewAction('REJECTED');
-                    setNotes('Records could not be matched with school files');
+                    setNotes(t('admin_verify_default_reject_note'));
                   }}
                 >
                   <X className="w-4 h-4 mr-1" />
-                  Reject
+                  {t('admin_verify_btn_reject')}
                 </Button>
               </div>
             </div>
@@ -129,16 +162,18 @@ export const VerificationQueue: React.FC = () => {
       <Modal
         isOpen={Boolean(selectedAlumni)}
         onClose={() => setSelectedAlumni(null)}
-        title={`Confirm ${reviewAction === 'APPROVED' ? 'Approval' : 'Rejection'}`}
+        title={reviewAction === 'APPROVED' ? t('admin_verify_modal_confirm_approval') : t('admin_verify_modal_confirm_rejection')}
       >
         <form onSubmit={handleDecisionSubmit} className="space-y-4">
           <div className="p-3 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl text-xs">
-            Applicant: <strong>{selectedAlumni?.full_name}</strong> (Batch {selectedAlumni?.passing_year})
+            {t('admin_verify_modal_applicant_line')
+              .replace('{name}', selectedAlumni?.full_name || '')
+              .replace('{batch}', String(selectedAlumni?.passing_year || ''))}
           </div>
 
           <Input
-            label="Verification Notes"
-            placeholder="Reason or verification note..."
+            label={t('admin_verify_modal_notes_label')}
+            placeholder={t('admin_verify_modal_notes_placeholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             required
@@ -146,14 +181,14 @@ export const VerificationQueue: React.FC = () => {
 
           <div className="flex justify-end space-x-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setSelectedAlumni(null)}>
-              Cancel
+              {t('admin_verify_modal_cancel')}
             </Button>
             <Button
               type="submit"
               variant={reviewAction === 'APPROVED' ? 'primary' : 'danger'}
               isLoading={actionLoading}
             >
-              Confirm Decision
+              {t('admin_verify_modal_confirm_btn')}
             </Button>
           </div>
         </form>

@@ -113,8 +113,11 @@ class ApiClient {
 
         const data = await response.json();
         if (isGet) {
-          // Public endpoints get 60s stale time, user endpoints get 20s
-          const ttl = endpoint.startsWith('/public') ? 60000 : this.defaultCacheTTL;
+          // Public endpoints get a short 5s TTL; user endpoints get 20s.
+          // Uses `includes('/public')` so /audit/public/*, /contributions/public/*,
+          // /sponsors/public/* all get the short TTL.
+          const isPublic = endpoint.includes('/public');
+          const ttl = isPublic ? 5000 : this.defaultCacheTTL;
           this.cacheMap.set(cacheKey, { data, timestamp: Date.now(), ttl });
         }
         return data as T;
@@ -548,6 +551,14 @@ class ApiClient {
   async createBatch(name: string, passing_year: number, description?: string) {
     return this.request<Batch>('/batches', {
       method: 'POST',
+      body: JSON.stringify({ name, passing_year, description }),
+    });
+  }
+
+  // NEW: Update an existing batch (name, passing year, description)
+  async updateBatch(batch_id: string, name: string, passing_year: number, description?: string) {
+    return this.request<Batch>(`/batches/${batch_id}`, {
+      method: 'PUT',
       body: JSON.stringify({ name, passing_year, description }),
     });
   }
@@ -1238,6 +1249,269 @@ class ApiClient {
   async deleteFeedback(id: string) {
     return this.request<{ success: boolean; message: string }>(`/feedback/${id}`, {
       method: 'DELETE',
+    });
+  }
+    // ===========================================================================
+  // AUDIT & FINANCIAL STATEMENTS
+  // ===========================================================================
+  async getPublicAuditStatements() {
+    return this.request<import('../types').AuditStatementListSummary[]>('/audit/public/statements');
+  }
+
+  async getPublicAuditStatementDetail(id: string) {
+    return this.request<import('../types').AuditStatementDetail>(`/audit/public/statements/${id}`);
+  }
+
+  async getAdminAuditStatements() {
+    return this.request<import('../types').AuditStatement[]>('/audit/admin/statements');
+  }
+
+  async getAdminAuditStatement(id: string) {
+    return this.request<import('../types').AuditStatement>(`/audit/admin/statements/${id}`);
+  }
+
+  async createAuditStatement(data: Partial<import('../types').AuditStatement>) {
+    return this.request<{ success: boolean; id: string; message: string }>('/audit/admin/statements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAuditStatement(id: string, data: Partial<import('../types').AuditStatement>) {
+    return this.request<{ success: boolean; message: string }>(`/audit/admin/statements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAuditStatement(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/audit/admin/statements/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadAuditPdf(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/audit/admin/upload-pdf`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'PDF upload failed' }));
+      throw new Error(err.detail || 'PDF upload failed');
+    }
+    return res.json() as Promise<{
+      success: boolean;
+      pdf_url: string;
+      file_name: string;
+      file_size: number;
+    }>;
+  }
+  
+  // ===========================================================================
+  // CONTRIBUTIONS
+  // ===========================================================================
+  async createContribution(data: import('../types').CreateContributionPayload) {
+    return this.request<{ success: boolean; id: string; message: string; financial_year: string }>(
+      '/contributions',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+  }
+
+  async getMyContributions() {
+    return this.request<import('../types').Contribution[]>('/contributions/my');
+  }
+
+  async uploadContributionProof(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/contributions/upload-proof`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Proof upload failed' }));
+      throw new Error(err.detail || 'Proof upload failed');
+    }
+    return res.json() as Promise<{ success: boolean; proof_url: string; file_name: string }>;
+  }
+
+  async getPublicTopContributors(financial_year?: string, limit = 5) {
+    const q = new URLSearchParams();
+    if (financial_year) q.append('financial_year', financial_year);
+    q.append('limit', String(limit));
+    return this.request<import('../types').TopContributor[]>(`/contributions/public/top?${q.toString()}`);
+  }
+  async getPublicLatestContributionFY() {
+    return this.request<{ financial_year: string | null }>('/contributions/public/latest-fy');
+  }
+  async getAdminContributions(params?: {
+    financial_year?: string;
+    status_filter?: string;
+    batch_year?: number;
+    search?: string;
+  }) {
+    const q = new URLSearchParams();
+    if (params?.financial_year) q.append('financial_year', params.financial_year);
+    if (params?.status_filter) q.append('status_filter', params.status_filter);
+    if (params?.batch_year) q.append('batch_year', String(params.batch_year));
+    if (params?.search) q.append('search', params.search);
+    return this.request<import('../types').Contribution[]>(`/contributions/admin/all?${q.toString()}`);
+  }
+
+  async getContributionAnalytics() {
+    return this.request<import('../types').ContributionAnalyticsRow[]>('/contributions/admin/analytics');
+  }
+
+  async updateContributionAdmin(id: string, data: Partial<import('../types').Contribution>) {
+    return this.request<{ success: boolean; message: string }>(`/contributions/admin/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteContributionAdmin(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/contributions/admin/${id}`, {
+      method: 'DELETE',
+    });
+  }
+    async createAdminContribution(data: import('../types').AdminCreateContributionPayload) {
+    return this.request<{ success: boolean; id: string; message: string; financial_year: string }>(
+      '/contributions/admin',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+  }
+  // ===========================================================================
+  // SPONSORS
+  // ===========================================================================
+  async getPublicSponsors(financial_year: string) {
+    return this.request<import('../types').Sponsor[]>(
+      `/sponsors/public?financial_year=${encodeURIComponent(financial_year)}`
+    );
+  }
+
+  async getMySponsors() {
+    return this.request<import('../types').Sponsor[]>('/sponsors/my');
+  }
+
+  async createMySponsor(data: Partial<import('../types').Sponsor>) {
+    return this.request<{ success: boolean; id: string; message: string }>('/sponsors/my', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMySponsor(id: string, data: Partial<import('../types').Sponsor>) {
+    return this.request<{ success: boolean; message: string }>(`/sponsors/my/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMySponsor(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/sponsors/my/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadMySponsorLogo(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/sponsors/my/upload-logo`, { method: 'POST', headers, body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Logo upload failed' }));
+      throw new Error(err.detail || 'Logo upload failed');
+    }
+    return res.json() as Promise<{ success: boolean; logo_url: string; thumbnail_url?: string }>;
+  }
+
+  async getAdminSponsors(financial_year?: string) {
+    const q = financial_year ? `?financial_year=${encodeURIComponent(financial_year)}` : '';
+    return this.request<import('../types').Sponsor[]>(`/sponsors/admin/all${q}`);
+  }
+
+  async createSponsor(data: Partial<import('../types').Sponsor>) {
+    return this.request<{ success: boolean; id: string; message: string }>('/sponsors/admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSponsor(id: string, data: Partial<import('../types').Sponsor>) {
+    return this.request<{ success: boolean; message: string }>(`/sponsors/admin/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSponsor(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/sponsors/admin/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadSponsorLogo(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/sponsors/admin/upload-logo`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Logo upload failed' }));
+      throw new Error(err.detail || 'Logo upload failed');
+    }
+    return res.json() as Promise<{ success: boolean; logo_url: string; thumbnail_url?: string }>;
+  }
+    async reorderAdminSponsors(
+    items: { id: string; display_order: number }[]
+  ) {
+    return this.request<{ success: boolean; updated: number }>(
+      '/sponsors/admin/reorder',
+      { method: 'PUT', body: JSON.stringify({ items }) }
+    );
+  }
+    // ===========================================================================
+  // NOTIFICATIONS
+  // ===========================================================================
+  async getMyNotifications() {
+    return this.request<import('../types').Notification[]>('/notifications/my');
+  }
+
+  async getUnreadNotificationCount() {
+    return this.request<{ count: number }>('/notifications/my/unread-count');
+  }
+
+  async markNotificationRead(id: string) {
+    return this.request<{ success: boolean }>(`/notifications/${id}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request<{ success: boolean; updated: number }>('/notifications/read-all', {
+      method: 'PUT',
     });
   }
 }
