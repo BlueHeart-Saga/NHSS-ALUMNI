@@ -1,5 +1,3 @@
-import { Admin } from "mongodb";
-
 export type Language = 'en' | 'ta';
 
 export const translations: Record<Language, Record<string, string>> = {
