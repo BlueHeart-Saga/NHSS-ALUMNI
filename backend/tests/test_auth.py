@@ -56,11 +56,11 @@ def mock_sms_gateway():
 @pytest.mark.asyncio
 async def test_send_sms_otp_mock():
     from unittest.mock import patch, MagicMock
-    with patch("httpx.AsyncClient.post") as mock_post:
+    with patch("httpx.AsyncClient.get") as mock_get:
         mock_resp = MagicMock()
-        mock_resp.status_code = 201
-        mock_resp.json.return_value = {"messageId": "test_session_123"}
-        mock_post.return_value = mock_resp
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"Status": "Success", "Details": "test_session_123"}
+        mock_get.return_value = mock_resp
 
         # Valid mobile with mock response
         success, session = await send_sms_otp("9876543210", "123456")

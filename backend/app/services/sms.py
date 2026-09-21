@@ -100,7 +100,7 @@ def build_mobile_query_filter(mobile: Optional[str], field_name: str = "mobile")
 async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional[str]]:
     """
     Sends SMS OTP via Brevo (Sendinblue) Transactional SMS API:
-    POST https://api.brevo.com/v3/transactionalSMS/sms
+    POST https://api.brevo.com/v3/transactionalSMS/send
     """
     if not is_valid_indian_mobile(mobile):
         logger.warning(f"send_brevo_sms_otp rejected invalid mobile format: {mobile}")
@@ -119,7 +119,7 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
         recipient = digits
 
     sender = (getattr(settings, "BREVO_SMS_SENDER", "") or getattr(settings, "EMAILS_FROM_NAME", "") or "NHSSAL")[:11]
-    content = f"Your NHSS Alumni OTP is {otp_code}. Valid for 5 minutes.Do not share this with anyone."
+    content = f"Your NHSS Alumni OTP is {otp_code}. Valid for 10 minutes. Do not share this OTP. DEVOPSTRIO PRIVATE LIMITED"
 
     headers = {
         "accept": "application/json",
@@ -136,13 +136,13 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
     start_time = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post("https://api.brevo.com/v3/transactionalSMS/sms", json=payload, headers=headers)
+            resp = await client.post("https://api.brevo.com/v3/transactionalSMS/send", json=payload, headers=headers)
             duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
             if resp.status_code in (200, 201):
                 data = resp.json()
                 ref = str(data.get("messageId") or data.get("reference") or "SUCCESS")
-                logger.info(f"operation=brevo_sms_send status=accepted duration_ms={duration_ms} to={recipient} message_id={ref}")
+                logger.info(f"operation=brevo_sms_send status=accepted duration_ms={duration_ms} to={recipient} sender={sender} message_id={ref}")
                 print(f" [BREVO ACCEPTED] Brevo accepted SMS OTP request for {recipient} (Message ID: {ref})")
                 return True, ref
             else:
@@ -177,7 +177,7 @@ async def send_2factor_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Option
 
     start_time = time.perf_counter()
     api_key = settings.TWO_FACTOR_API_KEY.strip()
-    template = (getattr(settings, "TWO_FACTOR_TEMPLATE", None) or getattr(settings, "TWO_FACTOR_OTP_TEMPLATE", None) or "").strip()
+    template = (getattr(settings, "TWO_FACTOR_TEMPLATE", None) or getattr(settings, "TWO_FACTOR_OTP_TEMPLATE", None) or "NHSS_ALUMNI_OTP_V2").strip()
 
     import urllib.parse
     if template:
@@ -205,8 +205,8 @@ async def send_2factor_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Option
 async def send_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional[str]]:
     """
     Primary OTP dispatch entrypoint.
-    Prioritizes Brevo Transactional SMS API for all OTP text messages.
-    Falls back gracefully to 2Factor or Dev Mock if unconfigured.
+    Prioritizes 2Factor SMS API (Jio DLT Approved Template NHSS_ALUMNI_OTP_V2) for Indian numbers.
+    Falls back gracefully to Brevo or Dev Mock if 2Factor fails or is unconfigured.
     """
     if not is_valid_indian_mobile(mobile):
         logger.warning(f"send_sms_otp rejected invalid mobile format: {mobile}")
@@ -214,20 +214,22 @@ async def send_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional[str]]
 
     normalized_mobile = normalize_indian_mobile(mobile)
 
-    # 1. Primary: Dispatch via Brevo Transactional SMS API
-    brevo_key = (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "") or "").strip()
-    if brevo_key:
-        success, ref_or_err = await send_brevo_sms_otp(mobile, otp_code)
-        if success:
-            return True, ref_or_err
-        logger.warning(f"Brevo SMS delivery failed ({ref_or_err}). Checking fallback providers...")
-
-    # 2. Secondary Fallback: Dispatch via 2Factor if configured
+    # 1. Primary: Dispatch via 2Factor SMS (Jio DLT Registered Provider & Template)
     if settings.TWO_FACTOR_API_KEY:
-        logger.info(f"Attempting fallback to 2Factor SMS for {normalized_mobile}...")
+        logger.info(f"Dispatching SMS OTP via 2Factor (Jio DLT Template NHSS_ALUMNI_OTP_V2) to {normalized_mobile}...")
         success, ref_or_err = await send_2factor_sms_otp(mobile, otp_code)
         if success:
             return True, ref_or_err
+        logger.warning(f"2Factor SMS delivery failed ({ref_or_err}). Checking Brevo fallback...")
+
+    # 2. Secondary Fallback: Dispatch via Brevo Transactional SMS API
+    brevo_key = (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "") or "").strip()
+    if brevo_key:
+        logger.info(f"Dispatching SMS OTP via Brevo fallback to {normalized_mobile}...")
+        success, ref_or_err = await send_brevo_sms_otp(mobile, otp_code)
+        if success:
+            return True, ref_or_err
+        logger.warning(f"Brevo SMS delivery failed ({ref_or_err}). Checking dev mock...")
 
     # 3. Development / Test Mode Mock Delivery
     if settings.is_dev:
@@ -274,7 +276,7 @@ async def send_invitation_sms(mobile: str, activation_url: str) -> Tuple[bool, O
         }
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post("https://api.brevo.com/v3/transactionalSMS/sms", json=payload, headers=headers)
+                resp = await client.post("https://api.brevo.com/v3/transactionalSMS/send", json=payload, headers=headers)
                 if resp.status_code in (200, 201):
                     logger.info(f"Brevo accepted invitation SMS request for {recipient}")
                     return True, "BREVO_INVITATION_ACCEPTED"

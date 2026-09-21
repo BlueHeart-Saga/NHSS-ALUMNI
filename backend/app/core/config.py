@@ -76,13 +76,13 @@ class Settings(BaseSettings):
     INITIAL_SCHOOL_CODE: str = "NHSS"
     INITIAL_ADMIN_MOBILE: str = "+917550375037"
 
-    # SMTP Email Configuration (Brevo / System & Notification emails)
-    SMTP_SERVER: str = "smtp-relay.brevo.com"
+    # SMTP Email Configuration (Hostinger / System & Notification emails)
+    SMTP_SERVER: str = "smtp.hostinger.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""
+    SMTP_USER: str = "info@nhssalumni.com"
     SMTP_PASS: str = ""
     EMAILS_FROM_NAME: str = "nhssalumni"
-    EMAILS_FROM_EMAIL: str = "b988c6001@smtp-brevo.com"
+    EMAILS_FROM_EMAIL: str = "info@nhssalumni.com"
 
     # Brevo API Configuration
     BREVO_API_KEY: str = ""
@@ -90,8 +90,9 @@ class Settings(BaseSettings):
 
     # 2Factor SMS Configuration (SMS OTP ONLY — NO VOICE CALLS)
     TWO_FACTOR_API_KEY: str = ""
-    TWO_FACTOR_TEMPLATE: str = "NHSS Alumni"
-    TWO_FACTOR_OTP_TEMPLATE: str = ""
+    TWO_FACTOR_TEMPLATE: str = "NHSS_ALUMNI_OTP_V2"
+    TWO_FACTOR_OTP_TEMPLATE: str = "NHSS_ALUMNI_OTP_V2"
+    TWO_FACTOR_TEMPLATE_ID: str = "1277178997390635381"
     TWO_FACTOR_SENDER_ID: str = "NHSSAL"
 
     @field_validator("CORS_ORIGINS", mode="before")
