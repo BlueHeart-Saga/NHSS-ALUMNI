@@ -911,7 +911,71 @@ class AuditStatementResponse(BaseModel):
     status: str = "ACTIVE"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+# =============================================================================
+# ASSOCIATION MEETING MINUTES & RESOLUTIONS SCHEMAS
+# =============================================================================
+class MeetingMinuteCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
 
+    title: str = Field(..., example="First Online Meeting of NHSS Alumni Association Administrators")
+    title_ta: Optional[str] = None
+
+    meeting_date: str = Field(..., example="2026-09-20")           # ISO date
+    meeting_time: Optional[str] = Field(None, example="12:00 PM – 1:45 PM")
+    meeting_type: Optional[str] = Field(None, example="Online Meeting")
+
+    notes: Optional[str] = None                                     # resolutions text, multi-line
+    notes_ta: Optional[str] = None
+
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    pdf_blob_path: Optional[str] = None
+
+    is_published: bool = False
+    display_order: int = 1
+    status: str = "ACTIVE"                                          # ACTIVE | ARCHIVED
+
+
+class MeetingMinuteUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: Optional[str] = None
+    title_ta: Optional[str] = None
+    meeting_date: Optional[str] = None
+    meeting_time: Optional[str] = None
+    meeting_type: Optional[str] = None
+    notes: Optional[str] = None
+    notes_ta: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    pdf_blob_path: Optional[str] = None
+    is_published: Optional[bool] = None
+    display_order: Optional[int] = None
+    status: Optional[str] = None
+
+
+class MeetingMinuteResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    school_id: Optional[str] = None
+    title: str
+    title_ta: Optional[str] = None
+    meeting_date: str
+    meeting_time: Optional[str] = None
+    meeting_type: Optional[str] = None
+    notes: Optional[str] = None
+    notes_ta: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
+    is_published: bool = False
+    display_order: int = 1
+    status: str = "ACTIVE"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 # =============================================================================
 # CONTRIBUTIONS SCHEMAS
 # =============================================================================

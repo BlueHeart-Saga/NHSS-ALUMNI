@@ -646,3 +646,26 @@ export interface Notification {
   created_at?: string;
   read_at?: string;
 }
+// =============================================================================
+// ASSOCIATION MEETING MINUTES
+// =============================================================================
+export interface MeetingMinute {
+  id: string;
+  school_id?: string;
+  title: string;
+  title_ta?: string;
+  meeting_date: string;              // ISO "YYYY-MM-DD"
+  meeting_time?: string;
+  meeting_type?: string;
+  notes?: string;                    // multi-line resolutions
+  notes_ta?: string;
+  pdf_url?: string;
+  pdf_file_name?: string;
+  pdf_file_size?: number;
+  is_published: boolean;
+  display_order: number;
+  status: 'ACTIVE' | 'ARCHIVED';
+  created_at?: string;
+  updated_at?: string;
+}
+

@@ -9,6 +9,7 @@ import { AuditStatementRow } from './components/AuditStatementRow';
 import { WhyWePublishCard } from './components/WhyWePublishCard';
 import { TopContributorsTable } from './components/TopContributorsTable';
 import { SponsorsGrid } from './components/SponsorsGrid';
+import { MeetingMinutesSection } from './components/MeetingMinutesSection';
 import { LoadingState, EmptyState } from '../../../components/EmptyState';
 
 /**
@@ -167,7 +168,13 @@ export const AuditListPage: React.FC = () => {
             )}
           </div>
         </div>
+        {/* SECTION 3 — Meeting Minutes */}
+        <div className="grid grid-cols-1 gap-6">
+          
+          <MeetingMinutesSection />
+        </div>
       </div>
     </div>
   );
-};
+}
+ 

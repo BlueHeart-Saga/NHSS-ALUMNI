@@ -1944,7 +1944,7 @@ export const translations: Record<Language, Record<string, string>> = {
     contribution_purpose_infrastructure: "Infrastructure",
     contribution_purpose_event: "Events & Programs",
     contribution_purpose_other: "Other",
-
+    admin_meeting_minutes_title: "கூட்ட நடவடிக்கைகள்"
   },
   ta: {
     // Navbar & Common
@@ -3887,5 +3887,6 @@ export const translations: Record<Language, Record<string, string>> = {
     contribution_purpose_infrastructure: "உள்கட்டமைப்பு",
     contribution_purpose_event: "நிகழ்வுகள் & திட்டங்கள்",
     contribution_purpose_other: "மற்றவை",
+    admin_meeting_minutes_title: "கூட்ட நடவடிக்கைகள்",
   }
 };

@@ -1514,6 +1514,65 @@ class ApiClient {
       method: 'PUT',
     });
   }
+    // ===========================================================================
+  // ASSOCIATION MEETING MINUTES
+  // ===========================================================================
+  async getPublicMeetingMinutes() {
+    return this.request<import('../types').MeetingMinute[]>('/meeting-minutes/public');
+  }
+
+  async getAdminMeetingMinutes() {
+    return this.request<import('../types').MeetingMinute[]>('/meeting-minutes/admin/all');
+  }
+
+  async getAdminMeetingMinute(id: string) {
+    return this.request<import('../types').MeetingMinute>(`/meeting-minutes/admin/${id}`);
+  }
+
+  async createMeetingMinute(data: Partial<import('../types').MeetingMinute>) {
+    return this.request<{ success: boolean; id: string; message: string }>(
+      '/meeting-minutes/admin',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+  }
+
+  async updateMeetingMinute(id: string, data: Partial<import('../types').MeetingMinute>) {
+    return this.request<{ success: boolean; message: string }>(
+      `/meeting-minutes/admin/${id}`,
+      { method: 'PUT', body: JSON.stringify(data) }
+    );
+  }
+
+  async deleteMeetingMinute(id: string) {
+    return this.request<{ success: boolean; message: string }>(
+      `/meeting-minutes/admin/${id}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  async uploadMeetingMinutesPdf(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/meeting-minutes/admin/upload-pdf`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'PDF upload failed' }));
+      throw new Error(err.detail || 'PDF upload failed');
+    }
+    return res.json() as Promise<{
+      success: boolean;
+      pdf_url: string;
+      file_name: string;
+      file_size: number;
+    }>;
+  }
 }
 
 export const api = new ApiClient();
