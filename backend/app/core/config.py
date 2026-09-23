@@ -100,6 +100,7 @@ class Settings(BaseSettings):
     WHATSAPP_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = "1358846513979461"
     WHATSAPP_BUSINESS_ACCOUNT_ID: str = "1604295001173794"
+    WHATSAPP_VERIFY_TOKEN: str = "nhss_alumni_whatsapp_webhook_token_2026"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

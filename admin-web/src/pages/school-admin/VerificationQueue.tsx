@@ -172,8 +172,8 @@ export const VerificationQueue: React.FC = () => {
           </div>
 
           <Input
-            label={t('admin_verify_modal_notes_label')}
-            placeholder={t('admin_verify_modal_notes_placeholder')}
+            label={reviewAction === 'APPROVED' ? t('admin_verify_modal_notes_label') : t('admin_verify_modal_reject_reason_label')}
+            placeholder={reviewAction === 'APPROVED' ? t('admin_verify_modal_notes_placeholder') : t('admin_verify_modal_reject_reason_placeholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             required

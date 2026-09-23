@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, KeyRound, ArrowRight, UserX, UserPlus,
-  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft
+  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft, Loader2, X
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -23,6 +23,19 @@ export const AlumniLogin: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [userNotFound, setUserNotFound] = useState(false);
   const [passwordNotCreated, setPasswordNotCreated] = useState(false);
+  const [showTopBanner, setShowTopBanner] = useState(false);
+  const topBannerTimer = React.useRef<any>(null);
+
+  const triggerPasswordNotCreatedBanner = () => {
+    setPasswordNotCreated(true);
+    setShowTopBanner(true);
+    if (topBannerTimer.current) {
+      clearTimeout(topBannerTimer.current);
+    }
+    topBannerTimer.current = setTimeout(() => {
+      setShowTopBanner(false);
+    }, 4500); // Smoothly auto-hides after 4.5 seconds
+  };
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [schoolName, setSchoolName] = useState('School Alumni Network');
@@ -38,42 +51,68 @@ export const AlumniLogin: React.FC = () => {
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   // Create Password In-Place Module State
+  const [createPassStep, setCreatePassStep] = useState<'VERIFY_OTP' | 'NEW_PASSWORD'>('VERIFY_OTP');
   const [createPassOtp, setCreatePassOtp] = useState('');
   const [createPassPassword, setCreatePassPassword] = useState('');
   const [createPassConfirm, setCreatePassConfirm] = useState('');
   const [showCreatePassPassword, setShowCreatePassPassword] = useState(false);
   const [showCreatePassConfirm, setShowCreatePassConfirm] = useState(false);
+  // Live Password Status Check State
+  const [liveCheckStatus, setLiveCheckStatus] = useState<'IDLE' | 'CHECKING' | 'EXISTS_HAS_PASSWORD' | 'EXISTS_NO_PASSWORD' | 'NOT_EXISTS'>('IDLE');
+  const [liveCheckInfo, setLiveCheckInfo] = useState<{ full_name?: string; identifier?: string } | null>(null);
   const checkedSet = React.useRef(new Set<string>());
 
   const handleIdentifierCheck = async (val: string) => {
     const clean = val.trim();
-    if (!clean) return;
+    if (!clean) {
+      setLiveCheckStatus('IDLE');
+      setLiveCheckInfo(null);
+      return;
+    }
 
     const digitsOnly = clean.replace(/\D/g, '');
     const isMobile10 = digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
     const isEmail = clean.includes('@') && clean.includes('.');
 
-    if ((isMobile10 || isEmail) && !checkedSet.current.has(clean)) {
-      checkedSet.current.add(clean);
-      try {
-        const res = await api.checkPasswordStatus(clean);
-        if (res.exists && !res.has_password) {
-          setPasswordNotCreated(true);
-          const confirm = await alertService.showConfirm(
-            language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Create Account Password',
-            language === 'ta'
-              ? `உங்கள் கணக்கில் (${res.identifier || clean}) இன்னும் கடவுச்சொல் உருவாக்கப்படவில்லை. OTP சரிபார்ப்பு மூலம் புதிய கடவுச்சொல்லை உருவாக்கி உள்நுழையவும்.`
-              : `Your account (${res.identifier || clean}) does not have a login password set yet. Please verify your phone number via OTP to create a password and log in.`,
-            language === 'ta' ? 'OTP பெற்று கடவுச்சொல் உருவாக்க →' : 'Verify OTP & Create Password →',
-            language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
-          );
-          if (confirm) {
-            handleStartCreatePassword(res.identifier || clean);
+    if (!isMobile10 && !isEmail) {
+      setLiveCheckStatus('IDLE');
+      setLiveCheckInfo(null);
+      return;
+    }
+
+    setLiveCheckStatus('CHECKING');
+
+    try {
+      const res = await api.checkPasswordStatus(clean);
+      if (res.exists) {
+        setLiveCheckInfo({ full_name: res.full_name, identifier: res.identifier });
+        if (!res.has_password) {
+          setLiveCheckStatus('EXISTS_NO_PASSWORD');
+          triggerPasswordNotCreatedBanner();
+
+          if (!checkedSet.current.has(clean)) {
+            checkedSet.current.add(clean);
+            const confirm = await alertService.showConfirm(
+              language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Create Account Password',
+              language === 'ta'
+                ? `வணக்கம் ${res.full_name || ''}, உங்கள் கணக்கில் (${res.identifier || clean}) இன்னும் கடவுச்சொல் உருவாக்கப்படவில்லை. OTP சரிபார்ப்பு மூலம் புதிய கடவுச்சொல்லை உருவாக்கி உள்நுழையவும்.`
+                : `Hello ${res.full_name || ''}, your account (${res.identifier || clean}) is registered but does not have a login password set yet. Please verify your phone number via OTP to create a password and log in.`,
+              language === 'ta' ? 'OTP பெற்று கடவுச்சொல் உருவாக்க →' : 'Verify OTP & Create Password →',
+              language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
+            );
+            if (confirm) {
+              handleStartCreatePassword(res.identifier || clean);
+            }
           }
+        } else {
+          setLiveCheckStatus('EXISTS_HAS_PASSWORD');
         }
-      } catch (err) {
-        // Silently handle background status check
+      } else {
+        setLiveCheckStatus('NOT_EXISTS');
+        setLiveCheckInfo(null);
       }
+    } catch (err) {
+      setLiveCheckStatus('IDLE');
     }
   };
 
@@ -148,7 +187,7 @@ export const AlumniLogin: React.FC = () => {
             : 'Your account is pending activation. Please use the invitation link sent to your mobile phone via SMS to set your password.'
         );
       } else if (err.message && (err.message.includes('PASSWORD_NOT_CREATED') || err.message.toLowerCase().includes('not have a login password'))) {
-        setPasswordNotCreated(true);
+        triggerPasswordNotCreatedBanner();
         setLoading(false);
 
         // SweetAlert2 popup alerting the user to create a password via OTP
@@ -360,6 +399,7 @@ export const AlumniLogin: React.FC = () => {
           : 'A 6-digit verification code has been dispatched via SMS to your registered mobile number.'
       );
       setMode('CREATE_PASSWORD');
+      setCreatePassStep('VERIFY_OTP');
       setCreatePassOtp('');
       setCreatePassPassword('');
       setCreatePassConfirm('');
@@ -373,6 +413,17 @@ export const AlumniLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyCreatePassOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const cleanOtp = createPassOtp.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setError(language === 'ta' ? 'தயவுசெய்து 6-இலக்க OTP குறியீட்டை உள்ளிடுங்கள்.' : 'Please enter the 6-digit verification OTP code.');
+      return;
+    }
+    setCreatePassStep('NEW_PASSWORD');
   };
 
   const handleCreatePasswordSubmit = async (e: React.FormEvent) => {
@@ -609,32 +660,50 @@ export const AlumniLogin: React.FC = () => {
               </div>
             )}
 
-            {/* Password Not Created Alert */}
+            {/* Password Not Created Top Alert Banner (Auto-hides smoothly) */}
             {passwordNotCreated && (
-              <div className="p-5 bg-[#FFF7D6] border border-[#F4C542] rounded-xl space-y-3 shadow-xs animate-fadeIn">
-                <div className="flex items-start space-x-3 text-[#854D0E]">
-                  <Lock className="w-6 h-6 shrink-0 text-[#854D0E] mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-medium uppercase tracking-wider">
-                      {language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Password Not Created'}
-                    </h4>
-                    <p className="text-xs text-gray-800 mt-1 leading-relaxed font-normal">
-                      {language === 'ta' ? (
-                        <>உங்கள் கணக்கில் (<strong>{email}</strong>) இன்னும் கடவுச்சொல் அமைக்கப்படவில்லை. தொடர கடவுச்சொல் உருவாக்குங்கள்.</>
-                      ) : (
-                        <>Your account (<strong>{email}</strong>) is registered but does not have a login password set yet. Please set your password to secure your account.</>
-                      )}
-                    </p>
+              <div
+                className={`transition-all duration-700 ease-in-out transform overflow-hidden ${
+                  showTopBanner
+                    ? 'max-h-96 opacity-100 scale-100 mb-4 p-5 bg-[#FFF7D6] border border-[#F4C542] rounded-xl shadow-xs'
+                    : 'max-h-0 opacity-0 scale-95 mb-0 p-0 border-0 pointer-events-none'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3 text-[#854D0E]">
+                    <Lock className="w-5 h-5 shrink-0 text-[#854D0E] mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider">
+                        {language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Password Not Created'}
+                      </h4>
+                      <p className="text-xs text-gray-800 mt-1 leading-relaxed font-normal">
+                        {language === 'ta' ? (
+                          <>உங்கள் கணக்கில் (<strong>{email}</strong>) இன்னும் கடவுச்சொல் அமைக்கப்படவில்லை. தொடர கடவுச்சொல் உருவாக்குங்கள்.</>
+                        ) : (
+                          <>Your account (<strong>{email}</strong>) is registered but does not have a login password set yet.</>
+                        )}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTopBanner(false)}
+                    className="text-[#854D0E] hover:text-black p-1 transition-colors cursor-pointer shrink-0 ml-2"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleStartCreatePassword(email)}
-                  className="w-full py-3 bg-[#111111] hover:bg-black text-white font-medium text-xs rounded-xl flex items-center justify-center space-x-2 border border-[#111111] shadow-sm uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#F4C542]" />
-                  <span>{language === 'ta' ? 'இப்போதே கடவுச்சொல் உருவாக்க →' : 'Create Account Password Now →'}</span>
-                </button>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleStartCreatePassword(email)}
+                    className="w-full py-2.5 bg-[#111111] hover:bg-black text-white font-medium text-xs rounded-xl flex items-center justify-center space-x-2 border border-[#111111] shadow-sm uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#F4C542]" />
+                    <span>{language === 'ta' ? 'இப்போதே கடவுச்சொல் உருவாக்க →' : 'Create Account Password Now →'}</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -645,136 +714,215 @@ export const AlumniLogin: React.FC = () => {
               </div>
             )}
 
-            {/* --- CREATE PASSWORD IN-PLACE MODULE VIEW --- */}
+            {/* --- CREATE PASSWORD IN-PLACE MODULE VIEW (2-STEP WIZARD) --- */}
             {mode === 'CREATE_PASSWORD' ? (
-              <form onSubmit={handleCreatePasswordSubmit} className="space-y-5 animate-fadeIn">
-                <div className="p-4 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs sm:text-sm text-[#854D0E] font-normal">
-                  {language === 'ta' ? (
-                    <>உங்கள் பதிவு செய்யப்பட்ட கைபேசிக்கு அனுப்பப்பட்ட 6-இலக்க OTP மற்றும் புதிய கடவுச்சொல்லை உள்ளிடுங்கள்.</>
-                  ) : (
-                    <>Enter the 6-digit verification code sent via SMS to your registered mobile phone and set a password to secure your account.</>
-                  )}
-                </div>
-
-                {/* Mobile / Account ID (Read-Only) */}
-                <div>
-                  <label className="block text-sm font-normal text-[#111111] mb-2">
-                    {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண் / கணக்கு' : 'Registered Mobile Number / Account'}
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={email}
-                      readOnly
-                      className="w-full pl-12 pr-4 py-3.5 bg-gray-100 border border-[#E5E7EB] rounded-xl text-base font-normal text-gray-600 focus:outline-none cursor-not-allowed"
-                    />
+              createPassStep === 'VERIFY_OTP' ? (
+                /* STEP 1: VERIFY OTP SCREEN */
+                <form onSubmit={handleVerifyCreatePassOtp} className="space-y-5 animate-fadeIn">
+                  {/* Stepper Progress Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs font-medium">
+                    <div className="flex items-center space-x-2 text-[#854D0E] font-bold">
+                      <span className="w-5 h-5 rounded-full bg-[#854D0E] text-white flex items-center justify-center text-[11px] font-bold">1</span>
+                      <span>{language === 'ta' ? 'படி 1: OTP சரிபார்ப்பு' : 'Step 1: Verify OTP'}</span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center space-x-2 text-gray-400 font-normal">
+                      <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-bold">2</span>
+                      <span>{language === 'ta' ? 'படி 2: கடவுச்சொல் உருவாக்கம்' : 'Step 2: Create Password'}</span>
+                    </div>
                   </div>
-                </div>
 
-                {/* 6-Digit OTP Code */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-normal text-[#111111]">
-                      {language === 'ta' ? '6-இலக்க OTP குறியீடு' : '6-Digit Verification OTP'} <span className="text-rose-500">*</span>
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-normal flex items-start space-x-2.5">
+                    <KeyRound className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      {language === 'ta' ? (
+                        <>உங்கள் பதிவு செய்யப்பட்ட கைபேசி எண்ணிற்கு (<strong>{email}</strong>) அனுப்பப்பட்ட 6-இலக்க OTP குறியீட்டை உள்ளிடுங்கள்.</>
+                      ) : (
+                        <>Enter the 6-digit verification code sent via SMS to your registered mobile number (<strong>{email}</strong>).</>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile / Account ID (Read-Only) */}
+                  <div>
+                    <label className="block text-sm font-normal text-[#111111] mb-2">
+                      {language === 'ta' ? 'பதிவு செய்யப்பட்ட கைபேசி எண்' : 'Registered Mobile Number / Account'}
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => handleStartCreatePassword(email)}
-                      disabled={loading}
-                      className="text-xs font-normal text-[#854D0E] hover:underline cursor-pointer disabled:opacity-50"
-                    >
-                      {language === 'ta' ? 'OTP மீண்டும் அனுப்புக' : 'Resend OTP'}
-                    </button>
+                    <div className="relative">
+                      <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={email}
+                        readOnly
+                        className="w-full pl-12 pr-4 py-3.5 bg-gray-100 border border-[#E5E7EB] rounded-xl text-base font-normal text-gray-600 focus:outline-none cursor-not-allowed"
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <KeyRound className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={createPassOtp}
-                      onChange={(e) => setCreatePassOtp(e.target.value)}
-                      placeholder="123456"
-                      maxLength={6}
-                      required
-                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-xl font-mono font-normal text-[#111111] tracking-widest focus:outline-none focus:border-[#F4C542]"
-                    />
+
+                  {/* 6-Digit Verification OTP */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-normal text-[#111111]">
+                        {language === 'ta' ? '6-இலக்க OTP குறியீடு' : '6-Digit Verification OTP'} <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleStartCreatePassword(email)}
+                        disabled={loading}
+                        className="text-xs font-normal text-[#854D0E] hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        {language === 'ta' ? 'OTP மீண்டும் அனுப்புக' : 'Resend OTP'}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <KeyRound className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={createPassOtp}
+                        onChange={(e) => setCreatePassOtp(e.target.value)}
+                        placeholder="123456"
+                        maxLength={6}
+                        required
+                        autoFocus
+                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-xl font-mono font-normal text-[#111111] tracking-widest focus:outline-none focus:border-[#F4C542]"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* New Password */}
-                <div>
-                  <label className="block text-sm font-normal text-[#111111] mb-2">
-                    {language === 'ta' ? 'புதிய கடவுச்சொல்' : 'New Password'} <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showCreatePassPassword ? 'text' : 'password'}
-                      value={createPassPassword}
-                      onChange={(e) => setCreatePassPassword(e.target.value)}
-                      placeholder={language === 'ta' ? 'புதிய கடவுச்சொல் (குறைந்தது 6 எழுத்துகள்)' : 'Create new password (min 6 chars)'}
-                      required
-                      className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCreatePassPassword(!showCreatePassPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#111111]"
-                    >
-                      {showCreatePassPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-normal text-[#111111] mb-2">
-                    {language === 'ta' ? 'கடவுச்சொல்லை உறுதிப்படுத்துங்கள்' : 'Confirm New Password'} <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showCreatePassConfirm ? 'text' : 'password'}
-                      value={createPassConfirm}
-                      onChange={(e) => setCreatePassConfirm(e.target.value)}
-                      placeholder={language === 'ta' ? 'மீண்டும் கடவுச்சொல் உள்ளிடுங்கள்' : 'Re-enter new password'}
-                      required
-                      className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCreatePassConfirm(!showCreatePassConfirm)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#111111]"
-                    >
-                      {showCreatePassConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Save Password Button with User's Exact requested Tamil Text */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-medium text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 border border-[#E0B030] cursor-pointer disabled:opacity-50"
-                >
-                  <ShieldCheck className="w-5 h-5 text-[#111111]" />
-                  <span>
-                    {loading
-                      ? (language === 'ta' ? 'சேமிக்கப்படுகிறது...' : 'Saving Password...')
-                      : (language === 'ta' ? 'கடவுச்சொல்லைச் சேமித்து சுயவிவரத்திற்குச் செல்லவும்' : 'Save Password & Go to Profile')}
-                  </span>
-                </button>
-
-                <div className="text-center pt-2">
+                  {/* Step 1 Submit Button: Verify OTP & Continue */}
                   <button
-                    type="button"
-                    onClick={() => setMode('LOGIN')}
-                    className="text-xs text-gray-500 hover:text-[#111111] underline cursor-pointer"
+                    type="submit"
+                    disabled={loading || createPassOtp.trim().length < 6}
+                    className="w-full py-4 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-medium text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 border border-[#E0B030] cursor-pointer disabled:opacity-50"
                   >
-                    {language === 'ta' ? 'உள்நுழைவுக்கு திரும்பு' : 'Return to Login Screen'}
+                    <ShieldCheck className="w-5 h-5 text-[#111111]" />
+                    <span>
+                      {language === 'ta' ? 'OTP சரிபார்த்து தொடரவும் →' : 'Verify OTP & Continue →'}
+                    </span>
                   </button>
-                </div>
-              </form>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setMode('LOGIN')}
+                      className="text-xs text-gray-500 hover:text-[#111111] underline cursor-pointer"
+                    >
+                      {language === 'ta' ? 'உள்நுழைவுக்கு திரும்பு' : 'Return to Login Screen'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* STEP 2: CREATE PASSWORD SCREEN */
+                <form onSubmit={handleCreatePasswordSubmit} className="space-y-5 animate-fadeIn">
+                  {/* Stepper Progress Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs font-medium">
+                    <div className="flex items-center space-x-2 text-emerald-700 font-medium">
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      <span>{language === 'ta' ? 'படி 1: OTP சரிபார்க்கப்பட்டது' : 'Step 1: OTP Verified'}</span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center space-x-2 text-[#854D0E] font-bold">
+                      <span className="w-5 h-5 rounded-full bg-[#854D0E] text-white flex items-center justify-center text-[11px] font-bold">2</span>
+                      <span>{language === 'ta' ? 'படி 2: கடவுச்சொல் உருவாக்கம்' : 'Step 2: Create Password'}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-normal flex items-start space-x-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      {language === 'ta' ? (
+                        <>அடையாளம் வெற்றிகரமாக சரிபார்க்கப்பட்டது (<strong>{email}</strong>). இப்போது உங்கள் கணக்கிற்கு புதிய கடவுச்சொல்லை உருவாக்கவும்.</>
+                      ) : (
+                        <>Identity verified successfully for <strong>{email}</strong>! Set a strong password to secure your account.</>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label className="block text-sm font-normal text-[#111111] mb-2">
+                      {language === 'ta' ? 'புதிய கடவுச்சொல்' : 'New Password'} <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showCreatePassPassword ? 'text' : 'password'}
+                        value={createPassPassword}
+                        onChange={(e) => setCreatePassPassword(e.target.value)}
+                        placeholder={language === 'ta' ? 'புதிய கடவுச்சொல் (குறைந்தது 6 எழுத்துகள்)' : 'Create new password (min 6 chars)'}
+                        required
+                        autoFocus
+                        className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatePassPassword(!showCreatePassPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#111111]"
+                      >
+                        {showCreatePassPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-normal text-[#111111] mb-2">
+                      {language === 'ta' ? 'கடவுச்சொல்லை உறுதிப்படுத்துங்கள்' : 'Confirm New Password'} <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showCreatePassConfirm ? 'text' : 'password'}
+                        value={createPassConfirm}
+                        onChange={(e) => setCreatePassConfirm(e.target.value)}
+                        placeholder={language === 'ta' ? 'மீண்டும் கடவுச்சொல் உள்ளிடுங்கள்' : 'Re-enter new password'}
+                        required
+                        className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatePassConfirm(!showCreatePassConfirm)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#111111]"
+                      >
+                        {showCreatePassConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Step 2 Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading || !createPassPassword || createPassPassword.length < 6 || createPassPassword !== createPassConfirm}
+                    className="w-full py-4 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-medium text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 border border-[#E0B030] cursor-pointer disabled:opacity-50"
+                  >
+                    <ShieldCheck className="w-5 h-5 text-[#111111]" />
+                    <span>
+                      {loading
+                        ? (language === 'ta' ? 'சேமிக்கப்படுகிறது...' : 'Saving Password...')
+                        : (language === 'ta' ? 'கடவுச்சொல்லைச் சேமித்து சுயவிவரத்திற்குச் செல்லவும்' : 'Save Password & Go to Profile')}
+                    </span>
+                  </button>
+
+                  <div className="flex items-center justify-between pt-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setCreatePassStep('VERIFY_OTP')}
+                      className="text-[#854D0E] font-medium hover:underline cursor-pointer flex items-center space-x-1"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>{language === 'ta' ? 'OTP படிக்கு திரும்ப' : 'Back to OTP Verification'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMode('LOGIN')}
+                      className="text-gray-500 hover:text-[#111111] underline cursor-pointer"
+                    >
+                      {language === 'ta' ? 'உள்நுழைவுக்கு திரும்பு' : 'Return to Login Screen'}
+                    </button>
+                  </div>
+                </form>
+              )
             ) : mode === 'FORGOT_PASSWORD' ? (
               forgotStep === 'EMAIL' ? (
                 /* FORGOT STEP 1: Enter Registered Email */
@@ -964,6 +1112,61 @@ export const AlumniLogin: React.FC = () => {
                         className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"
                       />
                     </div>
+
+                    {/* Live Mobile/Account Verification Status Badge */}
+                    {liveCheckStatus === 'CHECKING' && (
+                      <div className="mt-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 flex items-center space-x-2 animate-fadeIn font-normal">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 shrink-0" />
+                        <span>{language === 'ta' ? 'தரவுத்தளத்தில் கணக்கு சரிபார்க்கப்படுகிறது...' : 'Checking account in database...'}</span>
+                      </div>
+                    )}
+
+                    {liveCheckStatus === 'EXISTS_NO_PASSWORD' && (
+                      <div className="mt-2 p-2.5 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs text-[#854D0E] flex items-center justify-between shadow-xs animate-fadeIn">
+                        <div className="flex items-center space-x-2">
+                          <Lock className="w-4 h-4 text-[#854D0E] shrink-0" />
+                          <span className="font-medium">
+                            {language === 'ta' ? (
+                              <>கணக்கு உள்ளது ({liveCheckInfo?.full_name || ''}) - கடவுச்சொல் அமைக்கப்படவில்லை</>
+                            ) : (
+                              <>Account Found ({liveCheckInfo?.full_name || 'Alumnus'}) - Password Not Set</>
+                            )}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleStartCreatePassword(email)}
+                          className="px-2.5 py-1 bg-[#854D0E] hover:bg-black text-white rounded-lg text-[11px] font-medium transition-all cursor-pointer shrink-0 ml-2"
+                        >
+                          {language === 'ta' ? 'கடவுச்சொல் உருவாக்க →' : 'Create Password →'}
+                        </button>
+                      </div>
+                    )}
+
+                    {liveCheckStatus === 'EXISTS_HAS_PASSWORD' && (
+                      <div className="mt-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center space-x-2 animate-fadeIn font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>
+                          {language === 'ta' ? (
+                            <>கணக்கு சரிபார்க்கப்பட்டது ({liveCheckInfo?.full_name || ''}). கடவுச்சொல்லை உள்ளிடவும்.</>
+                          ) : (
+                            <>Account Verified ({liveCheckInfo?.full_name || 'Alumnus'}). Please enter your password below.</>
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {liveCheckStatus === 'NOT_EXISTS' && (
+                      <div className="mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center justify-between animate-fadeIn font-normal">
+                        <div className="flex items-center space-x-1.5">
+                          <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                          <span>{language === 'ta' ? 'கணக்கு இல்லை. தயவுசெய்து முதலில் பதிவு செய்யவும்.' : 'No account found matching this mobile number.'}</span>
+                        </div>
+                        <Link to="/register" className="font-semibold text-rose-800 hover:underline shrink-0 ml-1">
+                          {language === 'ta' ? 'பதிவு செய்ய' : 'Register Now'}
+                        </Link>
+                      </div>
+                    )}
                   </div>
 
                   <div>

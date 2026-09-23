@@ -19,7 +19,9 @@ from app.services.sms import (
     send_invitation_sms, normalize_indian_mobile, is_valid_indian_mobile,
     get_mobile_query_variants, build_mobile_query_filter
 )
-from app.services.email import send_alumni_verified_email, send_alumni_suspended_email
+from app.services.email import (
+    send_alumni_verified_email, send_alumni_suspended_email, send_alumni_rejected_email
+)
 from app.schemas.models import (
     UserProfileResponse, VerificationDecisionRequest, CSVImportResult, UpdateProfileRequest,
     AdminCreateAlumniRequest, BulkSendInvitationRequest, SendInvitationResponse
@@ -67,19 +69,24 @@ async def list_pending_verifications(
         user = users_map.get(u_id)
 
         roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
-        photo_val = a.get("profile_photo_url") or (user.get("profile_photo_url") if user else None)
+        photo_val = a.get("profile_photo_url") or a.get("avatar") or (user.get("profile_photo_url") if user else None)
+        mob_val = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or (user.get("mobile") if user else "")
+        email_val = a.get("email") or (user.get("email") if user else "")
+        name_val = a.get("full_name") or a.get("name") or (user.get("full_name") if user else "Alumni Applicant")
         try:
             res.append(UserProfileResponse(
                 id=str(a["_id"]),
                 user_id=u_id,
                 school_id=str(a.get("school_id") or current_user.get("school_id") or ""),
-                full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
-                mobile=a.get("mobile") or (user.get("mobile") if user else ""),
-                email=a.get("email") or (user.get("email") if user else ""),
+                full_name=name_val,
+                name_ta=a.get("name_ta") or a.get("full_name_ta"),
+                full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
+                mobile=mob_val,
+                email=email_val,
                 profile_photo_url=photo_val,
                 passing_year=a.get("passing_year", 2010),
                 batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
-                admission_number=a.get("admission_number") or "N/A",
+                admission_number=a.get("admission_number") or a.get("roll_no") or "N/A",
                 section=a.get("section"),
                 gender=a.get("gender"),
                 dob=a.get("dob") or a.get("date_of_birth"),
@@ -88,17 +95,19 @@ async def list_pending_verifications(
                 father_name=a.get("father_name"),
                 mother_name=a.get("mother_name"),
                 address=a.get("address"),
-                current_city=a.get("current_city"),
+                current_city=a.get("current_city") or a.get("city"),
+                city=a.get("city") or a.get("current_city"),
                 state=a.get("state") or a.get("current_state"),
-                country=a.get("country"),
-                joining_year=a.get("joining_year"),
+                current_state=a.get("current_state") or a.get("state"),
+                country=a.get("country") or "India",
+                joining_year=a.get("joining_year") or a.get("admission_year"),
                 leaving_class=a.get("leaving_class"),
                 college_name=a.get("college_name") or a.get("institution_name"),
-                degree=a.get("degree"),
-                stream=a.get("stream"),
-                profession=a.get("profession"),
+                degree=a.get("degree") or a.get("other_degree") or a.get("custom_degree"),
+                stream=a.get("stream") or a.get("department"),
+                profession=a.get("profession") or a.get("designation") or a.get("position"),
                 company=a.get("company") or a.get("company_name"),
-                designation=a.get("designation"),
+                designation=a.get("designation") or a.get("profession") or a.get("position"),
                 industry=a.get("industry"),
                 total_experience=a.get("total_experience") or a.get("experience_years"),
                 skills=a.get("skills", []),
@@ -190,6 +199,26 @@ async def verify_alumni(
         else:
             email_missing = True
 
+    elif request.status == "REJECTED":
+        # The admin-supplied reason is stored in verification_notes.
+        reason = (request.notes or "").strip() or "Application details could not be matched with school records."
+
+        if target_email:
+            try:
+                await asyncio.to_thread(
+                    send_alumni_rejected_email,
+                    target_email,
+                    alumni_name,
+                    reason,
+                    school_name,
+                )
+                email_sent = True
+            except Exception as e:
+                email_error = str(e)
+                logger.warning(f"Rejection email dispatch failed for {target_email}: {e}")
+        else:
+            email_missing = True
+
     elif request.status == "SUSPENDED":
         # The admin-supplied reason is stored in verification_notes.
         reason = (request.notes or "").strip() or "No reason was provided by the school administration."
@@ -230,7 +259,7 @@ async def verify_alumni(
 
     # Build a clear, scenario-aware response message.
     base_msg = f"Alumni application status updated to {request.status}"
-    if request.status == "SUSPENDED":
+    if request.status in ("SUSPENDED", "REJECTED", "APPROVED"):
         if email_sent:
             message = f"{base_msg}. Notification email sent."
         elif email_missing:
@@ -1057,14 +1086,19 @@ async def search_directory(
         else:
             skills_list = []
 
+        mobile_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
+        email_raw = a.get("email") or ""
+        is_self = str(a.get("user_id", "")) == str(current_user.get("user_id", "")) if a.get("user_id") and current_user.get("user_id") else False
+        show_contact = is_admin or is_self or a.get("email_visible") or a.get("phone_visible") or a.get("directory_visible", True)
+
         res.append(UserProfileResponse(
             id=str(a["_id"]),
             user_id=str(a.get("user_id", "")),
             school_id=str(a.get("school_id") or school_id or ""),
-            full_name=a.get("full_name", "Alumnus"),
+            full_name=a.get("full_name") or a.get("name") or "Alumnus",
             name_ta=a.get("name_ta") or a.get("full_name_ta"),
             full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
-            mobile=a.get("mobile", "") if a.get("email_visible") or is_admin else "***",
+            mobile=mobile_raw if show_contact else "***",
             country_code=a.get("country_code") or "91",
             gender=a.get("gender"),
             date_of_birth=a.get("date_of_birth") or a.get("dob"),
@@ -1074,6 +1108,7 @@ async def search_directory(
             mother_name=a.get("mother_name"),
             address=a.get("address"),
             current_city=a.get("current_city") or a.get("city"),
+            city=a.get("city") or a.get("current_city"),
             state=a.get("state") or a.get("current_state"),
             current_state=a.get("current_state") or a.get("state"),
             country=a.get("country") or "India",
@@ -1092,8 +1127,8 @@ async def search_directory(
             ),
             college_name=a.get("college_name") or a.get("institution_name"),
             institution_name=a.get("institution_name") or a.get("college_name"),
-            degree=a.get("degree"),
-            custom_degree=a.get("custom_degree"),
+            degree=a.get("degree") or a.get("other_degree") or a.get("custom_degree"),
+            custom_degree=a.get("custom_degree") or a.get("other_degree") or a.get("degree"),
             department=a.get("department") or a.get("stream"),
             stream=a.get("stream") or a.get("department"),
             college_register_no=str(a["college_register_no"]) if a.get("college_register_no") is not None else None,
@@ -1102,17 +1137,18 @@ async def search_directory(
             employment_status=a.get("employment_status"),
             company=a.get("company") or a.get("company_name"),
             company_name=a.get("company_name") or a.get("company"),
-            profession=a.get("profession") or a.get("designation"),
-            designation=a.get("designation") or a.get("profession"),
+            profession=a.get("profession") or a.get("designation") or a.get("position"),
+            designation=a.get("designation") or a.get("profession") or a.get("position"),
+            position=a.get("position") or a.get("profession") or a.get("designation"),
             industry=a.get("industry"),
             experience_years=a.get("experience_years"),
             total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
             skills=skills_list,
             linkedin_url=a.get("linkedin_url"),
             instagram_url=a.get("instagram_url"),
-            whatsapp_number=str(a["whatsapp_number"]) if a.get("whatsapp_number") is not None else None,
+            whatsapp_number=str(a.get("whatsapp_number") or mobile_raw or ""),
             website_url=a.get("website_url"),
-            profile_photo_url=a.get("profile_photo_url"),
+            profile_photo_url=a.get("profile_photo_url") or a.get("avatar"),
             is_volunteer="YES" if a.get("is_volunteer") in [True, "YES", "yes", "true", "True"] else "NO",
             willing_to_donate="YES" if a.get("willing_to_donate") in [True, "YES", "yes", "true", "True"] else "NO",
             verification_status=a.get("verification_status", "APPROVED"),
@@ -1120,7 +1156,7 @@ async def search_directory(
             invitation_status=a.get("invitation_status"),
             phone_verified=a.get("phone_verified", False),
             roles=a.get("roles", ["ALUMNI"]),
-            email=a.get("email", "") if a.get("email_visible") or is_admin else "***",
+            email=email_raw if show_contact else "***",
             batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
             email_visible=a.get("email_visible", False),
             created_at=a.get("created_at", datetime.now(timezone.utc))
@@ -1284,6 +1320,12 @@ class BulkUpdateAlumniRequest(BaseModel):
 class BulkDeleteAlumniRequest(BaseModel):
     alumni_ids: List[str]
 
+class ChangeBatchRequest(BaseModel):
+    alumni_ids: List[str]
+    new_passing_year: int
+    section: Optional[str] = None
+    reason: Optional[str] = None
+
 @router.put("/{alumni_id}")
 async def admin_update_alumni(
     alumni_id: str,
@@ -1349,6 +1391,28 @@ async def admin_update_alumni(
     elif "admission_year" in update_fields:
         update_fields["joining_year"] = update_fields["admission_year"]
 
+    if "passing_year" in update_fields:
+        try:
+            yr = int(update_fields["passing_year"])
+            school_id = current_user.get("school_id")
+            b_query = {"passing_year": yr}
+            if school_id:
+                b_query["school_id"] = school_id
+            matched_batch = await db.batches.find_one(b_query)
+            if matched_batch:
+                update_fields["batch_id"] = matched_batch["_id"]
+            else:
+                b_res = await db.batches.insert_one({
+                    "school_id": school_id or "PLATFORM",
+                    "name": f"Batch of {yr}",
+                    "passing_year": yr,
+                    "description": f"Official Alumni Batch for Class of {yr}",
+                    "created_at": datetime.now(timezone.utc)
+                })
+                update_fields["batch_id"] = b_res.inserted_id
+        except (ValueError, TypeError):
+            pass
+
     update_fields["updated_at"] = datetime.now(timezone.utc)
 
     await db.alumni.update_one(filter_q, {"$set": update_fields})
@@ -1397,6 +1461,90 @@ async def bulk_update_alumni(
 
     res = await db.alumni.update_many(query, {"$set": update_fields})
     return {"success": True, "message": f"Updated {res.modified_count} alumni records", "updated": res.modified_count}
+
+@router.post("/change-batch")
+async def change_alumni_batch(
+    request: ChangeBatchRequest,
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"]))
+):
+    """
+    Move one or multiple alumni from their current batch to a new batch (passing year).
+    Creates target batch if it doesn't exist yet, updates alumni records, and logs audit events.
+    """
+    db = get_db()
+    school_id = current_user.get("school_id")
+    now = datetime.now(timezone.utc)
+
+    if not request.alumni_ids:
+        raise HTTPException(status_code=400, detail="No alumni IDs provided for batch change.")
+
+    new_year = int(request.new_passing_year)
+
+    # Resolve or create target batch for this school
+    batch_query = {"passing_year": new_year}
+    if school_id:
+        batch_query["school_id"] = school_id
+
+    target_batch = await db.batches.find_one(batch_query)
+    if not target_batch:
+        batch_doc = {
+            "school_id": school_id or "PLATFORM",
+            "name": f"Batch of {new_year}",
+            "passing_year": new_year,
+            "description": f"Official Alumni Batch for Class of {new_year}",
+            "created_at": now
+        }
+        b_res = await db.batches.insert_one(batch_doc)
+        target_batch_id = b_res.inserted_id
+    else:
+        target_batch_id = target_batch["_id"]
+
+    set_fields = {
+        "passing_year": new_year,
+        "batch_id": target_batch_id,
+        "updated_at": now
+    }
+    if request.section:
+        set_fields["section"] = request.section.strip().upper()
+    if request.reason:
+        set_fields["batch_change_reason"] = request.reason.strip()
+
+    obj_ids = []
+    str_ids = []
+    for aid in request.alumni_ids:
+        try:
+            obj_ids.append(ObjectId(aid))
+        except Exception:
+            str_ids.append(aid)
+
+    query = {"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}
+    if school_id:
+        query["school_id"] = school_id
+
+    res = await db.alumni.update_many(query, {"$set": set_fields})
+
+    await db.audit_logs.insert_one({
+        "school_id": school_id,
+        "user_id": current_user["user_id"],
+        "action": "ALUMNI_BATCH_CHANGED",
+        "resource_type": "alumni",
+        "metadata": {
+            "alumni_count": res.modified_count,
+            "new_passing_year": new_year,
+            "new_batch_id": str(target_batch_id),
+            "section": request.section,
+            "reason": request.reason
+        },
+        "timestamp": now
+    })
+
+    return {
+        "success": True,
+        "message": f"Successfully moved {res.modified_count} alumni to Batch {new_year}",
+        "updated_count": res.modified_count,
+        "new_passing_year": new_year,
+        "batch_id": str(target_batch_id)
+    }
 
 @router.post("/bulk-delete")
 async def bulk_delete_alumni(

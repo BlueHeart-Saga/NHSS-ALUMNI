@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Award, User, X, ChevronLeft, ChevronRight, Trophy, Crown, Medal } from 'lucide-react';
+import { Search, Award, User, X, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
@@ -51,64 +51,11 @@ export const PublicMemories: React.FC = () => {
     return <>{m[1]}<sup className="text-[0.65em] leading-none">{m[2]}</sup>{m[3]}</>;
   };
 
-  /** Grand medal badge for S.NO */
+  /** Simple clean count number for S.NO */
   const renderRankBadge = (position: number) => {
     const n = startIndex + position;
-    const base =
-      'relative inline-flex items-center justify-center w-12 h-12 rounded-full font-black text-base select-none transition-transform group-hover:scale-105 ring-2 ring-offset-2 ring-offset-white';
-
-    if (n === 1) {
-      return (
-        <span
-          className={`${base} text-[#4A3300] ring-[#B58900]`}
-          style={{
-            background: 'radial-gradient(circle at 30% 25%, #FFFCE0 0%, #F7D24A 40%, #B58900 100%)',
-            boxShadow:
-              '0 6px 16px rgba(180,140,0,0.55), inset 0 2px 0 rgba(255,255,255,0.85), inset 0 -3px 6px rgba(122,80,0,0.35)',
-          }}
-        >
-          <Crown className="absolute -top-3 w-4 h-4 text-[#7A5000]" />
-          {n}
-        </span>
-      );
-    }
-    if (n === 2) {
-      return (
-        <span
-          className={`${base} text-[#2C2F36] ring-[#A6ACB5]`}
-          style={{
-            background: 'radial-gradient(circle at 30% 25%, #FFFFFF 0%, #DDE1E7 40%, #9AA0A6 100%)',
-            boxShadow:
-              '0 6px 14px rgba(120,125,135,0.45), inset 0 2px 0 rgba(255,255,255,0.9), inset 0 -3px 6px rgba(60,64,70,0.25)',
-          }}
-        >
-          {n}
-        </span>
-      );
-    }
-    if (n === 3) {
-      return (
-        <span
-          className={`${base} text-[#FFF4E4] ring-[#7E4418]`}
-          style={{
-            background: 'radial-gradient(circle at 30% 25%, #F7DBBB 0%, #C88A4A 45%, #7E4418 100%)',
-            boxShadow:
-              '0 6px 14px rgba(126,68,24,0.5), inset 0 2px 0 rgba(255,240,220,0.7), inset 0 -3px 6px rgba(60,28,8,0.4)',
-          }}
-        >
-          {n}
-        </span>
-      );
-    }
     return (
-      <span
-        className={`${base} text-[#4A3300] ring-[#D4A017]`}
-        style={{
-          background: 'radial-gradient(circle at 30% 25%, #FFF7D6 0%, #F4C542 50%, #D4A017 100%)',
-          boxShadow:
-            '0 4px 12px rgba(180,140,0,0.4), inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 5px rgba(122,80,0,0.3)',
-        }}
-      >
+      <span className="font-bold text-sm text-[#05070A]">
         {n}
       </span>
     );

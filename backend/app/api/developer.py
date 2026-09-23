@@ -734,16 +734,21 @@ async def list_all_users(
             except Exception:
                 pass
 
+        email_val = u.get("email") or (alumni.get("email") if alumni else None) or ""
+        mobile_val = u.get("mobile") or u.get("phone") or (alumni.get("mobile") if alumni else None) or (alumni.get("phone") if alumni else None) or (alumni.get("whatsapp_number") if alumni else None) or ""
+        has_password = bool(u.get("password") or u.get("password_hash"))
+
         res.append({
             "id": u_id,
             "user_id": u_id,
             "full_name": name,
-            "email": u.get("email"),
-            "mobile": u.get("mobile"),
+            "email": email_val,
+            "mobile": mobile_val,
             "roles": u.get("roles", ["ALUMNI"]),
             "school_id": s_id,
             "school_name": school.get("name") if school else (alumni.get("school_name") if alumni else "Unassigned"),
             "is_active": u.get("is_active", True),
+            "has_password": has_password,
             "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", ""))
         })
     return res

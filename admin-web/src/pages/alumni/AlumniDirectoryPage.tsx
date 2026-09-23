@@ -36,15 +36,21 @@ export const AlumniDirectoryPage: React.FC = () => {
   }, []);
 
   const filteredAlumni = alumniList.filter(a => {
+    const q = search.toLowerCase().trim();
+    const city = (a.current_city || (a as any).city || '').toLowerCase();
+    const prof = (a.profession || (a as any).designation || (a as any).position || '').toLowerCase();
+    const comp = (a.company || (a as any).company_name || '').toLowerCase();
+    const name = (a.full_name || (a as any).name || '').toLowerCase();
+
     const matchSearch = search === '' ||
-      a.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      a.profession?.toLowerCase().includes(search.toLowerCase()) ||
-      a.company?.toLowerCase().includes(search.toLowerCase()) ||
-      a.current_city?.toLowerCase().includes(search.toLowerCase());
+      name.includes(q) ||
+      prof.includes(q) ||
+      comp.includes(q) ||
+      city.includes(q);
 
     const matchBatch = batchFilter === 'ALL' || a.passing_year?.toString() === batchFilter;
-    const matchCity = cityFilter === 'ALL' || (a.current_city && a.current_city.toLowerCase().includes(cityFilter.toLowerCase()));
-    const matchProf = professionFilter === 'ALL' || (a.profession && a.profession.toLowerCase().includes(professionFilter.toLowerCase()));
+    const matchCity = cityFilter === 'ALL' || (city && city.includes(cityFilter.toLowerCase()));
+    const matchProf = professionFilter === 'ALL' || (prof && prof.includes(professionFilter.toLowerCase()));
     const matchBlood = bloodFilter === 'ALL' || (a.blood_group && a.blood_group.toUpperCase() === bloodFilter.toUpperCase());
     const matchVol = volunteerFilter === 'ALL' || (volunteerFilter === 'YES' ? a.is_volunteer === 'YES' : a.is_volunteer !== 'YES');
 
@@ -52,8 +58,8 @@ export const AlumniDirectoryPage: React.FC = () => {
   });
 
   const uniqueBatches = Array.from(new Set(alumniList.map(a => a.passing_year).filter(Boolean))).sort((a, b) => (b as number) - (a as number));
-  const uniqueCities = Array.from(new Set(alumniList.map(a => a.current_city).filter(Boolean))).sort();
-  const uniqueProfessions = Array.from(new Set(alumniList.map(a => a.profession).filter(Boolean))).sort();
+  const uniqueCities = Array.from(new Set(alumniList.map(a => a.current_city || (a as any).city).filter((c): c is string => Boolean(c)))).sort();
+  const uniqueProfessions = Array.from(new Set(alumniList.map(a => a.profession || (a as any).designation || (a as any).position).filter((p): p is string => Boolean(p)))).sort();
 
   const resetFilters = () => {
     setSearch('');

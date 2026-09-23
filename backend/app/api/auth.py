@@ -169,7 +169,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     google_email = userinfo.get("email", "").strip().lower()
     google_name = userinfo.get("name", "").strip()
     google_sub = userinfo.get("id") or userinfo.get("sub")
-    picture_url = userinfo.get("picture", "")
+    # Note: Google profile picture URL is explicitly NOT gathered or assigned to user profile
 
     if not google_email:
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=Google account did not provide an email address")
@@ -184,8 +184,6 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "google_id": google_sub,
             "full_name": user.get("full_name") or google_name,
         }
-        if picture_url:
-            user_update["profile_photo_url"] = picture_url
         await db.users.update_one(
             {"_id": user["_id"]},
             {"$set": user_update}
@@ -198,7 +196,6 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "email": google_email,
             "full_name": google_name,
             "google_id": google_sub,
-            "profile_photo_url": picture_url,
             "roles": ["ALUMNI"],
             "is_active": True,
             "created_at": datetime.now(timezone.utc)
@@ -206,7 +203,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
         res = await db.users.insert_one(new_user)
         user_id = str(res.inserted_id)
 
-    # Pre-fill draft alumni profile with Google details
+    # Pre-fill draft alumni profile with Google details (using default avatar, avoiding Google profile photo)
     alumni = await db.alumni.find_one({"user_id": user_id})
     now = datetime.now(timezone.utc)
     if not alumni:
@@ -215,7 +212,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "school_id": school_id,
             "full_name": google_name,
             "email": google_email,
-            "profile_photo_url": picture_url or f"https://ui-avatars.com/api/?name={google_name}&background=F4C542&color=111111",
+            "profile_photo_url": f"https://ui-avatars.com/api/?name={urllib.parse.quote(google_name)}&background=F4C542&color=111111",
             "verification_status": "PENDING",
             "created_at": now
         }
@@ -228,7 +225,6 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     else:
         update_fields = {}
         if not alumni.get("full_name") and google_name: update_fields["full_name"] = google_name
-        if picture_url: update_fields["profile_photo_url"] = picture_url
         if update_fields:
             await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
 
@@ -267,8 +263,8 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     }
     access_token = create_access_token(token_data)
 
-    # Step 6: Redirect to Frontend Callback Handler with auto-fill parameters
-    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo={urllib.parse.quote(picture_url)}&registration_required={str(registration_required).lower()}&resume_step={resume_step}&has_mobile={str(has_mobile).lower()}"
+    # Step 6: Redirect to Frontend Callback Handler with auto-fill parameters (photo parameter left empty to prevent setting Google photo)
+    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo=&registration_required={str(registration_required).lower()}&resume_step={resume_step}&has_mobile={str(has_mobile).lower()}"
     return RedirectResponse(url=target_url)
 
 @router.post("/send-otp", response_model=SendOTPResponse)
@@ -1295,7 +1291,34 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     user_doc = await db.users.find_one({"_id": ObjectId(current_user["user_id"])})
     mobile_val = alumni.get("mobile") or current_user.get("mobile") or (user_doc.get("mobile") if user_doc else None)
     email_val = alumni.get("email") or current_user.get("email") or (user_doc.get("email") if user_doc else None)
-    full_name_val = alumni.get("full_name") or (user_doc.get("full_name") if user_doc else None) or current_user.get("full_name") or "Alumni"
+    
+    candidates = []
+    if alumni:
+        if alumni.get("full_name"): candidates.append(str(alumni["full_name"]))
+        if alumni.get("name"): candidates.append(str(alumni["name"]))
+    if user_doc:
+        if user_doc.get("full_name"): candidates.append(str(user_doc["full_name"]))
+        if user_doc.get("name"): candidates.append(str(user_doc["name"]))
+        if user_doc.get("display_name"): candidates.append(str(user_doc["display_name"]))
+    if current_user.get("full_name"): candidates.append(str(current_user["full_name"]))
+
+    full_name_val = None
+    for cand in candidates:
+        cand_clean = cand.strip()
+        if cand_clean and cand_clean != "Platform User" and cand_clean != "User":
+            full_name_val = cand_clean
+            break
+
+    if not full_name_val:
+        if email_val:
+            email_user = email_val.split("@")[0]
+            cleaned = " ".join([part.capitalize() for part in re.split(r"[._-]", email_user) if part])
+            full_name_val = cleaned or email_val
+        elif mobile_val:
+            full_name_val = f"User ({mobile_val})"
+        else:
+            full_name_val = "Alumni Member"
+
     photo_val = alumni.get("profile_photo_url") or (user_doc.get("profile_photo_url") if user_doc else None) or current_user.get("profile_photo_url")
 
     return UserProfileResponse(

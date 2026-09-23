@@ -1,15 +1,53 @@
 import logging
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from bson import ObjectId
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.middleware.auth import get_current_user
 
 logger = logging.getLogger("app.notifications")
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
+
+
+@router.get("/whatsapp/webhook")
+async def verify_whatsapp_webhook(
+    request: Request,
+    hub_mode: Optional[str] = Query(None, alias="hub.mode"),
+    hub_verify_token: Optional[str] = Query(None, alias="hub.verify_token"),
+    hub_challenge: Optional[str] = Query(None, alias="hub.challenge"),
+):
+    """
+    Meta WhatsApp Cloud API Webhook Verification Endpoint.
+    Responds to Meta's GET challenge when configuring webhook in Meta App Dashboard.
+    """
+    expected_token = getattr(settings, "WHATSAPP_VERIFY_TOKEN", None) or "nhss_alumni_whatsapp_webhook_token_2026"
+
+    if hub_mode == "subscribe" and hub_verify_token == expected_token:
+        logger.info(f"✅ Meta WhatsApp Webhook verified successfully! Challenge: {hub_challenge}")
+        return Response(content=str(hub_challenge or ""), media_type="text/plain", status_code=200)
+
+    logger.warning(
+        f"⚠️ WhatsApp Webhook verification failed. mode='{hub_mode}', token='{hub_verify_token}', expected='{expected_token}'"
+    )
+    raise HTTPException(status_code=403, detail="Verification token mismatch or invalid mode")
+
+
+@router.post("/whatsapp/webhook")
+async def receive_whatsapp_webhook(request: Request):
+    """
+    Receives incoming WhatsApp Cloud API events (delivery receipts, status updates) from Meta.
+    """
+    try:
+        data = await request.json()
+        logger.info(f"📩 Received WhatsApp Webhook Event: {data}")
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error parsing WhatsApp webhook payload: {e}")
+        return {"status": "ok"}
 
 
 def _serialize(doc: dict) -> dict:

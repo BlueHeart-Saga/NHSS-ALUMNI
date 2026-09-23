@@ -1069,9 +1069,16 @@ export const DeveloperPortal: React.FC = () => {
                           </td>
                           <td className="p-3.5 text-gray-600">{u.school_name || 'Unassigned'}</td>
                           <td className="p-3.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                              {u.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                {u.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                              {u.has_password !== undefined && (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.has_password ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800 border border-amber-300'}`}>
+                                  {u.has_password ? 'PASSWORD SET' : 'NO PASSWORD'}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3.5 text-right space-x-2">
                             <button

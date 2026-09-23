@@ -329,14 +329,14 @@ async def get_public_batches(response: Response):
         if yr not in sample_members_map:
             sample_members_map[yr] = []
         if len(sample_members_map[yr]) < 6:
-            name = m.get("full_name", "Alumnus")
-            avatar_url = f"https://ui-avatars.com/api/?name={name}&background=F4C542&color=111111"
+            name = m.get("full_name") or m.get("name") or "Alumnus"
+            photo_url = m.get("profile_photo_url") or m.get("avatar") or f"https://ui-avatars.com/api/?name={name}&background=F4C542&color=111111"
             sample_members_map[yr].append({
                 "id": str(m["_id"]),
                 "full_name": name,
-                "profile_photo_url": avatar_url,
-                "profession": m.get("profession") or "Alumnus",
-                "current_city": m.get("current_city") or "Thoothukudi",
+                "profile_photo_url": photo_url,
+                "profession": m.get("profession") or m.get("designation") or "Alumnus",
+                "current_city": m.get("current_city") or m.get("city") or "Thoothukudi",
                 "passing_year": yr
             })
 

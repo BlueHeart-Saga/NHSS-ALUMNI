@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Users, UserCheck, GraduationCap, Calendar, CheckCircle2, ArrowRight,
-  Info, Check, Phone, Mail, Briefcase, ExternalLink, ShieldCheck, Loader2
+  Info, Check, X, AlertTriangle, Phone, Mail, Briefcase, ExternalLink, ShieldCheck, Loader2
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
@@ -27,6 +27,10 @@ export const Dashboard: React.FC = () => {
   const [confirmingAlumni, setConfirmingAlumni] = useState<AlumniProfile | null>(null);
   const [approvalNote, setApprovalNote] = useState(() => t('admin_dashboard_approval_default_note'));
   const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [rejectingAlumni, setRejectingAlumni] = useState<AlumniProfile | null>(null);
+  const [rejectionReason, setRejectionReason] = useState(() => t('admin_dashboard_rejection_default_reason'));
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -82,6 +86,25 @@ export const Dashboard: React.FC = () => {
       alertService.handleApiError(err, t('admin_dashboard_alert_approval_error'));
     } finally {
       setConfirmLoading(false);
+    }
+  };
+
+  const handleConfirmRejection = async () => {
+    if (!rejectingAlumni) return;
+    try {
+      setRejectLoading(true);
+      await api.verifyAlumni(rejectingAlumni.id, 'REJECTED', rejectionReason);
+      alertService.showSuccess(
+        t('admin_dashboard_alert_rejected_title'),
+        t('admin_dashboard_alert_rejected_body').replace('{name}', rejectingAlumni.full_name)
+      );
+      setRejectingAlumni(null);
+      setSelectedAlumni(null);
+      loadDashboardData();
+    } catch (err: any) {
+      alertService.handleApiError(err, t('admin_dashboard_alert_rejection_error'));
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -219,6 +242,18 @@ export const Dashboard: React.FC = () => {
                   <Badge status={a.verification_status} />
                   <Button
                     size="sm"
+                    variant="secondary"
+                    className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                    onClick={() => {
+                      setRejectingAlumni(a);
+                      setRejectionReason(t('admin_dashboard_rejection_default_reason'));
+                    }}
+                  >
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    {t('admin_dashboard_queue_reject')}
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={() => {
                       setConfirmingAlumni(a);
                       setApprovalNote(
@@ -226,6 +261,7 @@ export const Dashboard: React.FC = () => {
                       );
                     }}
                   >
+                    <Check className="w-3.5 h-3.5 mr-1" />
                     {t('admin_dashboard_queue_approve')}
                   </Button>
                 </div>
@@ -392,6 +428,19 @@ export const Dashboard: React.FC = () => {
                 {t('admin_dashboard_detail_close')}
               </Button>
               <Button
+                variant="secondary"
+                className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                onClick={() => {
+                  const toReject = selectedAlumni;
+                  setSelectedAlumni(null);
+                  setRejectingAlumni(toReject);
+                  setRejectionReason(t('admin_dashboard_rejection_default_reason'));
+                }}
+              >
+                <X className="w-4 h-4 mr-1.5" />
+                <span>{t('admin_dashboard_detail_reject_btn')}</span>
+              </Button>
+              <Button
                 onClick={() => {
                   const toApprove = selectedAlumni;
                   setSelectedAlumni(null);
@@ -469,6 +518,70 @@ export const Dashboard: React.FC = () => {
                   <>
                     <Check className="w-4 h-4 mr-1.5" />
                     <span>{t('admin_dashboard_confirm_submit')}</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 3. Reject Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(rejectingAlumni)}
+        onClose={() => !rejectLoading && setRejectingAlumni(null)}
+        title={t('admin_dashboard_reject_modal_title')}
+      >
+        {rejectingAlumni && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
+              <div>
+                <p className="font-bold text-[#111111] text-sm">
+                  {t('admin_dashboard_reject_heading').replace('{name}', rejectingAlumni.full_name)}
+                </p>
+                <p className="mt-1 text-[#6B7280]">
+                  {t('admin_dashboard_reject_body')}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">
+                {t('admin_dashboard_reject_reason_label')}
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder={t('admin_dashboard_reject_reason_placeholder')}
+                className="w-full px-3.5 py-2.5 border border-[#E5E7EB] rounded-xl text-xs text-[#111111] focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                required
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#E5E7EB]">
+              <Button
+                variant="secondary"
+                disabled={rejectLoading}
+                onClick={() => setRejectingAlumni(null)}
+              >
+                {t('admin_dashboard_reject_cancel')}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={rejectLoading}
+                onClick={handleConfirmRejection}
+              >
+                {rejectLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    <span>{t('admin_dashboard_reject_rejecting')}</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 mr-1.5" />
+                    <span>{t('admin_dashboard_reject_submit')}</span>
                   </>
                 )}
               </Button>

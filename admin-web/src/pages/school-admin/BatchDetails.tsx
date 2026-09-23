@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserPlus, ShieldCheck, Crown, Users, Award, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, UserPlus, ShieldCheck, Crown, Users, Award, Trash2, Edit, RefreshCw } from 'lucide-react';
 import { Table } from '../../components/Table';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -57,6 +57,49 @@ export const BatchDetails: React.FC = () => {
   const [editDescription, setEditDescription] = useState('');
   const [updating, setUpdating] = useState(false);
 
+  // Change Batch modal state
+  const [changeBatchTarget, setChangeBatchTarget] = useState<AlumniProfile | null>(null);
+  const [availableBatches, setAvailableBatches] = useState<Batch[]>([]);
+  const [targetPassingYear, setTargetPassingYear] = useState<number>(2026);
+  const [targetSection, setTargetSection] = useState<string>('A');
+  const [changeReason, setChangeReason] = useState<string>('');
+  const [migrating, setMigrating] = useState(false);
+
+  const openChangeBatchModal = (alumni: AlumniProfile) => {
+    setChangeBatchTarget(alumni);
+    const defaultYear = alumni.passing_year || (availableBatches[0]?.passing_year || 2026);
+    setTargetPassingYear(defaultYear);
+    setTargetSection(alumni.section || 'A');
+    setChangeReason('');
+  };
+
+  const handleChangeBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!changeBatchTarget) return;
+
+    setMigrating(true);
+    try {
+      await api.changeAlumniBatch(
+        [changeBatchTarget.id],
+        targetPassingYear,
+        targetSection,
+        changeReason
+      );
+      alertService.showSuccess(
+        t('admin_change_batch_success_title'),
+        t('admin_change_batch_success_msg')
+          .replace('{count}', '1')
+          .replace('{year}', String(targetPassingYear))
+      );
+      setChangeBatchTarget(null);
+      loadBatch();
+    } catch (err: any) {
+      alertService.handleApiError(err, t('admin_change_batch_error'));
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   useEffect(() => {
     if (batchId) loadBatch();
   }, [batchId]);
@@ -72,6 +115,7 @@ export const BatchDetails: React.FC = () => {
       
       setMembers(mData);
       setCommittee(cData);
+      setAvailableBatches(batches || []);
 
       const match = batches.find((b) => b.id === batchId);
       if (match) setBatch(match);
@@ -240,6 +284,14 @@ export const BatchDetails: React.FC = () => {
           >
             <Edit className="w-3.5 h-3.5" />
             <span>{row.committee_role ? t('admin_batch_action_edit_role') : t('admin_batch_action_assign_role')}</span>
+          </button>
+          <button
+            onClick={() => openChangeBatchModal(row)}
+            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold text-xs rounded-lg border border-blue-200 transition-colors flex items-center space-x-1 cursor-pointer"
+            title={t('admin_change_batch_btn')}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>{t('admin_change_batch_btn')}</span>
           </button>
           {row.committee_role && (
             <button
@@ -516,6 +568,73 @@ export const BatchDetails: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Change Batch Modal */}
+      <Modal
+        isOpen={Boolean(changeBatchTarget)}
+        onClose={() => !migrating && setChangeBatchTarget(null)}
+        title={t('admin_change_batch_modal_title')}
+      >
+        {changeBatchTarget && (
+          <form onSubmit={handleChangeBatchSubmit} className="space-y-4">
+            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+              <div className="font-bold text-sm text-[#111111] mb-1">
+                {t('admin_change_batch_single_heading').replace('{name}', changeBatchTarget.full_name)}
+              </div>
+              <div>
+                {t('admin_change_batch_current_label')} <strong>Batch {changeBatchTarget.passing_year} (Sec {changeBatchTarget.section || 'A'})</strong>
+              </div>
+            </div>
+
+            <Select
+              label={t('admin_change_batch_target_label')}
+              value={String(targetPassingYear)}
+              onChange={(e) => setTargetPassingYear(Number(e.target.value))}
+              options={
+                availableBatches.length > 0
+                  ? availableBatches
+                      .slice()
+                      .sort((a, b) => b.passing_year - a.passing_year)
+                      .map((b) => ({
+                        label: `${b.name || `Batch of ${b.passing_year}`} (${b.passing_year}) — ${b.total_members || 0} members`,
+                        value: String(b.passing_year),
+                      }))
+                  : [{ label: `Batch ${targetPassingYear}`, value: String(targetPassingYear) }]
+              }
+            />
+
+            <Select
+              label={t('admin_change_batch_section_label')}
+              value={targetSection}
+              onChange={(e) => setTargetSection(e.target.value)}
+              options={[
+                { label: 'Section A', value: 'A' },
+                { label: 'Section B', value: 'B' },
+                { label: 'Section C', value: 'C' },
+                { label: 'Section D', value: 'D' },
+                { label: 'Section E', value: 'E' },
+              ]}
+            />
+
+            <Input
+              label={t('admin_change_batch_reason_label')}
+              placeholder={t('admin_change_batch_reason_placeholder')}
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+            />
+
+            <div className="flex justify-end space-x-3 pt-2 border-t border-[#E5E7EB]">
+              <Button type="button" variant="secondary" disabled={migrating} onClick={() => setChangeBatchTarget(null)}>
+                {t('admin_change_batch_cancel')}
+              </Button>
+              <Button type="submit" isLoading={migrating}>
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+                {t('admin_change_batch_submit')}
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

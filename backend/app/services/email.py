@@ -473,3 +473,76 @@ def send_alumni_suspended_email(
     )
 
     return send_email_smtp(to_email, subject, html_content, text_content)
+
+
+def send_alumni_rejected_email(
+    to_email: str,
+    alumni_name: str,
+    reason: str,
+    school_name: str = "NHS SCHOOL"
+) -> bool:
+    """
+    Sends an account rejection notification email to the alumnus when rejected by school admin.
+    """
+    subject = f"Update Regarding Your {school_name} Alumni Account Application"
+    contact_email = settings.EMAILS_FROM_EMAIL or "info@nhssalumni.com"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAFAFA; margin: 0; padding: 20px; color: #111111; }}
+            .container {{ max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 2px solid #111111; border-radius: 20px; padding: 32px; box-shadow: 6px 6px 0px #111111; }}
+            .header {{ text-align: center; border-bottom: 2px solid #DC2626; padding-bottom: 20px; margin-bottom: 24px; }}
+            .badge {{ display: inline-block; background-color: #FEE2E2; border: 1px solid #DC2626; color: #991B1B; font-weight: 800; font-size: 11px; padding: 6px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            .title {{ font-size: 22px; font-weight: 800; color: #111111; margin-top: 16px; margin-bottom: 6px; text-align: center; }}
+            .subtitle {{ font-size: 14px; color: #4B5563; text-align: center; margin-bottom: 24px; line-height: 1.5; }}
+            .reason-box {{ background-color: #FEF2F2; border-radius: 14px; padding: 18px 20px; margin: 20px 0; border: 1px solid #FCA5A5; }}
+            .reason-label {{ font-size: 11px; font-weight: 800; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }}
+            .reason-text {{ font-size: 14px; font-weight: 600; color: #111111; margin: 0; line-height: 1.6; white-space: pre-wrap; }}
+            .info {{ font-size: 13px; color: #4B5563; line-height: 1.7; }}
+            .contact {{ background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: #374151; line-height: 1.6; margin: 20px 0; }}
+            .footer {{ border-top: 1px solid #E5E7EB; margin-top: 32px; padding-top: 20px; font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.5; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <span class="badge">Application Update</span>
+                <h1 class="title">Alumni Registration Request Update</h1>
+                <p class="subtitle">Dear <strong>{alumni_name}</strong>, thank you for your application to join the <strong>{school_name}</strong> Alumni Network.</p>
+            </div>
+
+            <div class="reason-box">
+                <div class="reason-label">Rejection Reason</div>
+                <p class="reason-text">Your Alumni registration request was rejected for: {reason}</p>
+            </div>
+
+            <p class="info">
+                If you believe this decision was made in error or if you have corrected details to provide, please reach out to our school administration team.
+            </p>
+
+            <div class="contact">
+                <strong>Questions or Clarification?</strong><br>
+                Please contact the school administration at <a href="mailto:{contact_email}" style="color: #2563EB;">{contact_email}</a>.
+            </div>
+
+            <div class="footer">
+                <p>This email was sent automatically by <strong>{settings.EMAILS_FROM_NAME}</strong>.<br>Thank you for staying connected with {school_name}.</p>
+                <p>© 2026 {school_name} Alumni Association. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_content = (
+        f"Dear {alumni_name},\n\n"
+        f"Your Alumni registration request for {school_name} was rejected for: {reason}\n\n"
+        f"If you believe this was made in error, please contact school administration at {contact_email}.\n\n"
+        f"Regards,\n{school_name}\nAlumni Association"
+    )
+
+    return send_email_smtp(to_email, subject, html_content, text_content)

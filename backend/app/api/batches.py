@@ -261,28 +261,46 @@ async def list_batch_members(batch_id: str, current_user: dict = Depends(get_cur
     res = []
     for a in alumni_list:
         a_id = str(a["_id"])
+        u_id = str(a.get("user_id", ""))
 
-        # Check user roles
-        user = await db.users.find_one({"_id": ObjectId(a["user_id"])}) if a.get("user_id") else None
+        user = None
+        if u_id:
+            try:
+                user = await db.users.find_one({"_id": ObjectId(u_id)})
+            except Exception:
+                user = await db.users.find_one({"_id": u_id})
+
         roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
 
         c_role = a.get("committee_role") or committee_map.get(a_id)
         c_title = COMMITTEE_ROLES_CONFIG.get(c_role, {}).get("title") if c_role else None
 
+        is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN", "DEVELOPER"])
+        is_self = bool(u_id and str(current_user.get("user_id", "")) == u_id)
+        show_contact = is_admin or is_self or a.get("email_visible") or a.get("phone_visible") or a.get("directory_visible", True)
+
+        mob_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
+        email_raw = a.get("email") or ""
+
         res.append(UserProfileResponse(
             id=a_id,
-            user_id=str(a.get("user_id", "")),
+            user_id=u_id,
             school_id=school_id,
-            full_name=a["full_name"],
-            mobile=a["mobile"] if a.get("email_visible") or "SCHOOL_ADMIN" in current_user["roles"] else "***",
-            email=a["email"] if a.get("email_visible") or "SCHOOL_ADMIN" in current_user["roles"] else "***",
-            profile_photo_url=a.get("profile_photo_url"),
-            passing_year=a["passing_year"],
+            full_name=a.get("full_name") or a.get("name") or "Alumnus",
+            name_ta=a.get("name_ta") or a.get("full_name_ta"),
+            full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
+            mobile=mob_raw if show_contact else "***",
+            email=email_raw if show_contact else "***",
+            profile_photo_url=a.get("profile_photo_url") or a.get("avatar"),
+            passing_year=a.get("passing_year", 2010),
             batch_id=batch_id,
-            admission_number=a.get("admission_number", ""),
+            admission_number=a.get("admission_number") or a.get("roll_no") or "",
             section=a.get("section"),
-            current_city=a.get("current_city"),
-            profession=a.get("profession"),
+            current_city=a.get("current_city") or a.get("city"),
+            city=a.get("city") or a.get("current_city"),
+            state=a.get("state") or a.get("current_state"),
+            profession=a.get("profession") or a.get("designation") or a.get("position"),
+            company=a.get("company") or a.get("company_name"),
             verification_status=a.get("verification_status", "APPROVED"),
             roles=roles,
             committee_role=c_role,

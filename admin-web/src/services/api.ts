@@ -684,6 +684,29 @@ class ApiClient {
     });
   }
 
+  async changeAlumniBatch(
+    alumni_ids: string[],
+    new_passing_year: number,
+    section?: string,
+    reason?: string
+  ) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      updated_count: number;
+      new_passing_year: number;
+      batch_id: string;
+    }>('/alumni/change-batch', {
+      method: 'POST',
+      body: JSON.stringify({
+        alumni_ids,
+        new_passing_year,
+        section,
+        reason,
+      }),
+    });
+  }
+
   async bulkDeleteAlumniAdmin(alumni_ids: string[]) {
     return this.request<{ success: boolean; message: string; deleted: number }>('/alumni/bulk-delete', {
       method: 'POST',
@@ -1204,34 +1227,6 @@ class ApiClient {
 
   async deleteDeveloperSchoolAdmin(id: string) {
     return this.request<{ success: boolean; message: string }>(`/developer/school-admins/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getDeveloperUsers(params?: { role?: string; school_id?: string; search?: string }) {
-    const q = new URLSearchParams();
-    if (params?.role) q.append('role', params.role);
-    if (params?.school_id) q.append('school_id', params.school_id);
-    if (params?.search) q.append('search', params.search);
-    return this.request<any[]>(`/developer/users?${q.toString()}`);
-  }
-
-  async createDeveloperUser(data: any) {
-    return this.request<{ success: boolean; user_id: string; message: string }>('/developer/users', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateDeveloperUser(id: string, data: any) {
-    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteDeveloperUser(id: string) {
-    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
       method: 'DELETE',
     });
   }

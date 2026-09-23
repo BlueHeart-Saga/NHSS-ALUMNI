@@ -1580,6 +1580,39 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_dashboard_alert_approval_error: "Approval failed.",
     admin_dashboard_approval_default_note: "Approved by school admin from dashboard",
 
+    // Rejection modal & actions
+    admin_dashboard_queue_reject: "Reject",
+    admin_dashboard_detail_reject_btn: "Reject Application",
+    admin_dashboard_reject_modal_title: "Reject Alumni Application",
+    admin_dashboard_reject_heading: "Reject {name}?",
+    admin_dashboard_reject_body: "Please specify why you are rejecting this alumni registration application. An automated email containing this reason will be sent to the applicant.",
+    admin_dashboard_reject_reason_label: "Why are you rejecting this user?",
+    admin_dashboard_reject_reason_placeholder: "e.g. Admission number does not match school records",
+    admin_dashboard_reject_cancel: "Cancel",
+    admin_dashboard_reject_rejecting: "Rejecting...",
+    admin_dashboard_reject_submit: "Confirm & Reject",
+    admin_dashboard_alert_rejected_title: "Alumni Application Rejected",
+    admin_dashboard_alert_rejected_body: "Alumni registration for {name} has been rejected and rejection email sent.",
+    admin_dashboard_alert_rejection_error: "Rejection process failed.",
+    admin_dashboard_rejection_default_reason: "Application details could not be matched with school records",
+
+    // Change Batch modal & actions
+    admin_change_batch_btn: "Change Batch",
+    admin_change_batch_modal_title: "Change Alumni Batch",
+    admin_change_batch_heading: "Move {count} Alumni to New Batch",
+    admin_change_batch_single_heading: "Move {name} to New Batch",
+    admin_change_batch_current_label: "Current Batch:",
+    admin_change_batch_target_label: "Target Batch (Passing Year):",
+    admin_change_batch_section_label: "Section (Optional):",
+    admin_change_batch_reason_label: "Reason / Transfer Note (Optional):",
+    admin_change_batch_reason_placeholder: "e.g. Corrected graduation year after record verification",
+    admin_change_batch_cancel: "Cancel",
+    admin_change_batch_submitting: "Moving...",
+    admin_change_batch_submit: "Confirm & Move Batch",
+    admin_change_batch_success_title: "Batch Migration Successful",
+    admin_change_batch_success_msg: "Successfully transferred {count} alumni to Batch {year}.",
+    admin_change_batch_error: "Failed to change batch.",
+
         // =====================================================================
     // SHARED HEADER & PAGE TITLES (school-admin) — NEW KEYS
     // =====================================================================
@@ -1635,6 +1668,8 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_verify_modal_applicant_line: "Applicant: {name} (Batch {batch})",
     admin_verify_modal_notes_label: "Verification Notes",
     admin_verify_modal_notes_placeholder: "Reason or verification note...",
+    admin_verify_modal_reject_reason_label: "Why are you rejecting this user?",
+    admin_verify_modal_reject_reason_placeholder: "e.g. Admission number does not match school records",
     admin_verify_modal_cancel: "Cancel",
     admin_verify_modal_confirm_btn: "Confirm Decision",
 
@@ -3523,6 +3558,39 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_dashboard_alert_approval_error: "அங்கீகாரம் தோல்வியடைந்தது.",
     admin_dashboard_approval_default_note: "டாஷ்போர்டிலிருந்து பள்ளி நிர்வாகியால் அங்கீகரிக்கப்பட்டது",
 
+    // Rejection modal & actions
+    admin_dashboard_queue_reject: "நிராகரி",
+    admin_dashboard_detail_reject_btn: "விண்ணப்பத்தை நிராகரி",
+    admin_dashboard_reject_modal_title: "முன்னாள் மாணவர் விண்ணப்ப நிராகரிப்பு",
+    admin_dashboard_reject_heading: "{name} நிராகரிக்கவா?",
+    admin_dashboard_reject_body: "இந்த விண்ணப்பத்தை ஏன் நிராகரிக்கிறீர்கள் எனக் குறிப்பிடவும். இந்த காரணத்துடன் கூடிய மின்னஞ்சல் பயனருக்கு அனுப்பப்படும்.",
+    admin_dashboard_reject_reason_label: "இந்த பயனரை ஏன் நிராகரிக்கிறீர்கள்?",
+    admin_dashboard_reject_reason_placeholder: "எ.கா. சேர்க்கை எண் பள்ளிப் பதிவுகளுடன் பொருந்தவில்லை",
+    admin_dashboard_reject_cancel: "ரத்து செய்",
+    admin_dashboard_reject_rejecting: "நிராகரிக்கப்படுகிறது...",
+    admin_dashboard_reject_submit: "உறுதிசெய்து நிராகரி",
+    admin_dashboard_alert_rejected_title: "விண்ணப்பம் நிராகரிக்கப்பட்டது",
+    admin_dashboard_alert_rejected_body: "{name} இன் விண்ணப்பம் நிராகரிக்கப்பட்டு மின்னஞ்சல் அனுப்பப்பட்டது.",
+    admin_dashboard_alert_rejection_error: "நிராகரிப்பு தோல்வியடைந்தது.",
+    admin_dashboard_rejection_default_reason: "பள்ளிப் பதிவுகளுடன் விவரங்கள் பொருந்தவில்லை",
+
+    // Change Batch modal & actions
+    admin_change_batch_btn: "தொகுதி மாற்றம்",
+    admin_change_batch_modal_title: "முன்னாள் மாணவர் தொகுதி மாற்றம்",
+    admin_change_batch_heading: "{count} முன்னாள் மாணவர்களை புதிய தொகுதிக்கு நகர்த்து",
+    admin_change_batch_single_heading: "{name} ஐ புதிய தொகுதிக்கு நகர்த்து",
+    admin_change_batch_current_label: "தற்போதைய தொகுதி:",
+    admin_change_batch_target_label: "இலக்கு தொகுதி (தேர்ச்சி ஆண்டு):",
+    admin_change_batch_section_label: "பிரிவு (விருப்பமானது):",
+    admin_change_batch_reason_label: "காரணம் / குறிப்பு (விருப்பமானது):",
+    admin_change_batch_reason_placeholder: "எ.கா. பதிவுகளைச் சரிபார்த்த பிறகு திருத்தப்பட்ட பட்டம் பெற்ற ஆண்டு",
+    admin_change_batch_cancel: "ரத்து செய்",
+    admin_change_batch_submitting: "நகர்த்தப்படுகிறது...",
+    admin_change_batch_submit: "உறுதிசெய்து தொகுதி மாற்று",
+    admin_change_batch_success_title: "தொகுதி மாற்றம் வெற்றி",
+    admin_change_batch_success_msg: "{count} முன்னாள் மாணவர்கள் வெற்றிகரமாக {year} தொகுதிக்கு மாற்றப்பட்டனர்.",
+    admin_change_batch_error: "தொகுதியை மாற்ற முடியவில்லை.",
+
         // =====================================================================
     // SHARED HEADER & PAGE TITLES (school-admin) — NEW KEYS
     // =====================================================================
@@ -3578,6 +3646,8 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_verify_modal_applicant_line: "விண்ணப்பதாரர்: {name} (தொகுதி {batch})",
     admin_verify_modal_notes_label: "சரிபார்ப்பு குறிப்புகள்",
     admin_verify_modal_notes_placeholder: "காரணம் அல்லது சரிபார்ப்புக் குறிப்பு...",
+    admin_verify_modal_reject_reason_label: "இந்த பயனரை ஏன் நிராகரிக்கிறீர்கள்?",
+    admin_verify_modal_reject_reason_placeholder: "எ.கா. சேர்க்கை எண் பள்ளிப் பதிவுகளுடன் பொருந்தவில்லை",
     admin_verify_modal_cancel: "ரத்து செய்",
     admin_verify_modal_confirm_btn: "முடிவை உறுதிசெய்",
 
