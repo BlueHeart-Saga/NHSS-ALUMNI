@@ -68,47 +68,56 @@ async def list_pending_verifications(
 
         roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
         photo_val = a.get("profile_photo_url") or (user.get("profile_photo_url") if user else None)
-        res.append(UserProfileResponse(
-            id=str(a["_id"]),
-            user_id=u_id,
-            school_id=str(a.get("school_id") or current_user.get("school_id") or ""),
-            full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
-            mobile=a.get("mobile") or (user.get("mobile") if user else ""),
-            email=a.get("email") or (user.get("email") if user else ""),
-            profile_photo_url=photo_val,
-            passing_year=a.get("passing_year", 2010),
-            batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
-            admission_number=a.get("admission_number") or "N/A",
-            section=a.get("section"),
-            gender=a.get("gender"),
-            dob=a.get("dob") or a.get("date_of_birth"),
-            date_of_birth=a.get("date_of_birth") or a.get("dob"),
-            blood_group=a.get("blood_group"),
-            father_name=a.get("father_name"),
-            mother_name=a.get("mother_name"),
-            address=a.get("address"),
-            current_city=a.get("current_city"),
-            state=a.get("state") or a.get("current_state"),
-            country=a.get("country"),
-            joining_year=a.get("joining_year"),
-            leaving_class=a.get("leaving_class"),
-            college_name=a.get("college_name") or a.get("institution_name"),
-            degree=a.get("degree"),
-            stream=a.get("stream"),
-            profession=a.get("profession"),
-            company=a.get("company") or a.get("company_name"),
-            designation=a.get("designation"),
-            industry=a.get("industry"),
-            total_experience=a.get("total_experience") or a.get("experience_years"),
-            skills=a.get("skills", []),
-            bio=a.get("bio"),
-            linkedin_url=a.get("linkedin_url"),
-            verification_status=a.get("verification_status", "PENDING"),
-            verification_notes=a.get("verification_notes"),
-            roles=roles,
-            email_visible=a.get("email_visible", False),
-            created_at=a.get("created_at", datetime.now(timezone.utc))
-        ))
+        try:
+            res.append(UserProfileResponse(
+                id=str(a["_id"]),
+                user_id=u_id,
+                school_id=str(a.get("school_id") or current_user.get("school_id") or ""),
+                full_name=a.get("full_name") or (user.get("full_name") if user else "Alumni Applicant"),
+                mobile=a.get("mobile") or (user.get("mobile") if user else ""),
+                email=a.get("email") or (user.get("email") if user else ""),
+                profile_photo_url=photo_val,
+                passing_year=a.get("passing_year", 2010),
+                batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
+                admission_number=a.get("admission_number") or "N/A",
+                section=a.get("section"),
+                gender=a.get("gender"),
+                dob=a.get("dob") or a.get("date_of_birth"),
+                date_of_birth=a.get("date_of_birth") or a.get("dob"),
+                blood_group=a.get("blood_group"),
+                father_name=a.get("father_name"),
+                mother_name=a.get("mother_name"),
+                address=a.get("address"),
+                current_city=a.get("current_city"),
+                state=a.get("state") or a.get("current_state"),
+                country=a.get("country"),
+                joining_year=a.get("joining_year"),
+                leaving_class=a.get("leaving_class"),
+                college_name=a.get("college_name") or a.get("institution_name"),
+                degree=a.get("degree"),
+                stream=a.get("stream"),
+                profession=a.get("profession"),
+                company=a.get("company") or a.get("company_name"),
+                designation=a.get("designation"),
+                industry=a.get("industry"),
+                total_experience=a.get("total_experience") or a.get("experience_years"),
+                skills=a.get("skills", []),
+                bio=a.get("bio"),
+                linkedin_url=a.get("linkedin_url"),
+                verification_status=a.get("verification_status", "PENDING"),
+                verification_notes=a.get("verification_notes"),
+                roles=roles,
+                email_visible=a.get("email_visible", False),
+                created_at=a.get("created_at") or datetime.now(timezone.utc),
+            ))
+        except Exception as field_err:
+            # One malformed document must never break the whole response.
+            # Log the exact `_id` and skip it so the queue still renders.
+            logger.error(
+                f"[alumni.pending] failed to serialize alumni _id={a.get('_id')} "
+                f"user_id={u_id} error={field_err}",
+                exc_info=True,
+            )
     return res
 
 @router.post("/{alumni_id}/verify")
@@ -322,7 +331,6 @@ PROTECTED_FIELDS = {
     "created_at", "verified_by", "verified_at",
 }
 
-
 def _clean_cell(value) -> str:
     """Strip Excel '="..."' text-forcing wrapper, quotes, BOM, and whitespace from a cell value."""
     if value is None:
@@ -336,7 +344,6 @@ def _clean_cell(value) -> str:
     if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
         s = s[1:-1].strip()
     return s.strip()
-
 
 def _normalize_row(raw_row: dict) -> dict:
     """Map CSV header names (case-insensitive, alias-aware) to canonical field names."""
@@ -357,7 +364,6 @@ def _normalize_row(raw_row: dict) -> dict:
             result[canonical] = ""
     return result
 
-
 def _resolve_cell_value(canonical_field: str, csv_value: str, existing_db_value):
     """
     Apply empty-cell policy.
@@ -375,7 +381,6 @@ def _resolve_cell_value(canonical_field: str, csv_value: str, existing_db_value)
             return ""
 
     return raw
-
 
 def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
     """
@@ -502,7 +507,6 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
 
     return updates
 
-
 def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dict:
     """Build a complete alumni document containing all 44 fields for CSV creation."""
     name = (row.get("name") or "").strip()
@@ -603,13 +607,11 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
         "created_at": datetime.now(timezone.utc)
     }
 
-
 def _is_valid_objectid_hex(s: str) -> bool:
     """A valid MongoDB ObjectId hex string is exactly 24 hex characters."""
     if not s or len(s) != 24:
         return False
     return all(c in "0123456789abcdefABCDEF" for c in s)
-
 
 def _looks_like_excel_corruption(s: str) -> bool:
     """Detect values that Excel's autoformat has clearly mangled."""
@@ -623,7 +625,6 @@ def _looks_like_excel_corruption(s: str) -> bool:
     if "." in s:
         return True
     return False
-
 
 @router.post("/import-csv", response_model=CSVImportResult)
 @router.post("/import-excel", response_model=CSVImportResult)

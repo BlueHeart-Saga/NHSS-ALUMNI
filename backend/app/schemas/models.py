@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 # --- Auth Schemas ---
 class SendOTPRequest(BaseModel):
@@ -307,7 +307,51 @@ class UserProfileResponse(BaseModel):
     willing_to_donate: Optional[Any] = "NO"
     email_visible: bool = False
     registration_submitted: Optional[bool] = False
-    created_at: datetime
+    created_at: Optional[datetime] = None
+
+    # ── Coercion validators (defensive: fix 500s on legacy / mixed-type DB data) ──
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _coerce_created_at(cls, v):
+        """Accept datetime, ISO string, date object, or None. Never raise."""
+        if v is None:
+            return datetime.now(timezone.utc)
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                return datetime.fromisoformat(v.replace("Z", "+00:00"))
+            except Exception:
+                return datetime.now(timezone.utc)
+        try:
+            return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
+        except Exception:
+            return datetime.now(timezone.utc)
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def _coerce_skills(cls, v):
+        """Accept list, comma-separated string, or None."""
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [str(s) for s in v if s is not None]
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return []
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _coerce_roles(cls, v):
+        """Accept list, single string, or None."""
+        if v is None:
+            return ["ALUMNI"]
+        if isinstance(v, list):
+            return [str(r) for r in v if r is not None]
+        if isinstance(v, str):
+            return [v]
+        return ["ALUMNI"]
 
 class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = None
@@ -911,6 +955,7 @@ class AuditStatementResponse(BaseModel):
     status: str = "ACTIVE"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
 # =============================================================================
 # ASSOCIATION MEETING MINUTES & RESOLUTIONS SCHEMAS
 # =============================================================================
@@ -936,7 +981,6 @@ class MeetingMinuteCreateRequest(BaseModel):
     display_order: int = 1
     status: str = "ACTIVE"                                          # ACTIVE | ARCHIVED
 
-
 class MeetingMinuteUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -954,7 +998,6 @@ class MeetingMinuteUpdateRequest(BaseModel):
     is_published: Optional[bool] = None
     display_order: Optional[int] = None
     status: Optional[str] = None
-
 
 class MeetingMinuteResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -976,6 +1019,7 @@ class MeetingMinuteResponse(BaseModel):
     status: str = "ACTIVE"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
 # =============================================================================
 # CONTRIBUTIONS SCHEMAS
 # =============================================================================
@@ -1079,6 +1123,7 @@ class AdminContributionCreateRequest(ContributionCreateRequest):
 
     alumni_id: str
     status: Optional[str] = "COMPLETED"    # PENDING | COMPLETED | REJECTED
+
 # =============================================================================
 # SPONSORS SCHEMAS
 # =============================================================================
@@ -1116,7 +1161,7 @@ class SponsorUpdateRequest(BaseModel):
     is_published: Optional[bool] = None
     status: Optional[str] = None
     approval_status: Optional[str] = None          # PENDING | PUBLISHED | REJECTED
-    rejection_reason: Optional[str] = None 
+    rejection_reason: Optional[str] = None
 
 class UserSponsorCreateRequest(BaseModel):
     name: str = Field(..., min_length=1)
