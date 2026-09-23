@@ -131,3 +131,46 @@ async def send_whatsapp_template(
                 return False, resp_text
     except Exception as exc:
         return False, str(exc)
+
+async def send_whatsapp_otp(mobile: str, otp: str) -> Tuple[bool, Optional[str]]:
+    """
+    Real-time WhatsApp OTP Dispatcher via Meta WhatsApp Cloud API.
+    Attempts template dispatch ('nhss_alumni_otp' or 'auth_otp') first,
+    and falls back to direct text message if template is not yet approved.
+    """
+    token = (settings.WHATSAPP_TOKEN or "").strip()
+    phone_number_id = (settings.WHATSAPP_PHONE_NUMBER_ID or "").strip()
+
+    if not token or not phone_number_id:
+        return False, "WhatsApp credentials not configured in settings"
+
+    recipient = format_whatsapp_mobile(mobile)
+    if not recipient:
+        return False, "Invalid recipient mobile format"
+
+    template_name = getattr(settings, "WHATSAPP_OTP_TEMPLATE", "nhss_alumni_otp")
+
+    # Components for Authentication OTP Template with parameter {{1}}
+    components = [
+        {
+            "type": "body",
+            "parameters": [
+                {"type": "text", "text": str(otp)}
+            ]
+        }
+    ]
+
+    # Try template dispatch
+    success, result = await send_whatsapp_template(
+        mobile=recipient,
+        template_name=template_name,
+        language_code="en_US",
+        components=components
+    )
+
+    if success:
+        return True, result
+
+    # Fallback to direct text message
+    direct_msg = f"Your NHSS Alumni verification code is: {otp}. Valid for 10 minutes. Do not share this code."
+    return await send_whatsapp_message(recipient, direct_msg)

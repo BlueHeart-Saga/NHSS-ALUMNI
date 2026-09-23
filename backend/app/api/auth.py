@@ -29,6 +29,7 @@ from app.services.sms import (
     send_sms_otp, normalize_indian_mobile, is_valid_indian_mobile, send_invitation_sms,
     get_mobile_query_variants, build_mobile_query_filter
 )
+from app.services.whatsapp import send_whatsapp_otp
 
 from app.schemas.models import (
     SendOTPRequest, SendOTPResponse, VerifyOTPRequest, TokenResponse,
@@ -487,6 +488,10 @@ async def send_otp(request: SendOTPRequest):
             status_code=502,
             detail="Unable to send OTP. Please try again."
         )
+
+    # Dispatch WhatsApp OTP in parallel if Meta WhatsApp credentials are configured
+    if getattr(settings, "WHATSAPP_TOKEN", None):
+        asyncio.create_task(send_whatsapp_otp(target_mobile, otp))
 
     provider_name = "Brevo" if (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "")) else "2Factor"
     # Secure terminal output for developers in dev mode (never in production logs)
