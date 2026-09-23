@@ -358,37 +358,32 @@ async def send_otp(request: SendOTPRequest):
                 detail=f"UNAUTHORIZED_DEVELOPER: '{identifier}' is not registered or authorized for Developer Portal access."
             )
 
-    # Check if user is registered when check_user is True
-    if request.check_user:
+    # Verify user registration when check_user or for_password_reset is True
+    if request.check_user or request.for_password_reset:
         db = get_db()
         query = []
         if email:
             query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
         if mobile:
             query.extend(build_mobile_query_filter(mobile))
-            
+
         user = await db.users.find_one({"$or": query}) if query else None
+        alumni = None
         if not user:
+            alumni = await db.alumni.find_one({"$or": query}) if query else None
+
+        if not user and not alumni:
             raise HTTPException(
                 status_code=404,
                 detail=f"No registered account found for '{identifier}'. Please register your alumni profile first."
             )
-            
-        # Verify password strictly against user or alumni record
-        user_pass = user.get("password") or user.get("password_hash")
-        if not user_pass:
-            alumni_rec = await db.alumni.find_one({"user_id": str(user["_id"])})
-            if alumni_rec:
-                user_pass = alumni_rec.get("password") or alumni_rec.get("password_hash")
 
-        if not user_pass:
-            raise HTTPException(
-                status_code=400,
-                detail=f"PASSWORD_NOT_CREATED: Your account '{identifier}' does not have a login password set yet. Please create a password first."
-            )
+        if request.check_user and request.password:
+            user_pass = (user.get("password") or user.get("password_hash")) if user else None
+            if not user_pass and alumni:
+                user_pass = alumni.get("password") or alumni.get("password_hash")
 
-        if request.password:
-            if not verify_password(request.password, user_pass):
+            if user_pass and not verify_password(request.password, user_pass):
                 raise HTTPException(
                     status_code=400,
                     detail=f"Incorrect password entered for '{identifier}'. Please check your password and try again."
@@ -514,6 +509,61 @@ async def send_otp(request: SendOTPRequest):
         dev_otp=None
     )
 
+class CheckPasswordStatusRequest(BaseModel):
+    identifier: str
+
+@router.post("/check-password-status")
+async def check_password_status(request: CheckPasswordStatusRequest):
+    """
+    Check if a user exists in DB and whether they have a password set.
+    Used by login page to immediately trigger password creation via OTP if missing.
+    """
+    identifier = request.identifier.strip()
+    if not identifier:
+        return {"exists": False, "has_password": False, "identifier": ""}
+
+    email = identifier.lower() if "@" in identifier else None
+    mobile = identifier if not email else None
+
+    db = get_db()
+    query = []
+    if email:
+        query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+    if mobile:
+        query.extend(build_mobile_query_filter(mobile))
+
+    user = await db.users.find_one({"$or": query}) if query else None
+    alumni = None
+    if not user:
+        alumni = await db.alumni.find_one({"$or": query}) if query else None
+        if alumni and alumni.get("user_id"):
+            try:
+                user = await db.users.find_one({"_id": ObjectId(alumni["user_id"])})
+            except Exception:
+                user = await db.users.find_one({"_id": alumni["user_id"]})
+
+    if not user and not alumni:
+        return {"exists": False, "has_password": False, "identifier": identifier}
+
+    if not alumni and user:
+        user_id = str(user["_id"])
+        alumni = await db.alumni.find_one({"user_id": user_id})
+
+    stored_password = (user.get("password") or user.get("password_hash")) if user else None
+    if not stored_password and alumni:
+        stored_password = alumni.get("password") or alumni.get("password_hash")
+
+    has_pass = bool(stored_password and str(stored_password).strip())
+    resolved_mobile = (user.get("mobile") if user else None) or (alumni.get("mobile") if alumni else None) or identifier
+    full_name = (user.get("full_name") if user else None) or (alumni.get("full_name") if alumni else None)
+
+    return {
+        "exists": True,
+        "has_password": has_pass,
+        "identifier": resolved_mobile,
+        "full_name": full_name
+    }
+
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
     """
@@ -537,12 +587,6 @@ async def login(request: LoginRequest):
         raise HTTPException(
             status_code=400,
             detail="Please provide your registered email address or mobile number."
-        )
-
-    if not password:
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide your account password."
         )
 
     identifier = email or mobile
@@ -619,6 +663,12 @@ async def login(request: LoginRequest):
         raise HTTPException(
             status_code=400,
             detail=f"PASSWORD_NOT_CREATED: Your account '{identifier}' does not have a login password set yet. Please create a password first."
+        )
+
+    if not password:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide your account password."
         )
 
     if not verify_password(password, stored_password):

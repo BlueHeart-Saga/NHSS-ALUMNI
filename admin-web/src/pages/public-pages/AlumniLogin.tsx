@@ -43,6 +43,39 @@ export const AlumniLogin: React.FC = () => {
   const [createPassConfirm, setCreatePassConfirm] = useState('');
   const [showCreatePassPassword, setShowCreatePassPassword] = useState(false);
   const [showCreatePassConfirm, setShowCreatePassConfirm] = useState(false);
+  const checkedSet = React.useRef(new Set<string>());
+
+  const handleIdentifierCheck = async (val: string) => {
+    const clean = val.trim();
+    if (!clean) return;
+
+    const digitsOnly = clean.replace(/\D/g, '');
+    const isMobile10 = digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
+    const isEmail = clean.includes('@') && clean.includes('.');
+
+    if ((isMobile10 || isEmail) && !checkedSet.current.has(clean)) {
+      checkedSet.current.add(clean);
+      try {
+        const res = await api.checkPasswordStatus(clean);
+        if (res.exists && !res.has_password) {
+          setPasswordNotCreated(true);
+          const confirm = await alertService.showConfirm(
+            language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Create Account Password',
+            language === 'ta'
+              ? `உங்கள் கணக்கில் (${res.identifier || clean}) இன்னும் கடவுச்சொல் உருவாக்கப்படவில்லை. OTP சரிபார்ப்பு மூலம் புதிய கடவுச்சொல்லை உருவாக்கி உள்நுழையவும்.`
+              : `Your account (${res.identifier || clean}) does not have a login password set yet. Please verify your phone number via OTP to create a password and log in.`,
+            language === 'ta' ? 'OTP பெற்று கடவுச்சொல் உருவாக்க →' : 'Verify OTP & Create Password →',
+            language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
+          );
+          if (confirm) {
+            handleStartCreatePassword(res.identifier || clean);
+          }
+        }
+      } catch (err) {
+        // Silently handle background status check
+      }
+    }
+  };
 
   useEffect(() => {
     api.getPublicStats()
@@ -77,15 +110,13 @@ export const AlumniLogin: React.FC = () => {
       setError(language === 'ta' ? 'தயவுசெய்து உங்கள் கைபேசி எண் அல்லது மின்னஞ்சலை உள்ளிடுங்கள்.' : 'Please enter your registered mobile number or email address.');
       return;
     }
-    if (!password) {
-      setError(language === 'ta' ? 'தயவுசெய்து உங்கள் கடவுச்சொல்லை உள்ளிடுங்கள்.' : 'Please enter your account password.');
-      return;
-    }
 
     setLoading(true);
 
     try {
-      const res = await api.login(identifier, password, rememberMe);
+      // If password field is left empty, attempt check to see if user has a password in DB
+      const passwordToSubmit = password ? password : 'CHECK_PASSWORD_STATUS';
+      const res = await api.login(identifier, passwordToSubmit, rememberMe);
       const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
 
       if (targetPath === '/register') {
@@ -118,6 +149,23 @@ export const AlumniLogin: React.FC = () => {
         );
       } else if (err.message && (err.message.includes('PASSWORD_NOT_CREATED') || err.message.toLowerCase().includes('not have a login password'))) {
         setPasswordNotCreated(true);
+        setLoading(false);
+
+        // SweetAlert2 popup alerting the user to create a password via OTP
+        const confirm = await alertService.showConfirm(
+          language === 'ta' ? 'கடவுச்சொல் அமைக்கப்படவில்லை' : 'Create Account Password',
+          language === 'ta'
+            ? `உங்கள் கணக்கில் (${identifier}) இன்னும் கடவுச்சொல் உருவாக்கப்படவில்லை. OTP சரிபார்ப்பு மூலம் புதிய கடவுச்சொல்லை உருவாக்கி உள்நுழையவும்.`
+            : `Your account (${identifier}) does not have a login password set yet. Please verify your phone number via OTP to create a password and log in.`,
+          language === 'ta' ? 'OTP பெற்று கடவுச்சொல் உருவாக்க →' : 'Verify OTP & Create Password →',
+          language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
+        );
+
+        if (confirm) {
+          handleStartCreatePassword(identifier);
+        }
+      } else if (!password && err.message && (err.message.includes('Incorrect password') || err.message.includes('provide your account password'))) {
+        setError(language === 'ta' ? 'தயவுசெய்து உங்கள் கடவுச்சொல்லை உள்ளிடுங்கள்.' : 'Please enter your account password.');
       } else if (err.message && (err.message.toLowerCase().includes('not found') || err.message.toLowerCase().includes('register'))) {
         setUserNotFound(true);
       } else {
@@ -303,8 +351,8 @@ export const AlumniLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Send clean OTP to registered mobile number or email
-      await api.sendOTP(activeIdentifier);
+      // Send clean OTP to registered mobile number or email after verifying user registration
+      await api.sendOTP(activeIdentifier, undefined, false, undefined, true);
       alertService.showInfo(
         language === 'ta' ? 'OTP அனுப்பப்பட்டது' : 'Verification OTP Sent',
         language === 'ta'
@@ -316,7 +364,12 @@ export const AlumniLogin: React.FC = () => {
       setCreatePassPassword('');
       setCreatePassConfirm('');
     } catch (err: any) {
-      setError(err.message || (language === 'ta' ? 'OTP அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Failed to dispatch verification OTP code. Please try again.'));
+      if (err.message && (err.message.toLowerCase().includes('not found') || err.message.toLowerCase().includes('register'))) {
+        setUserNotFound(true);
+        setError(null);
+      } else {
+        setError(err.message || (language === 'ta' ? 'OTP அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Failed to dispatch verification OTP code. Please try again.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -900,7 +953,12 @@ export const AlumniLogin: React.FC = () => {
                       <input
                         type="text"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEmail(val);
+                          handleIdentifierCheck(val);
+                        }}
+                        onBlur={() => handleIdentifierCheck(email)}
                         placeholder={language === 'ta' ? 'உங்கள் 10-இலக்க கைபேசி எண்' : 'Enter 10-digit mobile number (or email)'}
                         required
                         className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E5E7EB] rounded-xl text-base font-normal text-[#111111] focus:outline-none focus:border-[#F4C542]"

@@ -224,6 +224,18 @@ class ApiClient {
     return res;
   }
 
+  async checkPasswordStatus(identifier: string) {
+    return this.request<{
+      exists: boolean;
+      has_password: boolean;
+      identifier: string;
+      full_name?: string;
+    }>('/auth/check-password-status', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    });
+  }
+
   async verifyAdminOTP(identifier: string, otp: string, secondaryPhone?: string) {
     const { email, mobile } = this.parseIdentifier(identifier, secondaryPhone);
     const res = await this.request<{
