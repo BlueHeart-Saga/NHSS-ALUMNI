@@ -96,6 +96,11 @@ class Settings(BaseSettings):
     TWO_FACTOR_TEMPLATE_ID: str = "1277178997390635381"
     TWO_FACTOR_SENDER_ID: str = "NHSSAL"
 
+    # Meta WhatsApp Cloud API Configuration
+    WHATSAPP_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = "1335245843003633"
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = "1605248801093337"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
