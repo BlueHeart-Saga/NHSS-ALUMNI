@@ -115,6 +115,10 @@ export const DeveloperPortal: React.FC = () => {
   const [userIsActive, setUserIsActive] = useState(true);
   const [deleteUserModalOpen, setDeleteUserModalOpen] = useState(false);
 
+  // User Multi-Select & Bulk Delete State
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [bulkDeleteUserModalOpen, setBulkDeleteUserModalOpen] = useState(false);
+
   // Global Messages
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -393,9 +397,40 @@ export const DeveloperPortal: React.FC = () => {
       setSuccessMessage(`User account "${selectedUser.full_name}" deleted.`);
       setDeleteUserModalOpen(false);
       setSelectedUser(null);
+      setSelectedUserIds((prev) => prev.filter((id) => id !== selectedUser.id));
       fetchAllDeveloperData();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to delete user.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllUsers = () => {
+    if (selectedUserIds.length === usersList.length && usersList.length > 0) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(usersList.map((u) => u.id));
+    }
+  };
+
+  const handleBulkDeleteUsers = async () => {
+    if (selectedUserIds.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await api.bulkDeleteDeveloperUsers(selectedUserIds);
+      setSuccessMessage(res.message || `Successfully deleted ${selectedUserIds.length} user accounts.`);
+      setSelectedUserIds([]);
+      setBulkDeleteUserModalOpen(false);
+      fetchAllDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to bulk delete user accounts.');
     } finally {
       setSubmitting(false);
     }
@@ -894,7 +929,7 @@ export const DeveloperPortal: React.FC = () => {
                   <Users className="w-4 h-4 text-[#111111]" />
                   <span>Platform User Directory ({usersList.length})</span>
                 </h3>
-                <p className="text-xs text-[#6B7280] mt-0.5">Filter, update roles, toggle active status, or delete accounts across all roles</p>
+                <p className="text-xs text-[#6B7280] mt-0.5">Filter, update roles, toggle active status, select multiple users, or bulk delete accounts</p>
               </div>
 
               {/* Filters & Search Toolbar */}
@@ -941,10 +976,44 @@ export const DeveloperPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* Multi-Select Action Bar */}
+            {selectedUserIds.length > 0 && (
+              <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-between animate-fadeIn">
+                <div className="flex items-center space-x-2 text-xs text-amber-900 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-amber-700" />
+                  <span>{selectedUserIds.length} user{selectedUserIds.length > 1 ? 's' : ''} selected</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setBulkDeleteUserModalOpen(true)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Delete Selected ({selectedUserIds.length})</span>
+                  </Button>
+                  <button
+                    onClick={() => setSelectedUserIds([])}
+                    className="text-xs text-gray-600 hover:text-gray-900 font-semibold underline cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[#111111]">
                 <thead className="bg-gray-50 border-b border-[#E5E7EB] text-gray-500 uppercase tracking-wider font-semibold">
                   <tr>
+                    <th className="p-3.5 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={usersList.length > 0 && selectedUserIds.length === usersList.length}
+                        onChange={toggleSelectAllUsers}
+                        className="w-4 h-4 rounded text-[#111111] border-gray-300 focus:ring-[#111111] cursor-pointer"
+                      />
+                    </th>
                     <th className="p-3.5">User</th>
                     <th className="p-3.5">Mobile</th>
                     <th className="p-3.5">Email</th>
@@ -957,62 +1026,73 @@ export const DeveloperPortal: React.FC = () => {
                 <tbody className="divide-y divide-[#E5E7EB]">
                   {usersList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">
+                      <td colSpan={8} className="p-8 text-center text-gray-500">
                         No users found matching the search criteria.
                       </td>
                     </tr>
                   ) : (
-                    usersList.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="p-3.5 font-bold flex items-center space-x-2">
-                          <img
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=F3F4F6&color=111827`}
-                            alt=""
-                            className="w-7 h-7 rounded-full object-cover"
-                          />
-                          <span>{u.full_name}</span>
-                        </td>
-                        <td className="p-3.5 font-mono text-gray-600">{u.mobile}</td>
-                        <td className="p-3.5 text-gray-600">{u.email || 'N/A'}</td>
-                        <td className="p-3.5">
-                          <div className="flex flex-wrap gap-1">
-                            {u.roles?.map((r: string) => (
-                              <span key={r} className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                r === 'SUPER_ADMIN' || r === 'DEVELOPER' ? 'bg-purple-100 text-purple-900 border border-purple-200' :
-                                r === 'SCHOOL_ADMIN' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
-                                r === 'BATCH_COORDINATOR' ? 'bg-blue-100 text-blue-900 border border-blue-200' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {r}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="p-3.5 text-gray-600">{u.school_name || 'Unassigned'}</td>
-                        <td className="p-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                            {u.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-right space-x-2">
-                          <button
-                            onClick={() => openEditUserModal(u)}
-                            className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(u);
-                              setDeleteUserModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    usersList.map((u) => {
+                      const isSelected = selectedUserIds.includes(u.id);
+                      return (
+                        <tr key={u.id} className={`transition-colors ${isSelected ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-gray-50'}`}>
+                          <td className="p-3.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectUser(u.id)}
+                              className="w-4 h-4 rounded text-[#111111] border-gray-300 focus:ring-[#111111] cursor-pointer"
+                            />
+                          </td>
+                          <td className="p-3.5 font-bold flex items-center space-x-2">
+                            <img
+                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=F3F4F6&color=111827`}
+                              alt=""
+                              className="w-7 h-7 rounded-full object-cover"
+                            />
+                            <span>{u.full_name}</span>
+                          </td>
+                          <td className="p-3.5 font-mono text-gray-600">{u.mobile}</td>
+                          <td className="p-3.5 text-gray-600">{u.email || 'N/A'}</td>
+                          <td className="p-3.5">
+                            <div className="flex flex-wrap gap-1">
+                              {u.roles?.map((r: string) => (
+                                <span key={r} className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                                  r === 'SUPER_ADMIN' || r === 'DEVELOPER' ? 'bg-purple-100 text-purple-900 border border-purple-200' :
+                                  r === 'SCHOOL_ADMIN' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
+                                  r === 'BATCH_COORDINATOR' ? 'bg-blue-100 text-blue-900 border border-blue-200' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3.5 text-gray-600">{u.school_name || 'Unassigned'}</td>
+                          <td className="p-3.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {u.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-right space-x-2">
+                            <button
+                              onClick={() => openEditUserModal(u)}
+                              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(u);
+                                setDeleteUserModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1386,6 +1466,29 @@ export const DeveloperPortal: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Bulk Delete User Accounts Modal */}
+      <Modal isOpen={bulkDeleteUserModalOpen} onClose={() => setBulkDeleteUserModalOpen(false)} title="Bulk Delete User Accounts">
+        <div className="space-y-4">
+          <div className="bg-rose-50 text-rose-800 p-4 rounded-xl border border-rose-200 text-xs">
+            <strong>WARNING:</strong> You are about to permanently delete <strong>{selectedUserIds.length}</strong> selected user account{selectedUserIds.length > 1 ? 's' : ''} across the platform. This action cannot be undone.
+          </div>
+          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-1.5 bg-gray-50 text-xs">
+            {usersList.filter((u) => selectedUserIds.includes(u.id)).map((u) => (
+              <div key={u.id} className="flex items-center justify-between py-1 border-b border-gray-200 last:border-0">
+                <span className="font-bold text-[#111111]">{u.full_name}</span>
+                <span className="font-mono text-gray-500">{u.mobile}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button type="button" variant="secondary" onClick={() => setBulkDeleteUserModalOpen(false)}>Cancel</Button>
+            <Button type="button" isLoading={submitting} onClick={handleBulkDeleteUsers} className="bg-rose-600 hover:bg-rose-700 text-white font-bold">
+              Confirm Bulk Delete ({selectedUserIds.length})
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* View Enquiry Modal */}
       {selectedEnquiry && (

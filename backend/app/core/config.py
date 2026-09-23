@@ -98,8 +98,8 @@ class Settings(BaseSettings):
 
     # Meta WhatsApp Cloud API Configuration
     WHATSAPP_TOKEN: str = ""
-    WHATSAPP_PHONE_NUMBER_ID: str = "1335245843003633"
-    WHATSAPP_BUSINESS_ACCOUNT_ID: str = "1605248801093337"
+    WHATSAPP_PHONE_NUMBER_ID: str = "1358846513979461"
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = "1604295001173794"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

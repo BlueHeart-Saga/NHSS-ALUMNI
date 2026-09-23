@@ -543,6 +543,42 @@ class ApiClient {
     });
   }
 
+  async getDeveloperUsers(filters?: { role?: string; school_id?: string; search?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.role) params.append('role', filters.role);
+    if (filters?.school_id) params.append('school_id', filters.school_id);
+    if (filters?.search) params.append('search', filters.search);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    return this.request<any[]>(`/developer/users${q}`);
+  }
+
+  async createDeveloperUser(userData: { full_name: string; mobile: string; email?: string; roles?: string[]; school_id?: string; is_active?: boolean }) {
+    return this.request<{ success: boolean; user_id: string; message: string }>('/developer/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateDeveloperUser(id: string, userData: any) {
+    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteDeveloperUser(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkDeleteDeveloperUsers(user_ids: string[]) {
+    return this.request<{ success: boolean; message: string; deleted_count: number }>('/developer/users/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids }),
+    });
+  }
+
   // Batches
   async getBatches() {
     return this.request<Batch[]>('/batches');

@@ -641,8 +641,12 @@ async def list_all_users(
     cursor = db.users.find(query).sort("created_at", -1)
     users_list = await cursor.to_list(length=300)
 
-    # Batch fetch schools
+    # Batch fetch schools & alumni profiles to resolve accurate names and school details
     school_ids = []
+    user_ids = [str(u["_id"]) for u in users_list]
+    mobiles = [u.get("mobile") for u in users_list if u.get("mobile")]
+    emails = [u.get("email") for u in users_list if u.get("email")]
+
     for u in users_list:
         if u.get("school_id"):
             try:
@@ -656,19 +660,89 @@ async def list_all_users(
         for s in schools_docs:
             schools_map[str(s["_id"])] = s
 
+    # Batch query alumni profiles for missing names
+    alumni_query = []
+    if user_ids:
+        alumni_query.append({"user_id": {"$in": user_ids}})
+    if mobiles:
+        alumni_query.append({"mobile": {"$in": mobiles}})
+    if emails:
+        alumni_query.append({"email": {"$in": emails}})
+
+    alumni_docs = []
+    if alumni_query:
+        alumni_cursor = db.alumni.find({"$or": alumni_query})
+        alumni_docs = await alumni_cursor.to_list(length=len(users_list) * 2)
+
+    alumni_by_user_id = {}
+    alumni_by_mobile = {}
+    alumni_by_email = {}
+    for a in alumni_docs:
+        if a.get("user_id"):
+            alumni_by_user_id[str(a["user_id"])] = a
+        if a.get("mobile"):
+            alumni_by_mobile[str(a["mobile"])] = a
+            clean_m = str(a["mobile"]).replace("+91", "").strip()
+            alumni_by_mobile[clean_m] = a
+        if a.get("email"):
+            alumni_by_email[str(a["email"]).lower()] = a
+
+    import re
     res = []
     for u in users_list:
+        u_id = str(u["_id"])
         s_id = str(u.get("school_id", ""))
         school = schools_map.get(s_id)
+
+        alumni = alumni_by_user_id.get(u_id)
+        if not alumni and u.get("mobile"):
+            alumni = alumni_by_mobile.get(str(u["mobile"])) or alumni_by_mobile.get(str(u["mobile"]).replace("+91", "").strip())
+        if not alumni and u.get("email"):
+            alumni = alumni_by_email.get(str(u["email"]).lower())
+
+        # Candidates in priority order: alumni full_name/name first, then user doc full_name/name/display_name
+        candidates = []
+        if alumni:
+            if alumni.get("full_name"): candidates.append(str(alumni["full_name"]))
+            if alumni.get("name"): candidates.append(str(alumni["name"]))
+        if u.get("full_name"): candidates.append(str(u["full_name"]))
+        if u.get("name"): candidates.append(str(u["name"]))
+        if u.get("display_name"): candidates.append(str(u["display_name"]))
+
+        name = None
+        for cand in candidates:
+            cand_clean = cand.strip()
+            if cand_clean and cand_clean != "Platform User" and cand_clean != "User":
+                name = cand_clean
+                break
+
+        if not name:
+            if u.get("email"):
+                email_user = u["email"].split("@")[0]
+                cleaned = " ".join([part.capitalize() for part in re.split(r"[._-]", email_user) if part])
+                name = cleaned or u["email"]
+            elif u.get("mobile"):
+                mob_display = u["mobile"]
+                name = f"User ({mob_display})"
+            else:
+                name = "Alumni Member"
+
+        # Auto-heal db.users document if full_name is missing or "Platform User"
+        if u.get("full_name") != name and name != "Platform User":
+            try:
+                await db.users.update_one({"_id": u["_id"]}, {"$set": {"full_name": name}})
+            except Exception:
+                pass
+
         res.append({
-            "id": str(u["_id"]),
-            "user_id": str(u["_id"]),
-            "full_name": u.get("full_name") or u.get("name") or "Platform User",
+            "id": u_id,
+            "user_id": u_id,
+            "full_name": name,
             "email": u.get("email"),
             "mobile": u.get("mobile"),
             "roles": u.get("roles", ["ALUMNI"]),
             "school_id": s_id,
-            "school_name": school.get("name") if school else "Unassigned",
+            "school_name": school.get("name") if school else (alumni.get("school_name") if alumni else "Unassigned"),
             "is_active": u.get("is_active", True),
             "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", ""))
         })
@@ -733,6 +807,14 @@ async def update_user_developer(
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="User account not found.")
 
+    # Keep db.alumni in sync if full_name, email, or mobile was changed
+    alumni_update = {}
+    if "full_name" in update_fields: alumni_update["full_name"] = update_fields["full_name"]
+    if "email" in update_fields: alumni_update["email"] = update_fields["email"]
+    if "mobile" in update_fields: alumni_update["mobile"] = update_fields["mobile"]
+    if alumni_update:
+        await db.alumni.update_many({"user_id": user_id}, {"$set": alumni_update})
+
     return {"success": True, "message": "User account updated successfully."}
 
 @router.delete("/users/{user_id}")
@@ -750,6 +832,31 @@ async def delete_user_developer(user_id: str, current_user: dict = Depends(get_c
     await db.alumni.delete_many({"user_id": user_id})
 
     return {"success": True, "message": "User account deleted successfully."}
+
+class BulkDeleteUsersRequest(BaseModel):
+    user_ids: List[str]
+
+@router.post("/users/bulk-delete")
+async def bulk_delete_users_developer(
+    request: BulkDeleteUsersRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Bulk delete multiple user accounts across the platform."""
+    db = get_db()
+    valid_ids = [ObjectId(uid) for uid in request.user_ids if ObjectId.is_valid(uid)]
+    str_ids = [str(uid) for uid in request.user_ids]
+
+    if not valid_ids:
+        raise HTTPException(status_code=400, detail="No valid user IDs provided for deletion.")
+
+    res = await db.users.delete_many({"_id": {"$in": valid_ids}})
+    await db.alumni.delete_many({"user_id": {"$in": str_ids}})
+
+    return {
+        "success": True,
+        "message": f"Successfully deleted {res.deleted_count} user accounts.",
+        "deleted_count": res.deleted_count
+    }
 
 @router.get("/audit-logs")
 async def list_audit_logs(current_user: dict = Depends(get_current_user)):

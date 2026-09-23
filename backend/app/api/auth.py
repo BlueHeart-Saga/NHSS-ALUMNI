@@ -62,16 +62,21 @@ def _clear_otp_record(identifier_keys: list):
 def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: str) -> dict:
     """
     Validates OTP for mobile or email:
-    - Checks expiry (5 minutes)
+    - Normalizes input parameters
+    - Checks expiry (10 minutes)
     - Checks rate limit on attempts (max 5 attempts)
     - Validates OTP code securely (secrets.compare_digest)
-    - Consumes OTP immediately (single-use guarantee)
+    - Supports single-use invalidation
     """
+    clean_email = email.strip().lower() if email else None
+    clean_mobile = mobile.strip() if mobile else None
+    clean_otp = otp.strip()
+
     keys = []
-    if mobile:
-        keys.extend(get_mobile_query_variants(mobile))
-    if email:
-        keys.append(email.lower())
+    if clean_mobile:
+        keys.extend(get_mobile_query_variants(clean_mobile))
+    if clean_email:
+        keys.append(clean_email)
 
     stored_data = _lookup_otp_record(keys)
     now_ts = datetime.now(timezone.utc).timestamp()
@@ -82,7 +87,7 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
     if stored_data.get("expires_at", 0) < now_ts:
         _clear_otp_record(keys)
         if stored_data.get("mobile"):
-            _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+            _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
         raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
 
     # Track verification attempts
@@ -90,18 +95,18 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
     if stored_data["attempts"] > stored_data.get("max_attempts", 5):
         _clear_otp_record(keys)
         if stored_data.get("mobile"):
-            _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+            _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
         raise HTTPException(status_code=429, detail="Maximum verification attempts exceeded. Please request a new OTP.")
 
     # Constant-time comparison
-    is_valid = secrets.compare_digest(stored_data["otp"], otp) or (settings.is_dev and otp == settings.DEFAULT_DEV_OTP)
+    is_valid = secrets.compare_digest(stored_data["otp"], clean_otp) or (settings.is_dev and clean_otp == settings.DEFAULT_DEV_OTP)
     if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid OTP.")
 
-    # Invalidate OTP on successful verification (single-use guarantee)
+    # Invalidate OTP on successful verification
     _clear_otp_record(keys)
     if stored_data.get("mobile"):
-        _clear_otp_record([stored_data["mobile"], stored_data["mobile"].replace("+91", "")])
+        _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
 
     return stored_data
 
@@ -727,10 +732,18 @@ async def verify_otp(request: VerifyOTPRequest):
 
         res = await db.users.insert_one(new_user)
         user_id = str(res.inserted_id)
-        alumni = None
+        user = new_user
+        user["_id"] = res.inserted_id
     else:
         user_id = str(user["_id"])
-        alumni = await db.alumni.find_one({"user_id": user_id})
+
+    # Always resolve alumni record by user_id OR matching email/mobile query
+    alumni = await db.alumni.find_one({"user_id": user_id})
+    if not alumni and query:
+        alumni = await db.alumni.find_one({"$or": query})
+        if alumni:
+            # Link existing alumni record to this user account
+            await db.alumni.update_one({"_id": alumni["_id"]}, {"$set": {"user_id": user_id}})
 
     roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
     verification_status = alumni.get("verification_status") if alumni else None
