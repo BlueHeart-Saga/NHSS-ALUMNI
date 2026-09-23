@@ -69,7 +69,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   }, [resendCountdown]);
 
   // -------------------------------------------------------------
-  // STANDARD LOGIN HANDLERS
+  // STANDARD LOGIN HANDLER  (NO OTP — email/mobile + password only)
   // -------------------------------------------------------------
   const handleVerifyCredentialsAndSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,11 +82,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     setLoading(true);
     try {
-      // Step 1: Verify mobile/email & password credentials against database
-      await api.sendOTP(email.trim(), undefined, true, password);
+      // ✅ Password-only login. Adjust the method name below to match your
+      //    public login page's call (e.g. api.login, api.authenticate,
+      //    api.signIn, api.adminLogin ...).
+      const res = await api.login(email.trim(), password);
 
-      // Step 2: Directly log in without requiring manual OTP code entry
-      const res = await api.verifyAdminOTP(email.trim(), '123456');
       const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
       let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
       if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
@@ -111,6 +111,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  // -------------------------------------------------------------
+  // (Kept for backward compatibility, but unused now)
+  // -------------------------------------------------------------
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -162,7 +165,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     setLoading(true);
     try {
-      // Send OTP for password reset check
       await api.sendOTP(target, undefined, false, undefined, true);
       setResendCountdown(30);
       alertService.showInfo(
@@ -238,11 +240,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         'Your School Admin account password has been updated. You can now log in with your new password.'
       );
 
-      // Pre-fill login credentials with updated password
       setEmail(target);
       setPassword(newPassword);
 
-      // Reset state and return to login form
       setMode('LOGIN');
       setStep('CREDENTIALS');
       setForgotStep('IDENTIFIER');
@@ -321,101 +321,64 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         )}
 
         {/* ========================================================================= */}
-        {/* 1. STANDARD LOGIN FLOW */}
+        {/* 1. STANDARD LOGIN FLOW (email/mobile + password only — NO OTP)            */}
         {/* ========================================================================= */}
         {mode === 'LOGIN' && (
-          <>
-            {step === 'CREDENTIALS' ? (
-              <form onSubmit={handleVerifyCredentialsAndSendOTP} className="space-y-5">
-                <Input
-                  label="Admin Mobile Number (or Email) *"
-                  type="text"
-                  placeholder="Enter 10-digit mobile number or email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+          <form onSubmit={handleVerifyCredentialsAndSendOTP} className="space-y-5">
+            <Input
+              label="Admin Mobile Number (or Email) *"
+              type="text"
+              placeholder="Enter 10-digit mobile number or email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-[#111111]">
-                      Account Password <span className="text-rose-500">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleSwitchToForgot}
-                      className="text-xs font-semibold text-[#854D0E] hover:underline cursor-pointer"
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showLoginPassword ? 'text' : 'password'}
-                      placeholder="Enter your account password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 pr-10 text-sm text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-[#F4C542] focus:bg-white transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
-                    >
-                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full py-3 bg-[#111111] text-[#F4C542] hover:bg-black font-bold cursor-pointer border border-[#111111]"
-                  isLoading={loading}
-                >
-                  <span>Verify</span>
-                  <ArrowRight className="w-4 h-4 ml-1.5" />
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOTP} className="space-y-5">
-                <div className="p-3 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-xl text-xs text-[#854D0E] font-medium flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#854D0E] shrink-0" />
-                  <span>Password verified! OTP code sent via SMS to your registered mobile phone.</span>
-                </div>
-
-                <Input
-                  label="6-Digit Verification Code *"
-                  placeholder="123456"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full py-3 bg-[#111111] text-[#F4C542] hover:bg-black font-bold cursor-pointer border border-[#111111]"
-                  isLoading={loading}
-                >
-                  <ShieldCheck className="w-4 h-4 mr-1.5" />
-                  <span>Verify OTP &amp; Access Dashboard</span>
-                </Button>
-
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#111111]">
+                  Account Password <span className="text-rose-500">*</span>
+                </label>
                 <button
                   type="button"
-                  onClick={() => setStep('CREDENTIALS')}
-                  className="w-full text-xs font-semibold text-[#6B7280] hover:text-[#111111] text-center pt-2 cursor-pointer"
+                  onClick={handleSwitchToForgot}
+                  className="text-xs font-semibold text-[#854D0E] hover:underline cursor-pointer"
                 >
-                  ← Change Email or Password
+                  Forgot Password?
                 </button>
-              </form>
-            )}
-          </>
+              </div>
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  placeholder="Enter your account password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 pr-10 text-sm text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-[#F4C542] focus:bg-white transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full py-3 bg-[#111111] text-[#F4C542] hover:bg-black font-bold cursor-pointer border border-[#111111]"
+              isLoading={loading}
+            >
+              <span>Verify</span>
+              <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          </form>
         )}
 
         {/* ========================================================================= */}
-        {/* 2. FORGOT & RESET PASSWORD WORKFLOW */}
+        {/* 2. FORGOT & RESET PASSWORD WORKFLOW                                       */}
         {/* ========================================================================= */}
         {mode === 'FORGOT_PASSWORD' && (
           <div className="space-y-5">
