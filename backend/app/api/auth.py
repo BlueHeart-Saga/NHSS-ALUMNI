@@ -112,6 +112,69 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
     return stored_data
 
 
+def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: Optional[dict]) -> Tuple[bool, int]:
+    """
+    Evaluates whether an alumni profile is complete and determines the exact wizard step 
+    (1 to 6) where registration or missing profile details should resume.
+
+    Wizard Steps in AlumniRegister.tsx:
+    Step 1: Account Setup / Password Creation
+    Step 2: Personal Information (Full Name, Gender, DOB, Country, State, Address, City, Mobile)
+    Step 3: School Details (School Name, Joining Year, Passing Year, Leaving Class)
+    Step 4: Higher Education (No Higher Education OR College Name, Degree, Stream, College Joining/Passing Year)
+    Step 5: Professional Details (Employment Status)
+    Step 6: Preview / Verification Status / Completed
+    """
+    if not alumni:
+        user_pass = (user.get("password") or user.get("password_hash")) if user else None
+        if user_pass:
+            return False, 2
+        else:
+            return False, 1
+
+    # Step 2: Personal Information
+    has_personal = bool(
+        alumni.get("full_name") and
+        alumni.get("mobile") and
+        alumni.get("gender") and
+        alumni.get("dob") and
+        alumni.get("address") and
+        (alumni.get("current_city") or alumni.get("city")) and
+        alumni.get("state") and
+        alumni.get("country")
+    )
+    if not has_personal:
+        return False, 2
+
+    # Step 3: School Details
+    has_school = bool(
+        alumni.get("school_name") and
+        alumni.get("joining_year") and
+        alumni.get("passing_year") and
+        alumni.get("leaving_class")
+    )
+    if not has_school:
+        return False, 3
+
+    # Step 4: Higher Education Details
+    no_college = bool(alumni.get("no_higher_education"))
+    has_college = bool(
+        (alumni.get("college_name") or alumni.get("other_college")) and
+        (alumni.get("degree") or alumni.get("other_degree")) and
+        (alumni.get("stream") or alumni.get("other_stream"))
+    )
+    if not no_college and not has_college:
+        return False, 4
+
+    # Step 5: Professional Details
+    has_professional = bool(alumni.get("employment_status"))
+    if not has_professional:
+        return False, 5
+
+    # All required steps 2, 3, 4, 5 are satisfied!
+    return True, 6
+
+
 @router.get("/google/login")
 async def google_login():
     """Generates and redirects to Google OAuth2 Authorization URL"""
@@ -232,26 +295,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
     verification_status = alumni.get("verification_status") if alumni else None
 
-    is_profile_complete = False
-    resume_step = 2
-
-    if alumni:
-        has_personal = bool(alumni.get("full_name") and alumni.get("mobile") and alumni.get("current_city"))
-        has_academic = bool(alumni.get("degree") and alumni.get("stream") and alumni.get("joining_year") and alumni.get("passing_year"))
-        if has_personal and has_academic:
-            is_profile_complete = True
-            resume_step = 5
-        elif has_personal:
-            resume_step = 4
-        else:
-            resume_step = 3
-    else:
-        user_pass = user.get("password") if user else None
-        if user_pass:
-            resume_step = 3
-        else:
-            resume_step = 2
-
+    is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
     registration_required = not is_profile_complete
     has_mobile = bool((user and user.get("mobile")) or (alumni and alumni.get("mobile")))
 
@@ -693,26 +737,7 @@ async def login(request: LoginRequest):
         school_id = str(school["_id"]) if school else None
 
     # Evaluate profile completion status & wizard resume step
-    is_profile_complete = False
-    resume_step = 2
-
-    if alumni:
-        has_personal = bool(alumni.get("full_name") and alumni.get("mobile") and alumni.get("current_city"))
-        has_academic = bool(alumni.get("degree") and alumni.get("stream") and alumni.get("joining_year") and alumni.get("passing_year"))
-        if has_personal and has_academic:
-            is_profile_complete = True
-            resume_step = 5
-        elif has_personal:
-            resume_step = 4
-        else:
-            resume_step = 3
-    else:
-        user_pass = user.get("password") if user else None
-        if user_pass:
-            resume_step = 3
-        else:
-            resume_step = 2
-
+    is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
     registration_required = not is_profile_complete
 
     token_data = {
@@ -799,28 +824,7 @@ async def verify_otp(request: VerifyOTPRequest):
     roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
     verification_status = alumni.get("verification_status") if alumni else None
     
-    # Evaluate profile completion status & wizard resume step
-    is_profile_complete = False
-    resume_step = 2 # Default to Create Password step if incomplete
-
-    if alumni:
-        has_personal = bool(alumni.get("full_name") and alumni.get("mobile") and alumni.get("current_city"))
-        has_academic = bool(alumni.get("degree") and alumni.get("stream") and alumni.get("joining_year") and alumni.get("passing_year"))
-        
-        if has_personal and has_academic:
-            is_profile_complete = True
-            resume_step = 5
-        elif has_personal:
-            resume_step = 4
-        else:
-            resume_step = 3
-    else:
-        user_pass = user.get("password") if user else None
-        if user_pass:
-            resume_step = 3
-        else:
-            resume_step = 2
-
+    is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
     registration_required = not is_profile_complete
 
     token_data = {
@@ -986,19 +990,7 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     roles = user.get("roles", ["ALUMNI"])
     verification_status = alumni.get("verification_status") if alumni else "PENDING"
 
-    is_profile_complete = False
-    resume_step = 3
-    if alumni:
-        has_personal = bool(alumni.get("full_name") and alumni.get("mobile") and alumni.get("current_city"))
-        has_academic = bool(alumni.get("degree") and alumni.get("stream") and alumni.get("joining_year") and alumni.get("passing_year"))
-        if has_personal and has_academic:
-            is_profile_complete = True
-            resume_step = 5
-        elif has_personal:
-            resume_step = 4
-        else:
-            resume_step = 3
-
+    is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
     registration_required = not is_profile_complete
 
     token_data = {
