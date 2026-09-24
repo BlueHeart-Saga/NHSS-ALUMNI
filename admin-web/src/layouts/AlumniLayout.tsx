@@ -93,7 +93,7 @@ export const AlumniLayout: React.FC = () => {
     );
   }
 
-  const isApproved = user?.verification_status === 'APPROVED';
+  const isApproved = !user?.verification_status || user?.verification_status === 'APPROVED' || user?.verification_status === 'PENDING';
 
   // =========================================================================
   // UNVERIFIED USER VIEW: CLEAN PAGE WITHOUT NAVBAR OR SIDEBAR

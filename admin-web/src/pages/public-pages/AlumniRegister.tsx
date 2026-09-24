@@ -302,16 +302,38 @@ export const AlumniRegister: React.FC = () => {
             if (p.instagram_url) setInstagramUrl(p.instagram_url);
             if (p.whatsapp_number) setWhatsappNumber(p.whatsapp_number);
             if (p.website_url) setWebsiteUrl(p.website_url);
-            // If alumni record has basic identity (full_name and mobile/email), auto-redirect directly to Alumni Portal
-            const hasBasicIdentity = Boolean((p.full_name || p.name) && (p.mobile || p.email));
-            if (hasBasicIdentity) {
+            // Evaluate exact pending registration step based on filled fields
+            const hasPersonal = Boolean(
+              (p.full_name || p.name) && (p.mobile || p.email) &&
+              p.gender && p.dob && p.address && (p.current_city || p.city)
+            );
+            const hasSchool = Boolean(
+              p.school_name && p.joining_year && p.passing_year && p.leaving_class
+            );
+            const noCollege = Boolean(p.no_higher_education);
+            const hasCollege = Boolean(
+              (p.college_name || p.other_college) &&
+              (p.degree || p.other_degree) &&
+              (p.stream || p.other_stream)
+            );
+            const hasEducation = noCollege || hasCollege;
+            const hasProfessional = Boolean(p.employment_status);
+
+            let pendingStep: 1 | 2 | 3 | 4 | 5 | 6 = 2;
+            if (!hasPersonal) pendingStep = 2;
+            else if (!hasSchool) pendingStep = 3;
+            else if (!hasEducation) pendingStep = 4;
+            else if (!hasProfessional) pendingStep = 5;
+            else pendingStep = 6;
+
+            // If all required profile fields are present, auto-redirect directly to the Alumni Portal
+            if (pendingStep === 6 && (p.full_name || p.name) && (p.passing_year || p.mobile)) {
               navigate('/alumni', { replace: true });
               return;
             }
 
-            if (!location.state?.resumeStep && !location.state?.isPasswordSetup) {
-              setStep(2);
-            }
+            const stepToUse = location.state?.resumeStep || pendingStep;
+            setStep(stepToUse as any);
             setMaxStepReached(6);
           }
         })

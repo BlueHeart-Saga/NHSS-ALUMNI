@@ -115,9 +115,16 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
 
 def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: Optional[dict]) -> Tuple[bool, int]:
     """
-    Evaluates whether an alumni profile is registered and complete.
-    If an alumni record exists with full_name and mobile/email, profile is COMPLETE -> /alumni portal.
-    Only new accounts without an alumni profile require registration wizard (/register).
+    Evaluates whether an alumni profile is complete and determines the exact wizard step 
+    (1 to 6) where registration or missing profile details should resume.
+
+    Wizard Steps in AlumniRegister.tsx:
+    Step 1: Account Setup / Password Creation
+    Step 2: Personal Information (Full Name, Gender, DOB, Address, City, Mobile)
+    Step 3: School Details (School Name, Joining Year, Passing Year, Leaving Class)
+    Step 4: Higher Education (No Higher Education OR College Name, Degree, Stream)
+    Step 5: Professional Details (Employment Status)
+    Step 6: Preview / Verification Status / Completed
     """
     if not alumni:
         user_pass = (user.get("password") or user.get("password_hash")) if user else None
@@ -126,16 +133,45 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
         else:
             return False, 1
 
-    # Check if alumni record has basic identity (full_name/name and mobile/email)
-    has_basic_identity = bool(
+    # Check Step 2: Personal Information
+    has_personal = bool(
         (alumni.get("full_name") or alumni.get("name")) and
-        (alumni.get("mobile") or alumni.get("email"))
+        (alumni.get("mobile") or alumni.get("email")) and
+        alumni.get("gender") and
+        alumni.get("dob") and
+        alumni.get("address") and
+        (alumni.get("current_city") or alumni.get("city"))
     )
+    if not has_personal:
+        return False, 2
 
-    if has_basic_identity:
-        return True, 6
+    # Check Step 3: School Details
+    has_school = bool(
+        alumni.get("school_name") and
+        alumni.get("joining_year") and
+        alumni.get("passing_year") and
+        alumni.get("leaving_class")
+    )
+    if not has_school:
+        return False, 3
 
-    return False, 2
+    # Check Step 4: Higher Education Details
+    no_college = bool(alumni.get("no_higher_education"))
+    has_college = bool(
+        (alumni.get("college_name") or alumni.get("other_college")) and
+        (alumni.get("degree") or alumni.get("other_degree")) and
+        (alumni.get("stream") or alumni.get("other_stream"))
+    )
+    if not no_college and not has_college:
+        return False, 4
+
+    # Check Step 5: Professional Details
+    has_professional = bool(alumni.get("employment_status"))
+    if not has_professional:
+        return False, 5
+
+    # All required steps 2, 3, 4, 5 are satisfied!
+    return True, 6
 
 
 @router.get("/google/login")
