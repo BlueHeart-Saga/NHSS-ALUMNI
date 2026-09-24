@@ -11,6 +11,7 @@ import { alertService } from '../../services/alertService';
 import { Button } from '../../components/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../../components/LanguageSelector';
+import { DemoVideoModal, VideoType } from '../../components/DemoVideoModal';
 
 
 interface CountryOption {
@@ -88,6 +89,8 @@ export const AlumniRegister: React.FC = () => {
   const location = useLocation();
   const { language } = useLanguage();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoVideoType, setDemoVideoType] = useState<VideoType>('REGISTRATION');
 
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
   const [loading, setLoading] = useState(false);
@@ -1035,22 +1038,23 @@ export const AlumniRegister: React.FC = () => {
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#854D0E] mb-1.5">
                 {language === 'ta' ? 'புதியவரா?' : 'New to the portal?'}
               </p>
-              <a
-                href={DEMO_LINK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors"
+              <button
+                type="button"
+                onClick={() => {
+                  setDemoVideoType('REGISTRATION');
+                  setShowDemoModal(true);
+                }}
+                className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors cursor-pointer"
               >
-                <PlayCircle className="w-4 h-4 shrink-0" />
+                <PlayCircle className="w-4 h-4 shrink-0 text-[#854D0E]" />
                 <span>
-                  {language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}
+                  {language === 'ta' ? 'பதிவு வழிகாட்டி வீடியோவைப் பாருங்கள்' : 'Watch Registration Demo Video'}
                 </span>
-                <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
-              </a>
+              </button>
               <p className="text-[10px] text-gray-500 mt-1.5 leading-snug">
                 {language === 'ta'
-                  ? 'பதிவு செய்வதற்கு முன் ஒரு விரைவான டெமோ'
-                  : 'A quick walkthrough before you sign up'}
+                  ? 'பதிவு செய்வதற்கு முன் ஒரு விரைவான வீடியோ வழிகாட்டி'
+                  : 'A quick video walkthrough before you sign up'}
               </p>
             </div>
 
@@ -2415,23 +2419,31 @@ export const AlumniRegister: React.FC = () => {
         </div>
 
         {/* ====================================================== */}
-        {/* NEW: Demo Link (also visible on mobile, since sidebar  */}
-        {/* is hidden on <1024px screens)                           */}
+        {/* Mobile Demo Video Trigger                              */}
         {/* ====================================================== */}
         <div className="lg:hidden mt-6 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl p-4 text-center shadow-xs">
-          <a
-            href={DEMO_LINK_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors"
+          <button
+            type="button"
+            onClick={() => {
+              setDemoVideoType('REGISTRATION');
+              setShowDemoModal(true);
+            }}
+            className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors cursor-pointer"
           >
-            <PlayCircle className="w-4 h-4 shrink-0" />
-            <span>{language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}</span>
-            <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
-          </a>
+            <PlayCircle className="w-4 h-4 shrink-0 text-[#854D0E]" />
+            <span>{language === 'ta' ? 'பதிவு வழிகாட்டி வீடியோவைப் பாருங்கள்' : 'Watch Registration Demo Video'}</span>
+          </button>
         </div>
 
       </div>
+
+      {/* Embedded Demo Video Modal */}
+      <DemoVideoModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+        initialType={demoVideoType}
+        language={language === 'ta' ? 'ta' : 'en'}
+      />
     </div>
   );
 };

@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, KeyRound, ArrowRight, UserX, UserPlus,
-  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft, Loader2, X
+  Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft, Loader2, X, Play, Video
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { getAssetUrl } from '../../utils/asset';
-
 import { getRedirectPathForRoles } from '../../utils/roleRedirect';
+import { DemoVideoModal, VideoType } from '../../components/DemoVideoModal';
 
 export const AlumniLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +24,8 @@ export const AlumniLogin: React.FC = () => {
   const [userNotFound, setUserNotFound] = useState(false);
   const [passwordNotCreated, setPasswordNotCreated] = useState(false);
   const [showTopBanner, setShowTopBanner] = useState(false);
-  const topBannerTimer = React.useRef<any>(null);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoVideoType, setDemoVideoType] = useState<VideoType>('LOGIN');
 
   const triggerPasswordNotCreatedBanner = () => {
     setPasswordNotCreated(true);
@@ -606,6 +607,18 @@ export const AlumniLogin: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDemoVideoType(mode === 'CREATE_PASSWORD' ? 'CREATE_PASSWORD' : 'LOGIN');
+                    setShowDemoModal(true);
+                  }}
+                  className="px-3 py-1.5 bg-[#FFF7D6] hover:bg-[#FFEAA7] border border-[#F4C542] text-[#854D0E] font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-2xs transition-all cursor-pointer"
+                  title={language === 'ta' ? 'டெமோ வீடியோ வழிகாட்டியைக் காண்க' : 'Watch Demo Video Guide'}
+                >
+                  <Play className="w-3.5 h-3.5 fill-[#854D0E] text-[#854D0E]" />
+                  <span>{language === 'ta' ? 'டெமோ வீடியோ' : 'Demo Guide'}</span>
+                </button>
                 {/* <LanguageSelector /> */}
 
                 {(mode === 'CREATE_PASSWORD' || mode === 'FORGOT_PASSWORD' || step === 'OTP') && (
@@ -1332,53 +1345,33 @@ export const AlumniLogin: React.FC = () => {
 
 {/* NEW: Demo Link */}
 <div className="text-center pt-3">
-  <a
-    href="https://drive.google.com/drive/folders/1Ypp-3OLxf1DJCDhYqMv5lpcD3OJ9y425?usp=sharing"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-medium text-[#854D0E] hover:text-[#111111] hover:underline transition-colors"
+  <button
+    type="button"
+    onClick={() => {
+      setDemoVideoType(mode === 'CREATE_PASSWORD' ? 'CREATE_PASSWORD' : 'LOGIN');
+      setShowDemoModal(true);
+    }}
+    className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-bold text-[#854D0E] hover:text-[#111111] hover:underline transition-colors cursor-pointer"
   >
-    <svg
-      className="w-4 h-4 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
+    <Video className="w-4 h-4 shrink-0 text-[#854D0E]" />
     <span>
-      {language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}
+      {language === 'ta' ? 'டெமோ வழிகாட்டி வீடியோவைப் பாருங்கள்' : 'Watch Demo Video Guide'}
     </span>
-    <svg
-      className="w-3 h-3 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-      />
-    </svg>
-  </a>
+  </button>
 </div>
 
           </div>
 
         </div>
       </div>
+
+      {/* Embedded Demo Video Modal */}
+      <DemoVideoModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+        initialType={demoVideoType}
+        language={language === 'ta' ? 'ta' : 'en'}
+      />
     </div>
   );
 };
