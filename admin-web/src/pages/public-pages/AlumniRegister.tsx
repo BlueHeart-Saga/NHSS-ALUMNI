@@ -287,7 +287,8 @@ export const AlumniRegister: React.FC = () => {
             if (p.joining_year) setJoiningYear(String(p.joining_year));
             if (p.passing_year) setPassingYear(String(p.passing_year));
             if (p.leaving_class) setLeavingClass(p.leaving_class);
-            if (p.no_higher_education) setNoHigherEducation(Boolean(p.no_higher_education));
+            const isNoCollege = p.no_higher_education === true || String(p.no_higher_education).toUpperCase() === 'YES' || String(p.no_higher_education).toLowerCase() === 'true';
+            setNoHigherEducation(Boolean(isNoCollege));
             if (p.college_name || p.other_college) setCollegeName(p.college_name || p.other_college);
             if (p.degree) setDegree(p.degree);
             if (p.other_degree) setOtherDegree(p.other_degree);
@@ -310,7 +311,7 @@ export const AlumniRegister: React.FC = () => {
             const hasSchool = Boolean(
               p.school_name && p.joining_year && p.passing_year && p.leaving_class
             );
-            const noCollege = Boolean(p.no_higher_education);
+            const noCollege = isNoCollege;
             const hasCollege = Boolean(
               (p.college_name || p.other_college) &&
               (p.degree || p.other_degree) &&

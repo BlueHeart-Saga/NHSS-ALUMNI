@@ -156,7 +156,8 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
         return False, 3
 
     # Check Step 4: Higher Education Details
-    no_college = bool(alumni.get("no_higher_education"))
+    no_higher_val = alumni.get("no_higher_education")
+    no_college = no_higher_val is True or str(no_higher_val).strip().upper() in ("YES", "TRUE", "1")
     has_college = bool(
         (alumni.get("college_name") or alumni.get("other_college")) and
         (alumni.get("degree") or alumni.get("other_degree")) and
