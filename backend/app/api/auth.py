@@ -533,9 +533,9 @@ async def send_otp(request: SendOTPRequest):
             detail="Unable to send OTP. Please try again."
         )
 
-    # Dispatch WhatsApp OTP in parallel if Meta WhatsApp credentials are configured
-    if getattr(settings, "WHATSAPP_TOKEN", None):
-        asyncio.create_task(send_whatsapp_otp(target_mobile, otp))
+    # Dispatch WhatsApp OTP in parallel if Meta WhatsApp credentials are configured (Temporarily commented for future setup)
+    # if getattr(settings, "WHATSAPP_TOKEN", None):
+    #     asyncio.create_task(send_whatsapp_otp(target_mobile, otp))
 
     provider_name = "Brevo" if (getattr(settings, "BREVO_API_KEY", None) or getattr(settings, "SMTP_PASS", "")) else "2Factor"
     # Secure terminal output for developers in dev mode (never in production logs)
