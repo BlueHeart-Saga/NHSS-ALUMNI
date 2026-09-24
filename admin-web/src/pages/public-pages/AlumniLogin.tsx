@@ -26,6 +26,7 @@ export const AlumniLogin: React.FC = () => {
   const [showTopBanner, setShowTopBanner] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [demoVideoType, setDemoVideoType] = useState<VideoType>('LOGIN');
+  const topBannerTimer = React.useRef<any>(null);
 
   const triggerPasswordNotCreatedBanner = () => {
     setPasswordNotCreated(true);
