@@ -508,7 +508,7 @@ export const AlumniLogin: React.FC = () => {
           <div className="lg:col-span-6 order-2 lg:order-1 lg:sticky top-28 space-y-6 pr-0 lg:pr-6 mt-6 lg:mt-0">
 
             {/* Header Branding */}
-            <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <img
                 src={logoUrl}
                 alt="School Crest"
@@ -522,7 +522,7 @@ export const AlumniLogin: React.FC = () => {
                   {language === 'ta' ? 'இணைந்திருப்போம். முன்னேறுவோம்.' : 'Stay Connected. Stay Together.'}
                 </p>
               </div>
-            </div>
+            </div> */}
 
             {/* Accent Yellow Bar */}
             <div className="w-14 h-1 bg-[#F4C542] rounded-full" />
