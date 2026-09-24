@@ -302,10 +302,39 @@ export const AlumniRegister: React.FC = () => {
             if (p.instagram_url) setInstagramUrl(p.instagram_url);
             if (p.whatsapp_number) setWhatsappNumber(p.whatsapp_number);
             if (p.website_url) setWebsiteUrl(p.website_url);
-            if (p.is_volunteer) setIsVolunteer(String(p.is_volunteer).toUpperCase());
-            if (p.willing_to_donate) setWillingToDonate(String(p.willing_to_donate).toUpperCase());
+            // Evaluate exact pending registration step based on filled fields
+            const hasPersonal = Boolean(
+              p.full_name && p.mobile && p.dob && p.gender &&
+              p.address && (p.current_city || p.city)
+            );
+            const hasSchool = Boolean(
+              p.school_name && p.joining_year && p.passing_year && p.leaving_class
+            );
+            const noCollege = Boolean(p.no_higher_education);
+            const hasCollege = Boolean(
+              (p.college_name || p.other_college) &&
+              (p.degree || p.other_degree) &&
+              (p.stream || p.other_stream)
+            );
+            const hasEducation = noCollege || hasCollege;
+            const hasProfessional = Boolean(p.employment_status);
 
-            // Unlock up to step 6 if user profile data exists
+            let pendingStep: 1 | 2 | 3 | 4 | 5 | 6 = 2;
+            if (!hasPersonal) pendingStep = 2;
+            else if (!hasSchool) pendingStep = 3;
+            else if (!hasEducation) pendingStep = 4;
+            else if (!hasProfessional) pendingStep = 5;
+            else pendingStep = 6;
+
+            if (pendingStep === 6 && p.full_name && p.passing_year) {
+              // Profile is 100% complete! Auto-redirect to alumni portal
+              navigate('/alumni', { replace: true });
+              return;
+            }
+
+            if (!location.state?.resumeStep && !location.state?.isPasswordSetup) {
+              setStep(pendingStep);
+            }
             setMaxStepReached(6);
           }
         })
