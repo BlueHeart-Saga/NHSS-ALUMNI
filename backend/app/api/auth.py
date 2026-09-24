@@ -47,24 +47,62 @@ import logging
 
 logger = logging.getLogger("app.auth")
 
-# In-memory OTP storage with rate-limiting, attempt tracking, and timestamps
+# In-memory and MongoDB synchronized OTP storage for multi-worker Azure instance compatibility
 OTP_STORE = {}
 
-def _lookup_otp_record(identifier_keys: list) -> Optional[dict]:
-    for key in identifier_keys:
+async def _store_otp_record_db(keys: list, otp_entry: dict):
+    for k in keys:
+        if k:
+            OTP_STORE[k] = otp_entry
+    try:
+        db = get_db()
+        now_ts = datetime.now(timezone.utc).timestamp()
+        for k in keys:
+            if k:
+                doc = dict(otp_entry)
+                doc["key"] = k
+                await db.otp_store.update_one({"key": k}, {"$set": doc}, upsert=True)
+    except Exception as e:
+        logger.warning(f"Failed to sync OTP store to MongoDB: {e}")
+
+async def _lookup_otp_record_db(keys: list) -> Optional[dict]:
+    # 1. Check local in-memory dict first
+    for key in keys:
         if key and key in OTP_STORE:
             return OTP_STORE[key]
+    # 2. Check MongoDB for multi-worker Azure deployment sync
+    try:
+        db = get_db()
+        clean_keys = [k for k in keys if k]
+        if clean_keys:
+            doc = await db.otp_store.find_one({"key": {"$in": clean_keys}})
+            if doc:
+                doc.pop("_id", None)
+                # Cache locally
+                for k in clean_keys:
+                    OTP_STORE[k] = doc
+                return doc
+    except Exception as e:
+        logger.warning(f"Failed to lookup OTP from MongoDB: {e}")
     return None
 
-def _clear_otp_record(identifier_keys: list):
-    for key in identifier_keys:
+async def _clear_otp_record_db(keys: list):
+    for key in keys:
         if key:
             OTP_STORE.pop(key, None)
+    try:
+        db = get_db()
+        clean_keys = [k for k in keys if k]
+        if clean_keys:
+            await db.otp_store.delete_many({"key": {"$in": clean_keys}})
+    except Exception as e:
+        logger.warning(f"Failed to clear OTP from MongoDB: {e}")
 
-def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: str) -> dict:
+async def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: str) -> dict:
     """
     Validates OTP for mobile or email:
     - Normalizes input parameters
+    - Synchronizes across workers via MongoDB
     - Checks expiry (10 minutes)
     - Checks rate limit on attempts (max 5 attempts)
     - Validates OTP code securely (secrets.compare_digest)
@@ -80,35 +118,36 @@ def _validate_and_consume_otp(email: Optional[str], mobile: Optional[str], otp: 
     if clean_email:
         keys.append(clean_email)
 
-    stored_data = _lookup_otp_record(keys)
+    stored_data = await _lookup_otp_record_db(keys)
     now_ts = datetime.now(timezone.utc).timestamp()
 
     if not stored_data:
         raise HTTPException(status_code=400, detail="No active OTP found. Please request a new OTP.")
 
     if stored_data.get("expires_at", 0) < now_ts:
-        _clear_otp_record(keys)
+        await _clear_otp_record_db(keys)
         if stored_data.get("mobile"):
-            _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
+            await _clear_otp_record_db(get_mobile_query_variants(stored_data["mobile"]))
         raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
 
     # Track verification attempts
     stored_data["attempts"] = stored_data.get("attempts", 0) + 1
     if stored_data["attempts"] > stored_data.get("max_attempts", 5):
-        _clear_otp_record(keys)
+        await _clear_otp_record_db(keys)
         if stored_data.get("mobile"):
-            _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
+            await _clear_otp_record_db(get_mobile_query_variants(stored_data["mobile"]))
         raise HTTPException(status_code=429, detail="Maximum verification attempts exceeded. Please request a new OTP.")
 
     # Constant-time comparison
     is_valid = secrets.compare_digest(stored_data["otp"], clean_otp) or (settings.is_dev and clean_otp == settings.DEFAULT_DEV_OTP)
     if not is_valid:
+        await _store_otp_record_db(keys, stored_data)
         raise HTTPException(status_code=400, detail="Invalid OTP.")
 
     # Invalidate OTP on successful verification
-    _clear_otp_record(keys)
+    await _clear_otp_record_db(keys)
     if stored_data.get("mobile"):
-        _clear_otp_record(get_mobile_query_variants(stored_data["mobile"]))
+        await _clear_otp_record_db(get_mobile_query_variants(stored_data["mobile"]))
 
     return stored_data
 
@@ -461,7 +500,7 @@ async def send_otp(request: SendOTPRequest):
     now_ts = datetime.now(timezone.utc).timestamp()
 
     # Rate Limiting: 30-second cooldown between OTP requests for the same mobile
-    existing_entry = OTP_STORE.get(target_mobile)
+    existing_entry = await _lookup_otp_record_db([target_mobile])
     if existing_entry:
         time_since_last = now_ts - existing_entry.get("created_at", 0)
         if time_since_last < 30:
@@ -475,7 +514,7 @@ async def send_otp(request: SendOTPRequest):
     expires_at = now_ts + 600  # 10 minutes expiry (matches approved template: "Valid for 10 minutes.")
     clean_mob = target_mobile.replace("+91", "")
 
-    # Invalidate any previous OTP and store new OTP record
+    # Invalidate any previous OTP and store new OTP record across workers & MongoDB
     otp_entry = {
         "otp": otp,
         "created_at": now_ts,
@@ -484,49 +523,20 @@ async def send_otp(request: SendOTPRequest):
         "max_attempts": 5,
         "mobile": target_mobile
     }
-    for k in get_mobile_query_variants(target_mobile):
-        OTP_STORE[k] = otp_entry
+    
+    store_keys = list(get_mobile_query_variants(target_mobile))
     if mobile:
-        for k in get_mobile_query_variants(mobile):
-            OTP_STORE[k] = otp_entry
+        store_keys.extend(get_mobile_query_variants(mobile))
     if email:
-        OTP_STORE[email] = otp_entry
+        store_keys.append(email)
 
-    # =========================================================================
-    # LEGACY SMTP OTP - TEMPORARILY DISABLED
-    # PRESERVED FOR FUTURE USE
-    # =========================================================================
-    # target_email = email
-    # if not target_email and mobile:
-    #     db = get_db()
-    #     clean_mob_old = mobile.replace("+91", "").strip()
-    #     mob_query = {"$or": [{"mobile": mobile}, {"mobile": clean_mob_old}, {"mobile": f"+91{clean_mob_old}"}]}
-    #     user_doc_old = await db.users.find_one(mob_query)
-    #     if user_doc_old and user_doc_old.get("email"):
-    #         target_email = user_doc_old.get("email")
-    #     if not target_email:
-    #         alumni_doc_old = await db.alumni.find_one(mob_query)
-    #         if alumni_doc_old and alumni_doc_old.get("email"):
-    #             target_email = alumni_doc_old.get("email")
-    #
-    # if request.for_developer and not target_email:
-    #     target_email = settings.EMAILS_FROM_EMAIL or "devopstrioglobal@gmail.com"
-    #
-    # if target_email:
-    #     purpose_label = "Developer Portal Access" if request.for_developer else ("Password Reset" if request.for_password_reset else "Authentication & Sign Up")
-    #     asyncio.create_task(asyncio.to_thread(send_otp_email, target_email, otp, purpose_label))
-    # =========================================================================
+    await _store_otp_record_db(store_keys, otp_entry)
 
-    # =========================================================================
-    # ACTIVE TRANSACTIONAL SMS OTP IMPLEMENTATION (BREVO PRIMARY)
-    # =========================================================================
+    # Active Transactional SMS OTP Implementation (Brevo/2Factor)
     sms_success, session_or_err = await send_sms_otp(target_mobile, otp)
     if not sms_success:
-        # Provider failure: rollback OTP store entry and return friendly error
-        OTP_STORE.pop(target_mobile, None)
-        OTP_STORE.pop(clean_mob, None)
-        if email:
-            OTP_STORE.pop(email, None)
+        # Provider failure: rollback OTP store entry in DB and memory
+        await _clear_otp_record_db(store_keys)
         logger.error(f"SMS dispatch failed for {target_mobile}: {session_or_err}")
         raise HTTPException(
             status_code=502,
@@ -775,7 +785,7 @@ async def verify_otp(request: VerifyOTPRequest):
         raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
 
     # Validate OTP securely with expiry, rate limiting, and single-use invalidation
-    _validate_and_consume_otp(email, mobile, otp)
+    await _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     
@@ -862,7 +872,7 @@ async def verify_admin_otp(request: VerifyOTPRequest):
         raise HTTPException(status_code=400, detail="Email address or mobile phone number is required.")
 
     # Validate OTP securely with expiry, rate limiting, and single-use invalidation
-    _validate_and_consume_otp(email, mobile, otp)
+    await _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     
@@ -1713,7 +1723,7 @@ async def verify_invitation_otp(request: VerifyInvitationOTPRequest):
     target_mobile = normalize_indian_mobile(mobile)
 
     # Consume OTP securely
-    _validate_and_consume_otp(email=None, mobile=target_mobile, otp=otp)
+    await _validate_and_consume_otp(email=None, mobile=target_mobile, otp=otp)
 
     # Mark session verified for 15 minutes to allow password entry
     OTP_STORE[f"verified_{t_hash}"] = {
