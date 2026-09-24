@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Tuple
 from pydantic import BaseModel
 from bson import ObjectId
 import json
+import re
 import urllib.parse
 import urllib.request
 
