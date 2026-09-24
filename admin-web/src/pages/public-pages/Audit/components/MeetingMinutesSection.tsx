@@ -78,7 +78,8 @@ export const MeetingMinutesSection: React.FC = () => {
 
         <div className="space-y-4">
           {visible.map((m) => {
-            const preview = buildPreview(m.notes);
+            const notesText = (language === 'ta' && m.notes_ta) ? m.notes_ta : m.notes;
+            const preview = buildPreview(notesText);
             return (
               <article
                 key={m.id}
@@ -227,7 +228,7 @@ export const MeetingMinutesSection: React.FC = () => {
                 {language === 'ta' ? 'கூட்டக் குறிப்புகள் / தீர்மானங்கள்' : 'Meeting Notes / Resolutions'}
               </h4>
               <div className="text-xs sm:text-sm text-[#111111] leading-relaxed whitespace-pre-wrap">
-                {selected.notes || (language === 'ta' ? 'வழங்கப்படவில்லை.' : 'Not provided.')}
+                {((language === 'ta' && selected.notes_ta) ? selected.notes_ta : selected.notes) || (language === 'ta' ? 'வழங்கப்படவில்லை.' : 'Not provided.')}
               </div>
             </div>
 
