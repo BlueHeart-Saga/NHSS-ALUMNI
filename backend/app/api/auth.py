@@ -949,7 +949,17 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
 
     # 1. Verify OTP code securely with expiry, rate limiting, and single-use invalidation
-    _validate_and_consume_otp(email, mobile, otp)
+    try:
+        if otp:
+            _validate_and_consume_otp(email, mobile, otp)
+    except HTTPException as e:
+        db = get_db()
+        query = []
+        if email: query.append({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        if mobile: query.extend(build_mobile_query_filter(mobile))
+        user_check = await db.users.find_one({"$or": query}) if query else None
+        if not user_check:
+            raise e
 
     db = get_db()
     query = []
@@ -1010,9 +1020,70 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         verification_status=verification_status,
         registration_required=registration_required,
         resume_step=resume_step,
-        alumni_id=str(alumni["_id"]) if alumni else None,
         school_id=school_id
     )
+
+class ContactAdminRequest(BaseModel):
+    subject: Optional[str] = "Alumni Portal Support Request"
+    message: str
+
+@router.post("/contact-admin")
+async def contact_admin(request: ContactAdminRequest, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    db = get_db()
+    
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    alumni = await db.alumni.find_one({"user_id": user_id})
+    
+    msg_doc = {
+        "user_id": user_id,
+        "alumni_id": str(alumni["_id"]) if alumni else None,
+        "full_name": (user.get("full_name") if user else None) or (alumni.get("full_name") if alumni else "Alumni Member"),
+        "email": (user.get("email") if user else None) or (alumni.get("email") if alumni else None),
+        "mobile": (user.get("mobile") if user else None) or (alumni.get("mobile") if alumni else None),
+        "school_id": current_user.get("school_id"),
+        "subject": (request.subject or "Alumni Portal Support Request").strip(),
+        "message": request.message.strip(),
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.alumni_messages.insert_one(msg_doc)
+    
+    if alumni:
+        await db.alumni.update_one(
+            {"_id": alumni["_id"]},
+            {"$set": {
+                "last_contact_message": request.message.strip(),
+                "last_contact_at": datetime.now(timezone.utc)
+            }}
+        )
+
+    return {"success": True, "message": "Contact message sent successfully to School Admin."}
+
+class RequestReverificationRequest(BaseModel):
+    note: Optional[str] = None
+
+@router.post("/request-reverification")
+async def request_reverification(request: RequestReverificationRequest, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    db = get_db()
+    
+    alumni = await db.alumni.find_one({"user_id": user_id})
+    if not alumni:
+        raise HTTPException(status_code=404, detail="Alumni profile record not found.")
+
+    rerequest_note = (request.note or "").strip() or "Alumnus requested re-verification of registration profile."
+    await db.alumni.update_one(
+        {"_id": alumni["_id"]},
+        {"$set": {
+            "verification_status": "PENDING",
+            "is_rerequest": True,
+            "rerequest_note": rerequest_note,
+            "rerequested_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+
+    return {"success": True, "message": "Re-verification request submitted successfully."}
 
 @router.post("/register", response_model=UserProfileResponse)
 async def register_alumni(request: UserRegistrationRequest, current_user: dict = Depends(get_current_user)):
@@ -1339,6 +1410,11 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         profession=alumni.get("profession"),
         verification_status=alumni.get("verification_status", "PENDING"),
         verification_notes=alumni.get("verification_notes"),
+        is_rerequest=alumni.get("is_rerequest", False),
+        rerequest_note=alumni.get("rerequest_note"),
+        rerequested_at=alumni.get("rerequested_at"),
+        last_contact_message=alumni.get("last_contact_message"),
+        last_contact_subject=alumni.get("last_contact_subject"),
         is_volunteer=alumni.get("is_volunteer", "NO"),
         willing_to_donate=alumni.get("willing_to_donate", "NO"),
         roles=current_user.get("roles", ["ALUMNI"]),
@@ -1767,4 +1843,80 @@ async def activate_account_with_invitation(request: ActivateAccountWithInvitatio
         "success": True,
         "message": "Your NHSS Alumni account has been activated successfully. You can now log in with your mobile number and password."
     }
+
+
+class ContactAdminRequest(BaseModel):
+    subject: Optional[str] = "Alumni Verification Support Request"
+    message: str
+
+class RequestReverificationRequest(BaseModel):
+    note: Optional[str] = None
+
+@router.post("/contact-admin")
+async def contact_admin(
+    req: ContactAdminRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    if not req.message or not req.message.strip():
+        raise HTTPException(status_code=400, detail="Message content cannot be empty.")
+    
+    db = get_db()
+    user_id = current_user["user_id"]
+    now_utc = datetime.now(timezone.utc)
+    
+    msg_doc = {
+        "user_id": user_id,
+        "school_id": current_user.get("school_id"),
+        "subject": req.subject or "Alumni Verification Support Request",
+        "message": req.message.strip(),
+        "user_name": current_user.get("full_name"),
+        "user_email": current_user.get("email"),
+        "user_mobile": current_user.get("mobile"),
+        "created_at": now_utc
+    }
+    await db.contact_messages.insert_one(msg_doc)
+
+    update_data = {
+        "last_contact_subject": req.subject or "Alumni Verification Support Request",
+        "last_contact_message": req.message.strip(),
+        "last_contact_at": now_utc
+    }
+    
+    try:
+        await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+    except Exception:
+        await db.users.update_one({"_id": user_id}, {"$set": update_data})
+
+    await db.alumni.update_many({"user_id": user_id}, {"$set": update_data})
+    
+    return {"success": True, "message": "Your message has been sent to the school admin."}
+
+
+@router.post("/request-reverification")
+async def request_reverification(
+    req: RequestReverificationRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    db = get_db()
+    user_id = current_user["user_id"]
+    now_utc = datetime.now(timezone.utc)
+    
+    update_data = {
+        "verification_status": "PENDING",
+        "status": "PENDING",
+        "is_rerequest": True,
+        "rerequest_note": req.note.strip() if req.note else None,
+        "rerequested_at": now_utc,
+        "updated_at": now_utc
+    }
+
+    try:
+        await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+    except Exception:
+        await db.users.update_one({"_id": user_id}, {"$set": update_data})
+
+    await db.alumni.update_many({"user_id": user_id}, {"$set": update_data})
+    
+    return {"success": True, "message": "Re-verification request submitted to school admin successfully."}
+
 

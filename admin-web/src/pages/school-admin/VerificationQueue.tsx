@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UserCheck, Check, X, ShieldAlert } from 'lucide-react';
+import { UserCheck, Check, X, ShieldAlert, Sparkles, MessageSquare } from 'lucide-react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState, LoadingState, TableSkeleton } from '../../components/EmptyState';
@@ -97,8 +97,42 @@ export const VerificationQueue: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <Badge status={item.verification_status} />
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge status={item.verification_status} />
+                    {item.is_rerequest && (
+                      <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs animate-pulse">
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        Re-Requested
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Re-request Note Box */}
+                {item.is_rerequest && (
+                  <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-300 rounded-xl p-3 mb-3 text-xs text-amber-950 flex items-start space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-[11px] text-amber-900 flex items-center gap-1">
+                        Re-Verification Request
+                      </div>
+                      <p className="text-[11px] text-amber-800 mt-0.5 font-medium leading-tight">
+                        {item.rerequest_note ? `"${item.rerequest_note}"` : 'Applicant requested re-verification review.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Last Contact Message Box */}
+                {item.last_contact_message && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 text-xs text-blue-950">
+                    <div className="font-bold text-[11px] text-blue-900 flex items-center gap-1.5 mb-0.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Message: {item.last_contact_subject || 'Support Query'}</span>
+                    </div>
+                    <p className="text-[11px] text-blue-800 font-normal">"{item.last_contact_message}"</p>
+                  </div>
+                )}
 
                 <div className="space-y-2 text-xs bg-[#FAFAFA] border border-[#E5E7EB] p-3 rounded-xl mb-4">
                   <div>

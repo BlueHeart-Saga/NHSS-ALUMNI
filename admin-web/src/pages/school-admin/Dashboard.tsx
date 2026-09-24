@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Users, UserCheck, GraduationCap, Calendar, CheckCircle2, ArrowRight,
-  Info, Check, X, AlertTriangle, Phone, Mail, Briefcase, ExternalLink, ShieldCheck, Loader2
+  Info, Check, X, AlertTriangle, Phone, Mail, Briefcase, ExternalLink, ShieldCheck, Loader2,
+  Sparkles, MessageSquare
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
@@ -219,7 +220,15 @@ export const Dashboard: React.FC = () => {
                     className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0"
                   />
                   <div>
-                    <div className="text-sm font-bold text-[#111111]">{a.full_name}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="text-sm font-bold text-[#111111]">{a.full_name}</div>
+                      {a.is_rerequest && (
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-2 py-0.2 rounded-full text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                          <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                          Re-Requested
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-[#6B7280]">
                       {t('admin_dashboard_queue_meta')
                         .replace('{batch}', String(a.passing_year))
@@ -237,7 +246,7 @@ export const Dashboard: React.FC = () => {
                     title={t('admin_dashboard_queue_view_details')}
                     aria-label={t('admin_dashboard_queue_view_details')}
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-4 h-4 text-amber-600" />
                   </button>
                   <Badge status={a.verification_status} />
                   <Button
@@ -290,6 +299,12 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-base font-bold text-[#111111] truncate">{selectedAlumni.full_name}</h4>
                   <Badge status={selectedAlumni.verification_status} />
+                  {selectedAlumni.is_rerequest && (
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-600" />
+                      Re-Requested
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-[#6B7280] mt-0.5">
                   {t('admin_dashboard_detail_batch_line')
@@ -304,6 +319,32 @@ export const Dashboard: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Re-request Note Box */}
+            {selectedAlumni.is_rerequest && (
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-950 flex items-start space-x-2">
+                <Sparkles className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs text-amber-900">
+                    Re-Verification Request Note
+                  </div>
+                  <p className="text-xs text-amber-800 mt-1 font-medium leading-relaxed">
+                    {selectedAlumni.rerequest_note ? `"${selectedAlumni.rerequest_note}"` : 'Applicant requested re-verification review.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Last Contact Message Box */}
+            {selectedAlumni.last_contact_message && (
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 text-xs text-blue-950">
+                <div className="font-bold text-xs text-blue-900 flex items-center gap-1.5 mb-1">
+                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                  <span>Support Inquiry: {selectedAlumni.last_contact_subject || 'Verification Support'}</span>
+                </div>
+                <p className="text-xs text-blue-800 font-normal leading-relaxed">"{selectedAlumni.last_contact_message}"</p>
+              </div>
+            )}
 
             {/* Segmented Details Grid */}
             <div className="space-y-4 text-xs">

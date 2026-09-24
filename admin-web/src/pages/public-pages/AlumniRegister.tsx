@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
   KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase,
@@ -87,6 +87,7 @@ const DEMO_LINK_URL =
 export const AlumniRegister: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { language } = useLanguage();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -253,8 +254,20 @@ export const AlumniRegister: React.FC = () => {
       })
       .catch(() => { });
 
+    const paramMobile = searchParams.get('mobile') || searchParams.get('phone') || searchParams.get('identifier') || location.state?.mobile;
+    const paramEmail = searchParams.get('email') || location.state?.email;
+
+    if (paramMobile) {
+      const cleanMob = String(paramMobile).replace(/\D/g, '').slice(-10);
+      if (cleanMob.length === 10) {
+        setMobile(cleanMob);
+      }
+    }
+    if (paramEmail) {
+      setEmail(paramEmail);
+    }
+
     if (location.state?.email) {
-      setEmail(location.state.email);
       setOtpSent(true);
       setShowEmailInput(true);
       if (location.state?.isPasswordSetup) {
@@ -267,7 +280,6 @@ export const AlumniRegister: React.FC = () => {
       if (location.state?.hasPassword) setHasExistingPassword(true);
       if (location.state?.fullName) setFullName(location.state.fullName);
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
-      if (location.state?.mobile) setMobile(location.state.mobile.replace(/^\+91\s?/, ''));
       if (location.state?.isGoogleAuth) setIsGoogleAuth(true);
     }
 

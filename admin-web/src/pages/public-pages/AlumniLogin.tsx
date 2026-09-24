@@ -664,7 +664,16 @@ export const AlumniLogin: React.FC = () => {
                   </div>
                 </div>
                 <Link
-                  to="/register"
+                  to={{
+                    pathname: '/register',
+                    search: email.replace(/\D/g, '').length >= 10
+                      ? `?mobile=${encodeURIComponent(email.replace(/\D/g, '').slice(-10))}`
+                      : (email.includes('@') ? `?email=${encodeURIComponent(email)}` : '')
+                  }}
+                  state={{
+                    mobile: email.replace(/\D/g, '').length >= 10 ? email.replace(/\D/g, '').slice(-10) : undefined,
+                    email: email.includes('@') ? email : undefined
+                  }}
                   className="w-full py-3 bg-[#111111] hover:bg-black text-white font-medium text-xs rounded-xl flex items-center justify-center space-x-2 border border-[#111111] shadow-sm uppercase tracking-wider transition-all"
                 >
                   <UserPlus className="w-4 h-4 text-[#F4C542]" />
@@ -1176,7 +1185,19 @@ export const AlumniLogin: React.FC = () => {
                           <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                           <span>{language === 'ta' ? 'கணக்கு இல்லை. தயவுசெய்து முதலில் பதிவு செய்யவும்.' : 'No account found matching this mobile number.'}</span>
                         </div>
-                        <Link to="/register" className="font-semibold text-rose-800 hover:underline shrink-0 ml-1">
+                        <Link
+                          to={{
+                            pathname: '/register',
+                            search: email.replace(/\D/g, '').length >= 10
+                              ? `?mobile=${encodeURIComponent(email.replace(/\D/g, '').slice(-10))}`
+                              : (email.includes('@') ? `?email=${encodeURIComponent(email)}` : '')
+                          }}
+                          state={{
+                            mobile: email.replace(/\D/g, '').length >= 10 ? email.replace(/\D/g, '').slice(-10) : undefined,
+                            email: email.includes('@') ? email : undefined
+                          }}
+                          className="font-semibold text-rose-800 hover:underline shrink-0 ml-1"
+                        >
                           {language === 'ta' ? 'பதிவு செய்ய' : 'Register Now'}
                         </Link>
                       </div>
@@ -1339,7 +1360,19 @@ export const AlumniLogin: React.FC = () => {
             {/* Footer Registration Link Prompt */}
 <div className="text-center text-xs sm:text-sm font-normal text-gray-600 pt-2">
   {language === 'ta' ? 'புதிய பயனரா?' : "Don't have an account?"}{' '}
-  <Link to="/register" className="font-medium text-[#854D0E] underline ml-1">
+  <Link
+    to={{
+      pathname: '/register',
+      search: email.replace(/\D/g, '').length >= 10
+        ? `?mobile=${encodeURIComponent(email.replace(/\D/g, '').slice(-10))}`
+        : (email.includes('@') ? `?email=${encodeURIComponent(email)}` : '')
+    }}
+    state={{
+      mobile: email.replace(/\D/g, '').length >= 10 ? email.replace(/\D/g, '').slice(-10) : undefined,
+      email: email.includes('@') ? email : undefined
+    }}
+    className="font-medium text-[#854D0E] underline ml-1"
+  >
     {language === 'ta' ? 'இங்கே சேருங்கள்' : 'Sign up here'}
   </Link>
 </div>

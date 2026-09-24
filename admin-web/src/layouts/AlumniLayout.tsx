@@ -8,6 +8,9 @@ import {
   HandHeart
 } from 'lucide-react';
 import { api } from '../services/api';
+import { alertService } from '../services/alertService';
+import { Modal } from '../components/Modal';
+import { Button } from '../components/Button';
 import { AlumniProfile, SchoolProfile } from '../types';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
@@ -37,6 +40,58 @@ export const AlumniLayout: React.FC = () => {
   // Global Header Search & Notifications Popover
   const [headerSearch, setHeaderSearch] = useState('');
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+
+  // Contact Admin & Re-verification Modals State
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactSubject, setContactSubject] = useState('Alumni Verification Support Request');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSending, setContactSending] = useState(false);
+
+  const [showRerequestModal, setShowRerequestModal] = useState(false);
+  const [rerequestNote, setRerequestNote] = useState('');
+  const [rerequestSending, setRerequestSending] = useState(false);
+
+  const handleSendContactAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactMessage.trim()) return;
+    setContactSending(true);
+    try {
+      await api.contactAdmin(contactSubject, contactMessage.trim());
+      alertService.showSuccess(
+        language === 'ta' ? 'செய்தி அனுப்பப்பட்டது' : 'Message Sent Successfully',
+        language === 'ta'
+          ? 'உங்கள் செய்தி பள்ளி நிர்வாகிக்கு வெற்றிகரமாக அனுப்பப்பட்டது.'
+          : 'Your support message has been dispatched directly to the School Admin.'
+      );
+      setShowContactModal(false);
+      setContactMessage('');
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to send message to School Admin.');
+    } finally {
+      setContactSending(false);
+    }
+  };
+
+  const handleSendRerequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRerequestSending(true);
+    try {
+      await api.requestReverification(rerequestNote.trim() || undefined);
+      alertService.showSuccess(
+        language === 'ta' ? 'சரிபார்ப்பு விண்ணப்பம் மீண்டும் சமர்ப்பிக்கப்பட்டது 🎉' : 'Re-verification Request Submitted! 🎉',
+        language === 'ta'
+          ? 'உங்கள் சரிபார்ப்பு கோரிக்கை பள்ளி நிர்வாகிக்கு மீண்டும் அனுப்பப்பட்டது. நிர்வாகி சரிபார்த்து உங்களை அனுமதிப்பார்.'
+          : 'Your re-verification request has been submitted to the School Admin queue for priority review.'
+      );
+      setShowRerequestModal(false);
+      setRerequestNote('');
+      fetchMe();
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to submit re-verification request.');
+    } finally {
+      setRerequestSending(false);
+    }
+  };
 
   const fetchMe = () => {
     setRefreshing(true);
@@ -202,6 +257,25 @@ export const AlumniLayout: React.FC = () => {
               </p>
             </div>
 
+            {/* Re-request notice banner */}
+            {user?.is_rerequest && (
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-xs text-blue-800 flex items-start space-x-2 text-left">
+                <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">
+                    {language === 'ta' ? 'மீண்டும் சரிபார்ப்பு விண்ணப்பம் அனுப்பப்பட்டது' : 'Re-verification Request Submitted'}
+                  </p>
+                  <p className="text-[11px] text-blue-700 mt-0.5">
+                    {user?.rerequest_note
+                      ? `"${user.rerequest_note}"`
+                      : (language === 'ta'
+                        ? 'உங்கள் மறு பரிசீலனை விண்ணப்பம் பள்ளி நிர்வாகியின் கவனத்திற்கு அனுப்பப்பட்டுள்ளது.'
+                        : 'Your request for re-verification has been logged into the School Admin priority queue.')}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Application Summary Box */}
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-5 text-left text-xs space-y-3">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2">
@@ -235,41 +309,178 @@ export const AlumniLayout: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
               <button
                 onClick={fetchMe}
                 disabled={refreshing}
-                className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+                className="px-4 py-2.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 text-[#111111] ${refreshing ? 'animate-spin' : ''}`} />
                 <span>
                   {refreshing
-                    ? (language === 'ta' ? 'சரிபார்க்கிறது...' : 'Checking Status...')
-                    : (language === 'ta' ? 'சரிபார்ப்பு நிலையை மீண்டும் சரிபார்க்க' : 'Check Verification Status')}
+                    ? (language === 'ta' ? 'சரிபார்க்கிறது...' : 'Checking...')
+                    : (language === 'ta' ? 'சரிபார்ப்பு நிலை' : 'Check Status')}
                 </span>
               </button>
 
               <button
-                onClick={() => {
-                  window.location.href = `mailto:${school?.contact_email || 'support@justgathernow.com'}?subject=Alumni Verification Request - ${user?.full_name}`;
-                }}
-                className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-white border border-[#E5E7EB] hover:border-[#111111] text-[#111111] font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                onClick={() => setShowRerequestModal(true)}
+                className="px-4 py-2.5 bg-[#111111] hover:bg-gray-800 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>
+                  {isRejected
+                    ? (language === 'ta' ? 'மீண்டும் விண்ணப்பிக்க கோரவும்' : 'Request Re-verification')
+                    : (language === 'ta' ? 'மீண்டும் சரிபார்க்க கோரிக்கை' : 'Re-submit / Request Review')}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setShowContactModal(true)}
+                className="px-4 py-2.5 bg-white border border-[#E5E7EB] hover:border-[#111111] text-[#111111] font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
               >
                 <Mail className="w-4 h-4 text-gray-600" />
-                <span>{language === 'ta' ? 'பள்ளி நிர்வாகியைத் தொடர்பு கொள்ள' : 'Contact School Admin'}</span>
+                <span>{language === 'ta' ? 'பள்ளி நிர்வாகியைத் தொடர்பு கொள்ள' : 'Contact Admin'}</span>
+              </button>
+
+              <button
+                onClick={() => navigate(`/register?mobile=${user?.mobile || ''}`)}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+              >
+                <User className="w-4 h-4 text-gray-500" />
+                <span>{language === 'ta' ? 'விவரங்களை மாற்றவும்' : 'Edit Details'}</span>
               </button>
 
               <button
                 onClick={handleLogout}
-                className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                className="px-4 py-2.5 bg-gray-100 hover:bg-rose-50 text-rose-600 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
               >
-                <LogOut className="w-4 h-4 text-gray-500" />
+                <LogOut className="w-4 h-4 text-rose-500" />
                 <span>{language === 'ta' ? 'வெளியேறு' : 'Log Out'}</span>
               </button>
             </div>
 
           </div>
         </main>
+
+        {/* Contact Admin Modal */}
+        {showContactModal && (
+          <Modal
+            isOpen={showContactModal}
+            onClose={() => setShowContactModal(false)}
+            title={language === 'ta' ? 'பள்ளி நிர்வாகியைத் தொடர்பு கொள்ள' : 'Contact School Administrator'}
+          >
+            <form onSubmit={handleSendContactAdmin} className="space-y-4 pt-2 text-left">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start space-x-2">
+                <Mail className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p>
+                  {language === 'ta'
+                    ? 'உங்கள் கேள்வி அல்லது கோரிக்கையை கீழே உள்ள படிவத்தில் உள்ளிடவும். பள்ளி நிர்வாகி இதை மதிப்பாய்வு செய்து பதிலளிப்பார்.'
+                    : 'Send a message directly to your school alumni administrator regarding your registration or verification status.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {language === 'ta' ? 'தலைப்பு' : 'Subject'}
+                </label>
+                <input
+                  type="text"
+                  value={contactSubject}
+                  onChange={(e) => setContactSubject(e.target.value)}
+                  className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
+                  placeholder="e.g., Verification query / Details correction"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {language === 'ta' ? 'செய்தி' : 'Your Message / Inquiry'}
+                </label>
+                <textarea
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
+                  placeholder={language === 'ta' ? 'உங்கள் தகவல்களை இங்கே டைப் செய்யவும்...' : 'Type your details or clarification note here...'}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowContactModal(false)}
+                >
+                  {language === 'ta' ? 'ரத்துசெய்' : 'Cancel'}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={contactSending || !contactMessage.trim()}
+                  className="bg-[#F4C542] text-[#111111] hover:bg-[#E5B532] font-bold"
+                >
+                  {contactSending
+                    ? (language === 'ta' ? 'அனுப்புகிறது...' : 'Sending...')
+                    : (language === 'ta' ? 'செய்தி அனுப்பு' : 'Send Message')}
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        {/* Re-verification Modal */}
+        {showRerequestModal && (
+          <Modal
+            isOpen={showRerequestModal}
+            onClose={() => setShowRerequestModal(false)}
+            title={language === 'ta' ? 'மீண்டும் சரிபார்ப்பு விண்ணப்பம் சமர்ப்பிக்க' : 'Request Re-verification'}
+          >
+            <form onSubmit={handleSendRerequest} className="space-y-4 pt-2 text-left">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 flex items-start space-x-2">
+                <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <p>
+                  {language === 'ta'
+                    ? 'உங்கள் விண்ணப்பத்தை மீண்டும் பரிசீலிக்க பள்ளி நிர்வாகியிடம் கோரிக்கை அனுப்பலாம். கூடுதல் குறிப்பு அல்லது சரியான விவரங்களை கீழே குறிப்பிடவும்.'
+                    : 'Request the school administrator to re-verify your alumni application. You may provide updated details or a clarification note below.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {language === 'ta' ? 'நிர்வாகிக்கான குறிப்பு (விருப்பமானது)' : 'Clarification Note for Admin (Optional)'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={rerequestNote}
+                  onChange={(e) => setRerequestNote(e.target.value)}
+                  className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542]"
+                  placeholder={language === 'ta' ? 'எ.கா: சேர்க்கை எண் சரிசெய்யப்பட்டது / மீண்டும் சரிபார்க்கவும்...' : 'e.g., Updated my batch year / Please re-check admission register...'}
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowRerequestModal(false)}
+                >
+                  {language === 'ta' ? 'ரத்துசெய்' : 'Cancel'}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={rerequestSending}
+                  className="bg-[#111111] text-white hover:bg-gray-800 font-bold"
+                >
+                  {rerequestSending
+                    ? (language === 'ta' ? 'சமர்ப்பிக்கிறது...' : 'Submitting...')
+                    : (language === 'ta' ? 'மீண்டும் விண்ணப்பி' : 'Submit Request')}
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
       </div>
     );
   }

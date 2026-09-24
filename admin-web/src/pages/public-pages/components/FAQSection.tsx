@@ -61,8 +61,8 @@ const FAQ_LIST: FAQItem[] = [
     category_en: 'Batch Reunions',
     question_ta: 'வகுப்பு மறுசந்திப்பு (Batch Reunion) நடத்த எவ்வாறு உதவி பெறலாம்?',
     question_en: 'How can our batch get support for organizing reunions?',
-    answer_ta: 'எங்களது செயலகத் தொடர்புகளின் மூலம் (+91 88259 05771) அல்லது தொடர்பு படிவம் மூலம் எங்களை அணுகினால், பள்ளி வளாகத்தில் சந்திப்பு ஏற்பாடுகளைச் செய்யவும் வகுப்பினரை ஒருங்கிணைக்கவும் சங்கம் முழு உதவி வழங்கும்.',
-    answer_en: 'Reach out to our Secretariat Desk (+91 88259 05771) or submit an inquiry, and our association team will help coordinate campus venue and batch outreach.'
+    answer_ta: 'எங்களது செயலகத் தொடர்புகளின் மூலம் (+91 7010971224) அல்லது தொடர்பு படிவம் மூலம் எங்களை அணுகினால், பள்ளி வளாகத்தில் சந்திப்பு ஏற்பாடுகளைச் செய்யவும் வகுப்பினரை ஒருங்கிணைக்கவும் சங்கம் முழு உதவி வழங்கும்.',
+    answer_en: 'Reach out to our Secretariat Desk (+91 7010971224) or submit an inquiry, and our association team will help coordinate campus venue and batch outreach.'
   },
   {
     id: 'faq-6',
@@ -81,8 +81,8 @@ const FAQ_LIST: FAQItem[] = [
     category_en: 'Admin Contact',
     question_ta: 'பள்ளி நிர்வாகம் அல்லது சங்க அதிகாரிகளை எவ்வாறு தொடர்பு கொள்வது?',
     question_en: 'How can I contact the school or alumni office directly?',
-    answer_ta: 'தொலைபேசி எண் +91 88259 05771 அல்லது info@nhssalumni.com என்ற மின்னஞ்சல் முகவரி மூலம் நேரடியாக தொடர்பு கொள்ளலாம். மேலும் இங்குள்ள படிவத்தின் மூலமும் செய்தி அனுப்பலாம்.',
-    answer_en: 'You can call us directly at +91 88259 05771, email info@nhssalumni.com, or send a message using the contact form on this page.'
+    answer_ta: 'தொலைபேசி எண் +91 7010971224 அல்லது info@nhssalumni.com என்ற மின்னஞ்சல் முகவரி மூலம் நேரடியாக தொடர்பு கொள்ளலாம். மேலும் இங்குள்ள படிவத்தின் மூலமும் செய்தி அனுப்பலாம்.',
+    answer_en: 'You can call us directly at +91 7010971224, email info@nhssalumni.com, or send a message using the contact form on this page.'
   }
 ];
 
@@ -107,8 +107,8 @@ export const FAQSection: React.FC = () => {
   });
 
   return (
-    <section 
-      id="faqs-doubts-section" 
+    <section
+      id="faqs-doubts-section"
       lang={isTa ? 'ta' : 'en'}
       className="py-12 sm:py-16 bg-gradient-to-b from-gray-50/60 to-white relative overflow-hidden font-sans leading-relaxed text-[#111111]"
     >
@@ -158,11 +158,10 @@ export const FAQSection: React.FC = () => {
               return (
                 <div
                   key={faq.id}
-                  className={`border rounded-2xl transition-all duration-200 overflow-hidden ${
-                    isOpen
+                  className={`border rounded-2xl transition-all duration-200 overflow-hidden ${isOpen
                       ? 'bg-white border-[#F4C542] shadow-md ring-1 ring-[#F4C542]/40'
                       : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-xs'
-                  }`}
+                    }`}
                 >
                   <button
                     onClick={() => toggleAccordion(index)}
@@ -175,9 +174,8 @@ export const FAQSection: React.FC = () => {
                       </h3>
                     </div>
 
-                    <div className={`p-2 rounded-full transition-transform duration-200 shrink-0 ${
-                      isOpen ? 'bg-[#FFF7D6] text-[#854D0E] rotate-180' : 'bg-gray-100 text-gray-500'
-                    }`}>
+                    <div className={`p-2 rounded-full transition-transform duration-200 shrink-0 ${isOpen ? 'bg-[#FFF7D6] text-[#854D0E] rotate-180' : 'bg-gray-100 text-gray-500'
+                      }`}>
                       <ChevronDown className="w-5 h-5" />
                     </div>
                   </button>
@@ -224,7 +222,7 @@ export const FAQSection: React.FC = () => {
             href="tel:+918825905771"
             className="w-full sm:w-auto px-6 py-3 bg-[#F4C542] hover:bg-[#e0b236] text-[#111111] font-bold text-xs uppercase tracking-wider rounded-2xl transition-all text-center shrink-0 shadow-md"
           >
-            {isTa ? 'உடனே அழைக்க: +91 88259 05771' : 'Call Desk: +91 88259 05771'}
+            {isTa ? 'உடனே அழைக்க: +91 7010971224' : 'Call Desk: +91 7010971224'}
           </a>
         </div>
       </div>

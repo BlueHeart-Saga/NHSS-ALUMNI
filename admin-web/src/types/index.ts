@@ -210,8 +210,11 @@ export interface AlumniProfile {
   account_status?: 'ACTIVE' | 'PENDING_ACTIVATION' | 'SUSPENDED';
   invitation_status?: 'PENDING' | 'SENT' | 'OPENED' | 'EXPIRED' | 'ACCEPTED';
   phone_verified?: boolean;
-  // ✅ NEW — true only after Step 6 "Submit Official Registration"
-  registration_submitted?: boolean;
+  is_rerequest?: boolean;
+  rerequest_note?: string;
+  last_contact_message?: string;
+  last_contact_subject?: string;
+  rerequested_at?: string;
   roles: string[];
   committee_role?: CommitteeRoleType;
   committee_role_title?: string;

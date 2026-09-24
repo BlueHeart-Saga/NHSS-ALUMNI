@@ -37,7 +37,7 @@ export const PublicContact: React.FC = () => {
 
   return (
     <div className="bg-white text-[#111111] animate-fadeIn space-y-8 py-6">
-      
+
       {/* 1st & 2nd SECTION: Public Feedback Form (1st) & Comments Showcase (2nd) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 border-b border-gray-200">
         <PublicFeedbackShowcase />
@@ -46,7 +46,7 @@ export const PublicContact: React.FC = () => {
       {/* 3rd SECTION: GET IN TOUCH WITH US Header Banner */}
       <div className="py-10 sm:py-14 bg-gradient-to-b from-amber-50/30 via-white to-white border-y border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3 sm:space-y-4">
-          
+
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#111111] tracking-tight">
             {t('contact_title')}
           </h1>
@@ -88,7 +88,7 @@ export const PublicContact: React.FC = () => {
                   </div>
                   <div>
                     <strong className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('phone_label')}</strong>
-                    <span className="font-semibold text-sm sm:text-base">+91 88259 05771</span>
+                    <span className="font-semibold text-sm sm:text-base">+91 7010971224</span>
                   </div>
                 </div>
 

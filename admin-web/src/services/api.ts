@@ -236,6 +236,20 @@ class ApiClient {
     });
   }
 
+  async contactAdmin(subject: string, message: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/contact-admin', {
+      method: 'POST',
+      body: JSON.stringify({ subject, message }),
+    });
+  }
+
+  async requestReverification(note?: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/request-reverification', {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    });
+  }
+
   async verifyAdminOTP(identifier: string, otp: string, secondaryPhone?: string) {
     const { email, mobile } = this.parseIdentifier(identifier, secondaryPhone);
     const res = await this.request<{

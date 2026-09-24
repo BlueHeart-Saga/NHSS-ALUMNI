@@ -420,7 +420,7 @@ export const PublicSchool: React.FC = () => {
                         {language === 'ta' ? 'வாட்ஸ்அப் மெசேஜ் / அழைப்பு' : 'WhatsApp / Call Support'}
                       </span>
                       <span className="text-xs sm:text-sm font-bold text-[#111111] truncate block">
-                        {profile.phone || '+91 88259 05771'}
+                        {profile.phone || '+91 7010971224'}
                       </span>
                     </div>
                   </div>
