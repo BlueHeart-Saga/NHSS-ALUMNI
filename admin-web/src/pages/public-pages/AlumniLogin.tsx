@@ -1323,12 +1323,57 @@ export const AlumniLogin: React.FC = () => {
             </button>
 
             {/* Footer Registration Link Prompt */}
-            <div className="text-center text-xs sm:text-sm font-normal text-gray-600 pt-2">
-              {language === 'ta' ? 'புதிய பயனரா?' : "Don't have an account?"}{' '}
-              <Link to="/register" className="font-medium text-[#854D0E] underline ml-1">
-                {language === 'ta' ? 'இங்கே சேருங்கள்' : 'Sign up here'}
-              </Link>
-            </div>
+<div className="text-center text-xs sm:text-sm font-normal text-gray-600 pt-2">
+  {language === 'ta' ? 'புதிய பயனரா?' : "Don't have an account?"}{' '}
+  <Link to="/register" className="font-medium text-[#854D0E] underline ml-1">
+    {language === 'ta' ? 'இங்கே சேருங்கள்' : 'Sign up here'}
+  </Link>
+</div>
+
+{/* NEW: Demo Link */}
+<div className="text-center pt-3">
+  <a
+    href="https://drive.google.com/drive/folders/1Ypp-3OLxf1DJCDhYqMv5lpcD3OJ9y425?usp=sharing"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-medium text-[#854D0E] hover:text-[#111111] hover:underline transition-colors"
+  >
+    <svg
+      className="w-4 h-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    <span>
+      {language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}
+    </span>
+    <svg
+      className="w-3 h-3 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+      />
+    </svg>
+  </a>
+</div>
 
           </div>
 

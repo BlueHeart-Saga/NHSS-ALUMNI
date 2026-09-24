@@ -566,6 +566,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <span>Request School Admin Access →</span>
           </Link>
         </div>
+        
       </div>
     </div>
   );
