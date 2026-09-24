@@ -3,7 +3,8 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
   KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase,
-  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown, RotateCw
+  BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown, RotateCw,
+  PlayCircle, ExternalLink
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -72,6 +73,15 @@ const defaultCountryList: CountryOption[] = [
   { name: 'Pakistan', code: 'PK', dialCode: '+92', flag: '🇵🇰' },
   { name: 'Israel', code: 'IL', dialCode: '+972', flag: '🇮🇱' }
 ];
+
+// ============================================================================
+// DEMO LINK CONFIGURATION
+// Change this to your actual demo URL (YouTube, Loom, hosted demo, etc.)
+// Better: put it in .env as VITE_DEMO_LINK and it will pick that up instead.
+// ============================================================================
+const DEMO_LINK_URL =
+  (import.meta.env.VITE_DEMO_LINK as string | undefined) ||
+  'https://your-demo-link-here.com';
 
 export const AlumniRegister: React.FC = () => {
   const navigate = useNavigate();
@@ -295,39 +305,7 @@ export const AlumniRegister: React.FC = () => {
             if (p.is_volunteer) setIsVolunteer(String(p.is_volunteer).toUpperCase());
             if (p.willing_to_donate) setWillingToDonate(String(p.willing_to_donate).toUpperCase());
 
-            // Evaluate exact pending registration step based on filled fields
-            const hasPersonal = Boolean(
-              p.full_name && p.mobile && p.dob && p.gender &&
-              p.address && (p.current_city || p.city)
-            );
-            const hasSchool = Boolean(
-              p.school_name && p.joining_year && p.passing_year && p.leaving_class
-            );
-            const noCollege = Boolean(p.no_higher_education);
-            const hasCollege = Boolean(
-              (p.college_name || p.other_college) &&
-              (p.degree || p.other_degree) &&
-              (p.stream || p.other_stream)
-            );
-            const hasEducation = noCollege || hasCollege;
-            const hasProfessional = Boolean(p.employment_status);
-
-            let pendingStep: 1 | 2 | 3 | 4 | 5 | 6 = 2;
-            if (!hasPersonal) pendingStep = 2;
-            else if (!hasSchool) pendingStep = 3;
-            else if (!hasEducation) pendingStep = 4;
-            else if (!hasProfessional) pendingStep = 5;
-            else pendingStep = 6;
-
-            if (pendingStep === 6 && p.full_name && p.passing_year) {
-              // Profile is 100% complete! Auto-redirect to alumni portal
-              navigate('/alumni', { replace: true });
-              return;
-            }
-
-            if (!location.state?.resumeStep && !location.state?.isPasswordSetup) {
-              setStep(pendingStep);
-            }
+            // Unlock up to step 6 if user profile data exists
             setMaxStepReached(6);
           }
         })
@@ -1020,6 +998,33 @@ export const AlumniRegister: React.FC = () => {
                 {language === 'ta' ? 'இங்கே உள்நுழையவும்' : 'Log In Here'}
               </Link>
             </div>
+
+            {/* ====================================================== */}
+            {/* NEW: Demo Link Card                                    */}
+            {/* ====================================================== */}
+            <div className="bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl p-4 text-center shadow-xs">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#854D0E] mb-1.5">
+                {language === 'ta' ? 'புதியவரா?' : 'New to the portal?'}
+              </p>
+              <a
+                href={DEMO_LINK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors"
+              >
+                <PlayCircle className="w-4 h-4 shrink-0" />
+                <span>
+                  {language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}
+                </span>
+                <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+              </a>
+              <p className="text-[10px] text-gray-500 mt-1.5 leading-snug">
+                {language === 'ta'
+                  ? 'பதிவு செய்வதற்கு முன் ஒரு விரைவான டெமோ'
+                  : 'A quick walkthrough before you sign up'}
+              </p>
+            </div>
+
           </div>
 
           {/* RIGHT COLUMN: Form Card */}
@@ -2379,6 +2384,24 @@ export const AlumniRegister: React.FC = () => {
           </div>
 
         </div>
+
+        {/* ====================================================== */}
+        {/* NEW: Demo Link (also visible on mobile, since sidebar  */}
+        {/* is hidden on <1024px screens)                           */}
+        {/* ====================================================== */}
+        <div className="lg:hidden mt-6 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl p-4 text-center shadow-xs">
+          <a
+            href={DEMO_LINK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-bold text-[#111111] hover:text-[#854D0E] underline underline-offset-2 transition-colors"
+          >
+            <PlayCircle className="w-4 h-4 shrink-0" />
+            <span>{language === 'ta' ? 'டெமோவைப் பாருங்கள்' : 'Watch Demo'}</span>
+            <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+          </a>
+        </div>
+
       </div>
     </div>
   );
