@@ -214,6 +214,38 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
     return True, 6
 
 
+# =============================================================================
+# ✅ NEW HELPER — Admin-created account detection
+#
+# Admin-created alumni records (via School Admin → Add New Alumni) already
+# have their profile created by the School Admin, so once they set a password
+# they must go DIRECTLY to the dashboard — NOT be sent through the public
+# self-registration wizard.
+#
+# Detection signals (either one is sufficient):
+#   1. users.account_status == "PENDING_ACTIVATION"  ← set by admin_create_alumni
+#   2. alumni.invitation_status == "PENDING"          ← set by admin_create_alumni
+#
+# Self-registered users NEVER have either of these set:
+#   - register_alumni sets account_status="ACTIVE" and never sets invitation_status
+#   - Google OAuth users have no account_status field at all
+# =============================================================================
+def is_admin_created_account(user: Optional[dict], alumni: Optional[dict]) -> bool:
+    """
+    Returns True if this account was created by a School Admin (not via the
+    public self-registration wizard). Used to bypass the registration wizard
+    redirect after password setup.
+    """
+    try:
+        if user and str(user.get("account_status") or "").strip().upper() == "PENDING_ACTIVATION":
+            return True
+        if alumni and str(alumni.get("invitation_status") or "").strip().upper() == "PENDING":
+            return True
+    except Exception:
+        pass
+    return False
+
+
 @router.get("/google/login")
 async def google_login():
     """Generates and redirects to Google OAuth2 Authorization URL"""
@@ -748,7 +780,13 @@ async def login(request: LoginRequest):
 
     # Evaluate profile completion status & wizard resume step
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
-    registration_required = not is_profile_complete
+
+    # ✅ Admin-created users: bypass registration wizard entirely.
+    if is_admin_created_account(user, alumni):
+        registration_required = False
+        resume_step = 6
+    else:
+        registration_required = not is_profile_complete
 
     token_data = {
         "sub": user_id,
@@ -835,7 +873,13 @@ async def verify_otp(request: VerifyOTPRequest):
     verification_status = alumni.get("verification_status") if alumni else None
     
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
-    registration_required = not is_profile_complete
+
+    # ✅ Admin-created users: bypass registration wizard entirely.
+    if is_admin_created_account(user, alumni):
+        registration_required = False
+        resume_step = 6
+    else:
+        registration_required = not is_profile_complete
 
     token_data = {
         "sub": user_id,
@@ -961,7 +1005,7 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     # 1. Verify OTP code securely with expiry, rate limiting, and single-use invalidation
     try:
         if otp:
-            _validate_and_consume_otp(email, mobile, otp)
+            await _validate_and_consume_otp(email, mobile, otp)
     except HTTPException as e:
         db = get_db()
         query = []
@@ -988,6 +1032,11 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         school = await db.schools.find_one({})
         school_id = str(school["_id"]) if school else None
 
+    # ✅ Capture admin-created status BEFORE we flip account_status to ACTIVE below.
+    #    We need the alumni doc snapshot for the invitation_status check too.
+    alumni_pre = await db.alumni.find_one({"user_id": user_id})
+    was_admin_created = is_admin_created_account(user, alumni_pre)
+
     hashed_pass = get_password_hash(password)
     await db.users.update_one(
         {"_id": user["_id"]},
@@ -1011,7 +1060,16 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     verification_status = alumni.get("verification_status") if alumni else "PENDING"
 
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
-    registration_required = not is_profile_complete
+
+    # ✅ Admin-created users already have their registration/profile created by
+    #    the School Admin. Setting the password completes onboarding, so they
+    #    must go straight to the alumni dashboard — NOT through the public
+    #    self-registration wizard.
+    if was_admin_created or is_admin_created_account(user, alumni):
+        registration_required = False
+        resume_step = 6
+    else:
+        registration_required = not is_profile_complete
 
     token_data = {
         "sub": user_id,
@@ -1517,7 +1575,7 @@ async def reset_password_with_otp(data: ResetPasswordWithOTPRequest):
 
     # Validate OTP
     # Validate OTP securely with expiry, rate limiting, and single-use invalidation
-    _validate_and_consume_otp(email, mobile, otp)
+    await _validate_and_consume_otp(email, mobile, otp)
 
     db = get_db()
     query = []
@@ -1928,5 +1986,3 @@ async def request_reverification(
     await db.alumni.update_many({"user_id": user_id}, {"$set": update_data})
     
     return {"success": True, "message": "Re-verification request submitted to school admin successfully."}
-
-

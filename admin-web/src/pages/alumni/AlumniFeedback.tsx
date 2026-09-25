@@ -109,7 +109,7 @@ export const AlumniFeedback: React.FC = () => {
               <span>{language === 'ta' ? ' கருத்துகள்' : 'Alumni Feedback & Opinions'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              {language === 'ta' ? 'எனது கருத்துகள் & பரிந்துரைகள்' : 'My Opinions & Feedback (கருத்துகள்)'}
+              {language === 'ta' ? 'எனது கருத்துகள் & பரிந்துரைகள்' : 'My Opinions & Feedback'}
             </h2>
             <p className="text-xs sm:text-sm text-gray-300">
               {language === 'ta'

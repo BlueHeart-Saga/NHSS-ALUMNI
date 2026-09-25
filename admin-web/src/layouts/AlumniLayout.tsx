@@ -682,7 +682,7 @@ export const AlumniLayout: React.FC = () => {
                 </NavLink>
                 <NavLink to="/alumni/feedback" className={navItemClass} title={language === 'ta' ? ' கருத்துகள்' : 'Feedback & Opinions'}>
                   <MessageSquareQuote className="w-4 h-4 shrink-0 text-[#854D0E]" />
-                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'கருத்துகள் & பரிந்துரைகள்' : 'Feedback / கருத்துகள்'}</span>}
+                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'கருத்துகள் & பரிந்துரைகள்' : 'Feedback'}</span>}
                 </NavLink>
               </div>
             </div>

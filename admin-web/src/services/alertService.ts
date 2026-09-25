@@ -71,6 +71,118 @@ export const alertService = {
     });
   },
 
+    /**
+   * Open a large lightbox preview of a profile photo WITH inline
+   * Upload/Replace, Remove, and Close actions.
+   *
+   * Returns a promise resolving to:
+   *   'upload'  → admin chose to upload/replace the photo
+   *   'remove'  → admin chose to remove the photo
+   *   'close'   → admin dismissed the popup (backdrop / ESC / Close button)
+   */
+  showImagePreview: (
+    imageUrl: string | undefined,
+    title?: string,
+    options: {
+      canRemove?: boolean;
+      isPlaceholder?: boolean;
+    } = {}
+  ): Promise<'upload' | 'remove' | 'close'> => {
+    const { canRemove = false, isPlaceholder = false } = options;
+
+    // We track the chosen action outside the Swal promise because
+    // SweetAlert2 has no native "custom button returns value" API.
+    let choice: 'upload' | 'remove' | 'close' = 'close';
+
+    const photoBlock = imageUrl
+      ? `<img
+           src="${imageUrl}"
+           alt="${title || 'Profile Photo'}"
+           style="
+             display:block;
+             max-height:60vh;
+             max-width:min(80vw, 500px);
+             width:auto;
+             height:auto;
+             border-radius:12px;
+             object-fit:contain;
+             margin:0 auto;
+             background:#F9FAFB;
+           "
+         />`
+      : `<div style="
+           width:180px;height:180px;border-radius:12px;
+           background:#F3F4F6;border:1px dashed #D1D5DB;
+           display:flex;align-items:center;justify-content:center;
+           color:#9CA3AF;font-size:13px;font-weight:600;margin:0 auto;
+         ">No Photo</div>`;
+
+    return BrandSwal.fire({
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+          <div style="max-width:100%;">${photoBlock}</div>
+
+          ${title ? `<div style="
+            font-size:15px;font-weight:700;color:#111111;
+            text-align:center;line-height:1.3;
+          ">${title}</div>` : ''}
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+            <button id="swal-upload-btn" type="button" style="
+              padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;
+              background:#FFF7D6;color:#854D0E;border:1px solid #F4C542;
+              cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+              transition:all .15s;
+            " onmouseover="this.style.background='#FEF0B8'" onmouseout="this.style.background='#FFF7D6'">
+              ⬆ ${isPlaceholder ? 'Upload Photo' : 'Replace Photo'}
+            </button>
+
+            ${
+              canRemove
+                ? `<button id="swal-remove-btn" type="button" style="
+                    padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;
+                    background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;
+                    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+                    transition:all .15s;
+                  " onmouseover="this.style.background='#FECACA'" onmouseout="this.style.background='#FEE2E2'">
+                    🗑 Remove
+                  </button>`
+                : ''
+            }
+          </div>
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: 'Close',
+      width: 'auto',
+      padding: '1.25rem',
+      customClass: {
+        popup: 'rounded-2xl border border-[#E5E7EB] shadow-2xl font-normal text-[#111111] bg-white max-w-[92vw]',
+        htmlContainer: 'm-0 p-0',
+        confirmButton: 'px-5 py-2.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-medium text-sm rounded-xl shadow-xs transition-all border border-[#E0B030] mt-2 focus:ring-2 focus:ring-[#F4C542]/50 outline-none cursor-pointer',
+        actions: 'mt-3',
+      },
+      background: '#FFFFFF',
+      color: '#111111',
+      didOpen: (popup) => {
+        const uploadBtn = popup.querySelector('#swal-upload-btn') as HTMLButtonElement | null;
+        if (uploadBtn) {
+          uploadBtn.onclick = () => {
+            choice = 'upload';
+            Swal.close();
+          };
+        }
+        const removeBtn = popup.querySelector('#swal-remove-btn') as HTMLButtonElement | null;
+        if (removeBtn) {
+          removeBtn.onclick = () => {
+            choice = 'remove';
+            Swal.close();
+          };
+        }
+      },
+    }).then(() => choice);
+  },
+
   /**
    * Display Confirmation Dialog (Returns Promise<boolean>)
    */

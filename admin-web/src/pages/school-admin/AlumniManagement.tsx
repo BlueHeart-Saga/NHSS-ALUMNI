@@ -51,6 +51,54 @@ const parseBatchYear = (value: unknown): number | null => {
   }
   return null;
 };
+/**
+ * Normalize a date-of-birth value from ANY source format into the
+ * ISO "YYYY-MM-DD" string that HTML <input type="date"> requires.
+ *
+ * Handles:
+ *   - "YYYY-MM-DD" (already correct)  → returned as-is
+ *   - "DD-MM-YYYY"                    → converted
+ *   - "DD/MM/YYYY"                    → converted
+ *   - "MM/DD/YYYY" (if month > 12)    → converted
+ *   - "YYYY/MM/DD"                    → converted
+ *   - Date object / ISO datetime      → sliced
+ *   - ""  / null / undefined          → returns ""
+ */
+const normalizeDobForInput = (raw: unknown): string => {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+
+  // Already ISO?
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+  // DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
+  const dmy = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    const dd = d.padStart(2, '0');
+    const mm = m.padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
+  }
+
+  // YYYY/MM/DD
+  const ymd = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // Fallback: try JS Date parsing (handles ISO strings with time)
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  return ''; // unrecognizable → blank field
+};
 
 export const AlumniManagement: React.FC = () => {
   const { t, language } = useLanguage();
@@ -99,6 +147,9 @@ export const AlumniManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // ✅ NEW: Edit-mode tracking. When null → Add mode. When set → Edit mode.
+  const [editingAlumnusId, setEditingAlumnusId] = useState<string | null>(null);
 
   // Suspend modal state
   const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false);
@@ -612,6 +663,20 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
+  // ✅ NEW: Opens the existing 5-step wizard pre-filled with the selected alumnus.
+  //    Sets editingAlumnusId so the submit handler routes to updateAlumniAdmin.
+  const handleOpenEditModal = (alumnus: AlumniProfile) => {
+  setEditingAlumnusId(alumnus.id);
+  // Pre-fill every field with the existing record.
+  // ✅ Normalize DOB so <input type="date"> accepts it (HTML requires YYYY-MM-DD).
+  setNewAlumnus({
+    ...alumnus,
+    date_of_birth: normalizeDobForInput(alumnus.date_of_birth || alumnus.dob),
+  });
+  setAddFormStep(1);
+  setIsAddModalOpen(true);
+};
+
   const handleSendInvitation = async (id: string, name: string, mobile: string) => {
     const confirmed = await alertService.showConfirm(
       'Send Account Invitation?',
@@ -748,6 +813,8 @@ export const AlumniManagement: React.FC = () => {
       verification_status: 'APPROVED',
     });
     setAddFormStep(1);
+    // ✅ NEW: Clear edit mode when the wizard is reset.
+    setEditingAlumnusId(null);
   };
 
   const validateAddStep = (step: number): string[] => {
@@ -818,13 +885,26 @@ export const AlumniManagement: React.FC = () => {
         payload.college_passing_year = Number(newAlumnus.college_passing_year);
       }
 
-      await api.adminCreateAlumni(payload);
-      alertService.showSuccess('Alumni Profile Created', `New alumni profile for ${newAlumnus.full_name} added. You can now send them an account activation invitation.`);
+      // ✅ NEW: Route to UPDATE when editing an existing record, otherwise CREATE.
+      if (editingAlumnusId) {
+        await api.updateAlumniAdmin(editingAlumnusId, payload);
+        alertService.showSuccess(
+          t('admin_edit_success_body'),
+          `Changes for ${newAlumnus.full_name} have been saved.`
+        );
+      } else {
+        await api.adminCreateAlumni(payload);
+        alertService.showSuccess(
+          'Alumni Profile Created',
+          `New alumni profile for ${newAlumnus.full_name} added. You can now send them an account activation invitation.`
+        );
+      }
+
       setIsAddModalOpen(false);
       resetAddForm();
       fetchAlumni(true);
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to create alumni record.');
+      alertService.handleApiError(err, editingAlumnusId ? 'Failed to update alumni record.' : 'Failed to create alumni record.');
     } finally {
       setIsAdding(false);
     }
@@ -921,8 +1001,6 @@ export const AlumniManagement: React.FC = () => {
         </div>
 
         {/* Action Button Row — Two Groups */}
-        {/* ENGLISH: justify-between pushes Left group left, Right group right. */}
-        {/* TAMIL: no justify-between, buttons flow naturally (current Tamil layout preserved). */}
         <div className={`flex flex-wrap items-center gap-2 ${language === 'en' ? 'w-full justify-between' : ''}`}>
           {/* ============ LEFT GROUP ============ */}
           <div className="flex flex-wrap items-center gap-2">
@@ -1256,12 +1334,81 @@ export const AlumniManagement: React.FC = () => {
                           </td>
 
                           <td className="py-3 px-4">
-                            <div className="flex items-center space-x-3">
-                              <img src={photoSrc} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-300 shrink-0" />
-                              <div>
-                                <div className="font-bold text-[#111111]">{a.full_name}</div>
+                            <div className="flex items-start space-x-3">
+                              <div className="relative shrink-0">
+                                <img
+                                  src={photoSrc}
+                                  alt=""
+                                  className="w-9 h-9 rounded-full object-cover border border-gray-300 transition-all cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105"
+                                  onClick={async () => {
+                                    const choice = await alertService.showImagePreview(
+                                      a.profile_photo_url || undefined,
+                                      a.full_name,
+                                      {
+                                        canRemove: Boolean(a.profile_photo_url),
+                                        isPlaceholder: !a.profile_photo_url,
+                                      }
+                                    );
+
+                                    if (choice === 'upload') {
+                                      const input = document.getElementById(`photo-input-std-${a.id}`) as HTMLInputElement | null;
+                                      input?.click();
+                                    } else if (choice === 'remove') {
+                                      try {
+                                        await api.updateAlumniAdmin(a.id, { profile_photo_url: '' });
+                                        alertService.showSuccess('Photo Removed', `Profile photo for ${a.full_name} was removed.`);
+                                        fetchAlumni(true);
+                                      } catch (err: any) {
+                                        alertService.handleApiError(err, 'Failed to remove profile photo.');
+                                      }
+                                    }
+                                  }}
+                                  title={a.profile_photo_url ? 'Click to view / change photo' : 'Click to upload photo'}
+                                />
+
+                                <input
+                                  id={`photo-input-std-${a.id}`}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    e.target.value = '';
+                                    if (!file) return;
+
+                                    if (!file.type.startsWith('image/')) {
+                                      alertService.showWarning('Invalid File Type', 'Please select a valid image file.');
+                                      return;
+                                    }
+
+                                    try {
+                                      const res = await api.uploadSchoolImage(file);
+                                      const newUrl = res.url || res.image_url || '';
+                                      if (!newUrl) throw new Error('Upload succeeded but no URL was returned.');
+
+                                      await api.updateAlumniAdmin(a.id, { profile_photo_url: newUrl });
+                                      alertService.showSuccess('Photo Updated', `Profile photo for ${a.full_name} was updated.`);
+                                      fetchAlumni(true);
+                                    } catch (err: any) {
+                                      alertService.handleApiError(err, 'Failed to upload profile photo.');
+                                    }
+                                  }}
+                                />
+                              </div>
+
+                              {/* ✅ min-w-0 lets this container shrink below its content's natural width
+                                  inside a flex row. Without it, the long name forces the row wider
+                                  and pushes the avatar out of the visible area. */}
+                              <div className="min-w-0 flex-1">
+                                {/* ✅ break-words + whitespace-normal let long names wrap onto a new line
+                                    instead of forcing the table column to grow indefinitely. */}
+                                <div className="font-bold text-[#111111] break-words whitespace-normal leading-snug">
+                                  {a.full_name}
+                                </div>
                                 {a.admission_number && (
-                                  <div className="text-[10px] text-gray-500">{t('admin_label_adm_prefix')} {a.admission_number}</div>
+                                  <div className="text-[10px] text-gray-500 break-all whitespace-normal mt-0.5">
+                                    {t('admin_label_adm_prefix')} {a.admission_number}
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -1346,76 +1493,87 @@ export const AlumniManagement: React.FC = () => {
                           </td>
 
                           <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
-  {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
-    <button
-      type="button"
-      onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
-      className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-      title={t('admin_action_send_invite')}
-    >
-      <Send className="w-3 h-3" />
-      <span>{a.invitation_status === 'SENT' ? t('admin_action_resend_invite') : t('admin_action_send_invite')}</span>
-    </button>
-  )}
+                            {/* ✅ NEW: Edit button — opens the existing 5-step wizard pre-filled in Edit mode. */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(a)}
+                              className="px-2.5 py-1 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                              title={t('admin_action_edit')}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{t('admin_action_edit')}</span>
+                            </button>
 
-  {a.verification_status === 'PENDING' && (
-    <button
-      type="button"
-      onClick={() => handleSingleApprove(a.id, a.full_name)}
-      className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-    >
-      {t('admin_action_approve')}
-    </button>
-  )}
+                            {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
+                              <button
+                                type="button"
+                                onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
+                                className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                                title={t('admin_action_send_invite')}
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>{a.invitation_status === 'SENT' ? t('admin_action_resend_invite') : t('admin_action_send_invite')}</span>
+                              </button>
+                            )}
 
-  {a.verification_status === 'REJECTED' && (
-    <button
-      type="button"
-      onClick={() => handleSingleApprove(a.id, a.full_name)}
-      className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-    >
-      {t('admin_action_approve')}
-    </button>
-  )}
+                            {a.verification_status === 'PENDING' && (
+                              <button
+                                type="button"
+                                onClick={() => handleSingleApprove(a.id, a.full_name)}
+                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {t('admin_action_approve')}
+                              </button>
+                            )}
 
-  {a.verification_status === 'APPROVED' && (
-    <button
-      type="button"
-      onClick={() => handleOpenSuspendModal(a.id, a.full_name)}
-      className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-    >
-      {t('admin_action_suspend')}
-    </button>
-  )}
+                            {a.verification_status === 'REJECTED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleSingleApprove(a.id, a.full_name)}
+                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {t('admin_action_approve')}
+                              </button>
+                            )}
 
-  {a.verification_status === 'SUSPENDED' && (
-    <button
-      type="button"
-      onClick={() => handleSingleActivate(a.id, a.full_name)}
-      className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-    >
-      {t('admin_action_activate')}
-    </button>
-  )}
+                            {a.verification_status === 'APPROVED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenSuspendModal(a.id, a.full_name)}
+                                className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {t('admin_action_suspend')}
+                              </button>
+                            )}
 
-  <button
-    type="button"
-    onClick={() => openChangeBatchForSingle(a)}
-    className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-    title={t('admin_change_batch_btn')}
-  >
-    <RefreshCw className="w-3 h-3" />
-    <span>{t('admin_change_batch_btn')}</span>
-  </button>
+                            {a.verification_status === 'SUSPENDED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleSingleActivate(a.id, a.full_name)}
+                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {t('admin_action_activate')}
+                              </button>
+                            )}
 
-  <button
-    type="button"
-    onClick={() => handleSingleDelete(a.id, a.full_name)}
-    className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-  >
-    {t('admin_action_delete')}
-  </button>
-</td>
+                            <button
+                              type="button"
+                              onClick={() => openChangeBatchForSingle(a)}
+                              className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                              title={t('admin_change_batch_btn')}
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>{t('admin_change_batch_btn')}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSingleDelete(a.id, a.full_name)}
+                              className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            >
+                              {t('admin_action_delete')}
+                            </button>
+                          </td>
                         </tr>
                       );
                     })
@@ -1554,64 +1712,69 @@ export const AlumniManagement: React.FC = () => {
                       </td>
 
                       <td className="p-1 border-r border-gray-200">
-                        <div className="flex items-center gap-2 px-1 py-1">
-                          <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center shrink-0">
-                            {isPhotoUploading ? (
-                              <RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" />
-                            ) : (
-                              <img
-                                src={photoPreviewSrc}
-                                alt=""
-                                className="w-full h-full object-contain p-0.5"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).src =
-                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(String(a.full_name || 'A'))}&background=F3F4F6&color=111111`;
-                                }}
-                              />
-                            )}
-                          </div>
+  <div className="flex items-center justify-center px-1 py-1">
+    {/* ✅ Avatar is now the ONLY visible control in the row.
+        Upload / Replace / Remove all live inside the lightbox popup. */}
+    <div className="relative">
+      <div
+        className={`w-9 h-9 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center shrink-0 transition-all ${
+          isPhotoUploading ? '' : 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105'
+        }`}
+        onClick={async () => {
+          if (isPhotoUploading) return;
 
-                          <div className="flex flex-col gap-0.5">
-                            <label
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer transition-colors ${
-                                isPhotoUploading
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-amber-50 hover:bg-amber-100 text-[#854D0E] border border-amber-200'
-                              }`}
-                              title={currentPhoto ? t('admin_photo_upload_title_replace') : t('admin_photo_upload_title_new')}
-                            >
-                              <Upload className="w-3 h-3" />
-                              <span>{isPhotoUploading ? t('admin_sheet_uploading') : (currentPhoto ? t('admin_sheet_replace') : t('admin_sheet_upload'))}</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={isPhotoUploading}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleSheetPhotoUpload(a.id, file);
-                                  }
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
+          const choice = await alertService.showImagePreview(
+            currentPhoto || undefined,
+            String(getValue('full_name') || a.full_name || 'Profile Photo'),
+            {
+              canRemove: Boolean(currentPhoto),
+              isPlaceholder: !currentPhoto,
+            }
+          );
 
-                            {currentPhoto && !isPhotoUploading && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleCellEdit(a.id, 'profile_photo_url', '');
-                                }}
-                                className="text-[9px] font-bold text-rose-600 hover:underline text-left cursor-pointer px-0.5"
-                                title={t('admin_photo_remove_title')}
-                              >
-                                {t('admin_sheet_remove')}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </td>
+          if (choice === 'upload') {
+            // Trigger the hidden file input below
+            const input = document.getElementById(`photo-input-${a.id}`) as HTMLInputElement | null;
+            input?.click();
+          } else if (choice === 'remove') {
+            handleCellEdit(a.id, 'profile_photo_url', '');
+          }
+        }}
+        title={currentPhoto ? 'Click to view / change photo' : 'Click to upload photo'}
+      >
+        {isPhotoUploading ? (
+          <RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" />
+        ) : (
+          <img
+            src={photoPreviewSrc}
+            alt=""
+            className="w-full h-full object-contain p-0.5"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(String(a.full_name || 'A'))}&background=F3F4F6&color=111111`;
+            }}
+          />
+        )}
+      </div>
+
+      {/* Hidden file input — triggered from the lightbox's Upload/Replace button */}
+      <input
+        id={`photo-input-${a.id}`}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={isPhotoUploading}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleSheetPhotoUpload(a.id, file);
+          }
+          e.target.value = '';
+        }}
+      />
+    </div>
+  </div>
+</td>
 
                       <td className="p-1 border-r border-gray-200">
                         <input
@@ -2066,12 +2229,14 @@ export const AlumniManagement: React.FC = () => {
       )}
 
       {/* ============================================================
-          ADD NEW ALUMNI MODAL — PAGINATED 5-STEP WIZARD
+          ADD / EDIT ALUMNI MODAL — PAGINATED 5-STEP WIZARD
+          ✅ Reused for BOTH create and edit. Title & submit label switch
+             dynamically based on `editingAlumnusId`.
           ============================================================ */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => { setIsAddModalOpen(false); resetAddForm(); }}
-        title={t('admin_add_modal_title')}
+        title={editingAlumnusId ? t('admin_edit_modal_title') : t('admin_add_modal_title')}
       >
         <div className="text-xs font-medium">
 
@@ -2182,70 +2347,119 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_profile_photo')}</label>
+  <label className={addLabelCls}>{t('admin_sheet_profile_photo')}</label>
 
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
-                      {addFormPhotoUploading ? (
-                        <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
-                      ) : newAlumnus.profile_photo_url ? (
-                        <img
-                          src={newAlumnus.profile_photo_url}
-                          alt="Profile preview"
-                          className="w-full h-full object-contain p-0.5"
-                        />
-                      ) : (
-                        <Users className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
+  <div className="flex items-center gap-3 mb-2">
+    {/* ✅ Thumbnail — now clickable. Opens the shared lightbox preview. */}
+    <div
+      className={`w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0 transition-all ${
+        addFormPhotoUploading
+          ? ''
+          : 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105'
+      }`}
+      onClick={async () => {
+        if (addFormPhotoUploading) return;
 
-                    <div className="flex flex-col gap-2">
-                      <label className={`inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all border ${
-                        addFormPhotoUploading
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-gray-100 hover:bg-gray-200 text-[#111111] border-gray-200 cursor-pointer'
-                      }`}>
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          disabled={addFormPhotoUploading}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleAddFormPhotoUpload(file);
-                            }
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
+        const choice = await alertService.showImagePreview(
+          newAlumnus.profile_photo_url || undefined,
+          newAlumnus.full_name || 'Profile Photo',
+          {
+            canRemove: Boolean(newAlumnus.profile_photo_url),
+            isPlaceholder: !newAlumnus.profile_photo_url,
+          }
+        );
 
-                      {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))
-                          }
-                          className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
-                        >
-                          {t('admin_sheet_remove')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
+        if (choice === 'upload') {
+          const input = document.getElementById('wizard-photo-input') as HTMLInputElement | null;
+          input?.click();
+        } else if (choice === 'remove') {
+          setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }));
+        }
+      }}
+      title={
+        newAlumnus.profile_photo_url
+          ? 'Click to view / change photo'
+          : 'Click to upload photo'
+      }
+    >
+      {addFormPhotoUploading ? (
+        <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
+      ) : newAlumnus.profile_photo_url ? (
+        <img
+          src={newAlumnus.profile_photo_url}
+          alt="Profile preview"
+          className="w-full h-full object-contain p-0.5"
+        />
+      ) : (
+        <Users className="w-6 h-6 text-gray-400" />
+      )}
+    </div>
 
-                  <input
-                    type="text"
-                    value={newAlumnus.profile_photo_url || ''}
-                    onChange={(e) =>
-                      setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
-                    }
-                    placeholder="https://..."
-                    className={addInputCls + ' font-mono'}
-                  />
-                </div>
+    {/* Upload / Remove buttons remain visible as a fallback for discoverability */}
+    <div className="flex flex-col gap-2">
+      <label className={`inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all border ${
+        addFormPhotoUploading
+          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+          : 'bg-gray-100 hover:bg-gray-200 text-[#111111] border-gray-200 cursor-pointer'
+      }`}>
+        <Upload className="w-3.5 h-3.5" />
+        <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={addFormPhotoUploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handleAddFormPhotoUpload(file);
+            }
+            e.target.value = '';
+          }}
+        />
+      </label>
+
+      {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
+        <button
+          type="button"
+          onClick={() =>
+            setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))
+          }
+          className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
+        >
+          {t('admin_sheet_remove')}
+        </button>
+      )}
+    </div>
+  </div>
+
+  {/* ✅ Hidden file input used by the lightbox's Upload/Replace action */}
+  <input
+    id="wizard-photo-input"
+    type="file"
+    accept="image/*"
+    className="hidden"
+    disabled={addFormPhotoUploading}
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        handleAddFormPhotoUpload(file);
+      }
+      e.target.value = '';
+    }}
+  />
+
+  {/* URL input stays visible so admin can paste a direct URL manually */}
+  <input
+    type="text"
+    value={newAlumnus.profile_photo_url || ''}
+    onChange={(e) =>
+      setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
+    }
+    placeholder="https://..."
+    className={addInputCls + ' font-mono'}
+  />
+</div>
               </div>
             )}
 
@@ -2665,7 +2879,8 @@ export const AlumniManagement: React.FC = () => {
                   </Button>
                 ) : (
                   <Button type="submit" isLoading={isAdding} className="font-bold">
-                    {t('admin_add_submit')}
+                    {/* ✅ Dynamic submit label: "Save Changes" in edit, "Create Alumni Profile" in add */}
+                    {editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}
                   </Button>
                 )}
               </div>

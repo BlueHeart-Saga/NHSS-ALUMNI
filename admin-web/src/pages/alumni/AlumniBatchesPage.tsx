@@ -35,8 +35,7 @@ export const AlumniBatchesPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-amber-950 via-amber-900 to-stone-900 text-white p-5 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
-        <div className="relative z-10">
+      <div className="bg-black text-white p-5 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">        <div className="relative z-10">
           <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400 bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30 inline-block">
             {language === 'ta' ? `வகுப்பு ${user?.passing_year || ''}` : `Batch of ${user?.passing_year || 'Alumni'}`}
           </span>

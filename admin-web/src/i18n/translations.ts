@@ -113,7 +113,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_school_events: "School Celebrations",
     admin_announcements: "Announcements",
     admin_memories: "Memories Moderation",
-    admin_feedback: "Alumni Feedback / கருத்துகள்",
+    admin_feedback: "Alumni Feedback",
     admin_association_team: "Association Team",
     admin_rank_holders: "Rank Holders",
     admin_reports: "Reports & Export",
@@ -208,7 +208,8 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_status_invite_sent: "Invite Sent",
     admin_status_pending_activation: "Pending Activation",
 
-    // Row actions
+        // Row actions
+    admin_action_edit: "Edit",
     admin_action_approve: "Approve",
     admin_action_suspend: "Suspend",
     admin_action_activate: "Activate",
@@ -292,6 +293,9 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // Add / Edit Alumni wizard
     admin_add_modal_title: "Add New Alumni Profile",
+    admin_edit_modal_title: "Edit Alumni Profile",
+    admin_edit_submit: "Save Changes",
+    admin_edit_success_body: "Alumni Profile Updated",
     admin_add_step_label: "Step",
     admin_add_step_of: "of",
     admin_add_step_personal: "Personal Information",
@@ -2189,6 +2193,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_status_pending_activation: "செயல்படுத்த காத்திருக்கிறது",
 
     // Row actions
+    admin_action_edit: "திருத்து",
     admin_action_approve: "அங்கீகரி",
     admin_action_suspend: "இடைநிறுத்து",
     admin_action_activate: "மீண்டும் செயல்படுத்து",
@@ -2272,6 +2277,9 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // Add / Edit Alumni wizard
     admin_add_modal_title: "மாணவர் சுயவிவரத்தைச் சேர்க்க",
+    admin_edit_modal_title: "முன்னாள் மாணவர் சுயவிவரத்தைத் திருத்து",
+    admin_edit_submit: "மாற்றங்களைச் சேமி",
+    admin_edit_success_body: "சுயவிவரம் புதுப்பிக்கப்பட்டது",
     admin_add_step_label: "படி",
     admin_add_step_of: "/",
     admin_add_step_personal: "தனிப்பட்ட தகவல்",
