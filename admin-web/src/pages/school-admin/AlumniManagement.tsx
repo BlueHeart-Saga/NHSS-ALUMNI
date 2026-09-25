@@ -1271,325 +1271,387 @@ export const AlumniManagement: React.FC = () => {
       </div>
 
       {/* VIEW 1: STANDARD TABLE MODE */}
-      {viewMode === 'table' && (
-        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-2xs">
-          {loading ? (
-            <TableSkeleton rows={8} />
-          ) : (
-            <div ref={tableContainerRef} className="overflow-x-auto table-scrollbar relative scroll-smooth">
-              <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                <thead>
-                  <tr className="bg-gray-100/90 border-b border-gray-200 text-[11px] font-extrabold uppercase tracking-wider text-gray-600 whitespace-nowrap">
-                    <th className="py-3 px-4 w-10 sticky left-0 bg-gray-100 z-10 border-r border-gray-200/50 shadow-2xs">
+{viewMode === 'table' && (
+  <div className="bg-white border-2 border-[#111111] rounded-3xl overflow-hidden shadow-lg">
+    {/* Header bar — matches Editable Sheet's dark header style */}
+    <div className="px-5 py-3 bg-[#111111] text-white flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
+      <div className="flex items-center space-x-2">
+        <TableIcon className="w-4 h-4 text-amber-400" />
+        <span>{t('admin_view_standard_table')}</span>
+      </div>
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center bg-[#222222] border border-gray-700 rounded-lg p-0.5 text-gray-300 shadow-xs">
+          <button
+            type="button"
+            onClick={() => scrollTable(-400)}
+            title={t('admin_sheet_scroll_left')}
+            className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-[10px] font-mono px-2 text-gray-400 select-none tracking-tight">
+            {t('admin_pan_columns')}
+          </span>
+          <button
+            type="button"
+            onClick={() => scrollTable(400)}
+            title={t('admin_sheet_scroll_right')}
+            className="p-1 hover:text-amber-400 hover:bg-[#333333] rounded transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <span className="text-amber-300 font-mono bg-amber-950/50 px-2.5 py-1 rounded border border-amber-500/30">
+          {displayedAlumni.length} {t('admin_sheet_rows_rendered')}
+        </span>
+      </div>
+    </div>
+
+    {/* Scrollable table container — same behavior as Editable Sheet */}
+    {loading ? (
+      <TableSkeleton rows={8} />
+    ) : (
+      <div
+        ref={tableContainerRef}
+        className="overflow-auto max-h-[75vh] table-scrollbar relative scroll-smooth"
+      >
+        <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+          <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase tracking-wider text-gray-700 z-20 shadow-sm">
+            <tr>
+              <th className="py-3 px-4 w-10 sticky left-0 bg-gray-100 z-30 border-r border-gray-200/50 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="cursor-pointer text-gray-600 hover:text-black"
+                >
+                  {selectedIds.size === displayedAlumni.length && displayedAlumni.length > 0 ? (
+                    <CheckSquare className="w-4 h-4 text-[#111111]" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                </button>
+              </th>
+              <th className="py-3.5 px-3 w-16 text-center">{t('admin_col_sno')}</th>
+              <th className="py-3.5 px-4 min-w-[200px]">{t('admin_col_alumnus_profile')}</th>
+              <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_batch_section')}</th>
+              <th className="py-3.5 px-4 min-w-[160px]">{t('admin_col_contact_info')}</th>
+              <th className="py-3.5 px-4 min-w-[190px]">{t('admin_col_address')}</th>
+              <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_blood_group')}</th>
+              <th className="py-3.5 px-4 min-w-[100px]">{t('admin_col_volunteer')}</th>
+              <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_willing_donor')}</th>
+              <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_status')}</th>
+              <th className="py-3.5 px-4 text-right min-w-[190px] sticky right-0 bg-gray-100 z-30 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]">
+                {t('admin_col_actions')}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-200 font-medium">
+            {displayedAlumni.length > 0 ? (
+              displayedAlumni.map((a, index) => {
+                const isSelected = selectedIds.has(a.id);
+                const photoSrc = a.profile_photo_url ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name)}&background=F3F4F6&color=111111`;
+
+                return (
+                  <tr key={a.id} className={`group hover:bg-amber-50/40 transition-colors ${isSelected ? 'bg-amber-50/70' : ''}`}>
+                    <td className={`py-3 px-4 sticky left-0 z-10 border-r border-gray-200/40 ${isSelected ? 'bg-[#FFF2C6]' : 'bg-white group-hover:bg-amber-50/70'}`}>
                       <button
                         type="button"
-                        onClick={toggleSelectAll}
+                        onClick={() => toggleSelectRow(a.id)}
                         className="cursor-pointer text-gray-600 hover:text-black"
                       >
-                        {selectedIds.size === displayedAlumni.length && displayedAlumni.length > 0 ? (
+                        {isSelected ? (
                           <CheckSquare className="w-4 h-4 text-[#111111]" />
                         ) : (
                           <Square className="w-4 h-4" />
                         )}
                       </button>
-                    </th>
-                    <th className="py-3.5 px-3 w-16 text-center">{t('admin_col_sno')}</th>
-                    <th className="py-3.5 px-4 min-w-[200px]">{t('admin_col_alumnus_profile')}</th>
-                    <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_batch_section')}</th>
-                    <th className="py-3.5 px-4 min-w-[160px]">{t('admin_col_contact_info')}</th>
-                    <th className="py-3.5 px-4 min-w-[190px]">{t('admin_col_address')}</th>
-                    <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_blood_group')}</th>
-                    <th className="py-3.5 px-4 min-w-[100px]">{t('admin_col_volunteer')}</th>
-                    <th className="py-3.5 px-4 min-w-[110px]">{t('admin_col_willing_donor')}</th>
-                    <th className="py-3.5 px-4 min-w-[140px]">{t('admin_col_status')}</th>
-                    <th className="py-3.5 px-4 text-right min-w-[190px]">{t('admin_col_actions')}</th>
+                    </td>
+
+                    <td className="py-3 px-3 text-center font-mono font-semibold text-gray-600 text-xs">
+                      {index + 1}
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="relative shrink-0">
+                          <img
+                            src={photoSrc}
+                            alt=""
+                            className="w-9 h-9 rounded-full object-cover border border-gray-300 transition-all cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105"
+                            onClick={async () => {
+                              const choice = await alertService.showImagePreview(
+                                a.profile_photo_url || undefined,
+                                a.full_name,
+                                {
+                                  canRemove: Boolean(a.profile_photo_url),
+                                  isPlaceholder: !a.profile_photo_url,
+                                }
+                              );
+
+                              if (choice === 'upload') {
+                                const input = document.getElementById(`photo-input-std-${a.id}`) as HTMLInputElement | null;
+                                input?.click();
+                              } else if (choice === 'remove') {
+                                try {
+                                  await api.updateAlumniAdmin(a.id, { profile_photo_url: '' });
+                                  alertService.showSuccess('Photo Removed', `Profile photo for ${a.full_name} was removed.`);
+                                  fetchAlumni(true);
+                                } catch (err: any) {
+                                  alertService.handleApiError(err, 'Failed to remove profile photo.');
+                                }
+                              }
+                            }}
+                            title={a.profile_photo_url ? 'Click to view / change photo' : 'Click to upload photo'}
+                          />
+
+                          <input
+                            id={`photo-input-std-${a.id}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (!file) return;
+
+                              if (!file.type.startsWith('image/')) {
+                                alertService.showWarning('Invalid File Type', 'Please select a valid image file.');
+                                return;
+                              }
+
+                              try {
+                                const res = await api.uploadSchoolImage(file);
+                                const newUrl = res.url || res.image_url || '';
+                                if (!newUrl) throw new Error('Upload succeeded but no URL was returned.');
+
+                                await api.updateAlumniAdmin(a.id, { profile_photo_url: newUrl });
+                                alertService.showSuccess('Photo Updated', `Profile photo for ${a.full_name} was updated.`);
+                                fetchAlumni(true);
+                              } catch (err: any) {
+                                alertService.handleApiError(err, 'Failed to upload profile photo.');
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-[#111111] break-words whitespace-normal leading-snug">
+                            {a.full_name}
+                          </div>
+                          {a.admission_number && (
+                            <div className="text-[10px] text-gray-500 break-all whitespace-normal mt-0.5">
+                              {t('admin_label_adm_prefix')} {a.admission_number}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
+                        {t('admin_label_batch_prefix')} {a.passing_year} {a.section ? `(${a.section})` : ''}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-gray-800">{a.mobile || '-'}</div>
+                      <div className="text-gray-500 text-[11px] truncate max-w-[160px]">{a.email || '-'}</div>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div
+                        className="text-gray-700 text-[11px] max-w-[200px] truncate"
+                        title={a.address || ''}
+                      >
+                        {a.address || '-'}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {a.blood_group ? (
+                        <span className="inline-flex items-center space-x-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full text-[11px]">
+                          <Droplet className="w-3 h-3 fill-rose-600 text-rose-600" />
+                          <span>{a.blood_group}</span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {a.is_volunteer === 'YES' ? (
+                        <span className="inline-flex items-center space-x-1 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px]">
+                          <HandHeart className="w-3 h-3 text-emerald-600" />
+                          <span>{t('admin_label_yes')}</span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">{t('admin_label_no')}</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {a.willing_to_donate === 'YES' ? (
+                        <span className="inline-flex items-center space-x-1 font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-2 py-0.5 rounded-full text-[10px]">
+                          <Heart className="w-3 h-3 fill-[#854D0E] text-[#854D0E]" />
+                          <span>{t('admin_label_yes')}</span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">{t('admin_label_no')}</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          a.verification_status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          a.verification_status === 'PENDING' ? 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]' :
+                          'bg-rose-100 text-rose-800 border border-rose-300'
+                        }`}>
+                          {a.verification_status || 'APPROVED'}
+                        </span>
+                        {a.account_status === 'PENDING_ACTIVATION' ? (
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                            a.invitation_status === 'SENT'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {a.invitation_status === 'SENT' ? t('admin_status_invite_sent') : t('admin_status_pending_activation')}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {t('admin_status_active')}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className={`py-3 px-4 text-right whitespace-nowrap space-x-2 sticky right-0 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] ${isSelected ? 'bg-[#FFF2C6]' : 'bg-white group-hover:bg-amber-50/70'}`}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(a)}
+                        className="px-2.5 py-1 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                        title={t('admin_action_edit')}
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>{t('admin_action_edit')}</span>
+                      </button>
+
+                      {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
+                          className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                          title={t('admin_action_send_invite')}
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>{a.invitation_status === 'SENT' ? t('admin_action_resend_invite') : t('admin_action_send_invite')}</span>
+                        </button>
+                      )}
+
+                      {a.verification_status === 'PENDING' && (
+                        <button
+                          type="button"
+                          onClick={() => handleSingleApprove(a.id, a.full_name)}
+                          className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        >
+                          {t('admin_action_approve')}
+                        </button>
+                      )}
+
+                      {a.verification_status === 'REJECTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleSingleApprove(a.id, a.full_name)}
+                          className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        >
+                          {t('admin_action_approve')}
+                        </button>
+                      )}
+
+                      {a.verification_status === 'APPROVED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSuspendModal(a.id, a.full_name)}
+                          className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        >
+                          {t('admin_action_suspend')}
+                        </button>
+                      )}
+
+                      {a.verification_status === 'SUSPENDED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleSingleActivate(a.id, a.full_name)}
+                          className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        >
+                          {t('admin_action_activate')}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => openChangeBatchForSingle(a)}
+                        className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                        title={t('admin_change_batch_btn')}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>{t('admin_change_batch_btn')}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSingleDelete(a.id, a.full_name)}
+                        className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      >
+                        {t('admin_action_delete')}
+                      </button>
+                    </td>
                   </tr>
-                </thead>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={11} className="py-10 text-center text-gray-500 font-bold">
+                  {t('admin_no_alumni_found')}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
 
-                <tbody className="divide-y divide-gray-200 font-medium">
-                  {displayedAlumni.length > 0 ? (
-                    displayedAlumni.map((a, index) => {
-                      const isSelected = selectedIds.has(a.id);
-                      const photoSrc = a.profile_photo_url ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name)}&background=F3F4F6&color=111111`;
-
-                      return (
-                        <tr key={a.id} className={`group hover:bg-amber-50/40 transition-colors ${isSelected ? 'bg-amber-50/70' : ''}`}>
-                          <td className={`py-3 px-4 sticky left-0 z-10 border-r border-gray-200/40 ${isSelected ? 'bg-[#FFF2C6]' : 'bg-white group-hover:bg-amber-50/70'}`}>
-                            <button
-                              type="button"
-                              onClick={() => toggleSelectRow(a.id)}
-                              className="cursor-pointer text-gray-600 hover:text-black"
-                            >
-                              {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-[#111111]" />
-                              ) : (
-                                <Square className="w-4 h-4" />
-                              )}
-                            </button>
-                          </td>
-
-                          <td className="py-3 px-3 text-center font-mono font-semibold text-gray-600 text-xs">
-                            {index + 1}
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <div className="flex items-start space-x-3">
-                              <div className="relative shrink-0">
-                                <img
-                                  src={photoSrc}
-                                  alt=""
-                                  className="w-9 h-9 rounded-full object-cover border border-gray-300 transition-all cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105"
-                                  onClick={async () => {
-                                    const choice = await alertService.showImagePreview(
-                                      a.profile_photo_url || undefined,
-                                      a.full_name,
-                                      {
-                                        canRemove: Boolean(a.profile_photo_url),
-                                        isPlaceholder: !a.profile_photo_url,
-                                      }
-                                    );
-
-                                    if (choice === 'upload') {
-                                      const input = document.getElementById(`photo-input-std-${a.id}`) as HTMLInputElement | null;
-                                      input?.click();
-                                    } else if (choice === 'remove') {
-                                      try {
-                                        await api.updateAlumniAdmin(a.id, { profile_photo_url: '' });
-                                        alertService.showSuccess('Photo Removed', `Profile photo for ${a.full_name} was removed.`);
-                                        fetchAlumni(true);
-                                      } catch (err: any) {
-                                        alertService.handleApiError(err, 'Failed to remove profile photo.');
-                                      }
-                                    }
-                                  }}
-                                  title={a.profile_photo_url ? 'Click to view / change photo' : 'Click to upload photo'}
-                                />
-
-                                <input
-                                  id={`photo-input-std-${a.id}`}
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    e.target.value = '';
-                                    if (!file) return;
-
-                                    if (!file.type.startsWith('image/')) {
-                                      alertService.showWarning('Invalid File Type', 'Please select a valid image file.');
-                                      return;
-                                    }
-
-                                    try {
-                                      const res = await api.uploadSchoolImage(file);
-                                      const newUrl = res.url || res.image_url || '';
-                                      if (!newUrl) throw new Error('Upload succeeded but no URL was returned.');
-
-                                      await api.updateAlumniAdmin(a.id, { profile_photo_url: newUrl });
-                                      alertService.showSuccess('Photo Updated', `Profile photo for ${a.full_name} was updated.`);
-                                      fetchAlumni(true);
-                                    } catch (err: any) {
-                                      alertService.handleApiError(err, 'Failed to upload profile photo.');
-                                    }
-                                  }}
-                                />
-                              </div>
-
-                              {/* ✅ min-w-0 lets this container shrink below its content's natural width
-                                  inside a flex row. Without it, the long name forces the row wider
-                                  and pushes the avatar out of the visible area. */}
-                              <div className="min-w-0 flex-1">
-                                {/* ✅ break-words + whitespace-normal let long names wrap onto a new line
-                                    instead of forcing the table column to grow indefinitely. */}
-                                <div className="font-bold text-[#111111] break-words whitespace-normal leading-snug">
-                                  {a.full_name}
-                                </div>
-                                {a.admission_number && (
-                                  <div className="text-[10px] text-gray-500 break-all whitespace-normal mt-0.5">
-                                    {t('admin_label_adm_prefix')} {a.admission_number}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
-                              {t('admin_label_batch_prefix')} {a.passing_year} {a.section ? `(${a.section})` : ''}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <div className="font-semibold text-gray-800">{a.mobile || '-'}</div>
-                            <div className="text-gray-500 text-[11px] truncate max-w-[160px]">{a.email || '-'}</div>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <div
-                              className="text-gray-700 text-[11px] max-w-[200px] truncate"
-                              title={a.address || ''}
-                            >
-                              {a.address || '-'}
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            {a.blood_group ? (
-                              <span className="inline-flex items-center space-x-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full text-[11px]">
-                                <Droplet className="w-3 h-3 fill-rose-600 text-rose-600" />
-                                <span>{a.blood_group}</span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            {a.is_volunteer === 'YES' ? (
-                              <span className="inline-flex items-center space-x-1 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px]">
-                                <HandHeart className="w-3 h-3 text-emerald-600" />
-                                <span>{t('admin_label_yes')}</span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">{t('admin_label_no')}</span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            {a.willing_to_donate === 'YES' ? (
-                              <span className="inline-flex items-center space-x-1 font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-2 py-0.5 rounded-full text-[10px]">
-                                <Heart className="w-3 h-3 fill-[#854D0E] text-[#854D0E]" />
-                                <span>{t('admin_label_yes')}</span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">{t('admin_label_no')}</span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <div className="flex flex-col gap-1 items-start">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                a.verification_status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                                a.verification_status === 'PENDING' ? 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]' :
-                                'bg-rose-100 text-rose-800 border border-rose-300'
-                              }`}>
-                                {a.verification_status || 'APPROVED'}
-                              </span>
-                              {a.account_status === 'PENDING_ACTIVATION' ? (
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                  a.invitation_status === 'SENT'
-                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}>
-                                  {a.invitation_status === 'SENT' ? t('admin_status_invite_sent') : t('admin_status_pending_activation')}
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  {t('admin_status_active')}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
-                            {/* ✅ NEW: Edit button — opens the existing 5-step wizard pre-filled in Edit mode. */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditModal(a)}
-                              className="px-2.5 py-1 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-                              title={t('admin_action_edit')}
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              <span>{t('admin_action_edit')}</span>
-                            </button>
-
-                            {(a.account_status === 'PENDING_ACTIVATION' || a.invitation_status === 'SENT') && a.mobile && (
-                              <button
-                                type="button"
-                                onClick={() => handleSendInvitation(a.id, a.full_name, a.mobile)}
-                                className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-                                title={t('admin_action_send_invite')}
-                              >
-                                <Send className="w-3 h-3" />
-                                <span>{a.invitation_status === 'SENT' ? t('admin_action_resend_invite') : t('admin_action_send_invite')}</span>
-                              </button>
-                            )}
-
-                            {a.verification_status === 'PENDING' && (
-                              <button
-                                type="button"
-                                onClick={() => handleSingleApprove(a.id, a.full_name)}
-                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                {t('admin_action_approve')}
-                              </button>
-                            )}
-
-                            {a.verification_status === 'REJECTED' && (
-                              <button
-                                type="button"
-                                onClick={() => handleSingleApprove(a.id, a.full_name)}
-                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                {t('admin_action_approve')}
-                              </button>
-                            )}
-
-                            {a.verification_status === 'APPROVED' && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenSuspendModal(a.id, a.full_name)}
-                                className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                {t('admin_action_suspend')}
-                              </button>
-                            )}
-
-                            {a.verification_status === 'SUSPENDED' && (
-                              <button
-                                type="button"
-                                onClick={() => handleSingleActivate(a.id, a.full_name)}
-                                className="px-2.5 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                {t('admin_action_activate')}
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => openChangeBatchForSingle(a)}
-                              className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
-                              title={t('admin_change_batch_btn')}
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              <span>{t('admin_change_batch_btn')}</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleSingleDelete(a.id, a.full_name)}
-                              className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                            >
-                              {t('admin_action_delete')}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={11} className="py-10 text-center text-gray-500 font-bold">
-                        {t('admin_no_alumni_found')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+    {/* Footer bar — mirrors Editable Sheet's footer */}
+    <div className="px-5 py-2.5 bg-gray-100 border-t border-gray-300 flex flex-wrap items-center justify-between gap-2 text-gray-600 text-[11px] font-semibold">
+      <div className="flex items-center space-x-2">
+        <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+        <span>{t('admin_horizontal_scroll')} {t('admin_pan_columns')}</span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <button
+          type="button"
+          onClick={() => scrollTable(-500)}
+          className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
+          title={t('admin_sheet_scroll_left')}
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span>{t('admin_sheet_scroll_left')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollTable(500)}
+          className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-700 font-bold text-xs cursor-pointer shadow-xs flex items-center space-x-1"
+          title={t('admin_sheet_scroll_right')}
+        >
+          <span>{t('admin_sheet_scroll_right')}</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* VIEW 2: INTERACTIVE EDITABLE SPREADSHEET GRID MODE */}
       {viewMode === 'sheet' && (
@@ -1647,7 +1709,7 @@ export const AlumniManagement: React.FC = () => {
               <thead className="sticky top-0 bg-gray-100 border-b border-gray-300 text-[11px] font-extrabold uppercase text-gray-700 z-10 shadow-sm">
                 <tr>
                   <th className="py-2.5 px-3 border-r border-gray-300 w-16 text-center">{t('admin_col_sno')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[220px]">{t('admin_sheet_profile_photo')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px] w-[80px]">{t('admin_sheet_profile_photo')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[170px]">{t('admin_sheet_full_name')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">{t('admin_sheet_name_tamil')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_mobile')}</th>
@@ -1711,8 +1773,8 @@ export const AlumniManagement: React.FC = () => {
                         {index + 1}
                       </td>
 
-                      <td className="p-1 border-r border-gray-200">
-  <div className="flex items-center justify-center px-1 py-1">
+                      <td className="p-1 border-r border-gray-200 w-[80px] text-center">
+  <div className="flex items-center justify-center">
     {/* ✅ Avatar is now the ONLY visible control in the row.
         Upload / Replace / Remove all live inside the lightbox popup. */}
     <div className="relative">
