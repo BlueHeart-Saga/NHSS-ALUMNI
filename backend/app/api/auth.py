@@ -1155,236 +1155,258 @@ async def request_reverification(request: RequestReverificationRequest, current_
 
 @router.post("/register", response_model=UserProfileResponse)
 async def register_alumni(request: UserRegistrationRequest, current_user: dict = Depends(get_current_user)):
-    db = get_db()
-    user_id = current_user["user_id"]
-    school_id = current_user["school_id"]
+    try:
+        db = get_db()
+        user_id = current_user["user_id"]
+        school_id = current_user.get("school_id")
 
-    # Validate School Timeline
-    if request.joining_year and request.passing_year and request.joining_year > request.passing_year:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid School Timeline: Admission/Joining year ({request.joining_year}) cannot be greater than Leaving/Passing year ({request.passing_year})."
-        )
+        if not school_id:
+            default_school = await db.schools.find_one({})
+            if default_school:
+                school_id = str(default_school["_id"])
 
-    # Validate College Timeline
-    if not request.no_higher_education and request.college_joining_year and request.college_passing_year and request.college_joining_year > request.college_passing_year:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid College Timeline: College Admission/Joining year ({request.college_joining_year}) cannot be greater than College Passing/Graduation year ({request.college_passing_year})."
-        )
+        try:
+            user_obj_id = ObjectId(user_id)
+        except Exception:
+            user_obj_id = user_id
 
-    # Calculate 12th equivalent batch year (e.g. 10th in 2025 -> Batch of 2027)
-    raw_passing_yr = request.passing_year or 2010
-    leaving_cls = request.leaving_class or "12th"
-    cls_num = None
-    if leaving_cls:
-        import re
-        matches = re.findall(r'\d+', str(leaving_cls))
-        if matches:
-            cls_num = int(matches[0])
-
-    if cls_num and 1 <= cls_num < 12:
-        effective_batch_year = raw_passing_yr + (12 - cls_num)
-    else:
-        effective_batch_year = raw_passing_yr
-
-    # Check if batch exists; auto-create if missing for passing year
-    batch = await db.batches.find_one({"school_id": school_id, "passing_year": effective_batch_year})
-    if not batch and 1960 <= effective_batch_year <= 2030:
-        new_batch_doc = {
-            "school_id": school_id,
-            "name": f"Batch of {effective_batch_year}",
-            "passing_year": effective_batch_year,
-            "description": f"Academic Batch for passing year {effective_batch_year}",
-            "coordinators": [],
-            "status": "ACTIVE",
-            "created_at": datetime.now(timezone.utc)
-        }
-        res_batch = await db.batches.insert_one(new_batch_doc)
-        batch_id = str(res_batch.inserted_id)
-    else:
-        batch_id = str(batch["_id"]) if batch else None
-
-    # Check if a pre-imported CSV roster record exists with user_id: None matching mobile/email/admission_number
-    dup_query = []
-    if request.mobile: dup_query.extend(build_mobile_query_filter(request.mobile))
-    if request.email: dup_query.append({"email": str(request.email)})
-    if request.admission_number: dup_query.append({"admission_number": request.admission_number})
-
-    pre_imported = await db.alumni.find_one({
-        "school_id": school_id,
-        "$or": [
-            {"user_id": {"$exists": False}},
-            {"user_id": None},
-        ],
-        **({"$and": [{"$or": dup_query}]} if dup_query else {})
-    }) if dup_query else None
-
-    now = datetime.now(timezone.utc)
-    norm_mobile = normalize_indian_mobile(request.mobile) if (request.mobile and is_valid_indian_mobile(request.mobile)) else (request.mobile.strip().replace(" ", "") if request.mobile else None)
-
-    # Check if mobile number is already registered by another user account
-    if request.mobile:
-        existing_mobile_user = await db.users.find_one({
-            "$or": build_mobile_query_filter(request.mobile),
-            "_id": {"$ne": ObjectId(user_id)}
-        })
-        if existing_mobile_user:
+        # Validate School Timeline
+        if request.joining_year and request.passing_year and request.joining_year > request.passing_year:
             raise HTTPException(
-                status_code=409,
-                detail=f"This mobile number ({request.mobile}) is already registered with another account. Please check your mobile number or log in."
+                status_code=400,
+                detail=f"Invalid School Timeline: Admission/Joining year ({request.joining_year}) cannot be greater than Leaving/Passing year ({request.passing_year})."
             )
 
-    # Update user record with name and contact details
-    user_update = {
-        "email": str(request.email) if request.email else None,
-        "mobile": norm_mobile,
-        "full_name": request.full_name,
-        "phone_verified": True,
-        "account_status": "ACTIVE",
-        "updated_at": now
-    }
-    if request.password and request.password.strip():
-        hashed_pw = get_password_hash(request.password.strip())
-        user_update["password"] = hashed_pw
-        user_update["password_hash"] = hashed_pw
+        # Validate College Timeline
+        if not request.no_higher_education and request.college_joining_year and request.college_passing_year and request.college_joining_year > request.college_passing_year:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid College Timeline: College Admission/Joining year ({request.college_joining_year}) cannot be greater than College Passing/Graduation year ({request.college_passing_year})."
+            )
 
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_update})
+        # Calculate 12th equivalent batch year (e.g. 10th in 2025 -> Batch of 2027)
+        raw_passing_yr = request.passing_year or 2010
+        leaving_cls = request.leaving_class or "12th"
+        cls_num = None
+        if leaving_cls:
+            import re
+            matches = re.findall(r'\d+', str(leaving_cls))
+            if matches:
+                cls_num = int(matches[0])
 
-    extra_fields = {
-        "gender": request.gender,
-        "dob": request.dob,
-        "blood_group": request.blood_group,
-        "father_name": request.father_name,
-        "mother_name": request.mother_name,
-        "country_code": request.country_code or "+91",
-        "school_name": request.school_name,
-        "joining_year": request.joining_year,
-        "leaving_class": request.leaving_class or "10th",
-        "no_higher_education": request.no_higher_education or False,
-        "college_name": request.college_name,
-        "degree": request.degree,
-        "other_degree": request.other_degree,
-        "stream": request.stream,
-        "college_joining_year": request.college_joining_year,
-        "college_passing_year": request.college_passing_year,
-        "employment_status": request.employment_status,
-        "chapter": request.chapter,
-        "company": request.company,
-        "position": request.position,
-        "profession": request.profession or request.position or request.employment_status,
-        "industry": request.industry,
-        "total_experience": request.total_experience,
-        "industries": request.industries or request.industry,
-        "other_college": request.other_college or request.college_name,
-        "other_stream": request.other_stream or request.stream,
-        "other_passing_year": request.other_passing_year or request.college_passing_year,
-        "is_volunteer": request.is_volunteer or None,
-        "willing_to_donate": request.willing_to_donate or None,
-        "address": request.address,
-        "city": request.city or request.current_city,
-        "state": request.state,
-        "country": request.country or "India",
-        "linkedin_url": request.linkedin_url,
-        "instagram_url": request.instagram_url,
-        "whatsapp_number": request.whatsapp_number
-    }
+        if cls_num and 1 <= cls_num < 12:
+            effective_batch_year = raw_passing_yr + (12 - cls_num)
+        else:
+            effective_batch_year = raw_passing_yr
 
-    if pre_imported:
-        # Preserve PENDING status unless pre_imported record was explicitly APPROVED
-        status_val = pre_imported.get("verification_status") if pre_imported.get("verification_status") in ["APPROVED", "REJECTED"] else "PENDING"
-        notes_val = "Auto-verified: Matched pre-approved school roster record" if status_val == "APPROVED" else "Matched pre-imported school roster record - Awaiting admin review"
-        alumni_doc = {
-            "user_id": user_id,
-            "full_name": request.full_name or pre_imported.get("full_name"),
-            "mobile": norm_mobile or pre_imported.get("mobile"),
-            "email": str(request.email) if request.email else pre_imported.get("email"),
-            "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
-            "passing_year": effective_batch_year or pre_imported.get("passing_year", 2010),
-            "batch_id": batch_id or pre_imported.get("batch_id"),
-            "current_city": request.current_city or pre_imported.get("current_city"),
-            "profession": request.position or request.profession or pre_imported.get("profession"),
-            "verification_status": status_val,
-            "verification_notes": notes_val,
-            "verified_at": now if status_val == "APPROVED" else None,
-            **extra_fields
+        # Check if batch exists; auto-create if missing for passing year
+        batch = await db.batches.find_one({"school_id": school_id, "passing_year": effective_batch_year}) if school_id else None
+        if not batch and school_id and 1960 <= effective_batch_year <= 2030:
+            new_batch_doc = {
+                "school_id": school_id,
+                "name": f"Batch of {effective_batch_year}",
+                "passing_year": effective_batch_year,
+                "description": f"Academic Batch for passing year {effective_batch_year}",
+                "coordinators": [],
+                "status": "ACTIVE",
+                "created_at": datetime.now(timezone.utc)
+            }
+            res_batch = await db.batches.insert_one(new_batch_doc)
+            batch_id = str(res_batch.inserted_id)
+        else:
+            batch_id = str(batch["_id"]) if batch else None
+
+        # Check if a pre-imported CSV roster record exists with user_id: None matching mobile/email/admission_number
+        dup_query = []
+        if request.mobile: dup_query.extend(build_mobile_query_filter(request.mobile))
+        if request.email: dup_query.append({"email": str(request.email)})
+        if hasattr(request, 'admission_number') and request.admission_number: dup_query.append({"admission_number": request.admission_number})
+
+        pre_imported = await db.alumni.find_one({
+            "school_id": school_id,
+            "$or": [
+                {"user_id": {"$exists": False}},
+                {"user_id": None},
+            ],
+            **({"$and": [{"$or": dup_query}]} if dup_query else {})
+        }) if (dup_query and school_id) else None
+
+        now = datetime.now(timezone.utc)
+        norm_mobile = normalize_indian_mobile(request.mobile) if (request.mobile and is_valid_indian_mobile(request.mobile)) else (request.mobile.strip().replace(" ", "") if request.mobile else None)
+
+        # Check if mobile number is already registered by another user account
+        if request.mobile:
+            existing_mobile_user = await db.users.find_one({
+                "$or": build_mobile_query_filter(request.mobile),
+                "_id": {"$ne": user_obj_id}
+            })
+            if existing_mobile_user:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"This mobile number ({request.mobile}) is already registered with another account. Please check your mobile number or log in."
+                )
+
+        # Update user record with name and contact details
+        user_update = {
+            "email": str(request.email) if request.email else None,
+            "mobile": norm_mobile,
+            "full_name": request.full_name,
+            "phone_verified": True,
+            "account_status": "ACTIVE",
+            "updated_at": now
         }
-        await db.alumni.update_one({"_id": pre_imported["_id"]}, {"$set": alumni_doc})
-    else:
-        # Create new pending alumni record
-        alumni_doc = {
+        if school_id:
+            user_update["school_id"] = school_id
+
+        if request.password and request.password.strip():
+            hashed_pw = get_password_hash(request.password.strip())
+            user_update["password"] = hashed_pw
+            user_update["password_hash"] = hashed_pw
+
+        await db.users.update_one({"_id": user_obj_id}, {"$set": user_update})
+
+        extra_fields = {
+            "gender": request.gender,
+            "dob": request.dob,
+            "blood_group": request.blood_group,
+            "father_name": request.father_name,
+            "mother_name": request.mother_name,
+            "country_code": request.country_code or "+91",
+            "school_name": request.school_name,
+            "joining_year": request.joining_year,
+            "leaving_class": request.leaving_class or "10th",
+            "no_higher_education": request.no_higher_education or False,
+            "college_name": request.college_name,
+            "degree": request.degree,
+            "other_degree": request.other_degree,
+            "stream": request.stream,
+            "college_joining_year": request.college_joining_year,
+            "college_passing_year": request.college_passing_year,
+            "employment_status": request.employment_status,
+            "chapter": request.chapter,
+            "company": request.company,
+            "position": request.position,
+            "profession": request.profession or request.position or request.employment_status,
+            "industry": request.industry,
+            "total_experience": request.total_experience,
+            "industries": request.industries or request.industry,
+            "other_college": request.other_college or request.college_name,
+            "other_stream": request.other_stream or request.stream,
+            "other_passing_year": request.other_passing_year or request.college_passing_year,
+            "is_volunteer": request.is_volunteer or None,
+            "willing_to_donate": request.willing_to_donate or None,
+            "address": request.address,
+            "city": request.city or request.current_city,
+            "state": request.state,
+            "country": request.country or "India",
+            "linkedin_url": request.linkedin_url,
+            "instagram_url": request.instagram_url,
+            "whatsapp_number": request.whatsapp_number
+        }
+
+        if pre_imported:
+            status_val = pre_imported.get("verification_status") if pre_imported.get("verification_status") in ["APPROVED", "REJECTED"] else "PENDING"
+            notes_val = "Auto-verified: Matched pre-approved school roster record" if status_val == "APPROVED" else "Matched pre-imported school roster record - Awaiting admin review"
+            alumni_doc = {
+                "user_id": user_id,
+                "full_name": request.full_name or pre_imported.get("full_name"),
+                "mobile": norm_mobile or pre_imported.get("mobile"),
+                "email": str(request.email) if request.email else pre_imported.get("email"),
+                "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
+                "passing_year": effective_batch_year or pre_imported.get("passing_year", 2010),
+                "batch_id": batch_id or pre_imported.get("batch_id"),
+                "current_city": request.current_city or pre_imported.get("current_city"),
+                "profession": request.position or request.profession or pre_imported.get("profession"),
+                "verification_status": status_val,
+                "verification_notes": notes_val,
+                "verified_at": now if status_val == "APPROVED" else None,
+                **extra_fields
+            }
+            await db.alumni.update_one({"_id": pre_imported["_id"]}, {"$set": alumni_doc})
+        else:
+            alumni_doc = {
+                "school_id": school_id,
+                "user_id": user_id,
+                "full_name": request.full_name,
+                "mobile": norm_mobile,
+                "email": str(request.email) if request.email else None,
+                "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
+                "passing_year": effective_batch_year,
+                "batch_id": batch_id,
+                "current_city": request.current_city,
+                "profession": request.position or request.profession,
+                "verification_status": "PENDING",
+                "verification_notes": "Awaiting admin review",
+                "verified_by": None,
+                "verified_at": None,
+                "email_visible": False,
+                "created_at": now,
+                **extra_fields
+            }
+            await db.alumni.update_one(
+                {"user_id": user_id},
+                {"$set": alumni_doc},
+                upsert=True
+            )
+
+        alumni = await db.alumni.find_one({"user_id": user_id})
+
+        # Create audit log
+        await db.audit_logs.insert_one({
             "school_id": school_id,
             "user_id": user_id,
-            "full_name": request.full_name,
-            "mobile": norm_mobile,
-            "email": str(request.email) if request.email else None,
-            "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
-            "passing_year": effective_batch_year,
-            "batch_id": batch_id,
-            "current_city": request.current_city,
-            "profession": request.position or request.profession,
-            "verification_status": "PENDING",
-            "verification_notes": "Awaiting admin review",
-            "verified_by": None,
-            "verified_at": None,
-            "email_visible": False,
-            "created_at": now,
-            **extra_fields
-        }
-        await db.alumni.update_one(
-            {"user_id": user_id},
-            {"$set": alumni_doc},
-            upsert=True
+            "action": "ALUMNI_REGISTERED",
+            "resource_type": "alumni",
+            "resource_id": str(alumni["_id"]) if (alumni and "_id" in alumni) else str(user_id),
+            "timestamp": now
+        })
+
+        # Dispatch Registration Thank-You Email asynchronously in background
+        reg_email = str(request.email) if request.email else (alumni.get("email") if alumni else None)
+        if reg_email:
+            import asyncio
+            from app.services.email import send_registration_thank_you_email
+            alumni_name = (alumni.get("full_name") if alumni else request.full_name) or "Alumnus"
+            school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
+
+            if school_id:
+                try:
+                    s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
+                    if s_doc and s_doc.get("name"):
+                        school_name = s_doc["name"]
+                except Exception:
+                    pass
+
+            asyncio.create_task(asyncio.to_thread(send_registration_thank_you_email, reg_email, alumni_name, school_name))
+
+        return UserProfileResponse(
+            id=str(alumni["_id"]) if (alumni and "_id" in alumni) else str(user_id),
+            user_id=user_id,
+            school_id=school_id,
+            full_name=alumni.get("full_name", request.full_name or "Alumni") if alumni else (request.full_name or "Alumni"),
+            mobile=alumni.get("mobile") if alumni else norm_mobile,
+            email=alumni.get("email") if alumni else (str(request.email) if request.email else None),
+            profile_photo_url=alumni.get("profile_photo_url") if alumni else request.profile_photo_url,
+            passing_year=alumni.get("passing_year") if alumni else effective_batch_year,
+            batch_id=batch_id,
+            current_city=alumni.get("current_city") if alumni else request.current_city,
+            profession=alumni.get("profession") if alumni else request.profession,
+            verification_status=alumni.get("verification_status", "PENDING") if alumni else "PENDING",
+            verification_notes=alumni.get("verification_notes") if alumni else None,
+            roles=current_user.get("roles", ["ALUMNI"]),
+            email_visible=alumni.get("email_visible", False) if alumni else False,
+            created_at=alumni.get("created_at", now) if alumni else now
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in register_alumni: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Registration failed: {str(e)}"
         )
 
-    alumni = await db.alumni.find_one({"user_id": user_id})
-
-    # Create audit log
-    await db.audit_logs.insert_one({
-        "school_id": school_id,
-        "user_id": user_id,
-        "action": "ALUMNI_REGISTERED",
-        "resource_type": "alumni",
-        "resource_id": str(alumni["_id"]),
-        "timestamp": now
-    })
-
-    # Dispatch Registration Thank-You Email asynchronously in background
-    reg_email = str(request.email) if request.email else alumni.get("email")
-    if reg_email:
-        import asyncio
-        from app.services.email import send_registration_thank_you_email
-        alumni_name = alumni.get("full_name", "Alumnus")
-        school_name = getattr(settings, "INITIAL_SCHOOL_NAME", "NHS SCHOOL")
-
-        if school_id:
-            try:
-                s_doc = await db.schools.find_one({"_id": ObjectId(school_id)}) or await db.schools.find_one({"_id": school_id})
-                if s_doc and s_doc.get("name"):
-                    school_name = s_doc["name"]
-            except Exception:
-                pass
-
-        asyncio.create_task(asyncio.to_thread(send_registration_thank_you_email, reg_email, alumni_name, school_name))
-
-    return UserProfileResponse(
-        id=str(alumni["_id"]),
-        user_id=user_id,
-        school_id=school_id,
-        full_name=alumni.get("full_name", "Alumni"),
-        mobile=alumni.get("mobile"),
-        email=alumni.get("email"),
-        profile_photo_url=alumni.get("profile_photo_url"),
-        passing_year=alumni.get("passing_year"),
-        batch_id=batch_id,
-        current_city=alumni.get("current_city"),
-        profession=alumni.get("profession"),
-        verification_status=alumni.get("verification_status", "PENDING"),
-        verification_notes=alumni.get("verification_notes"),
-        roles=current_user.get("roles", ["ALUMNI"]),
-        email_visible=alumni.get("email_visible", False),
-        created_at=alumni.get("created_at", now)
-    )
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):

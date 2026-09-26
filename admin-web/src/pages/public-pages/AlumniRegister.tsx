@@ -758,8 +758,9 @@ export const AlumniRegister: React.FC = () => {
     if (leavingClass !== '10th') {
       const calculatedBatchYear = getCalculated10thBatchYear(leavingClass, passingYear);
       const title = language === 'ta'
-        ? '🎓 உங்கள் Batch ஆண்டு கணக்கிடப்படும்'
-        : '🎓 Estimated Alumni Batch Year';
+        ? '🎓 உங்கள் Batch ஆண்டு எவ்வாறு கணக்கிடப்படும்'
+        : '🎓 How Your Alumni Batch Year is Calculated';
+
 
       const htmlContent = language === 'ta'
         ? `<div style="text-align: left; font-size: 13px; line-height: 1.6; color: #374151;">

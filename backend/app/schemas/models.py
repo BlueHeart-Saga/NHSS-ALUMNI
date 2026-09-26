@@ -90,8 +90,9 @@ class UserRegistrationRequest(BaseModel):
     full_name: str
     mobile: str
     country_code: Optional[str] = "+91"
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     gender: Optional[str] = None
+
     dob: Optional[str] = None
     blood_group: Optional[str] = None
     is_volunteer: Optional[str] = None
