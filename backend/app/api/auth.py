@@ -1184,7 +1184,8 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 detail=f"Invalid College Timeline: College Admission/Joining year ({request.college_joining_year}) cannot be greater than College Passing/Graduation year ({request.college_passing_year})."
             )
 
-        # Calculate 12th equivalent batch year (e.g. 10th in 2025 -> Batch of 2027)
+        # Calculate 12th equivalent batch year — use existing_alumni as fallback for partial step saves
+        # Note: existing_alumni is fetched after pre_imported check below; here we use request values with safe defaults
         raw_passing_yr = request.passing_year or 2010
         leaving_cls = request.leaving_class or "12th"
         cls_num = None
@@ -1231,8 +1232,14 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             **({"$and": [{"$or": dup_query}]} if dup_query else {})
         }) if (dup_query and school_id) else None
 
-        now = datetime.now(timezone.utc)
-        norm_mobile = normalize_indian_mobile(request.mobile) if (request.mobile and is_valid_indian_mobile(request.mobile)) else (request.mobile.strip().replace(" ", "") if request.mobile else None)
+        # Fetch existing records early for fallback values and batch year calculation
+        existing_user = await db.users.find_one({"_id": user_obj_id})
+        existing_alumni = await db.alumni.find_one({"user_id": user_id})
+
+        # Resolve full_name and mobile — allow partial saves without requiring them
+        resolved_full_name = request.full_name or (existing_alumni.get("full_name") if existing_alumni else None) or (existing_user.get("full_name") if existing_user else None)
+        raw_mobile = request.mobile or (existing_alumni.get("mobile") if existing_alumni else None) or (existing_user.get("mobile") if existing_user else None)
+        norm_mobile = normalize_indian_mobile(raw_mobile) if (raw_mobile and is_valid_indian_mobile(raw_mobile)) else (raw_mobile.strip().replace(" ", "") if raw_mobile else None)
 
         # Check if mobile number is already registered by another user account
         if request.mobile:
@@ -1246,11 +1253,13 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                     detail=f"This mobile number ({request.mobile}) is already registered with another account. Please check your mobile number or log in."
                 )
 
+        now = datetime.now(timezone.utc)
+
         # Update user record with name and contact details
         user_update = {
             "email": str(request.email) if request.email else None,
             "mobile": norm_mobile,
-            "full_name": request.full_name,
+            "full_name": resolved_full_name,
             "phone_verified": True,
             "account_status": "ACTIVE",
             "updated_at": now
@@ -1263,19 +1272,21 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             user_update["password"] = hashed_pw
             user_update["password_hash"] = hashed_pw
 
+        # Strip None values so partial step updates do not overwrite existing DB fields
+        user_update = {k: v for k, v in user_update.items() if v is not None}
         await db.users.update_one({"_id": user_obj_id}, {"$set": user_update})
 
-        extra_fields = {
+        raw_extra_fields = {
             "gender": request.gender,
-            "dob": request.dob,
+            "dob": request.dob or request.date_of_birth,
             "blood_group": request.blood_group,
             "father_name": request.father_name,
             "mother_name": request.mother_name,
-            "country_code": request.country_code or "+91",
+            "country_code": request.country_code if request.country_code else None,
             "school_name": request.school_name,
             "joining_year": request.joining_year,
-            "leaving_class": request.leaving_class or "10th",
-            "no_higher_education": request.no_higher_education or False,
+            "leaving_class": request.leaving_class,
+            "no_higher_education": request.no_higher_education,  # Can be True or False — both valid
             "college_name": request.college_name,
             "degree": request.degree,
             "other_degree": request.other_degree,
@@ -1289,30 +1300,29 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "profession": request.profession or request.position or request.employment_status,
             "industry": request.industry,
             "total_experience": request.total_experience,
-            "industries": request.industries or request.industry,
-            "other_college": request.other_college or request.college_name,
-            "other_stream": request.other_stream or request.stream,
-            "other_passing_year": request.other_passing_year or request.college_passing_year,
-            "is_volunteer": request.is_volunteer or None,
-            "willing_to_donate": request.willing_to_donate or None,
+            "is_volunteer": request.is_volunteer,
+            "willing_to_donate": request.willing_to_donate,
             "address": request.address,
             "city": request.city or request.current_city,
+            "current_city": request.current_city or request.city,
             "state": request.state,
-            "country": request.country or "India",
+            "country": request.country,
             "linkedin_url": request.linkedin_url,
             "instagram_url": request.instagram_url,
             "whatsapp_number": request.whatsapp_number
         }
+        # Filter: remove None values BUT keep explicit False/0/"" for boolean/int fields that represent a real choice
+        extra_fields = {k: v for k, v in raw_extra_fields.items() if v is not None}
 
         if pre_imported:
             status_val = pre_imported.get("verification_status") if pre_imported.get("verification_status") in ["APPROVED", "REJECTED"] else "PENDING"
             notes_val = "Auto-verified: Matched pre-approved school roster record" if status_val == "APPROVED" else "Matched pre-imported school roster record - Awaiting admin review"
             alumni_doc = {
                 "user_id": user_id,
-                "full_name": request.full_name or pre_imported.get("full_name"),
+                "full_name": resolved_full_name or pre_imported.get("full_name"),
                 "mobile": norm_mobile or pre_imported.get("mobile"),
                 "email": str(request.email) if request.email else pre_imported.get("email"),
-                "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
+                "profile_photo_url": request.profile_photo_url or pre_imported.get("profile_photo_url") or (f"https://ui-avatars.com/api/?name={resolved_full_name}&background=F4C542&color=111111" if resolved_full_name else None),
                 "passing_year": effective_batch_year or pre_imported.get("passing_year", 2010),
                 "batch_id": batch_id or pre_imported.get("batch_id"),
                 "current_city": request.current_city or pre_imported.get("current_city"),
@@ -1320,29 +1330,34 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 "verification_status": status_val,
                 "verification_notes": notes_val,
                 "verified_at": now if status_val == "APPROVED" else None,
+                "updated_at": now,
                 **extra_fields
             }
+            alumni_doc = {k: v for k, v in alumni_doc.items() if v is not None}
             await db.alumni.update_one({"_id": pre_imported["_id"]}, {"$set": alumni_doc})
         else:
+            # Re-use already-fetched existing_alumni
+            current_status = existing_alumni.get("verification_status", "DRAFT") if existing_alumni else "DRAFT"
+            target_status = "PENDING" if (request.registration_submitted or current_status == "PENDING") else (current_status if current_status in ["APPROVED", "REJECTED"] else "DRAFT")
+            
             alumni_doc = {
                 "school_id": school_id,
                 "user_id": user_id,
-                "full_name": request.full_name,
+                "full_name": resolved_full_name,
                 "mobile": norm_mobile,
                 "email": str(request.email) if request.email else None,
-                "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
-                "passing_year": effective_batch_year,
-                "batch_id": batch_id,
+                "profile_photo_url": request.profile_photo_url,
+                "passing_year": effective_batch_year if request.passing_year is not None else None,
+                "batch_id": batch_id if request.passing_year is not None else None,
                 "current_city": request.current_city,
                 "profession": request.position or request.profession,
-                "verification_status": "PENDING",
-                "verification_notes": "Awaiting admin review",
-                "verified_by": None,
-                "verified_at": None,
+                "verification_status": target_status,
+                "verification_notes": "Awaiting admin review" if target_status == "PENDING" else "Registration draft in progress",
                 "email_visible": False,
-                "created_at": now,
+                "updated_at": now,
                 **extra_fields
             }
+            alumni_doc = {k: v for k, v in alumni_doc.items() if v is not None}
             await db.alumni.update_one(
                 {"user_id": user_id},
                 {"$set": alumni_doc},
@@ -1493,7 +1508,9 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         verification_notes=alumni.get("verification_notes"),
         is_rerequest=alumni.get("is_rerequest", False),
         rerequest_note=alumni.get("rerequest_note"),
+        rerequest_count=alumni.get("rerequest_count", 0),
         rerequested_at=alumni.get("rerequested_at"),
+        rejection_reason=alumni.get("rejection_reason") or alumni.get("verification_notes"),
         last_contact_message=alumni.get("last_contact_message"),
         last_contact_subject=alumni.get("last_contact_subject"),
         is_volunteer=alumni.get("is_volunteer"),
@@ -1982,11 +1999,29 @@ async def request_reverification(
     user_id = current_user["user_id"]
     now_utc = datetime.now(timezone.utc)
     
+    # Get existing record to compute rerequest_count
+    existing = await db.alumni.find_one({"user_id": user_id})
+    if not existing:
+        try:
+            existing = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            existing = await db.users.find_one({"_id": user_id})
+
+    prev_count = 0
+    if existing and isinstance(existing.get("rerequest_count"), int):
+        prev_count = existing.get("rerequest_count")
+    elif existing and existing.get("is_rerequest"):
+        prev_count = 1
+    
+    new_count = prev_count + 1
+    rerequest_note = req.note.strip() if req.note else "Alumnus requested re-verification review of registration profile."
+
     update_data = {
         "verification_status": "PENDING",
         "status": "PENDING",
         "is_rerequest": True,
-        "rerequest_note": req.note.strip() if req.note else None,
+        "rerequest_note": rerequest_note,
+        "rerequest_count": new_count,
         "rerequested_at": now_utc,
         "updated_at": now_utc
     }
@@ -1998,4 +2033,9 @@ async def request_reverification(
 
     await db.alumni.update_many({"user_id": user_id}, {"$set": update_data})
     
-    return {"success": True, "message": "Re-verification request submitted to school admin successfully."}
+    return {
+        "success": True,
+        "message": "Re-verification request submitted to school admin successfully.",
+        "rerequest_count": new_count,
+        "rerequest_note": rerequest_note
+    }

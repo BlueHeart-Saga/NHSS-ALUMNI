@@ -87,13 +87,16 @@ class TokenResponse(BaseModel):
     school_id: Optional[str] = None
 
 class UserRegistrationRequest(BaseModel):
-    full_name: str
-    mobile: str
-    country_code: Optional[str] = "+91"
+    model_config = ConfigDict(extra="allow")
+
+    full_name: Optional[str] = None
+    mobile: Optional[str] = None
+    country_code: Optional[str] = None
     email: Optional[str] = None
     gender: Optional[str] = None
 
     dob: Optional[str] = None
+    date_of_birth: Optional[str] = None   # alias for dob
     blood_group: Optional[str] = None
     is_volunteer: Optional[str] = None
     willing_to_donate: Optional[str] = None
@@ -103,7 +106,7 @@ class UserRegistrationRequest(BaseModel):
     current_city: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-    country: Optional[str] = "India"
+    country: Optional[str] = None
     address: Optional[str] = None
     password: Optional[str] = None
     registration_submitted: Optional[bool] = False
@@ -111,11 +114,11 @@ class UserRegistrationRequest(BaseModel):
     # School Education Details
     school_name: Optional[str] = None
     joining_year: Optional[int] = None
-    passing_year: Optional[int] = 2010
-    leaving_class: Optional[str] = "12th"
+    passing_year: Optional[int] = None
+    leaving_class: Optional[str] = None
 
     # Higher Education / College Details
-    no_higher_education: Optional[bool] = False
+    no_higher_education: Optional[bool] = None
     college_name: Optional[str] = None
     degree: Optional[str] = None
     other_degree: Optional[str] = None
@@ -288,6 +291,11 @@ class UserProfileResponse(BaseModel):
     willing_to_donate: Optional[Any] = None
     email_visible: bool = False
     registration_submitted: Optional[bool] = False
+    is_rerequest: Optional[bool] = False
+    rerequest_note: Optional[str] = None
+    rerequest_count: Optional[int] = 0
+    rerequested_at: Optional[Any] = None
+    rejection_reason: Optional[str] = None
     created_at: Optional[datetime] = None
 
     # ── Coercion validators (defensive: fix 500s on legacy / mixed-type DB data) ──

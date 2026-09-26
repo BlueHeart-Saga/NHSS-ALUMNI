@@ -54,7 +54,12 @@ export const Dashboard: React.FC = () => {
 
       if (pendRes.status === 'fulfilled') {
         if (Array.isArray(pendRes.value)) {
-          setPendingList(pendRes.value.slice(0, 5));
+          const sorted = [...pendRes.value].sort((a, b) => {
+            if (a.is_rerequest && !b.is_rerequest) return -1;
+            if (!a.is_rerequest && b.is_rerequest) return 1;
+            return 0;
+          });
+          setPendingList(sorted.slice(0, 10));
         }
       } else if (pendRes.status === 'rejected') {
         console.error('Failed to load pending verifications queue:', pendRes.reason);
@@ -211,68 +216,93 @@ export const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-[#E5E7EB]">
-            {pendingList.map((a) => (
-              <div key={a.id} className="py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 hover:bg-[#FAFAFA] px-2 rounded-xl transition-colors">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={a.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || 'Alumni')}&background=F3F4F6&color=111827`}
-                    alt=""
-                    className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="text-sm font-bold text-[#111111]">{a.full_name}</div>
-                      {a.is_rerequest && (
-                        <span className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-2 py-0.2 rounded-full text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                          <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                          Re-Requested
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-[#6B7280]">
-                      Batch {a.passing_year} • {a.mobile}
+            {pendingList.map((a) => {
+              const isReRequest = Boolean(a.is_rerequest);
+              const isRejected = a.verification_status === 'REJECTED';
+
+              return (
+                <div
+                  key={a.id}
+                  className={`py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 rounded-xl transition-all ${
+                    isReRequest
+                      ? 'bg-amber-50/60 border border-amber-300 my-1 shadow-2xs'
+                      : isRejected
+                      ? 'bg-gray-100/70 border border-gray-200 text-gray-500 opacity-85 my-1'
+                      : 'hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={a.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || 'Alumni')}&background=F3F4F6&color=111827`}
+                      alt=""
+                      className="w-10 h-10 rounded-full border border-[#E5E7EB] object-cover shrink-0"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className={`text-sm font-bold ${isRejected ? 'text-gray-700' : 'text-[#111111]'}`}>{a.full_name}</div>
+                        {isReRequest && (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-2 py-0.2 rounded-full text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-2xs animate-pulse">
+                            <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                            Re-Requested #{a.rerequest_count || 1}
+                          </span>
+                        )}
+                        {isRejected && (
+                          <span className="bg-gray-200 text-gray-700 border border-gray-300 font-extrabold px-2 py-0.2 rounded-full text-[9px] uppercase tracking-wider">
+                            Old Data
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#6B7280]">
+                        Batch {a.passing_year} • {a.mobile}
+                        {isReRequest && a.rerequest_note && (
+                          <span className="block text-[11px] text-amber-800 font-semibold truncate max-w-xs mt-0.5">
+                            "{a.rerequest_note}"
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAlumni(a)}
-                    className="p-1.5 text-[#6B7280] hover:text-[#111111] hover:bg-[#E5E7EB]/60 rounded-lg transition-colors cursor-pointer"
-                    title={t('admin_dashboard_queue_view_details')}
-                    aria-label={t('admin_dashboard_queue_view_details')}
-                  >
-                    <Info className="w-4 h-4 text-amber-600" />
-                  </button>
-                  <Badge status={a.verification_status} />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="text-rose-600 hover:bg-rose-50 border-rose-200"
-                    onClick={() => {
-                      setRejectingAlumni(a);
-                      setRejectionReason(t('admin_dashboard_rejection_default_reason'));
-                    }}
-                  >
-                    <X className="w-3.5 h-3.5 mr-1" />
-                    {t('admin_dashboard_queue_reject')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setConfirmingAlumni(a);
-                      setApprovalNote(
-                        `${t('admin_dashboard_approval_default_note')} - ${new Date().toLocaleDateString()}`
-                      );
-                    }}
-                  >
-                    <Check className="w-3.5 h-3.5 mr-1" />
-                    {t('admin_dashboard_queue_approve')}
-                  </Button>
+                  <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAlumni(a)}
+                      className="p-1.5 text-[#6B7280] hover:text-[#111111] hover:bg-[#E5E7EB]/60 rounded-lg transition-colors cursor-pointer"
+                      title={t('admin_dashboard_queue_view_details')}
+                      aria-label={t('admin_dashboard_queue_view_details')}
+                    >
+                      <Info className="w-4 h-4 text-amber-600" />
+                    </button>
+                    <Badge status={a.verification_status} />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                      onClick={() => {
+                        setRejectingAlumni(a);
+                        setRejectionReason(t('admin_dashboard_rejection_default_reason'));
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5 mr-1" />
+                      {t('admin_dashboard_queue_reject')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-[#10B981] hover:bg-[#059669] text-white font-extrabold"
+                      onClick={() => {
+                        setConfirmingAlumni(a);
+                        setApprovalNote(
+                          `${t('admin_dashboard_approval_default_note')} - ${new Date().toLocaleDateString()}`
+                        );
+                      }}
+                    >
+                      <Check className="w-3.5 h-3.5 mr-1" />
+                      {isRejected ? 'Approve' : t('admin_dashboard_queue_approve')}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

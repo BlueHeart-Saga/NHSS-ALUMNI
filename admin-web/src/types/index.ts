@@ -201,9 +201,11 @@ export interface AlumniProfile {
   phone_verified?: boolean;
   is_rerequest?: boolean;
   rerequest_note?: string;
+  rerequest_count?: number;
+  rerequested_at?: string;
+  rejection_reason?: string;
   last_contact_message?: string;
   last_contact_subject?: string;
-  rerequested_at?: string;
   roles: string[];
   committee_role?: CommitteeRoleType;
   committee_role_title?: string;

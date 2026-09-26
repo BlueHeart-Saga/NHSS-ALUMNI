@@ -4,7 +4,7 @@ import {
   LayoutDashboard, User, Users, Compass, MessageSquare, GraduationCap,
   Calendar, Bell, Camera, Award, Settings, LogOut, Menu, X, Search,
   ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Clock, ShieldAlert,
-  AlertTriangle, RefreshCw, Mail, MessageSquareQuote,
+  AlertTriangle, AlertCircle, RefreshCw, Mail, MessageSquareQuote,
   HandHeart
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -285,19 +285,41 @@ export const AlumniLayout: React.FC = () => {
               </p>
             </div>
 
+            {/* Rejection reason alert box for alumni */}
+            {isRejected && (user?.rejection_reason || user?.verification_notes) && (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 text-xs text-rose-900 flex items-start space-x-2 text-left mb-3">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-extrabold text-[11px] text-rose-900 uppercase tracking-wider">
+                    {language === 'ta' ? 'பள்ளி நிர்வாகியின் நிராகரிப்பு காரணம்:' : 'Admin Rejection Reason:'}
+                  </div>
+                  <p className="text-[11px] text-rose-800 mt-0.5 font-medium leading-relaxed">
+                    "{user.rejection_reason || user.verification_notes}"
+                  </p>
+                  {user.rerequest_count && user.rerequest_count > 0 ? (
+                    <span className="inline-block mt-1 text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">
+                      {language === 'ta' ? `முந்தைய மறு ஆய்வுக் கோரிக்கைகள்: ${user.rerequest_count} முறை` : `Total Re-Verification Requests Sent: ${user.rerequest_count} times`}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
             {/* Re-request notice banner */}
             {user?.is_rerequest && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-xs text-blue-800 flex items-start space-x-2 text-left">
-                <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-950 flex items-start space-x-2 text-left shadow-2xs mb-3">
+                <Sparkles className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">
-                    {language === 'ta' ? 'மீண்டும் சரிபார்ப்பு விண்ணப்பம் அனுப்பப்பட்டது' : 'Re-verification Request Submitted'}
+                  <p className="font-extrabold text-xs text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                    {language === 'ta'
+                      ? `மீண்டும் சரிபார்ப்பு விண்ணப்பம் சமர்ப்பிக்கப்பட்டது (முயற்சி #${user?.rerequest_count || 1}):`
+                      : `Re-verification Request Submitted (Attempt #${user?.rerequest_count || 1}):`}
                   </p>
-                  <p className="text-[11px] text-blue-700 mt-0.5">
+                  <p className="text-[11px] text-amber-900 mt-0.5 font-medium leading-relaxed">
                     {user?.rerequest_note
                       ? `"${user.rerequest_note}"`
                       : (language === 'ta'
-                        ? 'உங்கள் மறு பரிசீலனை விண்ணப்பம் பள்ளி நிர்வாகியின் கவனத்திற்கு அனுப்பப்பட்டுள்ளது.'
+                        ? 'உங்கள் மறு பரிசீலனை விண்ணப்பம் பள்ளி நிர்வாகியின் முன்னுரிமைப் பட்டியலுக்கு அனுப்பப்பட்டுள்ளது.'
                         : 'Your request for re-verification has been logged into the School Admin priority queue.')}
                   </p>
                 </div>

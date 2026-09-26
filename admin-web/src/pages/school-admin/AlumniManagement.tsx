@@ -2312,6 +2312,7 @@ export const AlumniManagement: React.FC = () => {
                     <label className={addLabelCls}>{t('admin_sheet_dob')} *</label>
                     <input
                       type="date"
+                      max={new Date().toLocaleDateString('en-CA')}
                       value={newAlumnus.date_of_birth || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, date_of_birth: e.target.value })}
                       className={addInputCls}

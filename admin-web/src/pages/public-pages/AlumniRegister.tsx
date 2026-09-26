@@ -145,7 +145,9 @@ export const AlumniRegister: React.FC = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
-  const [hasExistingPassword, setHasExistingPassword] = useState(false);
+  const [hasExistingPassword, setHasExistingPassword] = useState<boolean>(() => {
+    return localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+  });
   const [accountAlreadyExists, setAccountAlreadyExists] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
   const [password, setPassword] = useState('');
@@ -156,7 +158,8 @@ export const AlumniRegister: React.FC = () => {
 
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
-    if (!isOtpVerified && targetStep > 1) {
+    const hasSavedPass = localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+    if (!isOtpVerified && !hasSavedPass && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
         language === 'ta'
@@ -166,7 +169,7 @@ export const AlumniRegister: React.FC = () => {
       setStep(1);
       return;
     }
-    if (targetStep === 1 && isOtpVerified) {
+    if (targetStep === 1 && (isOtpVerified || hasSavedPass)) {
       alertService.showInfo(
         language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
         language === 'ta'
@@ -180,7 +183,8 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isOtpVerified && step > 1) {
+    const hasSavedPass = localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+    if (!isOtpVerified && !hasSavedPass && step > 1) {
       setStep(1);
     }
   }, [isOtpVerified, step]);
@@ -358,9 +362,15 @@ export const AlumniRegister: React.FC = () => {
     }
 
     if (api.getToken()) {
+      setHasExistingPassword(true);
+      setIsOtpVerified(true);
+      localStorage.setItem('alumni_has_password', 'true');
       api.getProfile()
         .then((p: any) => {
           if (p) {
+            setHasExistingPassword(true);
+            setIsOtpVerified(true);
+            localStorage.setItem('alumni_has_password', 'true');
             if (p.email) setEmail(p.email);
             if (p.mobile) {
               setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
@@ -530,12 +540,17 @@ export const AlumniRegister: React.FC = () => {
       const errMsg = err?.message || String(err);
       if (errMsg.includes('ACCOUNT_ALREADY_REGISTERED') || errMsg.toLowerCase().includes('already registered') || err?.status === 409) {
         setAccountAlreadyExists(true);
-        alertService.showWarning(
+        const proceedToLogin = await alertService.showConfirm(
           language === 'ta' ? 'ஏற்கனவே பதிவாகியுள்ள கணக்கு ⚠️' : 'Account Already Registered ⚠️',
           language === 'ta'
-            ? `இந்த கைபேசி எண்ணில் (${cleanMob}) ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. தயவுசெய்து உங்கள் கணக்கில் நேரடியாக உள்நுழையவும்.`
-            : `An account with mobile number (${cleanMob}) is already registered in the system. Please log in directly.`
+            ? `கைபேசி எண் (${cleanMob}) மூலம் ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. உங்கள் கணக்கில் நேரடியாக உள்நுழைய விரும்புகிறீர்களா?`
+            : `An account with mobile number (${cleanMob}) is already registered in the system. Would you like to log in to your account now?`,
+          language === 'ta' ? 'உள்நுழையச் செல்லவும் →' : 'Proceed to Log In →',
+          language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
         );
+        if (proceedToLogin) {
+          navigate(`/login?mobile=${cleanMob}`, { state: { mobile: cleanMob } });
+        }
       } else {
         alertService.handleApiError(err, 'Failed to send verification OTP.');
       }
@@ -620,6 +635,8 @@ export const AlumniRegister: React.FC = () => {
         await api.updatePassword(password.trim());
       }
       setHasExistingPassword(true);
+      setIsOtpVerified(true);
+      localStorage.setItem('alumni_has_password', 'true');
       await alertService.showSuccess(
         language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது! 🔐' : 'Password Created Successfully! 🔐',
         language === 'ta'
@@ -652,12 +669,8 @@ export const AlumniRegister: React.FC = () => {
       localStorage.setItem('alumni_register_draft', JSON.stringify(currentDraft));
     } catch (e) { }
 
-    try {
-      if (api.getToken()) {
-        await api.register(partialData);
-      }
-    } catch (e) {
-      console.warn('Step registration draft database sync notice:', e);
+    if (api.getToken()) {
+      await api.register(partialData);
     }
   };
 
@@ -724,27 +737,40 @@ export const AlumniRegister: React.FC = () => {
     }
 
     // Save Step 2 details immediately to DB
-    const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix} ${mobile}`.trim();
-    saveStepDataToDB({
-      full_name: fullName.trim(),
-      email: email.trim(),
-      mobile: fullMobile,
-      country_code: mobilePrefix,
-      gender,
-      dob,
-      blood_group: bloodGroup || undefined,
-      father_name: fatherName.trim() || undefined,
-      mother_name: motherName.trim() || undefined,
-      profile_photo_url: photoToUse,
-      address: address.trim(),
-      current_city: currentCity.trim(),
-      city: currentCity.trim(),
-      state: state.trim(),
-      country: country.trim() || 'India',
-      passing_year: passingYear ? parseInt(passingYear) : undefined
-    });
-
-    goToStep(3);
+    setLoading(true);
+    try {
+      const fullMobile = mobile.startsWith('+') ? mobile : `${mobilePrefix}${mobile.replace(/\D/g, '')}`.trim();
+      await saveStepDataToDB({
+        // Identity
+        full_name: fullName.trim(),
+        email: email.trim() || undefined,
+        mobile: fullMobile,
+        country_code: mobilePrefix,
+        // Personal
+        gender,
+        dob,
+        blood_group: bloodGroup || undefined,
+        father_name: fatherName.trim() || undefined,
+        mother_name: motherName.trim() || undefined,
+        profile_photo_url: photoToUse,
+        // Location
+        address: address.trim(),
+        current_city: currentCity.trim(),
+        city: currentCity.trim(),
+        state: state.trim(),
+        country: country.trim() || 'India',
+        // Pre-fill school if already known
+        school_name: schoolName.trim() || undefined,
+        passing_year: passingYear ? parseInt(passingYear) : undefined,
+        leaving_class: leavingClass || undefined,
+        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
+      });
+      goToStep(3);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to save step details to database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCalculated10thBatchYear = (leavingClassStr: string, yearStr: string): number | null => {
@@ -812,20 +838,38 @@ export const AlumniRegister: React.FC = () => {
     }
 
     // Save Step 3 details immediately to DB
-    const fullMobile = getFullMobile();
-    saveStepDataToDB({
-      full_name: fullName.trim(),
-      email: email.trim(),
-      mobile: fullMobile,
-      address: address.trim(),
-      school_name: schoolName.trim(),
-      joining_year: parseInt(joiningYear) || 2010,
-      passing_year: parseInt(passingYear) || 2015,
-      leaving_class: leavingClass,
-      current_city: currentCity.trim()
-    });
-
-    goToStep(4);
+    setLoading(true);
+    try {
+      const fullMobile = getFullMobile();
+      await saveStepDataToDB({
+        // Identity + Personal (carry forward from Step 2)
+        full_name: fullName.trim(),
+        email: email.trim() || undefined,
+        mobile: fullMobile,
+        country_code: mobilePrefix,
+        gender: gender || undefined,
+        dob: dob || undefined,
+        blood_group: bloodGroup || undefined,
+        father_name: fatherName.trim() || undefined,
+        mother_name: motherName.trim() || undefined,
+        profile_photo_url: profilePhotoUrl || undefined,
+        address: address.trim() || undefined,
+        current_city: currentCity.trim() || undefined,
+        city: currentCity.trim() || undefined,
+        state: state.trim() || undefined,
+        country: country.trim() || 'India',
+        // School Details
+        school_name: schoolName.trim(),
+        joining_year: joiningYear ? (parseInt(joiningYear) || undefined) : undefined,
+        passing_year: parseInt(passingYear) || 2015,
+        leaving_class: leavingClass,
+      });
+      goToStep(4);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to save step details to database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 4 Validation: Education History -> Step 5 (Professional Details)
@@ -851,25 +895,36 @@ export const AlumniRegister: React.FC = () => {
     const isNoCollege = hasHigherEducation === 'NO' || !hasCollegeData;
 
     // Save Step 4 details immediately to DB
-    const fullMobile = getFullMobile();
-    const finalDegree = degree === 'Other - write something' ? otherDegree : degree;
-    saveStepDataToDB({
-      full_name: fullName.trim(),
-      email: email.trim(),
-      mobile: fullMobile,
-      address: address.trim(),
-      passing_year: parseInt(passingYear) || 2015,
-      no_higher_education: isNoCollege,
-      college_name: !isNoCollege && collegeName ? collegeName.trim() : undefined,
-      degree: !isNoCollege && finalDegree ? finalDegree : undefined,
-      other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
-      stream: !isNoCollege && stream ? stream.trim() : undefined,
-      college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
-      college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
-      current_city: currentCity.trim()
-    });
-
-    goToStep(5);
+    setLoading(true);
+    try {
+      const fullMobile = getFullMobile();
+      const finalDegree = degree === 'Other - write something' ? otherDegree : degree;
+      await saveStepDataToDB({
+        // Identity (carry forward)
+        full_name: fullName.trim(),
+        email: email.trim() || undefined,
+        mobile: fullMobile,
+        // School (carry forward)
+        school_name: schoolName.trim() || undefined,
+        passing_year: parseInt(passingYear) || undefined,
+        leaving_class: leavingClass || undefined,
+        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
+        // Higher Education
+        no_higher_education: isNoCollege,
+        college_name: !isNoCollege && collegeName ? collegeName.trim() : undefined,
+        degree: !isNoCollege && finalDegree ? finalDegree : undefined,
+        other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
+        stream: !isNoCollege && stream ? stream.trim() : undefined,
+        college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
+        college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
+        current_city: currentCity.trim() || undefined,
+      });
+      goToStep(5);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to save step details to database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 5 Validation: Professional Details -> Step 6 (Review & Submit)
@@ -887,28 +942,41 @@ export const AlumniRegister: React.FC = () => {
     setInvalidFields(new Set());
 
     // Save Step 5 details immediately to DB
-    const fullMobile = getFullMobile();
-    saveStepDataToDB({
-      full_name: fullName.trim(),
-      email: email.trim(),
-      mobile: fullMobile,
-      address: address.trim(),
-      passing_year: parseInt(passingYear) || 2015,
-      employment_status: employmentStatus || undefined,
-      company: company.trim() || undefined,
-      position: position.trim() || undefined,
-      profession: position.trim() || employmentStatus || undefined,
-      industry: industry.trim() || undefined,
-      total_experience: totalExperience || undefined,
-      linkedin_url: linkedinUrl.trim() || undefined,
-      instagram_url: instagramUrl.trim() || undefined,
-      whatsapp_number: whatsappNumber.trim() || undefined,
-      is_volunteer: isVolunteer || undefined,
-      willing_to_donate: willingToDonate || undefined,
-      current_city: currentCity.trim()
-    });
-
-    goToStep(6);
+    setLoading(true);
+    try {
+      const fullMobile = getFullMobile();
+      await saveStepDataToDB({
+        // Identity (carry forward)
+        full_name: fullName.trim(),
+        email: email.trim() || undefined,
+        mobile: fullMobile,
+        // School (carry forward for batch calculation)
+        school_name: schoolName.trim() || undefined,
+        passing_year: passingYear ? parseInt(passingYear) : undefined,
+        leaving_class: leavingClass || undefined,
+        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
+        // Higher Ed (carry forward)
+        no_higher_education: hasHigherEducation === 'NO' ? true : (hasHigherEducation === 'YES' ? false : undefined),
+        // Professional & Social
+        employment_status: employmentStatus || undefined,
+        company: company.trim() || undefined,
+        position: position.trim() || undefined,
+        profession: position.trim() || employmentStatus || undefined,
+        industry: industry.trim() || undefined,
+        total_experience: totalExperience || undefined,
+        linkedin_url: linkedinUrl.trim() || undefined,
+        instagram_url: instagramUrl.trim() || undefined,
+        whatsapp_number: whatsappNumber.trim() || undefined,
+        is_volunteer: isVolunteer || undefined,
+        willing_to_donate: willingToDonate || undefined,
+        current_city: currentCity.trim() || undefined,
+      });
+      goToStep(6);
+    } catch (err: any) {
+      alertService.handleApiError(err, 'Failed to save step details to database.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -1507,7 +1575,7 @@ export const AlumniRegister: React.FC = () => {
                           </p>
                           <button
                             type="button"
-                            onClick={() => navigate('/login', { state: { mobile } })}
+                            onClick={() => navigate(`/login?mobile=${mobile}`, { state: { mobile } })}
                             className="w-full py-2.5 bg-[#111111] hover:bg-gray-800 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs mt-1"
                           >
                             <Lock className="w-4 h-4 text-[#F4C542]" />
@@ -1604,6 +1672,31 @@ export const AlumniRegister: React.FC = () => {
                         </button>
                       </div>
                     </form>
+                  ) : (hasExistingPassword || isGoogleAuth || Boolean(api.getToken())) ? (
+                    <div className="space-y-6 animate-fadeIn">
+                      <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center space-x-3">
+                        <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
+                        <div>
+                          <p className="font-bold text-sm">
+                            {language === 'ta' ? 'கடவுச்சொல் ஏற்கனவே உருவாக்கப்பட்டுள்ளது! 🔐' : 'Password Successfully Created & Secured! 🔐'}
+                          </p>
+                          <p className="text-xs opacity-90 mt-0.5">
+                            {language === 'ta'
+                              ? 'உங்கள் கணக்கிற்கான கடவுச்சொல் சேமிக்கப்பட்டது. உங்கள் பதிவை நிறைவு செய்ய படி 2-க்குச் செல்லவும்.'
+                              : 'Your account password is created. Proceed to Step 2 to complete your profile details.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={() => goToStep(2)}
+                        className="w-full py-3.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer"
+                      >
+                        <span>{language === 'ta' ? 'படி 2: தனிப்பட்ட விவரங்களுக்குச் செல்லவும் →' : 'Continue to Step 2: Personal Info →'}</span>
+                        <ArrowRight className="w-4 h-4 ml-1.5 stroke-[2.5]" />
+                      </Button>
+                    </div>
                   ) : (
                     <form onSubmit={handleSavePassword} className="space-y-6 animate-fadeIn">
                       <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center space-x-3">
@@ -1785,6 +1878,7 @@ export const AlumniRegister: React.FC = () => {
                       <input
                         type="date"
                         required
+                        max={new Date().toLocaleDateString('en-CA')}
                         value={dob}
                         onChange={(e) => {
                           setDob(e.target.value);

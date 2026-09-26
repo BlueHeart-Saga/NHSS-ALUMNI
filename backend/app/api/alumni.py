@@ -34,18 +34,29 @@ router = APIRouter(prefix="/alumni", tags=["Alumni Directory & Verification"])
 
 @router.get("/pending", response_model=List[UserProfileResponse])
 async def list_pending_verifications(
+    status: Optional[str] = None,
     current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "BATCH_COORDINATOR", "SUPER_ADMIN", "DEVELOPER", "PLATFORM_DEVELOPER"]))
 ):
     db = get_db()
-    query = {"verification_status": "PENDING"}
+    if status == "PENDING":
+        query = {"verification_status": "PENDING"}
+    elif status == "REJECTED":
+        query = {"verification_status": "REJECTED"}
+    elif status == "RE_REQUEST":
+        query = {"is_rerequest": True}
+    elif status == "ALL":
+        query = {"verification_status": {"$in": ["PENDING", "REJECTED", "APPROVED"]}}
+    else:
+        query = {"verification_status": {"$in": ["PENDING", "REJECTED"]}}
+
     school_id = current_user.get("school_id")
     if school_id:
         school_filter = await build_school_filter(school_id)
         if school_filter:
             query.update(school_filter)
 
-    cursor = db.alumni.find(query).sort("created_at", -1)
-    pending = await cursor.to_list(length=200)
+    cursor = db.alumni.find(query).sort([("is_rerequest", -1), ("rerequested_at", -1), ("updated_at", -1), ("created_at", -1)])
+    pending = await cursor.to_list(length=300)
 
     # Batch fetch all matching users in 1 single DB query (Fix N+1 query loop)
     user_ids = []
@@ -113,6 +124,11 @@ async def list_pending_verifications(
                 linkedin_url=a.get("linkedin_url"),
                 verification_status=a.get("verification_status", "PENDING"),
                 verification_notes=a.get("verification_notes"),
+                is_rerequest=bool(a.get("is_rerequest")),
+                rerequest_note=a.get("rerequest_note"),
+                rerequest_count=a.get("rerequest_count", 0),
+                rerequested_at=a.get("rerequested_at"),
+                rejection_reason=a.get("rejection_reason") or a.get("verification_notes"),
                 roles=roles,
                 email_visible=a.get("email_visible", False),
                 created_at=a.get("created_at") or datetime.now(timezone.utc),
@@ -147,9 +163,12 @@ async def verify_alumni(
         raise HTTPException(status_code=404, detail="Alumni application not found")
 
     now = datetime.now(timezone.utc)
+    note_val = request.notes or f"Marked {request.status} by admin"
     update_data = {
         "verification_status": request.status,
-        "verification_notes": request.notes or f"Marked {request.status} by admin",
+        "status": request.status if request.status in ["APPROVED", "REJECTED", "SUSPENDED", "PENDING"] else "PENDING",
+        "verification_notes": note_val,
+        "rejection_reason": note_val if request.status in ["REJECTED", "SUSPENDED"] else alumni.get("rejection_reason"),
         "verified_by": current_user["user_id"],
         "verified_at": now
     }
@@ -158,6 +177,13 @@ async def verify_alumni(
         await db.alumni.update_one({"_id": ObjectId(alumni_id)}, {"$set": update_data})
     except Exception:
         await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
+
+    user_id_ref = alumni.get("user_id")
+    if user_id_ref:
+        try:
+            await db.users.update_one({"_id": ObjectId(user_id_ref)}, {"$set": update_data})
+        except Exception:
+            await db.users.update_one({"_id": user_id_ref}, {"$set": update_data})
 
     # -------------------------------------------------------------------------
     # Email notification dispatch (non-blocking, non-fatal).

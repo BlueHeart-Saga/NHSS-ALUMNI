@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, KeyRound, ArrowRight, UserX, UserPlus,
   Users, Calendar, Image, Lock, CheckCircle2, Eye, EyeOff, ArrowLeft, Loader2, X, Play, Video
@@ -14,6 +14,8 @@ import { DemoVideoModal, VideoType } from '../../components/DemoVideoModal';
 
 export const AlumniLogin: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { t, language, logoUrl } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -119,6 +121,14 @@ export const AlumniLogin: React.FC = () => {
   };
 
   useEffect(() => {
+    const paramMobile = searchParams.get('mobile') || searchParams.get('phone') || searchParams.get('identifier') || location.state?.mobile || location.state?.email;
+    if (paramMobile) {
+      const cleanMob = String(paramMobile).replace(/\D/g, '');
+      const activeValue = cleanMob.length >= 10 ? cleanMob.slice(-10) : String(paramMobile);
+      setEmail(activeValue);
+      handleIdentifierCheck(activeValue);
+    }
+
     api.getPublicStats()
       .then((s) => {
         if (s.school_name) setSchoolName(s.school_name);
@@ -137,7 +147,7 @@ export const AlumniLogin: React.FC = () => {
         })
         .catch(() => { });
     }
-  }, [navigate]);
+  }, [navigate, searchParams, location.state]);
 
   // Direct Login: Authenticate via Mobile/Email & Password directly
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
