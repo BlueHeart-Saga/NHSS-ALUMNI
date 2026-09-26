@@ -204,6 +204,28 @@ async def verify_alumni(
     except Exception:
         await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
 
+    # Update ALL other cards/documents belonging to the same user in db.alumni and db.users
+    user_match_or = []
+    if user_id_ref:
+        user_match_or.append({"user_id": str(user_id_ref)})
+        try:
+            user_match_or.append({"user_id": ObjectId(user_id_ref)})
+        except Exception:
+            pass
+
+    mob_val = alumni.get("mobile") or alumni.get("phone") or alumni.get("whatsapp_number")
+    if mob_val:
+        from app.utils.helpers import get_mobile_query_variants
+        user_match_or.append({"mobile": {"$in": list(get_mobile_query_variants(mob_val))}})
+
+    email_val = alumni.get("email")
+    if email_val and "@" in str(email_val):
+        user_match_or.append({"email": {"$regex": f"^{str(email_val).strip()}$", "$options": "i"}})
+
+    if user_match_or:
+        await db.alumni.update_many({"$or": user_match_or}, {"$set": update_data})
+        await db.users.update_many({"$or": user_match_or}, {"$set": update_data})
+
     if user_id_ref:
         try:
             await db.users.update_one({"_id": ObjectId(user_id_ref)}, {"$set": update_data})

@@ -82,6 +82,7 @@ export const Dashboard: React.FC = () => {
 
   const handleConfirmApproval = async () => {
     if (!confirmingAlumni) return;
+    const targetUser = confirmingAlumni;
     const targetId = confirmingAlumni.id;
     try {
       setConfirmLoading(true);
@@ -90,7 +91,15 @@ export const Dashboard: React.FC = () => {
         t('admin_dashboard_alert_approved_title'),
         t('admin_dashboard_alert_approved_body').replace('{name}', confirmingAlumni.full_name)
       );
-      setPendingList((prev) => prev.filter((a) => a.id !== targetId));
+      setPendingList((prev) =>
+        prev.filter((a) => {
+          const isSame =
+            a.id === targetId ||
+            (Boolean(a.user_id) && Boolean(targetUser.user_id) && a.user_id === targetUser.user_id) ||
+            (Boolean(a.mobile) && Boolean(targetUser.mobile) && a.mobile === targetUser.mobile);
+          return !isSame;
+        })
+      );
       setConfirmingAlumni(null);
       setSelectedAlumni(null);
       loadDashboardData();
@@ -103,6 +112,7 @@ export const Dashboard: React.FC = () => {
 
   const handleConfirmRejection = async () => {
     if (!rejectingAlumni) return;
+    const targetUser = rejectingAlumni;
     const targetId = rejectingAlumni.id;
     try {
       setRejectLoading(true);
@@ -111,7 +121,15 @@ export const Dashboard: React.FC = () => {
         t('admin_dashboard_alert_rejected_title'),
         t('admin_dashboard_alert_rejected_body').replace('{name}', rejectingAlumni.full_name)
       );
-      setPendingList((prev) => prev.filter((a) => a.id !== targetId));
+      setPendingList((prev) =>
+        prev.filter((a) => {
+          const isSame =
+            a.id === targetId ||
+            (Boolean(a.user_id) && Boolean(targetUser.user_id) && a.user_id === targetUser.user_id) ||
+            (Boolean(a.mobile) && Boolean(targetUser.mobile) && a.mobile === targetUser.mobile);
+          return !isSame;
+        })
+      );
       setRejectingAlumni(null);
       setSelectedAlumni(null);
       loadDashboardData();

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   UserCheck, Check, X, ShieldAlert, Sparkles, MessageSquare, AlertCircle, RefreshCw, Info,
-  Phone, Mail, MapPin, GraduationCap, Building2, Briefcase, Globe, Heart, HeartHandshake, FileText, User, History
+  Phone, Mail, MapPin, GraduationCap, Building2, Briefcase, Globe, Heart, HeartHandshake, FileText, User, History,
+  Search, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -17,7 +18,12 @@ export const VerificationQueue: React.FC = () => {
   const { t, language } = useLanguage();
   const [queueList, setQueueList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'RE_REQUEST' | 'PENDING' | 'REJECTED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'RE_REQUEST' | 'PENDING' | 'REJECTED' | 'APPROVED'>('ALL');
+
+  // Search & Pagination States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   // Decision Modal State (Approve/Reject confirmation)
   const [selectedAlumni, setSelectedAlumni] = useState<AlumniProfile | null>(null);
@@ -31,6 +37,11 @@ export const VerificationQueue: React.FC = () => {
   useEffect(() => {
     fetchQueue();
   }, []);
+
+  // Reset to page 1 whenever activeTab or searchQuery or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, pageSize]);
 
   const fetchQueue = async () => {
     try {
@@ -52,6 +63,7 @@ export const VerificationQueue: React.FC = () => {
     const targetId = selectedAlumni.id;
     const targetAction = reviewAction;
     const targetNotes = notes;
+    const targetUser = selectedAlumni;
     try {
       await api.verifyAlumni(targetId, targetAction, targetNotes);
 
@@ -66,15 +78,21 @@ export const VerificationQueue: React.FC = () => {
         ).replace('{name}', selectedAlumni.full_name)
       );
 
-      // Optimistically update queueList so user disappears from pending / re-request tabs immediately
+      // Optimistically update ALL cards in queueList belonging to the same user
       setQueueList((prev) =>
         prev.map((item) => {
-          if (item.id === targetId) {
+          const isSameUser =
+            item.id === targetId ||
+            (Boolean(item.user_id) && Boolean(targetUser.user_id) && item.user_id === targetUser.user_id) ||
+            (Boolean(item.mobile) && Boolean(targetUser.mobile) && item.mobile === targetUser.mobile) ||
+            (Boolean(item.email) && Boolean(targetUser.email) && item.email.toLowerCase() === targetUser.email.toLowerCase());
+
+          if (isSameUser) {
             return {
               ...item,
               verification_status: targetAction,
               is_rerequest: false,
-              rejection_reason: targetAction === 'REJECTED' ? targetNotes : item.rejection_reason,
+              rejection_reason: targetAction === 'REJECTED' ? targetNotes : (targetAction === 'APPROVED' ? undefined : item.rejection_reason),
               verification_notes: targetNotes || item.verification_notes,
             };
           }
@@ -85,7 +103,7 @@ export const VerificationQueue: React.FC = () => {
       setSelectedAlumni(null);
       setReviewAction(null);
       setNotes('');
-      if (viewingAlumni && viewingAlumni.id === targetId) {
+      if (viewingAlumni && (viewingAlumni.id === targetId || viewingAlumni.user_id === targetUser.user_id)) {
         setViewingAlumni(null);
       }
       fetchQueue();
@@ -99,13 +117,50 @@ export const VerificationQueue: React.FC = () => {
   const reRequestCount = queueList.filter((item) => item.is_rerequest && item.verification_status === 'PENDING').length;
   const pendingCount = queueList.filter((item) => item.verification_status === 'PENDING' && !item.is_rerequest).length;
   const rejectedCount = queueList.filter((item) => item.verification_status === 'REJECTED').length;
+  const approvedCount = queueList.filter((item) => item.verification_status === 'APPROVED').length;
 
   const filteredQueue = queueList.filter((item) => {
-    if (activeTab === 'RE_REQUEST') return Boolean(item.is_rerequest && item.verification_status === 'PENDING');
-    if (activeTab === 'PENDING') return item.verification_status === 'PENDING' && !item.is_rerequest;
-    if (activeTab === 'REJECTED') return item.verification_status === 'REJECTED';
+    // 1. Tab filter
+    if (activeTab === 'RE_REQUEST' && !(item.is_rerequest && item.verification_status === 'PENDING')) return false;
+    if (activeTab === 'PENDING' && (item.verification_status !== 'PENDING' || item.is_rerequest)) return false;
+    if (activeTab === 'REJECTED' && item.verification_status !== 'REJECTED') return false;
+    if (activeTab === 'APPROVED' && item.verification_status !== 'APPROVED') return false;
+
+    // 2. Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const name = (item.full_name || '').toLowerCase();
+      const nameTa = (item.name_ta || item.full_name_ta || '').toLowerCase();
+      const mobile = (item.mobile || '').toLowerCase();
+      const email = (item.email || '').toLowerCase();
+      const batch = String(item.passing_year || '');
+      const city = (item.current_city || '').toLowerCase();
+      const profession = (item.profession || item.designation || '').toLowerCase();
+      const company = (item.company || '').toLowerCase();
+      const note = (item.rerequest_note || '').toLowerCase();
+      const reason = (item.rejection_reason || item.verification_notes || '').toLowerCase();
+
+      return (
+        name.includes(q) ||
+        nameTa.includes(q) ||
+        mobile.includes(q) ||
+        email.includes(q) ||
+        batch.includes(q) ||
+        city.includes(q) ||
+        profession.includes(q) ||
+        company.includes(q) ||
+        note.includes(q) ||
+        reason.includes(q)
+      );
+    }
+
     return true;
   });
+
+  const totalItems = filteredQueue.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedQueue = filteredQueue.slice(startIndex, startIndex + pageSize);
 
   if (loading) return <TableSkeleton rows={6} />;
 
@@ -192,25 +247,94 @@ export const VerificationQueue: React.FC = () => {
             {rejectedCount}
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('APPROVED')}
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center space-x-2 ${
+            activeTab === 'APPROVED'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+          }`}
+        >
+          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span>{language === 'ta' ? 'அங்கீகரிக்கப்பட்டவை' : 'Approved'}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-200 text-emerald-900 font-bold ml-1">
+            {approvedCount}
+          </span>
+        </button>
+      </div>
+
+      {/* Search Bar & Page Range Summary */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 border border-[#E5E7EB] rounded-2xl shadow-2xs">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={
+              language === 'ta'
+                ? 'பெயர், கைபேசி எண், மின்னஞ்சல், தொகுதி ஆண்டு, நகரம், பணி கொண்டு தேட...'
+                : 'Search by name, mobile, email, batch year, city, profession...'
+            }
+            className="w-full bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl pl-10 pr-9 py-2 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542] transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end space-x-3 shrink-0 text-xs">
+          <span className="text-gray-500 font-medium">
+            {language === 'ta'
+              ? `காட்டுவது: ${totalItems > 0 ? startIndex + 1 : 0} - ${Math.min(startIndex + pageSize, totalItems)} (மொத்தம் ${totalItems})`
+              : `Showing ${totalItems > 0 ? startIndex + 1 : 0} - ${Math.min(startIndex + pageSize, totalItems)} of ${totalItems}`}
+          </span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl px-2.5 py-1.5 text-xs text-[#111111] focus:outline-none focus:border-[#F4C542] font-semibold cursor-pointer"
+          >
+            <option value={9}>9 / page</option>
+            <option value={12}>12 / page</option>
+            <option value={24}>24 / page</option>
+            <option value={48}>48 / page</option>
+          </select>
+        </div>
       </div>
 
       {/* Grid Container */}
       {filteredQueue.length === 0 ? (
         <EmptyState
-          title={t('admin_verify_empty_title')}
-          description={t('admin_verify_empty_desc')}
+          title={searchQuery ? (language === 'ta' ? 'தேடல் முடிவுகள் இல்லை' : 'No Applications Found') : t('admin_verify_empty_title')}
+          description={
+            searchQuery
+              ? (language === 'ta' ? 'உங்கள் தேடல் சொல்லுக்கு எந்த விண்ணப்பமும் பொருந்தவில்லை. தேடலை மாற்றவும்.' : `No alumni applications matched "${searchQuery}". Try a different search term.`)
+              : t('admin_verify_empty_desc')
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredQueue.map((item) => {
-            const isReRequest = Boolean(item.is_rerequest);
+          {paginatedQueue.map((item) => {
+            const isApproved = item.verification_status === 'APPROVED';
+            const isReRequest = Boolean(item.is_rerequest && item.verification_status === 'PENDING');
             const isRejected = item.verification_status === 'REJECTED';
 
             return (
               <div
                 key={item.id}
                 className={`rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all ${
-                  isReRequest
+                  isApproved
+                    ? 'bg-gray-100/90 border-2 border-gray-300 text-gray-600 opacity-80'
+                    : isReRequest
                     ? 'bg-gradient-to-b from-amber-50/50 to-white border-2 border-amber-400 ring-4 ring-amber-300/20 shadow-md'
                     : isRejected
                     ? 'bg-gray-50/90 border-2 border-gray-300 text-gray-600 opacity-90'
@@ -258,6 +382,11 @@ export const VerificationQueue: React.FC = () => {
                         <span className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs animate-pulse">
                           <Sparkles className="w-3 h-3 text-amber-600" />
                           Re-Requested #{item.rerequest_count || 1}
+                        </span>
+                      )}
+                      {isApproved && (
+                        <span className="bg-gray-200 text-gray-700 border border-gray-300 font-extrabold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider">
+                          {language === 'ta' ? 'அங்கீகரிக்கப்பட்டது' : 'Approved'}
                         </span>
                       )}
                       {isRejected && (
@@ -312,7 +441,7 @@ export const VerificationQueue: React.FC = () => {
                   )}
 
                   {/* Detail Overview Card */}
-                  <div className={`space-y-2 text-xs p-3 rounded-xl mb-4 border ${isRejected ? 'bg-gray-100/60 border-gray-200' : 'bg-[#FAFAFA] border-[#E5E7EB]'}`}>
+                  <div className={`space-y-2 text-xs p-3 rounded-xl mb-4 border ${isApproved || isRejected ? 'bg-gray-100/60 border-gray-200 text-gray-600' : 'bg-[#FAFAFA] border-[#E5E7EB]'}`}>
                     <div>
                       <span className="text-[#6B7280]">{t('admin_verify_label_mobile')}</span>{' '}
                       <strong className="text-[#111111]">{item.mobile}</strong>
@@ -339,15 +468,23 @@ export const VerificationQueue: React.FC = () => {
                 {/* Card Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-[#E5E7EB]">
                   <Button
-                    className="flex-1 w-full sm:w-auto bg-[#10B981] hover:bg-[#059669] text-white font-extrabold"
+                    disabled={isApproved}
+                    className={`flex-1 w-full sm:w-auto font-extrabold ${
+                      isApproved
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 hover:bg-gray-200 shadow-none'
+                        : 'bg-[#10B981] hover:bg-[#059669] text-white'
+                    }`}
                     onClick={() => {
+                      if (isApproved) return;
                       setSelectedAlumni(item);
                       setReviewAction('APPROVED');
                       setNotes(t('admin_verify_default_approve_note'));
                     }}
                   >
                     <Check className="w-4 h-4 mr-1" />
-                    {isRejected
+                    {isApproved
+                      ? (language === 'ta' ? 'அங்கீகரிக்கப்பட்டது' : 'Already Approved')
+                      : isRejected
                       ? (language === 'ta' ? 'மீண்டும் சரிபார்த்து அனுமதி' : 'Re-Evaluate & Approve')
                       : t('admin_verify_btn_approve')}
                   </Button>
@@ -361,12 +498,80 @@ export const VerificationQueue: React.FC = () => {
                     }}
                   >
                     <X className="w-4 h-4 mr-1" />
-                    {t('admin_verify_btn_reject')}
+                    {isApproved
+                      ? (language === 'ta' ? 'அனுமதி ரத்து / நிராகரி' : 'Revoke / Reject')
+                      : t('admin_verify_btn_reject')}
                   </Button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
+          <div className="text-xs text-gray-500 font-medium">
+            {language === 'ta'
+              ? `பக்கம் ${currentPage} / ${totalPages} (மொத்தம் ${totalItems} விண்ணப்பங்கள்)`
+              : `Page ${currentPage} of ${totalPages} (${totalItems} total applications)`}
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              className="p-2 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent text-gray-700 cursor-pointer disabled:cursor-not-allowed transition-all shadow-2xs"
+              title={language === 'ta' ? 'முந்தைய பக்கம்' : 'Previous Page'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Page number buttons */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => {
+                return (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 2 && page <= currentPage + 2)
+                );
+              })
+              .map((page, idx, arr) => {
+                const prev = arr[idx - 1];
+                const showEllipsis = prev && page - prev > 1;
+
+                return (
+                  <React.Fragment key={page}>
+                    {showEllipsis && (
+                      <span className="px-1 text-xs text-gray-400">...</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        currentPage === page
+                          ? 'bg-[#111111] text-white shadow-xs'
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              className="p-2 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent text-gray-700 cursor-pointer disabled:cursor-not-allowed transition-all shadow-2xs"
+              title={language === 'ta' ? 'அடுத்த பக்கம்' : 'Next Page'}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -668,15 +873,23 @@ export const VerificationQueue: React.FC = () => {
 
               <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                 <Button
-                  className="bg-[#10B981] hover:bg-[#059669] text-white font-extrabold w-full sm:w-auto"
+                  disabled={viewingAlumni.verification_status === 'APPROVED'}
+                  className={`font-extrabold w-full sm:w-auto ${
+                    viewingAlumni.verification_status === 'APPROVED'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 hover:bg-gray-200 shadow-none'
+                      : 'bg-[#10B981] hover:bg-[#059669] text-white'
+                  }`}
                   onClick={() => {
+                    if (viewingAlumni.verification_status === 'APPROVED') return;
                     setSelectedAlumni(viewingAlumni);
                     setReviewAction('APPROVED');
                     setNotes(t('admin_verify_default_approve_note'));
                   }}
                 >
                   <Check className="w-4 h-4 mr-1" />
-                  {language === 'ta' ? 'கணக்கை அனுமதிக்குக' : 'Approve Profile'}
+                  {viewingAlumni.verification_status === 'APPROVED'
+                    ? (language === 'ta' ? 'ஏற்கனவே அங்கீகரிக்கப்பட்டது' : 'Already Approved')
+                    : (language === 'ta' ? 'கணக்கை அனுமதிக்குக' : 'Approve Profile')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -688,7 +901,9 @@ export const VerificationQueue: React.FC = () => {
                   }}
                 >
                   <X className="w-4 h-4 mr-1" />
-                  {language === 'ta' ? 'நிராகரிக்குக' : 'Reject Profile'}
+                  {viewingAlumni.verification_status === 'APPROVED'
+                    ? (language === 'ta' ? 'அனுமதி ரத்து / நிராகரி' : 'Revoke / Reject')
+                    : (language === 'ta' ? 'நிராகரிக்குக' : 'Reject Profile')}
                 </Button>
               </div>
             </div>
