@@ -93,10 +93,37 @@ export const AlumniLayout: React.FC = () => {
     }
   };
 
-  const fetchMe = () => {
+  const fetchMe = (isManualCheck: boolean = false) => {
     setRefreshing(true);
     api.getMe()
-      .then(setUser)
+      .then((u) => {
+        setUser(u);
+        if (isManualCheck) {
+          const status = u?.verification_status;
+          if (status === 'APPROVED') {
+            alertService.showSuccess(
+              language === 'ta' ? 'கணக்கு சரிபார்க்கப்பட்டது! 🎉' : 'Account Verified! 🎉',
+              language === 'ta'
+                ? 'உங்கள் முன்னாள் மாணவர் கணக்கு வெற்றிகரமாக சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது.'
+                : 'Your alumni profile has been approved! Welcome to the Alumni Portal.'
+            );
+          } else if (status === 'REJECTED') {
+            alertService.showWarning(
+              language === 'ta' ? 'சரிபார்ப்பு நிராகரிக்கப்பட்டது ⚠️' : 'Verification Rejected ⚠️',
+              language === 'ta'
+                ? 'உங்கள் கணக்கு சரிபார்ப்பு கோரிக்கை நிராகரிக்கப்பட்டுள்ளது. விவரங்களை திருத்தி மீண்டும் விண்ணப்பிக்கலாம்.'
+                : 'Your verification request was rejected. You can re-submit your profile for review.'
+            );
+          } else {
+            alertService.showInfo(
+              language === 'ta' ? 'சரிபார்ப்பு நிலுவையில் உள்ளது ⏳' : 'Verification Pending ⏳',
+              language === 'ta'
+                ? 'உங்கள் முன்னாள் மாணவர் கணக்கு இன்னும் பள்ளி நிர்வாகியின் ஆய்வில் உள்ளது. விரைவில் அனுமதி அளிக்கப்படும்.'
+                : 'Your alumni profile is currently under review by the School Admin.'
+            );
+          }
+        }
+      })
       .catch((err) => {
         console.error('Alumni auth failed:', err);
         api.clearToken();
@@ -107,6 +134,7 @@ export const AlumniLayout: React.FC = () => {
         setRefreshing(false);
       });
   };
+
 
   useEffect(() => {
     if (!api.getToken()) {
@@ -311,8 +339,9 @@ export const AlumniLayout: React.FC = () => {
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
               <button
-                onClick={fetchMe}
+                onClick={() => fetchMe(true)}
                 disabled={refreshing}
+
                 className="px-4 py-2.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 text-[#111111] ${refreshing ? 'animate-spin' : ''}`} />
