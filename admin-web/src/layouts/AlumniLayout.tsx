@@ -787,7 +787,7 @@ export const AlumniLayout: React.FC = () => {
 
               <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-end">
                 <button
-                  onClick={fetchMe}
+                  onClick={() => fetchMe(true)}
                   disabled={refreshing}
                   className="px-3.5 py-2 sm:px-4 sm:py-2 bg-[#111111] hover:bg-gray-800 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 w-full sm:w-auto"
                 >
