@@ -197,7 +197,6 @@ export const AuthCallback: React.FC = () => {
               </label>
               <div className="relative flex items-center">
                 <div className="absolute left-3 flex items-center gap-1 text-xs font-bold text-[#111111] border-r border-[#E5E7EB] pr-2 pointer-events-none">
-                  <span>🇮🇳</span>
                   <span>+91</span>
                 </div>
                 <input
@@ -210,7 +209,7 @@ export const AuthCallback: React.FC = () => {
                     if (mobileError) setMobileError('');
                   }}
                   placeholder="98765 43210"
-                  className="w-full pl-16 pr-3.5 py-2.5 border border-[#E5E7EB] rounded-xl text-sm font-semibold tracking-wider text-[#111111] focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]"
+                  className="w-full pl-14 pr-3.5 py-2.5 border border-[#E5E7EB] rounded-xl text-sm font-semibold tracking-wider text-[#111111] focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]"
                   autoFocus
                   required
                 />

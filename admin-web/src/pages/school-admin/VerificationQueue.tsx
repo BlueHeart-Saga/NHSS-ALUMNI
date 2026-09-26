@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   UserCheck, Check, X, ShieldAlert, Sparkles, MessageSquare, AlertCircle, RefreshCw, Info,
-  Phone, Mail, MapPin, GraduationCap, Building2, Briefcase, Globe, Heart, HeartHandshake, FileText, User
+  Phone, Mail, MapPin, GraduationCap, Building2, Briefcase, Globe, Heart, HeartHandshake, FileText, User, History
 } from 'lucide-react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -35,7 +35,7 @@ export const VerificationQueue: React.FC = () => {
   const fetchQueue = async () => {
     try {
       setLoading(true);
-      const data = await api.getPendingVerifications();
+      const data = await api.getPendingVerifications('ALL');
       setQueueList(data);
     } catch (err) {
       console.error('Failed to fetch verification queue:', err);
@@ -49,10 +49,13 @@ export const VerificationQueue: React.FC = () => {
     if (!selectedAlumni || !reviewAction) return;
 
     setActionLoading(true);
+    const targetId = selectedAlumni.id;
+    const targetAction = reviewAction;
+    const targetNotes = notes;
     try {
-      await api.verifyAlumni(selectedAlumni.id, reviewAction, notes);
+      await api.verifyAlumni(targetId, targetAction, targetNotes);
 
-      const isApproved = reviewAction === 'APPROVED';
+      const isApproved = targetAction === 'APPROVED';
       alertService.showSuccess(
         isApproved
           ? t('admin_verify_alert_approved_title')
@@ -63,10 +66,26 @@ export const VerificationQueue: React.FC = () => {
         ).replace('{name}', selectedAlumni.full_name)
       );
 
+      // Optimistically update queueList so user disappears from pending / re-request tabs immediately
+      setQueueList((prev) =>
+        prev.map((item) => {
+          if (item.id === targetId) {
+            return {
+              ...item,
+              verification_status: targetAction,
+              is_rerequest: false,
+              rejection_reason: targetAction === 'REJECTED' ? targetNotes : item.rejection_reason,
+              verification_notes: targetNotes || item.verification_notes,
+            };
+          }
+          return item;
+        })
+      );
+
       setSelectedAlumni(null);
       setReviewAction(null);
       setNotes('');
-      if (viewingAlumni && viewingAlumni.id === selectedAlumni.id) {
+      if (viewingAlumni && viewingAlumni.id === targetId) {
         setViewingAlumni(null);
       }
       fetchQueue();
@@ -77,13 +96,13 @@ export const VerificationQueue: React.FC = () => {
     }
   };
 
-  const reRequestCount = queueList.filter((item) => item.is_rerequest).length;
-  const pendingCount = queueList.filter((item) => item.verification_status === 'PENDING').length;
+  const reRequestCount = queueList.filter((item) => item.is_rerequest && item.verification_status === 'PENDING').length;
+  const pendingCount = queueList.filter((item) => item.verification_status === 'PENDING' && !item.is_rerequest).length;
   const rejectedCount = queueList.filter((item) => item.verification_status === 'REJECTED').length;
 
   const filteredQueue = queueList.filter((item) => {
-    if (activeTab === 'RE_REQUEST') return Boolean(item.is_rerequest);
-    if (activeTab === 'PENDING') return item.verification_status === 'PENDING';
+    if (activeTab === 'RE_REQUEST') return Boolean(item.is_rerequest && item.verification_status === 'PENDING');
+    if (activeTab === 'PENDING') return item.verification_status === 'PENDING' && !item.is_rerequest;
     if (activeTab === 'REJECTED') return item.verification_status === 'REJECTED';
     return true;
   });
@@ -386,8 +405,9 @@ export const VerificationQueue: React.FC = () => {
                   Batch of {viewingAlumni.passing_year} • {viewingAlumni.school_name || 'NHS School'}
                 </div>
                 {viewingAlumni.profession && (
-                  <div className="text-xs text-[#854D0E] font-semibold mt-1">
-                    💼 {viewingAlumni.profession} {viewingAlumni.company ? `at ${viewingAlumni.company}` : ''}
+                  <div className="inline-flex items-center gap-1.5 text-xs text-[#854D0E] font-semibold mt-1">
+                    <Briefcase className="w-3.5 h-3.5 text-[#854D0E] shrink-0" />
+                    <span>{viewingAlumni.profession} {viewingAlumni.company ? `at ${viewingAlumni.company}` : ''}</span>
                   </div>
                 )}
               </div>
@@ -406,6 +426,69 @@ export const VerificationQueue: React.FC = () => {
                   <p className="text-xs text-amber-900 mt-1 font-medium leading-relaxed">
                     "{viewingAlumni.rerequest_note || 'Applicant requested re-verification review of registration profile.'}"
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Re-Request History Timeline (Multi-Re-Request Support) */}
+            {viewingAlumni.rerequest_history && viewingAlumni.rerequest_history.length > 0 && (
+              <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 space-y-3 shadow-2xs">
+                <div className="font-extrabold text-xs uppercase tracking-wider text-[#854D0E] flex items-center justify-between border-b border-amber-200/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-[#854D0E]" />
+                    <span>
+                      {language === 'ta'
+                        ? `மீண்டும் சரிபார்ப்பு வரலாறு (${viewingAlumni.rerequest_history.length} முயற்சிகள்)`
+                        : `Re-Verification History (${viewingAlumni.rerequest_history.length} Attempts)`}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                    Latest: Attempt #{viewingAlumni.rerequest_count || viewingAlumni.rerequest_history.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                  {viewingAlumni.rerequest_history.slice().reverse().map((entry, idx) => (
+                    <div key={idx} className="bg-white border border-amber-200/80 rounded-xl p-3 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-[#854D0E] flex items-center gap-1.5">
+                          <span>Attempt #{entry.attempt}</span>
+                          {entry.requested_at && (
+                            <span className="text-[10px] font-normal text-gray-500">
+                              ({new Date(entry.requested_at).toLocaleDateString()})
+                            </span>
+                          )}
+                        </span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          entry.status === 'PENDING'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : entry.admin_action === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            : 'bg-rose-100 text-rose-900 border border-rose-300'
+                        }`}>
+                          {entry.status === 'PENDING'
+                            ? (language === 'ta' ? 'பரிசீலனையில்' : 'PENDING REVIEW')
+                            : entry.admin_action || 'RESOLVED'}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-gray-700 bg-gray-50 rounded-lg p-2 font-medium">
+                        <span className="text-gray-500 block text-[10px] uppercase font-bold">
+                          {language === 'ta' ? 'விண்ணப்பதாரர் குறிப்பு:' : 'Applicant Note:'}
+                        </span>
+                        "{entry.note}"
+                      </div>
+
+                      {entry.admin_notes && (
+                        <div className="text-xs text-rose-800 bg-rose-50/80 border border-rose-200 rounded-lg p-2 font-medium">
+                          <span className="text-rose-600 block text-[10px] uppercase font-bold">
+                            {language === 'ta' ? 'நிர்வாகியின் முடிவு & குறிப்பு:' : `Admin Decision (${entry.admin_action || 'Action'}):`}
+                          </span>
+                          "{entry.admin_notes}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -565,13 +648,13 @@ export const VerificationQueue: React.FC = () => {
                 <div>
                   <span className="text-gray-500 block text-[11px]">{language === 'ta' ? 'தன்னார்வலராகச் செயல்பட விருப்பம்:' : 'Willing to Volunteer:'}</span>
                   <div className="font-bold text-[#111111]">
-                    {viewingAlumni.is_volunteer === 'YES' || (viewingAlumni.is_volunteer as unknown) === true ? '✅ YES / ஆம்' : 'NO / இல்லை'}
+                    {viewingAlumni.is_volunteer === 'YES' || (viewingAlumni.is_volunteer as unknown) === true ? 'YES / ஆம்' : 'NO / இல்லை'}
                   </div>
                 </div>
                 <div>
                   <span className="text-gray-500 block text-[11px]">{language === 'ta' ? 'பள்ளிக்கு நன்கொடை அளிக்க விருப்பம்:' : 'Willing to Donate:'}</span>
                   <div className="font-bold text-[#111111]">
-                    {viewingAlumni.willing_to_donate === 'YES' || (viewingAlumni.willing_to_donate as unknown) === true ? '✅ YES / ஆம்' : 'NO / இல்லை'}
+                    {viewingAlumni.willing_to_donate === 'YES' || (viewingAlumni.willing_to_donate as unknown) === true ? 'YES / ஆம்' : 'NO / இல்லை'}
                   </div>
                 </div>
               </div>

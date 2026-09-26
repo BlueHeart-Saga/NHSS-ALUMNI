@@ -107,7 +107,7 @@ def send_alumni_verified_email(to_email: str, alumni_name: str, school_name: str
     """
     Sends an automated verification approval confirmation email to the alumnus when approved by school admin.
     """
-    subject = f"🎉 Congratulations! Your Alumni Account at {school_name} is Verified"
+    subject = f"Congratulations! Your Alumni Account at {school_name} is Verified"
     login_url = f"{settings.FRONTEND_URL}/login"
 
     html_content = f"""
@@ -132,7 +132,7 @@ def send_alumni_verified_email(to_email: str, alumni_name: str, school_name: str
         <div class="container">
             <div class="header">
                 <span class="badge">{school_name} Alumni Portal</span>
-                <h1 class="title">You are Verified! 🎉</h1>
+                <h1 class="title">You are Verified!</h1>
                 <p class="subtitle">Dear <strong>{alumni_name}</strong>, your alumni registration application has been reviewed and officially approved by the school administration.</p>
             </div>
             
@@ -372,7 +372,7 @@ def send_registration_thank_you_email(to_email: str, alumni_name: str, school_na
             </div>
             
             <div class="info-box">
-                <p class="info-text">⏳ Your application has been successfully submitted and is currently awaiting verification by the school administration team.</p>
+                <p class="info-text">Your application has been successfully submitted and is currently awaiting verification by the school administration team.</p>
             </div>
 
             <div class="steps">

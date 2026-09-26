@@ -291,7 +291,7 @@ export const FeedbackManagement: React.FC = () => {
           <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">{t('admin_feedback_stat_avg')}</span>
           <div className="text-2xl font-black text-blue-900 flex items-center gap-1">
             <span>{analytics.average_rating}</span>
-            <span className="text-sm text-amber-500">★</span>
+            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
           </div>
           <span className="text-[10px] text-blue-700 font-medium">{t('admin_feedback_stat_avg_sub')}</span>
         </div>

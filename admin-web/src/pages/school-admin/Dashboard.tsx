@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, UserCheck, GraduationCap, Calendar, CheckCircle2, ArrowRight,
   Info, Check, X, AlertTriangle, Phone, Mail, Briefcase, ExternalLink, ShieldCheck, Loader2,
-  Sparkles, MessageSquare
+  Sparkles, MessageSquare, MapPin
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { Button } from '../../components/Button';
@@ -54,7 +54,11 @@ export const Dashboard: React.FC = () => {
 
       if (pendRes.status === 'fulfilled') {
         if (Array.isArray(pendRes.value)) {
-          const sorted = [...pendRes.value].sort((a, b) => {
+          // Strictly filter for pending verification status
+          const onlyPending = pendRes.value.filter(
+            (item) => item.verification_status === 'PENDING'
+          );
+          const sorted = [...onlyPending].sort((a, b) => {
             if (a.is_rerequest && !b.is_rerequest) return -1;
             if (!a.is_rerequest && b.is_rerequest) return 1;
             return 0;
@@ -78,13 +82,15 @@ export const Dashboard: React.FC = () => {
 
   const handleConfirmApproval = async () => {
     if (!confirmingAlumni) return;
+    const targetId = confirmingAlumni.id;
     try {
       setConfirmLoading(true);
-      await api.verifyAlumni(confirmingAlumni.id, 'APPROVED', approvalNote);
+      await api.verifyAlumni(targetId, 'APPROVED', approvalNote);
       alertService.showSuccess(
         t('admin_dashboard_alert_approved_title'),
         t('admin_dashboard_alert_approved_body').replace('{name}', confirmingAlumni.full_name)
       );
+      setPendingList((prev) => prev.filter((a) => a.id !== targetId));
       setConfirmingAlumni(null);
       setSelectedAlumni(null);
       loadDashboardData();
@@ -97,13 +103,15 @@ export const Dashboard: React.FC = () => {
 
   const handleConfirmRejection = async () => {
     if (!rejectingAlumni) return;
+    const targetId = rejectingAlumni.id;
     try {
       setRejectLoading(true);
-      await api.verifyAlumni(rejectingAlumni.id, 'REJECTED', rejectionReason);
+      await api.verifyAlumni(targetId, 'REJECTED', rejectionReason);
       alertService.showSuccess(
         t('admin_dashboard_alert_rejected_title'),
         t('admin_dashboard_alert_rejected_body').replace('{name}', rejectingAlumni.full_name)
       );
+      setPendingList((prev) => prev.filter((a) => a.id !== targetId));
       setRejectingAlumni(null);
       setSelectedAlumni(null);
       loadDashboardData();
@@ -175,16 +183,19 @@ export const Dashboard: React.FC = () => {
             <p className="text-sm text-[#6B7280] mt-1 max-w-2xl">{upcomingEvent.description}</p>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 text-xs font-semibold text-[#111111]">
-              <span className="bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
-                📅 {upcomingEvent.event_date} ({upcomingEvent.start_time})
+              <span className="inline-flex items-center gap-1.5 bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
+                <Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <span>{upcomingEvent.event_date} ({upcomingEvent.start_time})</span>
               </span>
-              <span className="bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
-                📍 {upcomingEvent.venue}
+              <span className="inline-flex items-center gap-1.5 bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
+                <MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <span>{upcomingEvent.venue}</span>
               </span>
-              <span className="bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl text-[#854D0E]">
-                👥 {t('admin_dashboard_event_confirmed')
+              <span className="inline-flex items-center gap-1.5 bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl text-[#854D0E]">
+                <Users className="w-3.5 h-3.5 text-[#854D0E] shrink-0" />
+                <span>{t('admin_dashboard_event_confirmed')
                   .replace('{attending}', String(upcomingEvent.attending_count))
-                  .replace('{guests}', String(upcomingEvent.total_guests))}
+                  .replace('{guests}', String(upcomingEvent.total_guests))}</span>
               </span>
             </div>
           </div>
@@ -337,8 +348,9 @@ export const Dashboard: React.FC = () => {
                   Batch {selectedAlumni.passing_year}
                 </div>
                 {selectedAlumni.profession && (
-                  <div className="text-xs text-[#854D0E] font-medium mt-1">
-                    💼 {selectedAlumni.profession} {selectedAlumni.company ? t('admin_dashboard_detail_company_prefix').replace('{company}', selectedAlumni.company) : ''}
+                  <div className="inline-flex items-center gap-1.5 text-xs text-[#854D0E] font-medium mt-1">
+                    <Briefcase className="w-3.5 h-3.5 text-[#854D0E] shrink-0" />
+                    <span>{selectedAlumni.profession} {selectedAlumni.company ? t('admin_dashboard_detail_company_prefix').replace('{company}', selectedAlumni.company) : ''}</span>
                   </div>
                 )}
               </div>
@@ -350,11 +362,44 @@ export const Dashboard: React.FC = () => {
                 <Sparkles className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-xs text-amber-900">
-                    Re-Verification Request Note
+                    Re-Verification Request Note {selectedAlumni.rerequest_count ? `(Attempt #${selectedAlumni.rerequest_count})` : ''}
                   </div>
                   <p className="text-xs text-amber-800 mt-1 font-medium leading-relaxed">
                     {selectedAlumni.rerequest_note ? `"${selectedAlumni.rerequest_note}"` : 'Applicant requested re-verification review.'}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Re-Request History Timeline */}
+            {selectedAlumni.rerequest_history && selectedAlumni.rerequest_history.length > 0 && (
+              <div className="bg-amber-50/50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-950 space-y-2">
+                <div className="font-bold text-xs text-amber-900 flex items-center justify-between">
+                  <span>Re-Verification Request History ({selectedAlumni.rerequest_history.length} attempts)</span>
+                </div>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {selectedAlumni.rerequest_history.slice().reverse().map((hist, idx) => (
+                    <div key={idx} className="bg-white border border-amber-100 rounded-xl p-2.5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-amber-900 text-[11px]">Attempt #{hist.attempt}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          hist.status === 'PENDING'
+                            ? 'bg-amber-100 text-amber-800'
+                            : hist.admin_action === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {hist.status === 'PENDING' ? 'Under Review' : hist.admin_action || 'RESOLVED'}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-[11px] italic">"{hist.note}"</p>
+                      {hist.admin_notes && (
+                        <p className="text-[10px] text-rose-700 bg-rose-50 rounded px-1.5 py-0.5">
+                          Admin: {hist.admin_notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

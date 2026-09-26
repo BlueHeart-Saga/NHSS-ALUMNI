@@ -64,7 +64,7 @@ async function migrate() {
         );
       }
 
-      console.log(`✓ ${collectionName} completed`);
+      console.log(`[DONE] ${collectionName} completed`);
     }
 
     console.log("\n=================================");

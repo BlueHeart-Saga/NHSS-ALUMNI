@@ -666,8 +666,9 @@ class ApiClient {
   }
 
   // Alumni & Verification
-  async getPendingVerifications() {
-    return this.request<AlumniProfile[]>('/alumni/pending');
+  async getPendingVerifications(status?: string) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<AlumniProfile[]>(`/alumni/pending${q}`);
   }
 
   async verifyAlumni(alumni_id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED', notes?: string) {

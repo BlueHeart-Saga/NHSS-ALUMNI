@@ -5,7 +5,7 @@ import {
   Calendar, Bell, Camera, Award, Settings, LogOut, Menu, X, Search,
   ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Clock, ShieldAlert,
   AlertTriangle, AlertCircle, RefreshCw, Mail, MessageSquareQuote,
-  HandHeart
+  HandHeart, History
 } from 'lucide-react';
 import { api } from '../services/api';
 import { alertService } from '../services/alertService';
@@ -78,7 +78,7 @@ export const AlumniLayout: React.FC = () => {
     try {
       await api.requestReverification(rerequestNote.trim() || undefined);
       alertService.showSuccess(
-        language === 'ta' ? 'சரிபார்ப்பு விண்ணப்பம் மீண்டும் சமர்ப்பிக்கப்பட்டது 🎉' : 'Re-verification Request Submitted! 🎉',
+        language === 'ta' ? 'சரிபார்ப்பு விண்ணப்பம் மீண்டும் சமர்ப்பிக்கப்பட்டது' : 'Re-verification Request Submitted!',
         language === 'ta'
           ? 'உங்கள் சரிபார்ப்பு கோரிக்கை பள்ளி நிர்வாகிக்கு மீண்டும் அனுப்பப்பட்டது. நிர்வாகி சரிபார்த்து உங்களை அனுமதிப்பார்.'
           : 'Your re-verification request has been submitted to the School Admin queue for priority review.'
@@ -102,21 +102,21 @@ export const AlumniLayout: React.FC = () => {
           const status = u?.verification_status;
           if (status === 'APPROVED') {
             alertService.showSuccess(
-              language === 'ta' ? 'கணக்கு சரிபார்க்கப்பட்டது! 🎉' : 'Account Verified! 🎉',
+              language === 'ta' ? 'கணக்கு சரிபார்க்கப்பட்டது!' : 'Account Verified!',
               language === 'ta'
                 ? 'உங்கள் முன்னாள் மாணவர் கணக்கு வெற்றிகரமாக சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது.'
                 : 'Your alumni profile has been approved! Welcome to the Alumni Portal.'
             );
           } else if (status === 'REJECTED') {
             alertService.showWarning(
-              language === 'ta' ? 'சரிபார்ப்பு நிராகரிக்கப்பட்டது ⚠️' : 'Verification Rejected ⚠️',
+              language === 'ta' ? 'சரிபார்ப்பு நிராகரிக்கப்பட்டது' : 'Verification Rejected',
               language === 'ta'
                 ? 'உங்கள் கணக்கு சரிபார்ப்பு கோரிக்கை நிராகரிக்கப்பட்டுள்ளது. விவரங்களை திருத்தி மீண்டும் விண்ணப்பிக்கலாம்.'
                 : 'Your verification request was rejected. You can re-submit your profile for review.'
             );
           } else {
             alertService.showInfo(
-              language === 'ta' ? 'சரிபார்ப்பு நிலுவையில் உள்ளது ⏳' : 'Verification Pending ⏳',
+              language === 'ta' ? 'சரிபார்ப்பு நிலுவையில் உள்ளது' : 'Verification Pending',
               language === 'ta'
                 ? 'உங்கள் முன்னாள் மாணவர் கணக்கு இன்னும் பள்ளி நிர்வாகியின் ஆய்வில் உள்ளது. விரைவில் அனுமதி அளிக்கப்படும்.'
                 : 'Your alumni profile is currently under review by the School Admin.'
@@ -326,6 +326,49 @@ export const AlumniLayout: React.FC = () => {
               </div>
             )}
 
+            {/* Re-Request History List for Alumnus */}
+            {user?.rerequest_history && user.rerequest_history.length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-5 text-left text-xs space-y-2.5">
+                <div className="font-extrabold text-[11px] text-[#854D0E] uppercase tracking-wider flex items-center justify-between border-b border-gray-200 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-[#854D0E]" />
+                    <span>{language === 'ta' ? 'மறு பரிசீலனை வரலாறு:' : 'Re-verification History:'}</span>
+                  </div>
+                  <span className="font-bold text-gray-500 text-[10px]">
+                    {user.rerequest_history.length} {language === 'ta' ? 'முயற்சிகள்' : 'Attempts'}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {user.rerequest_history.slice().reverse().map((item, idx) => (
+                    <div key={idx} className="bg-white border border-gray-200 rounded-xl p-2.5 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#854D0E] text-[11px]">
+                          Attempt #{item.attempt}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          item.status === 'PENDING'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : item.admin_action === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            : 'bg-rose-100 text-rose-900 border border-rose-300'
+                        }`}>
+                          {item.status === 'PENDING'
+                            ? (language === 'ta' ? 'பரிசீலனையில்' : 'Under Review')
+                            : item.admin_action || 'RESOLVED'}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-[11px] italic">"{item.note}"</p>
+                      {item.admin_notes && (
+                        <p className="text-[10px] text-rose-700 bg-rose-50 rounded px-1.5 py-0.5 font-medium">
+                          {language === 'ta' ? 'நிர்வாகி குறிப்பு:' : 'Admin Note:'} {item.admin_notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Application Summary Box */}
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-5 text-left text-xs space-y-3">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2">
@@ -363,7 +406,6 @@ export const AlumniLayout: React.FC = () => {
               <button
                 onClick={() => fetchMe(true)}
                 disabled={refreshing}
-
                 className="px-4 py-2.5 bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 text-[#111111] ${refreshing ? 'animate-spin' : ''}`} />
@@ -381,8 +423,12 @@ export const AlumniLayout: React.FC = () => {
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <span>
                   {isRejected
-                    ? (language === 'ta' ? 'மீண்டும் விண்ணப்பிக்க கோரவும்' : 'Request Re-verification')
-                    : (language === 'ta' ? 'மீண்டும் சரிபார்க்க கோரிக்கை' : 'Re-submit / Request Review')}
+                    ? (language === 'ta'
+                        ? `மீண்டும் விண்ணப்பிக்க கோரவும் (முயற்சி #${(user?.rerequest_count || 0) + 1})`
+                        : `Request Re-verification (Attempt #${(user?.rerequest_count || 0) + 1})`)
+                    : (language === 'ta'
+                        ? 'மீண்டும் சரிபார்க்க கோரிக்கை'
+                        : 'Re-submit / Request Review')}
                 </span>
               </button>
 
@@ -486,7 +532,11 @@ export const AlumniLayout: React.FC = () => {
           <Modal
             isOpen={showRerequestModal}
             onClose={() => setShowRerequestModal(false)}
-            title={language === 'ta' ? 'மீண்டும் சரிபார்ப்பு விண்ணப்பம் சமர்ப்பிக்க' : 'Request Re-verification'}
+            title={
+              language === 'ta'
+                ? `மீண்டும் சரிபார்ப்பு விண்ணப்பம் சமர்ப்பிக்க (முயற்சி #${(user?.rerequest_count || 0) + 1})`
+                : `Request Re-verification (Attempt #${(user?.rerequest_count || 0) + 1})`
+            }
           >
             <form onSubmit={handleSendRerequest} className="space-y-4 pt-2 text-left">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 flex items-start space-x-2">
@@ -526,7 +576,9 @@ export const AlumniLayout: React.FC = () => {
                 >
                   {rerequestSending
                     ? (language === 'ta' ? 'சமர்ப்பிக்கிறது...' : 'Submitting...')
-                    : (language === 'ta' ? 'மீண்டும் விண்ணப்பி' : 'Submit Request')}
+                    : (language === 'ta'
+                        ? `மீண்டும் விண்ணப்பி (முயற்சி #${(user?.rerequest_count || 0) + 1})`
+                        : `Submit Request (Attempt #${(user?.rerequest_count || 0) + 1})`)}
                 </Button>
               </div>
             </form>

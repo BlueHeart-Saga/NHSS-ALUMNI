@@ -82,7 +82,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     setLoading(true);
     try {
-      // ✅ Password-only login. Adjust the method name below to match your
+      // Password-only login. Adjust the method name below to match your
       //    public login page's call (e.g. api.login, api.authenticate,
       //    api.signIn, api.adminLogin ...).
       const res = await api.login(email.trim(), password);

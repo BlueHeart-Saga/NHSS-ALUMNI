@@ -43,11 +43,12 @@ async def list_pending_verifications(
     elif status == "REJECTED":
         query = {"verification_status": "REJECTED"}
     elif status == "RE_REQUEST":
-        query = {"is_rerequest": True}
+        query = {"is_rerequest": True, "verification_status": "PENDING"}
     elif status == "ALL":
         query = {"verification_status": {"$in": ["PENDING", "REJECTED", "APPROVED"]}}
     else:
-        query = {"verification_status": {"$in": ["PENDING", "REJECTED"]}}
+        # Default: only pending verifications that need admin review
+        query = {"verification_status": "PENDING"}
 
     school_id = current_user.get("school_id")
     if school_id:
@@ -128,6 +129,7 @@ async def list_pending_verifications(
                 rerequest_note=a.get("rerequest_note"),
                 rerequest_count=a.get("rerequest_count", 0),
                 rerequested_at=a.get("rerequested_at"),
+                rerequest_history=a.get("rerequest_history") or (user.get("rerequest_history") if user else None),
                 rejection_reason=a.get("rejection_reason") or a.get("verification_notes"),
                 roles=roles,
                 email_visible=a.get("email_visible", False),
@@ -164,11 +166,35 @@ async def verify_alumni(
 
     now = datetime.now(timezone.utc)
     note_val = request.notes or f"Marked {request.status} by admin"
+    user_id_ref = alumni.get("user_id")
+
+    # Fetch and resolve any active pending re-request in rerequest_history
+    history = list(alumni.get("rerequest_history") or [])
+    if not history and user_id_ref:
+        try:
+            u_doc = await db.users.find_one({"_id": ObjectId(user_id_ref)})
+        except Exception:
+            u_doc = await db.users.find_one({"_id": user_id_ref})
+        if u_doc and u_doc.get("rerequest_history"):
+            history = list(u_doc.get("rerequest_history"))
+
+    if history:
+        last_entry = dict(history[-1])
+        if last_entry.get("status") == "PENDING":
+            last_entry["status"] = "RESOLVED"
+            last_entry["resolved_at"] = now.isoformat()
+            last_entry["admin_action"] = request.status
+            last_entry["admin_notes"] = note_val
+            last_entry["resolved_by"] = current_user.get("user_id")
+            history[-1] = last_entry
+
     update_data = {
         "verification_status": request.status,
         "status": request.status if request.status in ["APPROVED", "REJECTED", "SUSPENDED", "PENDING"] else "PENDING",
         "verification_notes": note_val,
-        "rejection_reason": note_val if request.status in ["REJECTED", "SUSPENDED"] else alumni.get("rejection_reason"),
+        "rejection_reason": note_val if request.status in ["REJECTED", "SUSPENDED"] else (None if request.status == "APPROVED" else alumni.get("rejection_reason")),
+        "is_rerequest": False,
+        "rerequest_history": history,
         "verified_by": current_user["user_id"],
         "verified_at": now
     }
@@ -178,7 +204,6 @@ async def verify_alumni(
     except Exception:
         await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
 
-    user_id_ref = alumni.get("user_id")
     if user_id_ref:
         try:
             await db.users.update_one({"_id": ObjectId(user_id_ref)}, {"$set": update_data})

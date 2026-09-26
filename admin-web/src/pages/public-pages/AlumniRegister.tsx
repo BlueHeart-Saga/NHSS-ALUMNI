@@ -22,57 +22,57 @@ interface CountryOption {
 }
 
 const defaultCountryList: CountryOption[] = [
-  { name: 'India', code: 'IN', dialCode: '+91', flag: '🇮🇳' },
-  { name: 'United States', code: 'US', dialCode: '+1', flag: '🇺🇸' },
-  { name: 'United Kingdom', code: 'GB', dialCode: '+44', flag: '🇬🇧' },
-  { name: 'United Arab Emirates', code: 'AE', dialCode: '+971', flag: '🇦🇪' },
-  { name: 'Singapore', code: 'SG', dialCode: '+65', flag: '🇸🇬' },
-  { name: 'Australia', code: 'AU', dialCode: '+61', flag: '🇦🇺' },
-  { name: 'Canada', code: 'CA', dialCode: '+1', flag: '🇨🇦' },
-  { name: 'Malaysia', code: 'MY', dialCode: '+60', flag: '🇲🇾' },
-  { name: 'Sri Lanka', code: 'LK', dialCode: '+94', flag: '🇱🇰' },
-  { name: 'Saudi Arabia', code: 'SA', dialCode: '+966', flag: '🇸🇦' },
-  { name: 'Qatar', code: 'QA', dialCode: '+974', flag: '🇶🇦' },
-  { name: 'Oman', code: 'OM', dialCode: '+968', flag: '🇴🇲' },
-  { name: 'Kuwait', code: 'KW', dialCode: '+965', flag: '🇰🇼' },
-  { name: 'Bahrain', code: 'BH', dialCode: '+973', flag: '🇧🇭' },
-  { name: 'Nepal', code: 'NP', dialCode: '+977', flag: '🇳🇵' },
-  { name: 'Bangladesh', code: 'BD', dialCode: '+880', flag: '🇧🇩' },
-  { name: 'Germany', code: 'DE', dialCode: '+49', flag: '🇩🇪' },
-  { name: 'France', code: 'FR', dialCode: '+33', flag: '🇫🇷' },
-  { name: 'Japan', code: 'JP', dialCode: '+81', flag: '🇯🇵' },
-  { name: 'China', code: 'CN', dialCode: '+86', flag: '🇨🇳' },
-  { name: 'South Korea', code: 'KR', dialCode: '+82', flag: '🇰🇷' },
-  { name: 'New Zealand', code: 'NZ', dialCode: '+64', flag: '🇳🇿' },
-  { name: 'South Africa', code: 'ZA', dialCode: '+27', flag: '🇿🇦' },
-  { name: 'Netherlands', code: 'NL', dialCode: '+31', flag: '🇳🇱' },
-  { name: 'Switzerland', code: 'CH', dialCode: '+41', flag: '🇨🇭' },
-  { name: 'Italy', code: 'IT', dialCode: '+39', flag: '🇮🇹' },
-  { name: 'Spain', code: 'ES', dialCode: '+34', flag: '🇪🇸' },
-  { name: 'Brazil', code: 'BR', dialCode: '+55', flag: '🇧🇷' },
-  { name: 'Mexico', code: 'MX', dialCode: '+52', flag: '🇲🇽' },
-  { name: 'Russia', code: 'RU', dialCode: '+7', flag: '🇷🇺' },
-  { name: 'Indonesia', code: 'ID', dialCode: '+62', flag: '🇮🇩' },
-  { name: 'Philippines', code: 'PH', dialCode: '+63', flag: '🇵🇭' },
-  { name: 'Thailand', code: 'TH', dialCode: '+66', flag: '🇹🇭' },
-  { name: 'Vietnam', code: 'VN', dialCode: '+84', flag: '🇻🇳' },
-  { name: 'Maldives', code: 'MV', dialCode: '+960', flag: '🇲🇻' },
-  { name: 'Mauritius', code: 'MU', dialCode: '+230', flag: '🇲🇺' },
-  { name: 'Ireland', code: 'IE', dialCode: '+353', flag: '🇮🇪' },
-  { name: 'Sweden', code: 'SE', dialCode: '+46', flag: '🇸🇪' },
-  { name: 'Norway', code: 'NO', dialCode: '+47', flag: '🇳🇴' },
-  { name: 'Denmark', code: 'DK', dialCode: '+45', flag: '🇩🇰' },
-  { name: 'Finland', code: 'FI', dialCode: '+358', flag: '🇫🇮' },
-  { name: 'Belgium', code: 'BE', dialCode: '+32', flag: '🇧🇪' },
-  { name: 'Austria', code: 'AT', dialCode: '+43', flag: '🇦🇹' },
-  { name: 'Portugal', code: 'PT', dialCode: '+351', flag: '🇵🇹' },
-  { name: 'Greece', code: 'GR', dialCode: '+30', flag: '🇬🇷' },
-  { name: 'Turkey', code: 'TR', dialCode: '+90', flag: '🇹🇷' },
-  { name: 'Egypt', code: 'EG', dialCode: '+20', flag: '🇪🇬' },
-  { name: 'Nigeria', code: 'NG', dialCode: '+234', flag: '🇳🇬' },
-  { name: 'Kenya', code: 'KE', dialCode: '+254', flag: '🇰🇪' },
-  { name: 'Pakistan', code: 'PK', dialCode: '+92', flag: '🇵🇰' },
-  { name: 'Israel', code: 'IL', dialCode: '+972', flag: '🇮🇱' }
+  { name: 'India', code: 'IN', dialCode: '+91', flag: '' },
+  { name: 'United States', code: 'US', dialCode: '+1', flag: '' },
+  { name: 'United Kingdom', code: 'GB', dialCode: '+44', flag: '' },
+  { name: 'United Arab Emirates', code: 'AE', dialCode: '+971', flag: '' },
+  { name: 'Singapore', code: 'SG', dialCode: '+65', flag: '' },
+  { name: 'Australia', code: 'AU', dialCode: '+61', flag: '' },
+  { name: 'Canada', code: 'CA', dialCode: '+1', flag: '' },
+  { name: 'Malaysia', code: 'MY', dialCode: '+60', flag: '' },
+  { name: 'Sri Lanka', code: 'LK', dialCode: '+94', flag: '' },
+  { name: 'Saudi Arabia', code: 'SA', dialCode: '+966', flag: '' },
+  { name: 'Qatar', code: 'QA', dialCode: '+974', flag: '' },
+  { name: 'Oman', code: 'OM', dialCode: '+968', flag: '' },
+  { name: 'Kuwait', code: 'KW', dialCode: '+965', flag: '' },
+  { name: 'Bahrain', code: 'BH', dialCode: '+973', flag: '' },
+  { name: 'Nepal', code: 'NP', dialCode: '+977', flag: '' },
+  { name: 'Bangladesh', code: 'BD', dialCode: '+880', flag: '' },
+  { name: 'Germany', code: 'DE', dialCode: '+49', flag: '' },
+  { name: 'France', code: 'FR', dialCode: '+33', flag: '' },
+  { name: 'Japan', code: 'JP', dialCode: '+81', flag: '' },
+  { name: 'China', code: 'CN', dialCode: '+86', flag: '' },
+  { name: 'South Korea', code: 'KR', dialCode: '+82', flag: '' },
+  { name: 'New Zealand', code: 'NZ', dialCode: '+64', flag: '' },
+  { name: 'South Africa', code: 'ZA', dialCode: '+27', flag: '' },
+  { name: 'Netherlands', code: 'NL', dialCode: '+31', flag: '' },
+  { name: 'Switzerland', code: 'CH', dialCode: '+41', flag: '' },
+  { name: 'Italy', code: 'IT', dialCode: '+39', flag: '' },
+  { name: 'Spain', code: 'ES', dialCode: '+34', flag: '' },
+  { name: 'Brazil', code: 'BR', dialCode: '+55', flag: '' },
+  { name: 'Mexico', code: 'MX', dialCode: '+52', flag: '' },
+  { name: 'Russia', code: 'RU', dialCode: '+7', flag: '' },
+  { name: 'Indonesia', code: 'ID', dialCode: '+62', flag: '' },
+  { name: 'Philippines', code: 'PH', dialCode: '+63', flag: '' },
+  { name: 'Thailand', code: 'TH', dialCode: '+66', flag: '' },
+  { name: 'Vietnam', code: 'VN', dialCode: '+84', flag: '' },
+  { name: 'Maldives', code: 'MV', dialCode: '+960', flag: '' },
+  { name: 'Mauritius', code: 'MU', dialCode: '+230', flag: '' },
+  { name: 'Ireland', code: 'IE', dialCode: '+353', flag: '' },
+  { name: 'Sweden', code: 'SE', dialCode: '+46', flag: '' },
+  { name: 'Norway', code: 'NO', dialCode: '+47', flag: '' },
+  { name: 'Denmark', code: 'DK', dialCode: '+45', flag: '' },
+  { name: 'Finland', code: 'FI', dialCode: '+358', flag: '' },
+  { name: 'Belgium', code: 'BE', dialCode: '+32', flag: '' },
+  { name: 'Austria', code: 'AT', dialCode: '+43', flag: '' },
+  { name: 'Portugal', code: 'PT', dialCode: '+351', flag: '' },
+  { name: 'Greece', code: 'GR', dialCode: '+30', flag: '' },
+  { name: 'Turkey', code: 'TR', dialCode: '+90', flag: '' },
+  { name: 'Egypt', code: 'EG', dialCode: '+20', flag: '' },
+  { name: 'Nigeria', code: 'NG', dialCode: '+234', flag: '' },
+  { name: 'Kenya', code: 'KE', dialCode: '+254', flag: '' },
+  { name: 'Pakistan', code: 'PK', dialCode: '+92', flag: '' },
+  { name: 'Israel', code: 'IL', dialCode: '+972', flag: '' }
 ];
 
 // ============================================================================
@@ -115,7 +115,7 @@ export const AlumniRegister: React.FC = () => {
               name: c.name,
               code: c.alpha2Code,
               dialCode: match ? match.dialCode : '+1',
-              flag: c.flag || match?.flag || '🏳️'
+              flag: c.flag || match?.flag || ''
             };
           });
 
@@ -531,7 +531,7 @@ export const AlumniRegister: React.FC = () => {
       await api.sendOTP(cleanMob, undefined, false, undefined, false, true);
       setOtpSent(true);
       alertService.showInfo(
-        language === 'ta' ? 'OTP அனுப்பப்பட்டது 📩' : 'Verification OTP Sent 📩',
+        language === 'ta' ? 'OTP அனுப்பப்பட்டது' : 'Verification OTP Sent',
         language === 'ta'
           ? `6-இலக்க சரிபார்ப்புக் குறியீடு SMS மூலம் ${cleanMob} எண்ணிற்கு அனுப்பப்பட்டுள்ளது.`
           : `A 6-digit verification code has been dispatched via SMS to ${cleanMob}.`
@@ -541,7 +541,7 @@ export const AlumniRegister: React.FC = () => {
       if (errMsg.includes('ACCOUNT_ALREADY_REGISTERED') || errMsg.toLowerCase().includes('already registered') || err?.status === 409) {
         setAccountAlreadyExists(true);
         const proceedToLogin = await alertService.showConfirm(
-          language === 'ta' ? 'ஏற்கனவே பதிவாகியுள்ள கணக்கு ⚠️' : 'Account Already Registered ⚠️',
+          language === 'ta' ? 'ஏற்கனவே பதிவாகியுள்ள கணக்கு' : 'Account Already Registered',
           language === 'ta'
             ? `கைபேசி எண் (${cleanMob}) மூலம் ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. உங்கள் கணக்கில் நேரடியாக உள்நுழைய விரும்புகிறீர்களா?`
             : `An account with mobile number (${cleanMob}) is already registered in the system. Would you like to log in to your account now?`,
@@ -585,7 +585,7 @@ export const AlumniRegister: React.FC = () => {
       }
 
       await alertService.showSuccess(
-        language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது! 🔐' : 'OTP Verified Successfully! 🔐',
+        language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
         language === 'ta'
           ? 'உங்கள் கைபேசி எண் சரிபார்க்கப்பட்டது. படி 2-க்குச் செல்ல உங்கள் கணக்கிற்கான புதிய கடவுச்சொல்லை உருவாக்கவும்.'
           : 'Mobile OTP verified! Now create your account password to proceed to Step 2.'
@@ -638,7 +638,7 @@ export const AlumniRegister: React.FC = () => {
       setIsOtpVerified(true);
       localStorage.setItem('alumni_has_password', 'true');
       await alertService.showSuccess(
-        language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது! 🔐' : 'Password Created Successfully! 🔐',
+        language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது!' : 'Password Created Successfully!',
         language === 'ta'
           ? 'உங்கள் கணக்கு கடவுச்சொல் சேமிக்கப்பட்டது. இப்போது படி 2 (தனிப்பட்ட விவரங்கள்) தொடங்குகிறது.'
           : 'Your account password has been saved securely! Proceeding to Step 2 (Personal Details).'
@@ -802,8 +802,8 @@ export const AlumniRegister: React.FC = () => {
     if (leavingClass !== '10th') {
       const calculatedBatchYear = getCalculated10thBatchYear(leavingClass, passingYear);
       const title = language === 'ta'
-        ? '🎓 உங்கள் Batch ஆண்டு எவ்வாறு கணக்கிடப்படும்'
-        : '🎓 How Your Alumni Batch Year is Calculated';
+        ? 'உங்கள் Batch ஆண்டு எவ்வாறு கணக்கிடப்படும்'
+        : 'How Your Alumni Batch Year is Calculated';
 
 
       const htmlContent = language === 'ta'
@@ -828,7 +828,7 @@ export const AlumniRegister: React.FC = () => {
             <p style="text-align: center; font-weight: 700; color: #111111; margin-top: 10px;">Are these details correct?</p>
           </div>`;
 
-      const confirmBtnText = language === 'ta' ? '✓ ஆம், தொடரவும்' : '✓ Yes, Continue';
+      const confirmBtnText = language === 'ta' ? 'ஆம், தொடரவும்' : 'Yes, Continue';
       const cancelBtnText = language === 'ta' ? '← மாற்றவும்' : '← Change';
 
       const confirmed = await alertService.showConfirmHtml(title, htmlContent, confirmBtnText, cancelBtnText);
@@ -1135,7 +1135,7 @@ export const AlumniRegister: React.FC = () => {
 
       await api.register(payload);
       await alertService.showSuccess(
-        language === 'ta' ? 'பதிவு முடிந்தது & கணக்கு சமர்ப்பிக்கப்பட்டது! 🎉' : 'Registration Submitted Successfully! 🎉',
+        language === 'ta' ? 'பதிவு முடிந்தது & கணக்கு சமர்ப்பிக்கப்பட்டது!' : 'Registration Submitted Successfully!',
         language === 'ta'
           ? 'நன்றி! உங்கள் பதிவு பெறப்பட்டது. பள்ளி நிர்வாகத்தின் சரிபார்ப்புக்காகக் காத்திருக்கவும். சரிபார்க்கப்பட்டதும் SMS அறிவிப்பு மற்றும் போர்டல் அணுகல் வழங்கப்படும்.'
           : 'Thank you for registering! Your profile has been submitted and is now awaiting School Admin verification. Once approved, you will receive updates via SMS and gain full portal access.'
@@ -1678,7 +1678,7 @@ export const AlumniRegister: React.FC = () => {
                         <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
                         <div>
                           <p className="font-bold text-sm">
-                            {language === 'ta' ? 'கடவுச்சொல் ஏற்கனவே உருவாக்கப்பட்டுள்ளது! 🔐' : 'Password Successfully Created & Secured! 🔐'}
+                            {language === 'ta' ? 'கடவுச்சொல் ஏற்கனவே உருவாக்கப்பட்டுள்ளது!' : 'Password Successfully Created & Secured!'}
                           </p>
                           <p className="text-xs opacity-90 mt-0.5">
                             {language === 'ta'
@@ -2213,7 +2213,7 @@ export const AlumniRegister: React.FC = () => {
                           </span>
                           <p className="text-[#854D0E] leading-relaxed">
                             {language === 'ta'
-                              ? 'உங்கள் முன்னாள் மாணவர்கள் வகுப்பு 10-ஆம் வகுப்பு தேர்ச்சி ஆண்டின் அடிப்படையில் மட்டுமே கணக்கிடப்படும். தயவுசெய்து மேலே "10th Std" தேர்ந்தெடுத்து, இப்பள்ளியில் 10-ஆம் வகுப்பு முடித்த ஆண்டை உள்ளிடவும்.'
+                              ? 'முன்னாள் மாணவர்கள் குழு, நீங்கள் 10-ஆம் வகுப்பு முடித்த ஆண்டின் அடிப்படையில் அமைக்கப்படுகிறது. எனவே, மேலே “10th Std” என்பதைத் தேர்ந்தெடுத்து, நீங்கள் 10-ஆம் வகுப்பு முடித்த ஆண்டை உள்ளிடுங்கள்.'
                               : 'Your alumni batch is based on your 10th Standard passing year, not your 11th or 12th year. Please select 10th Std above and enter the year you completed 10th Standard at this school.'}
                           </p>
                         </div>

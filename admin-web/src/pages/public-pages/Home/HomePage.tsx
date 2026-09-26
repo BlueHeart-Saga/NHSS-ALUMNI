@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Calendar, MapPin, Users } from 'lucide-react';
 import { Hero } from './components/Hero';
 import { CommunityStats } from './components/CommunityStats';
 import { UpcomingEvents } from './components/UpcomingEvents';
@@ -213,10 +213,10 @@ export const HomePage: React.FC = () => {
               {selectedEvent.batch_name}
             </span>
             <p className="text-xs text-[#6B7280] leading-relaxed">{selectedEvent.description}</p>
-            <div className="text-xs text-[#111111] space-y-1 bg-[#FAFAFA] p-4 rounded-xl border border-[#E5E7EB]">
-              <div>📅 <strong>Date:</strong> {selectedEvent.event_date} ({selectedEvent.start_time})</div>
-              <div>📍 <strong>Venue:</strong> {selectedEvent.venue}</div>
-              <div>👥 <strong>Attending:</strong> {selectedEvent.attending_count} Alumni Confirmed</div>
+            <div className="text-xs text-[#111111] space-y-1.5 bg-[#FAFAFA] p-4 rounded-xl border border-[#E5E7EB]">
+              <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Date:</strong> {selectedEvent.event_date} ({selectedEvent.start_time})</span></div>
+              <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Venue:</strong> {selectedEvent.venue}</span></div>
+              <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Attending:</strong> {selectedEvent.attending_count} Alumni Confirmed</span></div>
             </div>
             <Button
               className="w-full bg-[#111111] text-white hover:bg-black font-bold"

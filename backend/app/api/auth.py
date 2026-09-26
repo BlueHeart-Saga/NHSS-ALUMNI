@@ -215,7 +215,7 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
 
 
 # =============================================================================
-# ✅ NEW HELPER — Admin-created account detection
+# NEW HELPER — Admin-created account detection
 #
 # Admin-created alumni records (via School Admin → Add New Alumni) already
 # have their profile created by the School Admin, so once they set a password
@@ -781,7 +781,7 @@ async def login(request: LoginRequest):
     # Evaluate profile completion status & wizard resume step
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    # ✅ Admin-created users: bypass registration wizard entirely.
+    # Admin-created users: bypass registration wizard entirely.
     if is_admin_created_account(user, alumni):
         registration_required = False
         resume_step = 6
@@ -874,7 +874,7 @@ async def verify_otp(request: VerifyOTPRequest):
     
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    # ✅ Admin-created users: bypass registration wizard entirely.
+    # Admin-created users: bypass registration wizard entirely.
     if is_admin_created_account(user, alumni):
         registration_required = False
         resume_step = 6
@@ -1032,7 +1032,7 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         school = await db.schools.find_one({})
         school_id = str(school["_id"]) if school else None
 
-    # ✅ Capture admin-created status BEFORE we flip account_status to ACTIVE below.
+    # Capture admin-created status BEFORE we flip account_status to ACTIVE below.
     #    We need the alumni doc snapshot for the invitation_status check too.
     alumni_pre = await db.alumni.find_one({"user_id": user_id})
     was_admin_created = is_admin_created_account(user, alumni_pre)
@@ -1061,7 +1061,7 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
 
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    # ✅ Admin-created users already have their registration/profile created by
+    # Admin-created users already have their registration/profile created by
     #    the School Admin. Setting the password completes onboarding, so they
     #    must go straight to the alumni dashboard — NOT through the public
     #    self-registration wizard.
@@ -1126,32 +1126,6 @@ async def contact_admin(request: ContactAdminRequest, current_user: dict = Depen
         )
 
     return {"success": True, "message": "Contact message sent successfully to School Admin."}
-
-class RequestReverificationRequest(BaseModel):
-    note: Optional[str] = None
-
-@router.post("/request-reverification")
-async def request_reverification(request: RequestReverificationRequest, current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
-    db = get_db()
-    
-    alumni = await db.alumni.find_one({"user_id": user_id})
-    if not alumni:
-        raise HTTPException(status_code=404, detail="Alumni profile record not found.")
-
-    rerequest_note = (request.note or "").strip() or "Alumnus requested re-verification of registration profile."
-    await db.alumni.update_one(
-        {"_id": alumni["_id"]},
-        {"$set": {
-            "verification_status": "PENDING",
-            "is_rerequest": True,
-            "rerequest_note": rerequest_note,
-            "rerequested_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
-        }}
-    )
-
-    return {"success": True, "message": "Re-verification request submitted successfully."}
 
 @router.post("/register", response_model=UserProfileResponse)
 async def register_alumni(request: UserRegistrationRequest, current_user: dict = Depends(get_current_user)):
@@ -1510,6 +1484,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         rerequest_note=alumni.get("rerequest_note"),
         rerequest_count=alumni.get("rerequest_count", 0),
         rerequested_at=alumni.get("rerequested_at"),
+        rerequest_history=alumni.get("rerequest_history") or current_user.get("rerequest_history") or [],
         rejection_reason=alumni.get("rejection_reason") or alumni.get("verification_notes"),
         last_contact_message=alumni.get("last_contact_message"),
         last_contact_subject=alumni.get("last_contact_subject"),
@@ -1999,7 +1974,7 @@ async def request_reverification(
     user_id = current_user["user_id"]
     now_utc = datetime.now(timezone.utc)
     
-    # Get existing record to compute rerequest_count
+    # Get existing record to compute rerequest_count and history
     existing = await db.alumni.find_one({"user_id": user_id})
     if not existing:
         try:
@@ -2007,6 +1982,52 @@ async def request_reverification(
         except Exception:
             existing = await db.users.find_one({"_id": user_id})
 
+    if not existing:
+        raise HTTPException(status_code=404, detail="Alumni profile record not found.")
+
+    current_ver_status = existing.get("verification_status")
+
+    # If already pending re-request, allow updating the note without incrementing attempt count
+    if current_ver_status == "PENDING" and existing.get("is_rerequest"):
+        rerequest_note = (req.note or "").strip() or existing.get("rerequest_note") or "Alumnus updated re-verification note."
+        existing_history = list(existing.get("rerequest_history") or [])
+        if existing_history and existing_history[-1].get("status") == "PENDING":
+            existing_history[-1]["note"] = rerequest_note
+            existing_history[-1]["requested_at"] = now_utc.isoformat()
+        else:
+            attempt_num = existing.get("rerequest_count") or 1
+            existing_history.append({
+                "attempt": attempt_num,
+                "note": rerequest_note,
+                "requested_at": now_utc.isoformat(),
+                "resolved_at": None,
+                "resolved_by": None,
+                "admin_action": None,
+                "admin_notes": None,
+                "status": "PENDING"
+            })
+
+        update_data = {
+            "rerequest_note": rerequest_note,
+            "rerequest_history": existing_history,
+            "rerequested_at": now_utc,
+            "updated_at": now_utc
+        }
+        try:
+            await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+        except Exception:
+            await db.users.update_one({"_id": user_id}, {"$set": update_data})
+        await db.alumni.update_many({"user_id": user_id}, {"$set": update_data})
+
+        return {
+            "success": True,
+            "message": "Re-verification request note updated successfully.",
+            "rerequest_count": existing.get("rerequest_count") or 1,
+            "rerequest_note": rerequest_note,
+            "rerequest_history": existing_history
+        }
+
+    # Brand new re-request attempt (e.g. was REJECTED, or first re-request)
     prev_count = 0
     if existing and isinstance(existing.get("rerequest_count"), int):
         prev_count = existing.get("rerequest_count")
@@ -2014,7 +2035,20 @@ async def request_reverification(
         prev_count = 1
     
     new_count = prev_count + 1
-    rerequest_note = req.note.strip() if req.note else "Alumnus requested re-verification review of registration profile."
+    rerequest_note = (req.note or "").strip() or f"Alumnus submitted re-verification request (Attempt #{new_count})."
+
+    existing_history = list(existing.get("rerequest_history") or [])
+    new_history_entry = {
+        "attempt": new_count,
+        "note": rerequest_note,
+        "requested_at": now_utc.isoformat(),
+        "resolved_at": None,
+        "resolved_by": None,
+        "admin_action": None,
+        "admin_notes": None,
+        "status": "PENDING"
+    }
+    updated_history = existing_history + [new_history_entry]
 
     update_data = {
         "verification_status": "PENDING",
@@ -2023,6 +2057,8 @@ async def request_reverification(
         "rerequest_note": rerequest_note,
         "rerequest_count": new_count,
         "rerequested_at": now_utc,
+        "rerequest_history": updated_history,
+        "rejection_reason": None,
         "updated_at": now_utc
     }
 
@@ -2035,7 +2071,8 @@ async def request_reverification(
     
     return {
         "success": True,
-        "message": "Re-verification request submitted to school admin successfully.",
+        "message": f"Re-verification request (Attempt #{new_count}) submitted to school admin successfully.",
         "rerequest_count": new_count,
-        "rerequest_note": rerequest_note
+        "rerequest_note": rerequest_note,
+        "rerequest_history": updated_history
     }

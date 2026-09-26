@@ -295,6 +295,7 @@ class UserProfileResponse(BaseModel):
     rerequest_note: Optional[str] = None
     rerequest_count: Optional[int] = 0
     rerequested_at: Optional[Any] = None
+    rerequest_history: Optional[List[Dict[str, Any]]] = None
     rejection_reason: Optional[str] = None
     created_at: Optional[datetime] = None
 

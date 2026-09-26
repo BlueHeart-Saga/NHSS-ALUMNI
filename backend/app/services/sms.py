@@ -149,7 +149,7 @@ async def send_brevo_sms_otp(mobile: str, otp_code: str) -> Tuple[bool, Optional
                 resp_text = resp.text
                 if resp.status_code == 401 and "unrecognised IP address" in resp_text:
                     logger.error(
-                        f"⚠️ [BREVO IP RESTRICTION] Brevo blocked SMS dispatch from unrecognised IP address! "
+                        f"[BREVO IP RESTRICTION] Brevo blocked SMS dispatch from unrecognised IP address! "
                         f"Please authorize this IP at: https://app.brevo.com/security/authorised_ips | Details: {resp_text}"
                     )
                     print(

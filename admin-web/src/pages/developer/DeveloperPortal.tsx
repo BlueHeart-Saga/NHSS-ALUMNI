@@ -1472,7 +1472,7 @@ export const DeveloperPortal: React.FC = () => {
             <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="secondary" onClick={() => setSchoolModalOpen(false)}>Cancel</Button>
               <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white hover:bg-black font-bold">
-                <span>{editingSchoolId ? "Save Changes ✓" : "Next: Provision Admin →"}</span>
+                <span>{editingSchoolId ? "Save Changes" : "Next: Provision Admin →"}</span>
               </Button>
             </div>
           </form>
@@ -1494,7 +1494,7 @@ export const DeveloperPortal: React.FC = () => {
             <div className="pt-4 flex justify-between space-x-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="secondary" onClick={() => setWizardStep(1)}>← Back to Step 1</Button>
               <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white hover:bg-black font-bold">
-                <span>Complete & Provision Admin ✓</span>
+                <span>Complete & Provision Admin</span>
               </Button>
             </div>
           </form>
@@ -1528,7 +1528,7 @@ export const DeveloperPortal: React.FC = () => {
 
             <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="secondary" onClick={() => setEditAdminModalOpen(false)}>Cancel</Button>
-              <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white">Save Changes ✓</Button>
+              <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white">Save Changes</Button>
             </div>
           </form>
         </Modal>
@@ -1581,7 +1581,7 @@ export const DeveloperPortal: React.FC = () => {
                         : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <span>{isChecked ? '✓' : '+'}</span>
+                    <span>{isChecked ? <Check className="w-3.5 h-3.5" /> : '+'}</span>
                     <span>{r.label}</span>
                   </button>
                 );
@@ -1628,7 +1628,7 @@ export const DeveloperPortal: React.FC = () => {
 
           <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
             <Button type="button" variant="secondary" onClick={() => setUserModalOpen(false)}>Cancel</Button>
-            <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white font-bold">Save User Account ✓</Button>
+            <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white font-bold">Save User Account</Button>
           </div>
         </form>
       </Modal>
@@ -1777,7 +1777,7 @@ export const DeveloperPortal: React.FC = () => {
 
             <div className="pt-3 flex justify-end space-x-3 border-t border-gray-200">
               <Button type="button" variant="secondary" onClick={() => setResetPasswordModalOpen(false)}>Cancel</Button>
-              <Button type="submit" isLoading={submitting} disabled={newPasswordValue.length < 6} className="bg-amber-700 hover:bg-amber-800 text-white font-bold">Set New Password ✓</Button>
+              <Button type="submit" isLoading={submitting} disabled={newPasswordValue.length < 6} className="bg-amber-700 hover:bg-amber-800 text-white font-bold">Set New Password</Button>
             </div>
           </form>
         </Modal>

@@ -145,7 +145,7 @@ export const alertService = {
                     cursor:pointer;display:inline-flex;align-items:center;gap:6px;
                     transition:all .15s;
                   " onmouseover="this.style.background='#FECACA'" onmouseout="this.style.background='#FEE2E2'">
-                    🗑 Remove
+                    Remove
                   </button>`
                 : ''
             }

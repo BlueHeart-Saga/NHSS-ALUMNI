@@ -912,7 +912,7 @@ export const AlumniLogin: React.FC = () => {
                   {/* Stepper Progress Header */}
                   <div className="flex items-center justify-between px-4 py-3 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs font-medium">
                     <div className="flex items-center space-x-2 text-emerald-700 font-medium">
-                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                       <span>{language === 'ta' ? 'படி 1: OTP சரிபார்க்கப்பட்டது' : 'Step 1: OTP Verified'}</span>
                     </div>
                     <ArrowRight className="w-3.5 h-3.5 text-gray-400" />

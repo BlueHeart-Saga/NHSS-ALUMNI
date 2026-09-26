@@ -193,7 +193,7 @@ export interface AlumniProfile {
   willing_to_donate?: string;
   phone_visible?: boolean;
   directory_visible?: boolean;
-  // ✅ DRAFT is added — set on every save until Step 6 final submit
+  // DRAFT is added — set on every save until Step 6 final submit
   verification_status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NOT_REGISTERED';
   verification_notes?: string;
   account_status?: 'ACTIVE' | 'PENDING_ACTIVATION' | 'SUSPENDED';
@@ -204,6 +204,7 @@ export interface AlumniProfile {
   rerequest_count?: number;
   rerequested_at?: string;
   rejection_reason?: string;
+  rerequest_history?: ReRequestHistoryItem[];
   last_contact_message?: string;
   last_contact_subject?: string;
   roles: string[];
@@ -211,6 +212,17 @@ export interface AlumniProfile {
   committee_role_title?: string;
   email_visible: boolean;
   created_at: string;
+}
+
+export interface ReRequestHistoryItem {
+  attempt: number;
+  note: string;
+  requested_at: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  admin_action?: 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  admin_notes?: string;
+  status: 'PENDING' | 'RESOLVED';
 }
 
 export interface CoordinatorProfile {

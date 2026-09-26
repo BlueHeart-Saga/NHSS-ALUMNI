@@ -123,8 +123,8 @@ export const PublicMemories: React.FC = () => {
                 <Trophy className="w-4 h-4 text-[#4A3300]" />
                 <span>
                   {language === 'ta'
-                    ? '🏆 பள்ளி சாதனையாளர்கள் & வெற்றியாளர்கள்'
-                    : '🏆 SCHOOL RANK HOLDERS & ACHIEVERS'}
+                    ? 'பள்ளி சாதனையாளர்கள் & வெற்றியாளர்கள்'
+                    : 'SCHOOL RANK HOLDERS & ACHIEVERS'}
                 </span>
               </span>
 

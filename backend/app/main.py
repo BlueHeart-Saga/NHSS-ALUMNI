@@ -80,20 +80,20 @@ async def log_requests_middleware(request: Request, call_next):
         status_code = response.status_code
 
         if status_code >= 400:
-            logger.warning(f"⚠️ [{status_code}] {method} {path} ({process_time:.2f}ms)")
+            logger.warning(f"[WARN] [{status_code}] {method} {path} ({process_time:.2f}ms)")
         else:
-            logger.info(f"✅ [{status_code}] {method} {path} ({process_time:.2f}ms)")
+            logger.info(f"[OK] [{status_code}] {method} {path} ({process_time:.2f}ms)")
 
         return response
     except Exception as exc:
         process_time = (time.time() - start_time) * 1000
-        logger.error(f"❌ [500 EXCEPTION] {method} {path} ({process_time:.2f}ms) - {exc}", exc_info=True)
+        logger.error(f"[500 EXCEPTION] {method} {path} ({process_time:.2f}ms) - {exc}", exc_info=True)
         raise exc
 
 # HTTPException Handler for formatted terminal error logging
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    logger.warning(f"⚠️ [HTTP {exc.status_code}] {request.method} {request.url.path} -> Detail: {exc.detail}")
+    logger.warning(f"[HTTP {exc.status_code}] {request.method} {request.url.path} -> Detail: {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -103,7 +103,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 # Global Sanitized Exception Handler for Production
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"❌ Unhandled Exception on {request.method} {request.url}: {exc}", exc_info=True)
+    logger.error(f"[ERROR] Unhandled Exception on {request.method} {request.url}: {exc}", exc_info=True)
     if settings.is_production:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

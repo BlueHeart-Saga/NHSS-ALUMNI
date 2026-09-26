@@ -50,7 +50,7 @@ def make_pdf(input_txt: str, output_pdf: str):
         flow.append(Spacer(1, 6))
 
     doc.build(flow)
-    print(f"✅ Wrote {output_pdf}")
+    print(f"Wrote {output_pdf}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

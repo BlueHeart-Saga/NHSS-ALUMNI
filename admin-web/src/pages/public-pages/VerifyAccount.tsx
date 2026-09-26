@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, Phone, Lock, ArrowRight, CheckCircle2, 
-  AlertCircle, RefreshCw, KeyRound, Eye, EyeOff, UserCheck
+  AlertCircle, RefreshCw, KeyRound, Eye, EyeOff, UserCheck, Check
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Button } from '../../components/Button';
@@ -231,7 +231,7 @@ export const VerifyAccount: React.FC = () => {
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                 step === 'WELCOME' ? 'bg-[#F4C542] text-[#111111]' : 'bg-emerald-500 text-white'
               }`}>
-                {step === 'WELCOME' ? '1' : '✓'}
+                {step === 'WELCOME' ? '1' : <Check className="w-4 h-4 stroke-[3]" />}
               </div>
               <span className="text-[10px] text-[#6B7280] mt-1">Welcome</span>
             </div>
@@ -240,7 +240,7 @@ export const VerifyAccount: React.FC = () => {
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                 step === 'ENTER_OTP' ? 'bg-[#F4C542] text-[#111111]' : step === 'CREATE_PASSWORD' ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
               }`}>
-                {step === 'CREATE_PASSWORD' ? '✓' : '2'}
+                {step === 'CREATE_PASSWORD' ? <Check className="w-4 h-4 stroke-[3]" /> : '2'}
               </div>
               <span className="text-[10px] text-[#6B7280] mt-1">OTP Verify</span>
             </div>

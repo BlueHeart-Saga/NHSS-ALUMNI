@@ -27,11 +27,11 @@ async def verify_whatsapp_webhook(
     expected_token = getattr(settings, "WHATSAPP_VERIFY_TOKEN", None) or "nhss_alumni_whatsapp_webhook_token_2026"
 
     if hub_mode == "subscribe" and hub_verify_token == expected_token:
-        logger.info(f"✅ Meta WhatsApp Webhook verified successfully! Challenge: {hub_challenge}")
+        logger.info(f"Meta WhatsApp Webhook verified successfully! Challenge: {hub_challenge}")
         return Response(content=str(hub_challenge or ""), media_type="text/plain", status_code=200)
 
     logger.warning(
-        f"⚠️ WhatsApp Webhook verification failed. mode='{hub_mode}', token='{hub_verify_token}', expected='{expected_token}'"
+        f"WhatsApp Webhook verification failed. mode='{hub_mode}', token='{hub_verify_token}', expected='{expected_token}'"
     )
     raise HTTPException(status_code=403, detail="Verification token mismatch or invalid mode")
 
@@ -43,7 +43,7 @@ async def receive_whatsapp_webhook(request: Request):
     """
     try:
         data = await request.json()
-        logger.info(f"📩 Received WhatsApp Webhook Event: {data}")
+        logger.info(f"Received WhatsApp Webhook Event: {data}")
         return {"status": "ok"}
     except Exception as e:
         logger.error(f"Error parsing WhatsApp webhook payload: {e}")

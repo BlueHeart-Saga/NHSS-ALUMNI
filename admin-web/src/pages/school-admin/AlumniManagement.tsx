@@ -148,7 +148,7 @@ export const AlumniManagement: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // ✅ NEW: Edit-mode tracking. When null → Add mode. When set → Edit mode.
+  // NEW: Edit-mode tracking. When null → Add mode. When set → Edit mode.
   const [editingAlumnusId, setEditingAlumnusId] = useState<string | null>(null);
 
   // Suspend modal state
@@ -656,12 +656,12 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  // ✅ NEW: Opens the existing 5-step wizard pre-filled with the selected alumnus.
+  // NEW: Opens the existing 5-step wizard pre-filled with the selected alumnus.
   //    Sets editingAlumnusId so the submit handler routes to updateAlumniAdmin.
   const handleOpenEditModal = (alumnus: AlumniProfile) => {
   setEditingAlumnusId(alumnus.id);
   // Pre-fill every field with the existing record.
-  // ✅ Normalize DOB so <input type="date"> accepts it (HTML requires YYYY-MM-DD).
+  // Normalize DOB so <input type="date"> accepts it (HTML requires YYYY-MM-DD).
   setNewAlumnus({
     ...alumnus,
     date_of_birth: normalizeDobForInput(alumnus.date_of_birth || alumnus.dob),
@@ -802,7 +802,7 @@ export const AlumniManagement: React.FC = () => {
       verification_status: 'APPROVED',
     });
     setAddFormStep(1);
-    // ✅ NEW: Clear edit mode when the wizard is reset.
+    // NEW: Clear edit mode when the wizard is reset.
     setEditingAlumnusId(null);
   };
 
@@ -874,7 +874,7 @@ export const AlumniManagement: React.FC = () => {
         payload.college_passing_year = Number(newAlumnus.college_passing_year);
       }
 
-      // ✅ NEW: Route to UPDATE when editing an existing record, otherwise CREATE.
+      // NEW: Route to UPDATE when editing an existing record, otherwise CREATE.
       if (editingAlumnusId) {
         await api.updateAlumniAdmin(editingAlumnusId, payload);
         alertService.showSuccess(
@@ -1755,7 +1755,7 @@ export const AlumniManagement: React.FC = () => {
 
                       <td className="p-1 border-r border-gray-200 w-[80px] text-center">
   <div className="flex items-center justify-center">
-    {/* ✅ Avatar is now the ONLY visible control in the row.
+    {/* Avatar is now the ONLY visible control in the row.
         Upload / Replace / Remove all live inside the lightbox popup. */}
     <div className="relative">
       <div
@@ -2238,7 +2238,7 @@ export const AlumniManagement: React.FC = () => {
 
       {/* ============================================================
           ADD / EDIT ALUMNI MODAL — PAGINATED 5-STEP WIZARD
-          ✅ Reused for BOTH create and edit. Title & submit label switch
+          Reused for BOTH create and edit. Title & submit label switch
              dynamically based on `editingAlumnusId`.
           ============================================================ */}
       <Modal
@@ -2359,7 +2359,7 @@ export const AlumniManagement: React.FC = () => {
   <label className={addLabelCls}>{t('admin_sheet_profile_photo')}</label>
 
   <div className="flex items-center gap-3 mb-2">
-    {/* ✅ Thumbnail — now clickable. Opens the shared lightbox preview. */}
+    {/* Thumbnail — now clickable. Opens the shared lightbox preview. */}
     <div
       className={`w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0 transition-all ${
         addFormPhotoUploading
@@ -2442,7 +2442,7 @@ export const AlumniManagement: React.FC = () => {
     </div>
   </div>
 
-  {/* ✅ Hidden file input used by the lightbox's Upload/Replace action */}
+  {/* Hidden file input used by the lightbox's Upload/Replace action */}
   <input
     id="wizard-photo-input"
     type="file"
@@ -2852,7 +2852,7 @@ export const AlumniManagement: React.FC = () => {
                   </Button>
                 ) : (
                   <Button type="submit" isLoading={isAdding} className="font-bold">
-                    {/* ✅ Dynamic submit label: "Save Changes" in edit, "Create Alumni Profile" in add */}
+                    {/* Dynamic submit label: "Save Changes" in edit, "Create Alumni Profile" in add */}
                     {editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}
                   </Button>
                 )}

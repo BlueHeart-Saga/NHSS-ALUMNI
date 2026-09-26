@@ -92,7 +92,7 @@ export const Batches: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <Input
-            placeholder={`🔍 ${t('admin_batches_search_placeholder')}`}
+            placeholder={t('admin_batches_search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full sm:w-64"
