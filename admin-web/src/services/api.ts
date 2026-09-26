@@ -605,6 +605,21 @@ class ApiClient {
     });
   }
 
+  async resetDeveloperUserPassword(id: string, new_password: string) {
+    return this.request<{ success: boolean; message: string }>(`/developer/users/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ new_password }),
+    });
+  }
+
+  async bulkUpdateDeveloperUsers(user_ids: string[], updates: { is_active?: boolean; school_id?: string }) {
+    return this.request<{ success: boolean; message: string; modified_count: number }>('/developer/users/bulk-update', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids, ...updates }),
+    });
+  }
+
+
   // Batches
   async getBatches() {
     return this.request<Batch[]>('/batches');

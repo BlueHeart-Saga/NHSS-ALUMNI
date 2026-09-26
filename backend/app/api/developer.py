@@ -5,6 +5,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field, EmailStr
 import asyncio
 from app.core.database import get_db
+from app.core.security import get_password_hash
 from app.middleware.auth import get_current_user
 from app.schemas.models import UserProfileResponse, SchoolProfileResponse
 from app.services.email import send_school_admin_invite_email
@@ -512,10 +513,16 @@ class UpdateSchoolAdminRequest(BaseModel):
 class CreateUpdateUserRequest(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
-    mobile: str
+    mobile: Optional[str] = None
     roles: Optional[List[str]] = ["ALUMNI"]
     school_id: Optional[str] = None
     is_active: Optional[bool] = True
+    password: Optional[str] = None
+    verification_status: Optional[str] = None
+    profession: Optional[str] = None
+    current_city: Optional[str] = None
+    gender: Optional[str] = None
+    passing_year: Optional[int] = None
 
 @router.get("/school-admins")
 async def list_school_admins(school_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
@@ -739,15 +746,23 @@ async def list_all_users(
         res.append({
             "id": u_id,
             "user_id": u_id,
+            "alumni_id": str(alumni["_id"]) if alumni and alumni.get("_id") else None,
             "full_name": name,
             "email": email_val,
             "mobile": mobile_val,
             "roles": u.get("roles", ["ALUMNI"]),
             "school_id": s_id,
             "school_name": school.get("name") if school else (alumni.get("school_name") if alumni else "Unassigned"),
+            "school_code": school.get("code") if school else "N/A",
             "is_active": u.get("is_active", True),
             "has_password": has_password,
-            "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", ""))
+            "verification_status": alumni.get("verification_status") if alumni else u.get("verification_status", "APPROVED"),
+            "profession": alumni.get("profession") if alumni else u.get("profession"),
+            "current_city": alumni.get("current_city") or alumni.get("city") if alumni else u.get("city"),
+            "gender": alumni.get("gender") if alumni else u.get("gender"),
+            "passing_year": alumni.get("passing_year") if alumni else u.get("passing_year"),
+            "created_at": u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+            "updated_at": u.get("updated_at").isoformat() if isinstance(u.get("updated_at"), datetime) else (str(u.get("updated_at", "")) if u.get("updated_at") else None)
         })
     return res
 
@@ -758,6 +773,9 @@ async def create_user_developer(
 ):
     """Create a new platform user directly as Developer."""
     db = get_db()
+    if not request.mobile or not request.mobile.strip():
+        raise HTTPException(status_code=400, detail="Mobile number is required.")
+
     norm_mob = normalize_indian_mobile(request.mobile) if is_valid_indian_mobile(request.mobile) else request.mobile.strip()
 
     existing = await db.users.find_one({"$or": build_mobile_query_filter(request.mobile)})
@@ -766,7 +784,7 @@ async def create_user_developer(
 
     now = datetime.now(timezone.utc)
     user_doc = {
-        "full_name": request.full_name,
+        "full_name": request.full_name or "Platform User",
         "email": request.email,
         "mobile": norm_mob,
         "roles": [r.upper() for r in (request.roles or ["ALUMNI"])],
@@ -774,6 +792,12 @@ async def create_user_developer(
         "is_active": request.is_active if request.is_active is not None else True,
         "created_at": now
     }
+
+    if request.password and request.password.strip():
+        hashed_pw = get_password_hash(request.password.strip())
+        user_doc["password"] = hashed_pw
+        user_doc["password_hash"] = hashed_pw
+
     res = await db.users.insert_one(user_doc)
     return {"success": True, "user_id": str(res.inserted_id), "message": "User created successfully."}
 
@@ -783,7 +807,7 @@ async def update_user_developer(
     request: CreateUpdateUserRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Update an existing user's details, roles, school, or status."""
+    """Update an existing user's details, roles, school, status, or password."""
     db = get_db()
     if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=400, detail="Invalid user ID format")
@@ -804,21 +828,73 @@ async def update_user_developer(
         update_fields["school_id"] = request.school_id
     if request.is_active is not None:
         update_fields["is_active"] = request.is_active
+    if request.verification_status is not None:
+        update_fields["verification_status"] = request.verification_status
+
+    if request.password and request.password.strip():
+        hashed_pw = get_password_hash(request.password.strip())
+        update_fields["password"] = hashed_pw
+        update_fields["password_hash"] = hashed_pw
+
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields provided to update.")
 
     update_fields["updated_at"] = datetime.now(timezone.utc)
     res = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_fields})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="User account not found.")
 
-    # Keep db.alumni in sync if full_name, email, or mobile was changed
+    # Keep db.alumni in sync
     alumni_update = {}
     if "full_name" in update_fields: alumni_update["full_name"] = update_fields["full_name"]
     if "email" in update_fields: alumni_update["email"] = update_fields["email"]
     if "mobile" in update_fields: alumni_update["mobile"] = update_fields["mobile"]
+    if "school_id" in update_fields: alumni_update["school_id"] = update_fields["school_id"]
+    if "verification_status" in update_fields: alumni_update["verification_status"] = update_fields["verification_status"]
+    if "profession" in update_fields: alumni_update["profession"] = update_fields["profession"]
+    if "current_city" in update_fields: alumni_update["current_city"] = update_fields["current_city"]
+    if "gender" in update_fields: alumni_update["gender"] = update_fields["gender"]
+    if "passing_year" in update_fields: alumni_update["passing_year"] = update_fields["passing_year"]
+    if "password" in update_fields:
+        alumni_update["password"] = update_fields["password"]
+        alumni_update["password_hash"] = update_fields["password_hash"]
+
     if alumni_update:
         await db.alumni.update_many({"user_id": user_id}, {"$set": alumni_update})
 
     return {"success": True, "message": "User account updated successfully."}
+
+class ResetUserPasswordRequest(BaseModel):
+    new_password: str
+
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password_developer(
+    user_id: str,
+    request: ResetUserPasswordRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Developer direct password reset for any user account."""
+    db = get_db()
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    if not request.new_password or len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+
+    hashed_pw = get_password_hash(request.new_password.strip())
+    res = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed_pw, "password_hash": hashed_pw, "updated_at": datetime.now(timezone.utc)}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User account not found.")
+
+    await db.alumni.update_many(
+        {"user_id": user_id},
+        {"$set": {"password": hashed_pw, "password_hash": hashed_pw}}
+    )
+
+    return {"success": True, "message": "User password updated successfully."}
 
 @router.delete("/users/{user_id}")
 async def delete_user_developer(user_id: str, current_user: dict = Depends(get_current_user)):
@@ -831,9 +907,7 @@ async def delete_user_developer(user_id: str, current_user: dict = Depends(get_c
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User account not found.")
 
-    # Also delete associated alumni profile if present
     await db.alumni.delete_many({"user_id": user_id})
-
     return {"success": True, "message": "User account deleted successfully."}
 
 class BulkDeleteUsersRequest(BaseModel):
@@ -860,6 +934,36 @@ async def bulk_delete_users_developer(
         "message": f"Successfully deleted {res.deleted_count} user accounts.",
         "deleted_count": res.deleted_count
     }
+
+class BulkUpdateUsersRequest(BaseModel):
+    user_ids: List[str]
+    is_active: Optional[bool] = None
+    school_id: Optional[str] = None
+
+@router.post("/users/bulk-update")
+async def bulk_update_users_developer(
+    request: BulkUpdateUsersRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Bulk update active status or school assignment for multiple users."""
+    db = get_db()
+    valid_ids = [ObjectId(uid) for uid in request.user_ids if ObjectId.is_valid(uid)]
+    if not valid_ids:
+        raise HTTPException(status_code=400, detail="No valid user IDs provided.")
+
+    update_fields = {}
+    if request.is_active is not None:
+        update_fields["is_active"] = request.is_active
+    if request.school_id is not None:
+        update_fields["school_id"] = request.school_id
+
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No update fields specified.")
+
+    update_fields["updated_at"] = datetime.now(timezone.utc)
+    res = await db.users.update_many({"_id": {"$in": valid_ids}}, {"$set": update_fields})
+    return {"success": True, "message": f"Successfully updated {res.modified_count} users.", "modified_count": res.modified_count}
+
 
 @router.get("/audit-logs")
 async def list_audit_logs(current_user: dict = Depends(get_current_user)):

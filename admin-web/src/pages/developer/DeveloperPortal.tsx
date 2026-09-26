@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Shield, Building2, UserPlus, Phone, Mail, CheckCircle2, UserCheck, Key,
   RefreshCw, Layers, GraduationCap, Settings, Trash2, Users, Search, Filter,
-  FileText, Activity, AlertTriangle, Edit3, XCircle, Plus
+  FileText, Activity, AlertTriangle, Edit3, XCircle, Plus, Eye, Download, Check,
+  Lock, Copy, MapPin, Briefcase, Calendar, ToggleLeft, ToggleRight, KeyRound
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -63,6 +64,7 @@ export const DeveloperPortal: React.FC = () => {
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
   const [userSchoolFilter, setUserSchoolFilter] = useState('ALL');
+  const [userStatusFilter, setUserStatusFilter] = useState('ALL');
 
   // School Admin Filters
   const [adminSchoolFilter, setAdminSchoolFilter] = useState('ALL');
@@ -104,7 +106,7 @@ export const DeveloperPortal: React.FC = () => {
   const [selectedAdmin, setSelectedAdmin] = useState<any | null>(null);
   const [deleteAdminModalOpen, setDeleteAdminModalOpen] = useState(false);
 
-  // User Edit / Add State
+  // User Directory Form & Modals State
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userFullName, setUserFullName] = useState('');
@@ -113,11 +115,33 @@ export const DeveloperPortal: React.FC = () => {
   const [userRoles, setUserRoles] = useState<string[]>(['ALUMNI']);
   const [userSchoolId, setUserSchoolId] = useState('');
   const [userIsActive, setUserIsActive] = useState(true);
+  const [userPassword, setUserPassword] = useState('');
+  const [userVerificationStatus, setUserVerificationStatus] = useState('APPROVED');
+  const [userProfession, setUserProfession] = useState('');
+  const [userCity, setUserCity] = useState('');
+  const [userGender, setUserGender] = useState('');
+  const [userPassingYear, setUserPassingYear] = useState<string | number>('');
+
+  // View User Details Drawer/Modal State
+  const [viewUserModalOpen, setViewUserModalOpen] = useState(false);
+  const [viewingUser, setViewingUser] = useState<any | null>(null);
+  const [viewUserTab, setViewUserTab] = useState<'OVERVIEW' | 'RAW_JSON'>('OVERVIEW');
+  const [jsonCopied, setJsonCopied] = useState(false);
+
+  // Direct Reset Password Modal State
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<any | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [showNewPasswordVal, setShowNewPasswordVal] = useState(false);
+
+  // Single Delete User State
   const [deleteUserModalOpen, setDeleteUserModalOpen] = useState(false);
 
-  // User Multi-Select & Bulk Delete State
+  // User Multi-Select & Bulk Actions State
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [bulkDeleteUserModalOpen, setBulkDeleteUserModalOpen] = useState(false);
+  const [bulkAssignSchoolModalOpen, setBulkAssignSchoolModalOpen] = useState(false);
+  const [bulkTargetSchoolId, setBulkTargetSchoolId] = useState('');
 
   // Global Messages
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -199,43 +223,44 @@ export const DeveloperPortal: React.FC = () => {
     try {
       if (editingSchoolId) {
         await api.updateSchool(editingSchoolId, payload);
-        setSuccessMessage(`School "${schoolName}" updated successfully!`);
+        setSuccessMessage(`School entity "${schoolName}" updated successfully.`);
         setSchoolModalOpen(false);
-        await fetchAllDeveloperData();
+        fetchAllDeveloperData();
       } else {
-        const created = await api.createNewSchool(payload);
-        await fetchAllDeveloperData();
-        if (created && created.id) {
-          setTargetSchoolId(created.id);
-        }
+        const createdSchool = await api.createNewSchool(payload);
+        setSuccessMessage(`School entity "${createdSchool.name}" created! Next, provision a School Admin.`);
+        setTargetSchoolId(createdSchool.id);
         setWizardStep(2);
-        setSuccessMessage(`School "${created.name || schoolName}" created successfully! Complete Step 2 to provision the primary administrator.`);
+        fetchAllDeveloperData();
       }
     } catch (err: any) {
-      setErrorMessage(err.message || (editingSchoolId ? 'Failed to update school.' : 'Failed to create school entity.'));
+      setErrorMessage(err.message || 'Failed to save school entity.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteSchool = async (e: React.FormEvent) => {
+  const handleProvisionAdminStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schoolToDelete) return;
-    if (deleteConfirmCode !== schoolToDelete.code) {
-      setErrorMessage('School code does not match. Deletion aborted.');
+    if (!targetSchoolId) {
+      setErrorMessage('Please select a target school entity.');
       return;
     }
-
     setSubmitting(true);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
     try {
-      await api.deleteSchool(schoolToDelete.id);
-      setSuccessMessage(`School "${schoolToDelete.name}" deleted successfully.`);
-      setDeleteSchoolModalOpen(false);
-      setSchoolToDelete(null);
-      setDeleteConfirmCode('');
-      await fetchAllDeveloperData();
+      await api.provisionAdminForSchool(targetSchoolId, {
+        full_name: adminFullName,
+        mobile: adminMobile,
+        email: adminEmail || undefined
+      });
+      setSuccessMessage(`School Admin "${adminFullName}" provisioned successfully! Invitation email dispatched.`);
+      setSchoolModalOpen(false);
+      fetchAllDeveloperData();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to delete school.');
+      setErrorMessage(err.message || 'Failed to provision school administrator.');
     } finally {
       setSubmitting(false);
     }
@@ -243,8 +268,8 @@ export const DeveloperPortal: React.FC = () => {
 
   const openEditSchoolModal = (school: any) => {
     setEditingSchoolId(school.id);
-    setSchoolName(school.name || '');
-    setSchoolCode(school.code || '');
+    setSchoolName(school.name);
+    setSchoolCode(school.code);
     setSchoolDescription(school.description || '');
     setSchoolAddress(school.address || '');
     setSchoolCity(school.city || '');
@@ -261,36 +286,40 @@ export const DeveloperPortal: React.FC = () => {
     setSchoolModalOpen(true);
   };
 
-  const handleProvisionAdminStep2 = async (e: React.FormEvent) => {
+  const handleDeleteSchool = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetSchoolId) return;
+    if (!schoolToDelete) return;
+    if (deleteConfirmCode !== schoolToDelete.code) {
+      setErrorMessage(`Please type "${schoolToDelete.code}" to confirm deletion.`);
+      return;
+    }
+
     setSubmitting(true);
-    setSuccessMessage(null);
-    setErrorMessage(null);
-
     try {
-      const selectedSchool = schoolsList.find(s => s.id === targetSchoolId);
-      await api.provisionAdminForSchool(targetSchoolId, {
-        full_name: adminFullName,
-        mobile: adminMobile,
-        email: adminEmail
-      });
-
-      setSuccessMessage(`School Admin "${adminFullName}" (${adminMobile}) provisioned for ${selectedSchool?.name || 'School'}! Account setup email dispatched.`);
-      setAdminFullName('');
-      setAdminMobile('');
-      setAdminEmail('');
-      setSchoolModalOpen(false);
-      setWizardStep(1);
+      await api.deleteSchool(schoolToDelete.id);
+      setSuccessMessage(`School "${schoolToDelete.name}" and all associated data deleted permanently.`);
+      setDeleteSchoolModalOpen(false);
+      setSchoolToDelete(null);
+      setDeleteConfirmCode('');
       fetchAllDeveloperData();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to provision school administrator.');
+      setErrorMessage(err.message || 'Failed to delete school entity.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // --- Handlers: School Admin CRUD ---
+  // --- Handlers: School Admin Management ---
+  const openEditAdminModal = (admin: any) => {
+    setSelectedAdmin(admin);
+    setAdminFullName(admin.full_name || '');
+    setAdminMobile(admin.mobile || '');
+    setAdminEmail(admin.email || '');
+    setTargetSchoolId(admin.school_id || '');
+    setUserIsActive(admin.is_active !== false);
+    setEditAdminModalOpen(true);
+  };
+
   const handleSaveEditAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAdmin) return;
@@ -301,12 +330,12 @@ export const DeveloperPortal: React.FC = () => {
     try {
       await api.updateDeveloperSchoolAdmin(selectedAdmin.id, {
         full_name: adminFullName,
-        email: adminEmail,
         mobile: adminMobile,
+        email: adminEmail || undefined,
         school_id: targetSchoolId,
         is_active: userIsActive
       });
-      setSuccessMessage(`School Admin "${adminFullName}" profile updated successfully!`);
+      setSuccessMessage(`School Admin "${adminFullName}" profile updated successfully.`);
       setEditAdminModalOpen(false);
       setSelectedAdmin(null);
       fetchAllDeveloperData();
@@ -322,7 +351,7 @@ export const DeveloperPortal: React.FC = () => {
     setSubmitting(true);
     try {
       await api.deleteDeveloperSchoolAdmin(selectedAdmin.id);
-      setSuccessMessage(`School Admin "${selectedAdmin.full_name}" account removed.`);
+      setSuccessMessage(`School Admin account "${selectedAdmin.full_name}" revoked.`);
       setDeleteAdminModalOpen(false);
       setSelectedAdmin(null);
       fetchAllDeveloperData();
@@ -342,6 +371,12 @@ export const DeveloperPortal: React.FC = () => {
     setUserRoles(['ALUMNI']);
     setUserSchoolId(schoolsList.length > 0 ? schoolsList[0].id : '');
     setUserIsActive(true);
+    setUserPassword('');
+    setUserVerificationStatus('APPROVED');
+    setUserProfession('');
+    setUserCity('');
+    setUserGender('');
+    setUserPassingYear('');
     setUserModalOpen(true);
   };
 
@@ -353,7 +388,33 @@ export const DeveloperPortal: React.FC = () => {
     setUserRoles(user.roles || ['ALUMNI']);
     setUserSchoolId(user.school_id || '');
     setUserIsActive(user.is_active !== false);
+    setUserPassword('');
+    setUserVerificationStatus(user.verification_status || 'APPROVED');
+    setUserProfession(user.profession || '');
+    setUserCity(user.current_city || '');
+    setUserGender(user.gender || '');
+    setUserPassingYear(user.passing_year || '');
     setUserModalOpen(true);
+  };
+
+  const openViewUserModal = (user: any) => {
+    setViewingUser(user);
+    setViewUserTab('OVERVIEW');
+    setJsonCopied(false);
+    setViewUserModalOpen(true);
+  };
+
+  const openResetPasswordModal = (user: any) => {
+    setResetPasswordUser(user);
+    setNewPasswordValue('');
+    setShowNewPasswordVal(false);
+    setResetPasswordModalOpen(true);
+  };
+
+  const handleToggleRoleInUserModal = (role: string) => {
+    setUserRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -362,14 +423,23 @@ export const DeveloperPortal: React.FC = () => {
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const payload = {
+    const payload: any = {
       full_name: userFullName,
       email: userEmail || undefined,
       mobile: userMobile,
-      roles: userRoles,
+      roles: userRoles.length > 0 ? userRoles : ['ALUMNI'],
       school_id: userSchoolId || undefined,
-      is_active: userIsActive
+      is_active: userIsActive,
+      verification_status: userVerificationStatus,
+      profession: userProfession || undefined,
+      current_city: userCity || undefined,
+      gender: userGender || undefined,
+      passing_year: userPassingYear ? Number(userPassingYear) : undefined,
     };
+
+    if (userPassword && userPassword.trim()) {
+      payload.password = userPassword.trim();
+    }
 
     try {
       if (selectedUser) {
@@ -384,6 +454,41 @@ export const DeveloperPortal: React.FC = () => {
       fetchAllDeveloperData();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to save user account.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleQuickToggleUserActive = async (user: any) => {
+    setSubmitting(true);
+    try {
+      const newActive = user.is_active === false ? true : false;
+      await api.updateDeveloperUser(user.id, { is_active: newActive });
+      setSuccessMessage(`User "${user.full_name}" account is now ${newActive ? 'ACTIVE' : 'INACTIVE'}.`);
+      fetchAllDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to toggle user account status.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUser || !newPasswordValue || newPasswordValue.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.resetDeveloperUserPassword(resetPasswordUser.id, newPasswordValue.trim());
+      setSuccessMessage(`Password updated successfully for user "${resetPasswordUser.full_name}".`);
+      setResetPasswordModalOpen(false);
+      setResetPasswordUser(null);
+      setNewPasswordValue('');
+      fetchAllDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to reset user password.');
     } finally {
       setSubmitting(false);
     }
@@ -413,10 +518,10 @@ export const DeveloperPortal: React.FC = () => {
   };
 
   const toggleSelectAllUsers = () => {
-    if (selectedUserIds.length === usersList.length && usersList.length > 0) {
+    if (selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0) {
       setSelectedUserIds([]);
     } else {
-      setSelectedUserIds(usersList.map((u) => u.id));
+      setSelectedUserIds(filteredUsers.map((u) => u.id));
     }
   };
 
@@ -434,6 +539,95 @@ export const DeveloperPortal: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleBulkToggleActive = async (activeState: boolean) => {
+    if (selectedUserIds.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await api.bulkUpdateDeveloperUsers(selectedUserIds, { is_active: activeState });
+      setSuccessMessage(res.message || `Updated ${selectedUserIds.length} user accounts to ${activeState ? 'ACTIVE' : 'INACTIVE'}.`);
+      setSelectedUserIds([]);
+      fetchAllDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to update user statuses.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkAssignSchool = async () => {
+    if (selectedUserIds.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await api.bulkUpdateDeveloperUsers(selectedUserIds, { school_id: bulkTargetSchoolId || '' });
+      setSuccessMessage(res.message || `Assigned school to ${selectedUserIds.length} user accounts.`);
+      setSelectedUserIds([]);
+      setBulkAssignSchoolModalOpen(false);
+      fetchAllDeveloperData();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to assign school to selected users.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // --- Filter Logic & CSV Export ---
+  const filteredUsers = usersList.filter((u) => {
+    if (userRoleFilter !== 'ALL' && !(u.roles || []).includes(userRoleFilter)) {
+      return false;
+    }
+    if (userSchoolFilter !== 'ALL' && u.school_id !== userSchoolFilter) {
+      return false;
+    }
+    if (userStatusFilter === 'ACTIVE' && u.is_active === false) {
+      return false;
+    }
+    if (userStatusFilter === 'INACTIVE' && u.is_active !== false) {
+      return false;
+    }
+    if (userStatusFilter === 'NO_PASSWORD' && u.has_password) {
+      return false;
+    }
+    if (userSearch.trim()) {
+      const q = userSearch.toLowerCase().trim();
+      const nameMatch = (u.full_name || '').toLowerCase().includes(q);
+      const emailMatch = (u.email || '').toLowerCase().includes(q);
+      const mobileMatch = (u.mobile || '').toLowerCase().includes(q);
+      const idMatch = (u.id || '').toLowerCase().includes(q);
+      const cityMatch = (u.current_city || '').toLowerCase().includes(q);
+      const profMatch = (u.profession || '').toLowerCase().includes(q);
+      return nameMatch || emailMatch || mobileMatch || idMatch || cityMatch || profMatch;
+    }
+    return true;
+  });
+
+  const exportUsersCSV = () => {
+    if (filteredUsers.length === 0) return;
+    const headers = ['User ID', 'Full Name', 'Mobile', 'Email', 'Roles', 'School Name', 'School Code', 'Active Status', 'Password Set', 'Verification Status', 'Profession', 'City', 'Created At'];
+    const rows = filteredUsers.map((u) => [
+      `"${u.id || ''}"`,
+      `"${(u.full_name || '').replace(/"/g, '""')}"`,
+      `"${u.mobile || ''}"`,
+      `"${u.email || ''}"`,
+      `"${(u.roles || []).join(', ')}"`,
+      `"${(u.school_name || '').replace(/"/g, '""')}"`,
+      `"${u.school_code || ''}"`,
+      u.is_active !== false ? 'ACTIVE' : 'INACTIVE',
+      u.has_password ? 'YES' : 'NO',
+      `"${u.verification_status || 'APPROVED'}"`,
+      `"${(u.profession || '').replace(/"/g, '""')}"`,
+      `"${(u.current_city || '').replace(/"/g, '""')}"`,
+      `"${u.created_at || ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `user_directory_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // --- Handlers: School Admin Enquiries ---
@@ -464,6 +658,16 @@ export const DeveloperPortal: React.FC = () => {
 
   const totalAdmins = schoolsList.reduce((acc, s) => acc + (s.admin_count || 0), 0);
   const totalAlumni = schoolsList.reduce((acc, s) => acc + (s.alumni_count || 0), 0);
+
+  // User Stats Aggregation
+  const userStats = {
+    total: usersList.length,
+    active: usersList.filter(u => u.is_active !== false).length,
+    admins: usersList.filter(u => (u.roles || []).some((r: string) => ['SUPER_ADMIN', 'DEVELOPER', 'PLATFORM_DEVELOPER'].includes(r))).length,
+    schoolAdmins: usersList.filter(u => (u.roles || []).some((r: string) => ['SCHOOL_ADMIN', 'BATCH_COORDINATOR'].includes(r))).length,
+    alumni: usersList.filter(u => (u.roles || []).includes('ALUMNI')).length,
+    noPassword: usersList.filter(u => !u.has_password).length,
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn text-[#111111]">
@@ -522,7 +726,7 @@ export const DeveloperPortal: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage(null)} className="text-emerald-700 font-bold hover:text-emerald-900 ml-4">Dismiss</button>
+          <button onClick={() => setSuccessMessage(null)} className="text-emerald-700 font-bold hover:text-emerald-900 ml-4 cursor-pointer">Dismiss</button>
         </div>
       )}
 
@@ -532,7 +736,7 @@ export const DeveloperPortal: React.FC = () => {
             <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
-          <button onClick={() => setErrorMessage(null)} className="text-rose-700 font-bold hover:text-rose-900 ml-4">Dismiss</button>
+          <button onClick={() => setErrorMessage(null)} className="text-rose-700 font-bold hover:text-rose-900 ml-4 cursor-pointer">Dismiss</button>
         </div>
       )}
 
@@ -600,246 +804,131 @@ export const DeveloperPortal: React.FC = () => {
           }`}
         >
           <Activity className="w-4 h-4 text-blue-600" />
-          <span>Audit Logs ({auditLogs.length})</span>
+          <span>Audit Logs</span>
         </button>
       </div>
 
-      {/* 1. DASHBOARD OVERVIEW MODULE */}
+      {/* 1. DASHBOARD OVERVIEW TAB */}
       {activeTab === 'DASHBOARD' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-[#6B7280]">Registered Schools</span>
-                <div className="text-3xl font-extrabold text-[#111111] mt-1">{schoolsList.length}</div>
-              </div>
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 text-[#111111]">
-                <Building2 className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-[#6B7280]">School Admins</span>
-                <div className="text-3xl font-extrabold text-[#111111] mt-1">{schoolAdminsList.length}</div>
-              </div>
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 text-[#111111]">
-                <UserCheck className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-[#6B7280]">Registered Users</span>
-                <div className="text-3xl font-extrabold text-[#111111] mt-1">{usersList.length}</div>
-              </div>
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 text-[#111111]">
-                <Users className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-[#6B7280]">Total Alumni</span>
-                <div className="text-3xl font-extrabold text-[#111111] mt-1">{totalAlumni}</div>
-              </div>
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 text-[#111111]">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Action Banner */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-[#111111]">Multi-Tenant School & User Administration</h3>
-              <p className="text-xs text-[#6B7280] mt-1">Manage school entities, provision multiple school administrators per school, and maintain user access controls across the platform.</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button size="sm" onClick={() => handleTabChange('SCHOOLS', '/developer/schools')} className="bg-[#111111] text-white">
-                View Schools Roster →
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => handleTabChange('USERS', '/developer/users')} className="border border-[#111111]">
-                User Directory →
-              </Button>
-            </div>
-          </div>
-
-          {/* Recent Schools Preview */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h3 className="font-bold text-[#111111] text-base flex items-center space-x-2">
-                <Building2 className="w-4 h-4" />
-                <span>Recent Schools Registered</span>
-              </h3>
-              <Button variant="secondary" size="sm" onClick={() => handleTabChange('SCHOOLS', '/developer/schools')}>
-                View All ({schoolsList.length})
-              </Button>
-            </div>
-
-            <div className="divide-y divide-[#E5E7EB]">
-              {schoolsList.slice(0, 4).map((s) => (
-                <div key={s.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50">
-                  <div className="flex items-center space-x-3">
-                    <img src={s.logo_url || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&q=80"} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
-                    <div>
-                      <div className="font-bold text-sm text-[#111111]">{s.name} <span className="text-xs font-mono text-gray-500">({s.code})</span></div>
-                      <div className="text-xs text-gray-500">📍 {s.city || 'N/A'}, {s.state || 'N/A'} • Admins: {s.admin_count} • Alumni: {s.alumni_count}</div>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="secondary" onClick={() => openEditSchoolModal(s)} className="text-xs">
-                    Configure
-                  </Button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white border border-[#E5E7EB] p-5 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Total Schools</span>
+                <div className="p-2.5 bg-gray-100 rounded-xl text-[#111111]">
+                  <Building2 className="w-5 h-5" />
                 </div>
-              ))}
+              </div>
+              <div className="text-3xl font-extrabold text-[#111111] mt-2">{schoolsList.length}</div>
+              <p className="text-xs text-[#6B7280] mt-1">Multi-tenant registered institutions</p>
+            </div>
+
+            <div className="bg-white border border-[#E5E7EB] p-5 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500 uppercase">School Admins</span>
+                <div className="p-2.5 bg-amber-50 rounded-xl text-[#854D0E]">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-3xl font-extrabold text-[#854D0E] mt-2">{schoolAdminsList.length || totalAdmins}</div>
+              <p className="text-xs text-[#6B7280] mt-1">Provisioned school administrators</p>
+            </div>
+
+            <div className="bg-white border border-[#E5E7EB] p-5 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Total Alumni Members</span>
+                <div className="p-2.5 bg-blue-50 rounded-xl text-blue-700">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-3xl font-extrabold text-[#111111] mt-2">{totalAlumni}</div>
+              <p className="text-xs text-[#6B7280] mt-1">Registered across all batches</p>
+            </div>
+
+            <div className="bg-[#111111] text-white p-5 rounded-2xl shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-400 uppercase">Total Platform Users</span>
+                <div className="p-2.5 bg-gray-800 rounded-xl text-white">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-3xl font-extrabold text-white mt-2">{usersList.length}</div>
+              <p className="text-xs text-gray-400 mt-1">Global user account directory</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. SCHOOLS MANAGEMENT MODULE */}
+      {/* 2. SCHOOLS ROSTER TAB */}
       {activeTab === 'SCHOOLS' && (
         <div className="space-y-6">
           <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
               <h3 className="font-bold text-[#111111] text-base flex items-center space-x-2">
                 <Building2 className="w-4 h-4 text-[#111111]" />
-                <span>Registered Schools Roster ({schoolsList.length})</span>
+                <span>Multi-Tenant Schools ({schoolsList.length})</span>
               </h3>
-              <div className="flex items-center space-x-2">
-                <Button variant="secondary" size="sm" onClick={fetchAllDeveloperData} className="border border-gray-300">
-                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                  <span>Refresh</span>
-                </Button>
-                <Button size="sm" onClick={() => { setWizardStep(1); setEditingSchoolId(null); setSchoolName(''); setSchoolCode(''); setSchoolModalOpen(true); }} className="bg-[#111111] text-white">
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  <span>Add School</span>
-                </Button>
-              </div>
+              <Button size="sm" onClick={() => { setWizardStep(1); setEditingSchoolId(null); setSchoolModalOpen(true); }} className="bg-[#111111] text-white font-bold hover:bg-black">
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                <span>Add School</span>
+              </Button>
             </div>
 
-            <div className="divide-y divide-[#E5E7EB]">
-              {schoolsList.length === 0 ? (
-                <div className="p-12 text-center text-gray-500 text-sm">
-                  No school entities registered yet. Click <strong>Add School</strong> to initialize your first school tenant.
-                </div>
-              ) : (
-                schoolsList.map((school) => (
-                  <div key={school.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                    <div className="flex items-start space-x-4">
-                      <img src={school.logo_url || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&q=80"} alt="" className="w-14 h-14 rounded-2xl border border-gray-200 object-cover flex-shrink-0" />
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <h4 className="font-bold text-[#111111] text-lg">{school.name}</h4>
-                          <span className="px-2.5 py-0.5 bg-[#111111] text-white font-mono text-xs font-bold rounded-md uppercase">{school.code}</span>
-                          <span className={`px-2 py-0.5 font-semibold text-[11px] rounded-md border ${school.status === 'INACTIVE' ? 'bg-rose-100 text-rose-900 border-rose-200' : 'bg-emerald-100 text-emerald-900 border-emerald-200'}`}>
-                            {school.status || 'ACTIVE'}
-                          </span>
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-900 font-semibold text-[11px] rounded-md border border-amber-200">
-                            Est. {school.established_year || 1985}
-                          </span>
-                        </div>
-                        {school.description && (
-                          <p className="text-xs text-gray-600 italic">{school.description}</p>
-                        )}
-                        <div className="text-xs text-[#6B7280] space-y-0.5 pt-1">
-                          <div>📍 {school.address ? `${school.address}${school.city ? `, ${school.city}` : ''}${school.state ? `, ${school.state}` : ''}${school.country ? `, ${school.country}` : ''}` : 'Address not specified'}</div>
-                          <div className="flex items-center space-x-4 flex-wrap">
-                            <span>📞 {school.contact_phone || 'N/A'}</span>
-                            <span>✉️ {school.contact_email || 'N/A'}</span>
-                            {school.website && (
-                              <a href={school.website} target="_blank" rel="noreferrer" className="text-blue-600 underline font-medium">
-                                🌐 {school.website}
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-4 pt-2 text-xs text-[#6B7280]">
-                          <div>Admins: <strong className="text-[#111111]">{school.admin_count}</strong></div>
-                          <div>Alumni: <strong className="text-[#111111]">{school.alumni_count}</strong></div>
-                          <div>Batches: <strong className="text-[#111111]">{school.batches_count}</strong></div>
-                          <div>Events: <strong className="text-[#111111]">{school.events_count}</strong></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openEditSchoolModal(school)}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs"
-                      >
-                        <Settings className="w-3.5 h-3.5 mr-1" />
-                        <span>Edit Details</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setSchoolToDelete({ id: school.id, name: school.name, code: school.code });
-                          setDeleteConfirmCode('');
-                          setDeleteSchoolModalOpen(true);
-                        }}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 text-xs"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        <span>Delete</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setTargetSchoolId(school.id);
-                          setWizardStep(2);
-                          setAdminFullName('');
-                          setAdminMobile('');
-                          setAdminEmail('');
-                          setSchoolModalOpen(true);
-                        }}
-                        className="bg-[#111111] text-white hover:bg-black font-semibold text-xs"
-                      >
-                        <UserPlus className="w-3.5 h-3.5 mr-1" />
-                        <span>Provision Admin</span>
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-[#111111]">
+                <thead className="bg-gray-50 border-b border-[#E5E7EB] text-gray-500 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="p-3.5">School Name</th>
+                    <th className="p-3.5">Code</th>
+                    <th className="p-3.5">City / State</th>
+                    <th className="p-3.5">Admins</th>
+                    <th className="p-3.5">Alumni</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E5E7EB]">
+                  {schoolsList.map((school) => (
+                    <tr key={school.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3.5 font-bold flex items-center space-x-3">
+                        <img src={school.logo_url || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&q=80'} alt="" className="w-8 h-8 rounded-lg object-cover border" />
+                        <span>{school.name}</span>
+                      </td>
+                      <td className="p-3.5 font-mono text-gray-600 font-bold">{school.code}</td>
+                      <td className="p-3.5 text-gray-600">{school.city}, {school.state}</td>
+                      <td className="p-3.5 font-bold">{school.admin_count || 0}</td>
+                      <td className="p-3.5 font-bold">{school.alumni_count || 0}</td>
+                      <td className="p-3.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${school.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {school.status || 'ACTIVE'}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right space-x-2">
+                        <button onClick={() => openEditSchoolModal(school)} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors">Edit</button>
+                        <button onClick={() => { setSchoolToDelete(school); setDeleteSchoolModalOpen(true); }} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. SCHOOL ADMINS MANAGEMENT MODULE */}
+      {/* 3. SCHOOL ADMINS TAB */}
       {activeTab === 'SCHOOL_ADMINS' && (
         <div className="space-y-6">
           <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-bold text-[#111111] text-base flex items-center space-x-2">
-                  <UserPlus className="w-4 h-4 text-[#111111]" />
-                  <span>Provisioned School Administrators ({schoolAdminsList.length})</span>
-                </h3>
-                <p className="text-xs text-[#6B7280] mt-0.5">Manage administrator credentials, school assignments, and active permissions</p>
-              </div>
-
-              <div className="flex items-center space-x-3 flex-wrap gap-y-2">
-                <select
-                  value={adminSchoolFilter}
-                  onChange={(e) => setAdminSchoolFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111]"
-                >
-                  <option value="ALL">All Schools</option>
-                  {schoolsList.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
-                </select>
-
-                <Button size="sm" onClick={() => { setWizardStep(2); setAdminFullName(''); setAdminMobile(''); setAdminEmail(''); setSchoolModalOpen(true); }} className="bg-[#111111] text-white">
-                  <UserPlus className="w-3.5 h-3.5 mr-1" />
-                  <span>Provision New Admin</span>
-                </Button>
-              </div>
+            <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <h3 className="font-bold text-[#111111] text-base flex items-center space-x-2">
+                <UserPlus className="w-4 h-4 text-[#854D0E]" />
+                <span>Provisioned School Administrators ({schoolAdminsList.length})</span>
+              </h3>
+              <Button size="sm" onClick={() => { setWizardStep(2); setSchoolModalOpen(true); }} className="bg-[#111111] text-white font-bold hover:bg-black">
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                <span>Provision Admin</span>
+              </Button>
             </div>
 
             <div className="overflow-x-auto">
@@ -851,67 +940,27 @@ export const DeveloperPortal: React.FC = () => {
                     <th className="p-3.5">Email</th>
                     <th className="p-3.5">Assigned School</th>
                     <th className="p-3.5">Status</th>
-                    <th className="p-3.5">Provisioned Date</th>
                     <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB]">
-                  {schoolAdminsList.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">
-                        No school administrators provisioned matching the filter.
+                  {schoolAdminsList.map((admin) => (
+                    <tr key={admin.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3.5 font-bold">{admin.full_name}</td>
+                      <td className="p-3.5 font-mono text-gray-600">{admin.mobile}</td>
+                      <td className="p-3.5 text-gray-600">{admin.email || 'N/A'}</td>
+                      <td className="p-3.5 text-[#854D0E] font-semibold">{admin.school_name} ({admin.school_code})</td>
+                      <td className="p-3.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${admin.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                          {admin.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right space-x-2">
+                        <button onClick={() => openEditAdminModal(admin)} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors">Edit</button>
+                        <button onClick={() => { setSelectedAdmin(admin); setDeleteAdminModalOpen(true); }} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors">Revoke</button>
                       </td>
                     </tr>
-                  ) : (
-                    schoolAdminsList.map((adm) => (
-                      <tr key={adm.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="p-3.5 font-bold flex items-center space-x-2">
-                          <img
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adm.full_name || 'Admin')}&background=111111&color=ffffff`}
-                            alt=""
-                            className="w-7 h-7 rounded-full object-cover"
-                          />
-                          <span>{adm.full_name}</span>
-                        </td>
-                        <td className="p-3.5 font-mono text-gray-600">{adm.mobile}</td>
-                        <td className="p-3.5 text-gray-600">{adm.email || 'N/A'}</td>
-                        <td className="p-3.5 font-semibold text-[#854D0E]">
-                          {adm.school_name} <span className="text-[10px] font-mono text-gray-500">({adm.school_code})</span>
-                        </td>
-                        <td className="p-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${adm.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                            {adm.is_active ? 'ACTIVE' : 'INACTIVE'}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-gray-500">{adm.created_at ? new Date(adm.created_at).toLocaleDateString() : 'N/A'}</td>
-                        <td className="p-3.5 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedAdmin(adm);
-                              setAdminFullName(adm.full_name);
-                              setAdminMobile(adm.mobile);
-                              setAdminEmail(adm.email || '');
-                              setTargetSchoolId(adm.school_id);
-                              setUserIsActive(adm.is_active);
-                              setEditAdminModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedAdmin(adm);
-                              setDeleteAdminModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -919,40 +968,66 @@ export const DeveloperPortal: React.FC = () => {
         </div>
       )}
 
-      {/* 4. USER DIRECTORY MODULE */}
+      {/* 4. ENHANCED USER DIRECTORY MODULE */}
       {activeTab === 'USERS' && (
         <div className="space-y-6">
+          {/* User Directory Metrics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="bg-white border border-[#E5E7EB] p-4 rounded-xl shadow-xs">
+              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Users</div>
+              <div className="text-2xl font-extrabold text-[#111111] mt-1">{userStats.total}</div>
+            </div>
+            <div className="bg-white border border-[#E5E7EB] p-4 rounded-xl shadow-xs">
+              <div className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">Active Users</div>
+              <div className="text-2xl font-extrabold text-emerald-700 mt-1">{userStats.active}</div>
+            </div>
+            <div className="bg-white border border-[#E5E7EB] p-4 rounded-xl shadow-xs">
+              <div className="text-[11px] font-semibold text-purple-600 uppercase tracking-wider">Super & Devs</div>
+              <div className="text-2xl font-extrabold text-purple-700 mt-1">{userStats.admins}</div>
+            </div>
+            <div className="bg-white border border-[#E5E7EB] p-4 rounded-xl shadow-xs">
+              <div className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider">School Admins</div>
+              <div className="text-2xl font-extrabold text-amber-700 mt-1">{userStats.schoolAdmins}</div>
+            </div>
+            <div className="bg-white border border-[#E5E7EB] p-4 rounded-xl shadow-xs col-span-2 sm:col-span-1">
+              <div className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Alumni Members</div>
+              <div className="text-2xl font-extrabold text-blue-700 mt-1">{userStats.alumni}</div>
+            </div>
+          </div>
+
           <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
+            {/* User Directory Main Header & Toolbar */}
             <div className="p-4 border-b border-[#E5E7EB] flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold text-[#111111] text-base flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-[#111111]" />
-                  <span>Platform User Directory ({usersList.length})</span>
+                <h3 className="font-extrabold text-[#111111] text-base flex items-center space-x-2">
+                  <Users className="w-5 h-5 text-[#111111]" />
+                  <span>Platform User Directory ({filteredUsers.length} / {usersList.length})</span>
                 </h3>
-                <p className="text-xs text-[#6B7280] mt-0.5">Filter, update roles, toggle active status, select multiple users, or bulk delete accounts</p>
+                <p className="text-xs text-[#6B7280] mt-0.5">Comprehensive developer control center: edit profile, set passwords, toggle status, bulk operations, or export data</p>
               </div>
 
               {/* Filters & Search Toolbar */}
-              <div className="flex items-center space-x-3 flex-wrap gap-y-2">
+              <div className="flex items-center space-x-2 flex-wrap gap-y-2">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search name, email, mobile..."
+                    placeholder="Search name, mobile, email, city..."
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111111] focus:outline-none focus:border-[#111111]"
+                    className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111111] focus:outline-none focus:border-[#111111] w-48 sm:w-56"
                   />
                 </div>
 
                 <select
                   value={userRoleFilter}
                   onChange={(e) => setUserRoleFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111]"
+                  className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111]"
                 >
                   <option value="ALL">All Roles</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="DEVELOPER">Developer</option>
+                  <option value="PLATFORM_DEVELOPER">Platform Dev</option>
                   <option value="SCHOOL_ADMIN">School Admin</option>
                   <option value="BATCH_COORDINATOR">Batch Coordinator</option>
                   <option value="ALUMNI">Alumni</option>
@@ -961,13 +1036,33 @@ export const DeveloperPortal: React.FC = () => {
                 <select
                   value={userSchoolFilter}
                   onChange={(e) => setUserSchoolFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111]"
+                  className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111] max-w-[140px] truncate"
                 >
                   <option value="ALL">All Schools</option>
                   {schoolsList.map((s) => (
                     <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                   ))}
                 </select>
+
+                <select
+                  value={userStatusFilter}
+                  onChange={(e) => setUserStatusFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#111111]"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="INACTIVE">Inactive Only</option>
+                  <option value="NO_PASSWORD">No Password Set</option>
+                </select>
+
+                <button
+                  onClick={exportUsersCSV}
+                  title="Export Filtered Users to CSV"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-xl text-xs font-bold text-[#111111] inline-flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-700" />
+                  <span className="hidden sm:inline">Export</span>
+                </button>
 
                 <Button size="sm" onClick={openAddUserModal} className="bg-emerald-700 text-white font-bold hover:bg-emerald-800">
                   <Plus className="w-3.5 h-3.5 mr-1" />
@@ -976,25 +1071,42 @@ export const DeveloperPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* Multi-Select Action Bar */}
+            {/* Multi-Select Bulk Action Toolbar */}
             {selectedUserIds.length > 0 && (
-              <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-between animate-fadeIn">
+              <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
                 <div className="flex items-center space-x-2 text-xs text-amber-900 font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-amber-700" />
+                  <CheckCircle2 className="w-4 h-4 text-amber-700 shrink-0" />
                   <span>{selectedUserIds.length} user{selectedUserIds.length > 1 ? 's' : ''} selected</span>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button
-                    size="sm"
-                    onClick={() => setBulkDeleteUserModalOpen(true)}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs"
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
+                  <button
+                    onClick={() => handleBulkToggleActive(true)}
+                    className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                    <span>Delete Selected ({selectedUserIds.length})</span>
-                  </Button>
+                    Activate Selected
+                  </button>
+                  <button
+                    onClick={() => handleBulkToggleActive(false)}
+                    className="px-2.5 py-1 bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
+                  >
+                    Deactivate Selected
+                  </button>
+                  <button
+                    onClick={() => setBulkAssignSchoolModalOpen(true)}
+                    className="px-2.5 py-1 bg-[#111111] hover:bg-black text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
+                  >
+                    Assign School
+                  </button>
+                  <button
+                    onClick={() => setBulkDeleteUserModalOpen(true)}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer inline-flex items-center"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                    <span>Delete ({selectedUserIds.length})</span>
+                  </button>
                   <button
                     onClick={() => setSelectedUserIds([])}
-                    className="text-xs text-gray-600 hover:text-gray-900 font-semibold underline cursor-pointer"
+                    className="text-xs text-gray-600 hover:text-gray-900 font-semibold underline cursor-pointer ml-2"
                   >
                     Deselect All
                   </button>
@@ -1002,6 +1114,7 @@ export const DeveloperPortal: React.FC = () => {
               </div>
             )}
 
+            {/* Main User Directory Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[#111111]">
                 <thead className="bg-gray-50 border-b border-[#E5E7EB] text-gray-500 uppercase tracking-wider font-semibold">
@@ -1009,32 +1122,33 @@ export const DeveloperPortal: React.FC = () => {
                     <th className="p-3.5 w-10 text-center">
                       <input
                         type="checkbox"
-                        checked={usersList.length > 0 && selectedUserIds.length === usersList.length}
+                        checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
                         onChange={toggleSelectAllUsers}
                         className="w-4 h-4 rounded text-[#111111] border-gray-300 focus:ring-[#111111] cursor-pointer"
                       />
                     </th>
-                    <th className="p-3.5">User</th>
+                    <th className="p-3.5">User Identity</th>
                     <th className="p-3.5">Mobile</th>
                     <th className="p-3.5">Email</th>
                     <th className="p-3.5">Roles</th>
                     <th className="p-3.5">Assigned School</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5 text-right">Actions</th>
+                    <th className="p-3.5">Status & Auth</th>
+                    <th className="p-3.5">City / Profession</th>
+                    <th className="p-3.5 text-right">Developer Controls</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB]">
-                  {usersList.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-gray-500">
-                        No users found matching the search criteria.
+                      <td colSpan={9} className="p-8 text-center text-gray-500">
+                        No platform user accounts match the current search or filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    usersList.map((u) => {
+                    filteredUsers.map((u) => {
                       const isSelected = selectedUserIds.includes(u.id);
                       return (
-                        <tr key={u.id} className={`transition-colors ${isSelected ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-gray-50'}`}>
+                        <tr key={u.id} className={`transition-colors ${isSelected ? 'bg-amber-50/70 hover:bg-amber-50' : 'hover:bg-gray-50'}`}>
                           <td className="p-3.5 text-center">
                             <input
                               type="checkbox"
@@ -1043,21 +1157,31 @@ export const DeveloperPortal: React.FC = () => {
                               className="w-4 h-4 rounded text-[#111111] border-gray-300 focus:ring-[#111111] cursor-pointer"
                             />
                           </td>
-                          <td className="p-3.5 font-bold flex items-center space-x-2">
-                            <img
-                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=F3F4F6&color=111827`}
-                              alt=""
-                              className="w-7 h-7 rounded-full object-cover"
-                            />
-                            <span>{u.full_name}</span>
+                          <td className="p-3.5">
+                            <div className="flex items-center space-x-2.5">
+                              <img
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=F3F4F6&color=111827`}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0"
+                              />
+                              <div>
+                                <div className="font-extrabold text-[#111111] text-xs flex items-center space-x-1.5">
+                                  <span>{u.full_name}</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-gray-400 mt-0.5 flex items-center space-x-1">
+                                  <span>ID: {u.id?.slice(-6)}</span>
+                                  {u.alumni_id && <span className="bg-gray-100 text-gray-600 px-1 rounded text-[9px]">Alumni Linked</span>}
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                          <td className="p-3.5 font-mono text-gray-600">{u.mobile}</td>
+                          <td className="p-3.5 font-mono text-gray-700 font-semibold">{u.mobile}</td>
                           <td className="p-3.5 text-gray-600">{u.email || 'N/A'}</td>
                           <td className="p-3.5">
                             <div className="flex flex-wrap gap-1">
                               {u.roles?.map((r: string) => (
-                                <span key={r} className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                  r === 'SUPER_ADMIN' || r === 'DEVELOPER' ? 'bg-purple-100 text-purple-900 border border-purple-200' :
+                                <span key={r} className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                                  r === 'SUPER_ADMIN' || r === 'DEVELOPER' || r === 'PLATFORM_DEVELOPER' ? 'bg-purple-100 text-purple-900 border border-purple-200' :
                                   r === 'SCHOOL_ADMIN' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
                                   r === 'BATCH_COORDINATOR' ? 'bg-blue-100 text-blue-900 border border-blue-200' :
                                   'bg-gray-100 text-gray-800'
@@ -1067,35 +1191,79 @@ export const DeveloperPortal: React.FC = () => {
                               ))}
                             </div>
                           </td>
-                          <td className="p-3.5 text-gray-600">{u.school_name || 'Unassigned'}</td>
+                          <td className="p-3.5">
+                            <div className="text-gray-700 font-semibold text-xs">
+                              {u.school_name || 'Unassigned'}
+                            </div>
+                            {u.school_code && u.school_code !== 'N/A' && (
+                              <span className="text-[10px] font-mono text-gray-400 font-bold">[{u.school_code}]</span>
+                            )}
+                          </td>
                           <td className="p-3.5">
                             <div className="flex flex-col items-start gap-1">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                {u.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                              {/* Interactive Active Toggle Switch */}
+                              <button
+                                onClick={() => handleQuickToggleUserActive(u)}
+                                title="Click to toggle Active/Inactive status"
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all flex items-center space-x-1 cursor-pointer ${
+                                  u.is_active !== false
+                                    ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300'
+                                    : 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300'
+                                }`}
+                              >
+                                <span>{u.is_active !== false ? '● ACTIVE' : '○ INACTIVE'}</span>
+                              </button>
+
+                              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${u.has_password ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-800 border border-amber-300'}`}>
+                                {u.has_password ? 'PASSWORD SET' : 'NO PASSWORD'}
                               </span>
-                              {u.has_password !== undefined && (
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.has_password ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800 border border-amber-300'}`}>
-                                  {u.has_password ? 'PASSWORD SET' : 'NO PASSWORD'}
-                                </span>
-                              )}
                             </div>
                           </td>
-                          <td className="p-3.5 text-right space-x-2">
-                            <button
-                              onClick={() => openEditUserModal(u)}
-                              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-md transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedUser(u);
-                                setDeleteUserModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-md border border-rose-200 transition-colors"
-                            >
-                              Delete
-                            </button>
+                          <td className="p-3.5 text-gray-600">
+                            <div>{u.current_city || '—'}</div>
+                            {u.profession && <div className="text-[10px] text-gray-400 truncate max-w-[120px]">{u.profession}</div>}
+                          </td>
+                          <td className="p-3.5 text-right">
+                            <div className="flex items-center justify-end space-x-1.5">
+                              {/* 1. View Details */}
+                              <button
+                                onClick={() => openViewUserModal(u)}
+                                title="View Complete User Details & JSON"
+                                className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* 2. Direct Reset Password */}
+                              <button
+                                onClick={() => openResetPasswordModal(u)}
+                                title="Set / Reset User Password"
+                                className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <KeyRound className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* 3. Edit User */}
+                              <button
+                                onClick={() => openEditUserModal(u)}
+                                title="Edit User Account Details"
+                                className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-[#111111] font-semibold rounded-lg text-xs transition-colors cursor-pointer"
+                              >
+                                Edit
+                              </button>
+
+                              {/* 4. Delete User */}
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setDeleteUserModalOpen(true);
+                                }}
+                                title="Delete User Account"
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1248,17 +1416,17 @@ export const DeveloperPortal: React.FC = () => {
                   <div key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50 text-xs">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                        <FileText className="w-4 h-4" />
+                        <Activity className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="font-bold text-[#111111]">{log.action}</div>
-                        <div className="text-gray-500 text-[11px]">
-                          User ID: {log.user_id || 'System'} • School ID: {log.school_id || 'Platform'} • Type: {log.resource_type || 'N/A'}
+                        <div className="text-gray-500 text-[11px] font-mono">
+                          Target: {log.resource_type} ({log.resource_id})
                         </div>
                       </div>
                     </div>
                     <div className="text-right text-gray-400 font-mono text-[11px]">
-                      {new Date(log.timestamp).toLocaleString()}
+                      {log.timestamp}
                     </div>
                   </div>
                 ))
@@ -1268,82 +1436,37 @@ export const DeveloperPortal: React.FC = () => {
         </div>
       )}
 
-      {/* --- MODALS --- */}
+      {/* ================================================================= */}
+      {/* ALL DEVELOPER MODALS                                              */}
+      {/* ================================================================= */}
 
-      {/* 2-Step School Wizard / Edit School Modal */}
-      <Modal
-        isOpen={schoolModalOpen}
-        onClose={() => setSchoolModalOpen(false)}
-        title={wizardStep === 1 ? (editingSchoolId ? "Edit School Entity" : "Step 1: School Information") : "Step 2: Provision School Admin"}
-      >
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => setWizardStep(1)}
-            className={`flex items-center space-x-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 1 ? 'bg-[#111111] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4">1</span>
-            <span>{editingSchoolId ? "Edit School Details" : "School Entity Details"}</span>
-          </button>
-
-          {!editingSchoolId && (
-            <>
-              <div className="h-0.5 flex-1 bg-gray-200 mx-3"></div>
-              <button
-                type="button"
-                onClick={() => setWizardStep(2)}
-                className={`flex items-center space-x-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 2 ? 'bg-[#111111] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4">2</span>
-                <span>Provision Administrator</span>
-              </button>
-            </>
-          )}
-        </div>
-
+      {/* 1. School Creation Wizard Modal */}
+      <Modal isOpen={schoolModalOpen} onClose={() => setSchoolModalOpen(false)} title={editingSchoolId ? "Edit School Entity" : wizardStep === 1 ? "Step 1: Register School Entity" : "Step 2: Provision Primary School Admin"}>
         {wizardStep === 1 ? (
           <form onSubmit={handleSaveSchoolStep1} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-            <Input label="School Name *" placeholder="Enter school name" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} required />
-            <Input label="Short Code *" placeholder="e.g. ABC School" value={schoolCode} onChange={(e) => setSchoolCode(e.target.value.toUpperCase())} required />
-            <Input label="School Email *" type="email" placeholder="admin@school.com" value={schoolEmail} onChange={(e) => setSchoolEmail(e.target.value)} required />
-            <Input label="Phone Number" placeholder="+91 XXXXX XXXXX" value={schoolPhone} onChange={(e) => setSchoolPhone(e.target.value)} />
-            <Input label="Website" placeholder="https://www.school.com" value={schoolWebsite} onChange={(e) => setSchoolWebsite(e.target.value)} />
-
+            <Input label="School Name *" placeholder="e.g. St. Joseph Higher Secondary School" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} required />
+            <Input label="Unique School Code *" placeholder="e.g. STJOSEPH" value={schoolCode} onChange={(e) => setSchoolCode(e.target.value.toUpperCase())} required />
+            
             <div>
-              <label className="block text-xs font-semibold text-[#111111] mb-1.5">Established Year</label>
-              <input type="number" value={schoolYear} onChange={(e) => setSchoolYear(parseInt(e.target.value) || 1985)} placeholder="1985" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Description</label>
+              <textarea value={schoolDescription} onChange={(e) => setSchoolDescription(e.target.value)} placeholder="Nurturing excellence and integrity..." className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs focus:outline-none focus:border-[#111111]" rows={2} />
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[#111111] mb-1.5">Description</label>
-              <textarea value={schoolDescription} onChange={(e) => setSchoolDescription(e.target.value)} placeholder="Providing holistic education..." rows={2} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
-            </div>
-
-            <Input label="Address" placeholder="Address" value={schoolAddress} onChange={(e) => setSchoolAddress(e.target.value)} />
-            <Input label="City *" placeholder="City" value={schoolCity} onChange={(e) => setSchoolCity(e.target.value)} required />
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[#111111] mb-1.5">State</label>
-                <input type="text" value={schoolState} onChange={(e) => setSchoolState(e.target.value)} placeholder="State" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#111111] mb-1.5">Country</label>
-                <input type="text" value={schoolCountry} onChange={(e) => setSchoolCountry(e.target.value)} placeholder="India" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
-              </div>
+              <Input label="City *" value={schoolCity} onChange={(e) => setSchoolCity(e.target.value)} required />
+              <Input label="State *" value={schoolState} onChange={(e) => setSchoolState(e.target.value)} required />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Logo URL</label>
-              <input type="text" placeholder="https://..." value={schoolLogoUrl} onChange={(e) => setSchoolLogoUrl(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
+            <Input label="Address *" value={schoolAddress} onChange={(e) => setSchoolAddress(e.target.value)} required />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Contact Phone *" value={schoolPhone} onChange={(e) => setSchoolPhone(e.target.value)} required />
+              <Input label="Contact Email *" type="email" value={schoolEmail} onChange={(e) => setSchoolEmail(e.target.value)} required />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Status</label>
-              <select value={schoolStatus} onChange={(e) => setSchoolStatus(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]">
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Established Year" type="number" value={schoolYear} onChange={(e) => setSchoolYear(Number(e.target.value))} />
+              <Input label="Website URL" value={schoolWebsite} onChange={(e) => setSchoolWebsite(e.target.value)} />
             </div>
 
             <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
@@ -1378,7 +1501,7 @@ export const DeveloperPortal: React.FC = () => {
         )}
       </Modal>
 
-      {/* Edit School Admin Modal */}
+      {/* 2. Edit School Admin Modal */}
       {selectedAdmin && (
         <Modal isOpen={editAdminModalOpen} onClose={() => setEditAdminModalOpen(false)} title="Edit School Administrator">
           <form onSubmit={handleSaveEditAdmin} className="space-y-4">
@@ -1411,7 +1534,7 @@ export const DeveloperPortal: React.FC = () => {
         </Modal>
       )}
 
-      {/* Delete School Admin Modal */}
+      {/* 3. Revoke School Admin Modal */}
       {selectedAdmin && (
         <Modal isOpen={deleteAdminModalOpen} onClose={() => setDeleteAdminModalOpen(false)} title="Revoke School Admin Access">
           <div className="space-y-4">
@@ -1424,44 +1547,267 @@ export const DeveloperPortal: React.FC = () => {
         </Modal>
       )}
 
-      {/* Add / Edit User Modal */}
-      <Modal isOpen={userModalOpen} onClose={() => setUserModalOpen(false)} title={selectedUser ? "Edit User Account" : "Add Platform User"}>
-        <form onSubmit={handleSaveUser} className="space-y-4">
+      {/* 4. COMPREHENSIVE ADD / EDIT USER MODAL */}
+      <Modal isOpen={userModalOpen} onClose={() => setUserModalOpen(false)} title={selectedUser ? `Edit User: ${selectedUser.full_name}` : "Add New Platform User"}>
+        <form onSubmit={handleSaveUser} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 text-xs">
           <Input label="Full Name *" value={userFullName} onChange={(e) => setUserFullName(e.target.value)} required />
-          <Input label="Mobile *" value={userMobile} onChange={(e) => setUserMobile(e.target.value)} required />
-          <Input label="Email" type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input label="Mobile Number *" value={userMobile} onChange={(e) => setUserMobile(e.target.value)} required />
+            <Input label="Email Address" type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
+          </div>
 
+          {/* Interactive Role Selector Badges */}
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1.5">Roles (Comma Separated)</label>
-            <input type="text" value={userRoles.join(', ')} onChange={(e) => setUserRoles(e.target.value.split(',').map(r => r.trim()))} placeholder="SCHOOL_ADMIN, ALUMNI" className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]" />
+            <label className="block text-xs font-semibold text-[#111111] mb-1.5">Assigned Roles (Click to Toggle)</label>
+            <div className="flex flex-wrap gap-1.5 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+              {[
+                { id: 'SUPER_ADMIN', label: 'Super Admin', color: 'purple' },
+                { id: 'DEVELOPER', label: 'Developer', color: 'purple' },
+                { id: 'PLATFORM_DEVELOPER', label: 'Platform Dev', color: 'purple' },
+                { id: 'SCHOOL_ADMIN', label: 'School Admin', color: 'amber' },
+                { id: 'BATCH_COORDINATOR', label: 'Batch Coordinator', color: 'blue' },
+                { id: 'ALUMNI', label: 'Alumni Member', color: 'gray' },
+              ].map((r) => {
+                const isChecked = userRoles.includes(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleToggleRoleInUserModal(r.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center space-x-1 ${
+                      isChecked
+                        ? 'bg-[#111111] text-white shadow-xs'
+                        : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span>{isChecked ? '✓' : '+'}</span>
+                    <span>{r.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Assignment</label>
+              <select value={userSchoolId} onChange={(e) => setUserSchoolId(e.target.value)} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs font-semibold focus:outline-none focus:border-[#111111] bg-white">
+                <option value="">Unassigned (No School)</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">Account Active Status</label>
+              <select value={userIsActive ? 'ACTIVE' : 'INACTIVE'} onChange={(e) => setUserIsActive(e.target.value === 'ACTIVE')} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs font-semibold focus:outline-none focus:border-[#111111] bg-white">
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive / Blocked</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Input label="City" value={userCity} onChange={(e) => setUserCity(e.target.value)} placeholder="e.g. Chennai" />
+            <Input label="Profession" value={userProfession} onChange={(e) => setUserProfession(e.target.value)} placeholder="e.g. Software Engineer" />
+            <Input label="Passing Year" type="number" value={userPassingYear} onChange={(e) => setUserPassingYear(e.target.value)} placeholder="e.g. 2018" />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1.5">School Assignment</label>
-            <select value={userSchoolId} onChange={(e) => setUserSchoolId(e.target.value)} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]">
-              <option value="">Unassigned</option>
+            <label className="block text-xs font-semibold text-[#111111] mb-1.5">Set / Reset Password {selectedUser && '(Leave blank to keep existing password)'}</label>
+            <input
+              type="password"
+              value={userPassword}
+              onChange={(e) => setUserPassword(e.target.value)}
+              placeholder="Enter new password (min 6 characters)"
+              className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold focus:outline-none focus:border-[#111111]"
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
+            <Button type="button" variant="secondary" onClick={() => setUserModalOpen(false)}>Cancel</Button>
+            <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white font-bold">Save User Account ✓</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* 5. VIEW COMPLETE USER DETAILS DRAWER / MODAL */}
+      {viewingUser && (
+        <Modal isOpen={viewUserModalOpen} onClose={() => { setViewUserModalOpen(false); setViewingUser(null); }} title={`User Profile Details: ${viewingUser.full_name}`}>
+          <div className="space-y-4 text-xs text-[#111111] max-h-[75vh] overflow-y-auto pr-1">
+            {/* User Header Summary Card */}
+            <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex items-center space-x-4">
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(viewingUser.full_name || 'User')}&background=111827&color=ffffff`}
+                alt=""
+                className="w-14 h-14 rounded-2xl object-cover border border-gray-300"
+              />
+              <div className="space-y-1 flex-1">
+                <div className="text-base font-extrabold text-[#111111]">{viewingUser.full_name}</div>
+                <div className="flex flex-wrap gap-1">
+                  {viewingUser.roles?.map((r: string) => (
+                    <span key={r} className="px-2 py-0.5 bg-gray-200 text-gray-800 rounded-full text-[10px] font-extrabold">{r}</span>
+                  ))}
+                </div>
+                <div className="text-[11px] text-gray-500 font-mono">User ID: {viewingUser.id}</div>
+              </div>
+            </div>
+
+            {/* View Sub-Tabs */}
+            <div className="flex border-b border-gray-200 space-x-4 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setViewUserTab('OVERVIEW')}
+                className={`pb-2 border-b-2 cursor-pointer ${viewUserTab === 'OVERVIEW' ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'}`}
+              >
+                Profile Overview
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewUserTab('RAW_JSON')}
+                className={`pb-2 border-b-2 cursor-pointer ${viewUserTab === 'RAW_JSON' ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'}`}
+              >
+                Developer JSON Inspector
+              </button>
+            </div>
+
+            {viewUserTab === 'OVERVIEW' ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Mobile Number</div>
+                    <div className="font-mono font-extrabold text-sm text-[#111111] mt-0.5">{viewingUser.mobile}</div>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Email Address</div>
+                    <div className="font-extrabold text-xs text-[#111111] truncate mt-0.5">{viewingUser.email || 'N/A'}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Assigned School</div>
+                    <div className="font-bold text-xs text-[#111111] mt-0.5">{viewingUser.school_name || 'Unassigned'}</div>
+                    {viewingUser.school_code && <div className="text-[10px] font-mono text-gray-400">[{viewingUser.school_code}]</div>}
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Account Status</div>
+                    <div className="mt-0.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${viewingUser.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {viewingUser.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">City</div>
+                    <div className="font-bold text-xs text-[#111111] mt-0.5">{viewingUser.current_city || 'N/A'}</div>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Profession</div>
+                    <div className="font-bold text-xs text-[#111111] mt-0.5 truncate">{viewingUser.profession || 'N/A'}</div>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl border">
+                    <div className="text-gray-500 font-medium">Passing Year</div>
+                    <div className="font-bold text-xs text-[#111111] mt-0.5">{viewingUser.passing_year || 'N/A'}</div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl border text-[11px] text-gray-500 flex justify-between">
+                  <span>Created At: <strong>{viewingUser.created_at || 'N/A'}</strong></span>
+                  {viewingUser.updated_at && <span>Updated: <strong>{viewingUser.updated_at}</strong></span>}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(viewingUser, null, 2));
+                      setJsonCopied(true);
+                      setTimeout(() => setJsonCopied(false), 2000);
+                    }}
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-xs font-semibold rounded-lg flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{jsonCopied ? 'Copied!' : 'Copy JSON'}</span>
+                  </button>
+                </div>
+                <pre className="p-3 bg-gray-900 text-emerald-400 rounded-xl text-[11px] font-mono overflow-x-auto max-h-60 leading-relaxed border border-gray-800">
+                  {JSON.stringify(viewingUser, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            <div className="pt-4 flex justify-end space-x-2 border-t border-gray-200">
+              <Button type="button" variant="secondary" onClick={() => setViewUserModalOpen(false)}>Close</Button>
+              <Button type="button" onClick={() => { setViewUserModalOpen(false); openEditUserModal(viewingUser); }} className="bg-[#111111] text-white">Edit User Profile</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 6. DIRECT RESET USER PASSWORD MODAL */}
+      {resetPasswordUser && (
+        <Modal isOpen={resetPasswordModalOpen} onClose={() => { setResetPasswordModalOpen(false); setResetPasswordUser(null); }} title={`Reset Password for: ${resetPasswordUser.full_name}`}>
+          <form onSubmit={handleSaveResetPassword} className="space-y-4">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
+              As a Developer, you can set a new account login password directly for <strong>{resetPasswordUser.full_name}</strong> ({resetPasswordUser.mobile}).
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#111111] mb-1.5">New Password *</label>
+              <input
+                type={showNewPasswordVal ? 'text' : 'password'}
+                value={newPasswordValue}
+                onChange={(e) => setNewPasswordValue(e.target.value)}
+                placeholder="Enter new password (minimum 6 characters)"
+                minLength={6}
+                required
+                className="w-full px-3 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-sm font-semibold focus:outline-none focus:border-[#111111]"
+              />
+            </div>
+
+            <div className="pt-3 flex justify-end space-x-3 border-t border-gray-200">
+              <Button type="button" variant="secondary" onClick={() => setResetPasswordModalOpen(false)}>Cancel</Button>
+              <Button type="submit" isLoading={submitting} disabled={newPasswordValue.length < 6} className="bg-amber-700 hover:bg-amber-800 text-white font-bold">Set New Password ✓</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* 7. BULK ASSIGN SCHOOL MODAL */}
+      <Modal isOpen={bulkAssignSchoolModalOpen} onClose={() => setBulkAssignSchoolModalOpen(false)} title={`Assign School to ${selectedUserIds.length} Selected Users`}>
+        <div className="space-y-4 text-xs">
+          <div>
+            <label className="block font-semibold text-[#111111] mb-1.5">Select School Entity *</label>
+            <select
+              value={bulkTargetSchoolId}
+              onChange={(e) => setBulkTargetSchoolId(e.target.value)}
+              className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-xl font-bold bg-white text-xs"
+            >
+              <option value="">-- Unassigned (Remove School) --</option>
               {schoolsList.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1.5">Status</label>
-            <select value={userIsActive ? 'ACTIVE' : 'INACTIVE'} onChange={(e) => setUserIsActive(e.target.value === 'ACTIVE')} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-xl text-xs font-medium focus:outline-none focus:border-[#111111]">
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive / Blocked</option>
-            </select>
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button type="button" variant="secondary" onClick={() => setBulkAssignSchoolModalOpen(false)}>Cancel</Button>
+            <Button type="button" isLoading={submitting} onClick={handleBulkAssignSchool} className="bg-[#111111] text-white font-bold">Confirm Bulk Assignment</Button>
           </div>
-
-          <div className="pt-4 flex justify-end space-x-3 border-t border-[#E5E7EB]">
-            <Button type="button" variant="secondary" onClick={() => setUserModalOpen(false)}>Cancel</Button>
-            <Button type="submit" isLoading={submitting} className="bg-[#111111] text-white">Save Account ✓</Button>
-          </div>
-        </form>
+        </div>
       </Modal>
 
-      {/* Delete User Modal */}
+      {/* 8. Single Delete User Account Modal */}
       {selectedUser && (
         <Modal isOpen={deleteUserModalOpen} onClose={() => setDeleteUserModalOpen(false)} title="Delete User Account">
           <div className="space-y-4">
@@ -1474,7 +1820,7 @@ export const DeveloperPortal: React.FC = () => {
         </Modal>
       )}
 
-      {/* Bulk Delete User Accounts Modal */}
+      {/* 9. Bulk Delete User Accounts Modal */}
       <Modal isOpen={bulkDeleteUserModalOpen} onClose={() => setBulkDeleteUserModalOpen(false)} title="Bulk Delete User Accounts">
         <div className="space-y-4">
           <div className="bg-rose-50 text-rose-800 p-4 rounded-xl border border-rose-200 text-xs">
@@ -1497,7 +1843,7 @@ export const DeveloperPortal: React.FC = () => {
         </div>
       </Modal>
 
-      {/* View Enquiry Modal */}
+      {/* 10. View School Admin Request Details Modal */}
       {selectedEnquiry && (
         <Modal isOpen={enquiryModalOpen} onClose={() => { setEnquiryModalOpen(false); setSelectedEnquiry(null); }} title="School Admin Request Details">
           <div className="space-y-4 text-xs text-[#111111]">
@@ -1524,7 +1870,7 @@ export const DeveloperPortal: React.FC = () => {
         </Modal>
       )}
 
-      {/* Delete School Confirmation Modal */}
+      {/* 11. Delete School Confirmation Modal */}
       {schoolToDelete && (
         <Modal isOpen={deleteSchoolModalOpen} onClose={() => { setDeleteSchoolModalOpen(false); setSchoolToDelete(null); setDeleteConfirmCode(''); }} title="Delete School Entity">
           <div className="space-y-4">
