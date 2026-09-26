@@ -403,7 +403,7 @@ async def send_otp(request: SendOTPRequest):
         user = await db.users.find_one({"$or": query}) if query else None
         alumni_rec = await db.alumni.find_one({"$or": query}) if query else None
 
-        if user and (user.get("password") or (alumni_rec and alumni_rec.get("degree"))):
+        if user or alumni_rec:
             raise HTTPException(
                 status_code=409,
                 detail=f"ACCOUNT_ALREADY_REGISTERED: An account with '{identifier}' is already registered. Please log in to your account."

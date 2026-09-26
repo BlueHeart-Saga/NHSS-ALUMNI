@@ -180,9 +180,7 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isOtpVerified && step === 1) {
-      setStep(2);
-    } else if (!isOtpVerified && step > 1) {
+    if (!isOtpVerified && step > 1) {
       setStep(1);
     }
   }, [isOtpVerified, step]);
@@ -522,9 +520,22 @@ export const AlumniRegister: React.FC = () => {
     try {
       await api.sendOTP(cleanMob, undefined, false, undefined, false, true);
       setOtpSent(true);
+      alertService.showInfo(
+        language === 'ta' ? 'OTP அனுப்பப்பட்டது 📩' : 'Verification OTP Sent 📩',
+        language === 'ta'
+          ? `6-இலக்க சரிபார்ப்புக் குறியீடு SMS மூலம் ${cleanMob} எண்ணிற்கு அனுப்பப்பட்டுள்ளது.`
+          : `A 6-digit verification code has been dispatched via SMS to ${cleanMob}.`
+      );
     } catch (err: any) {
-      if (err.message && (err.message.includes('ACCOUNT_ALREADY_REGISTERED') || err.message.toLowerCase().includes('already registered'))) {
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('ACCOUNT_ALREADY_REGISTERED') || errMsg.toLowerCase().includes('already registered') || err?.status === 409) {
         setAccountAlreadyExists(true);
+        alertService.showWarning(
+          language === 'ta' ? 'ஏற்கனவே பதிவாகியுள்ள கணக்கு ⚠️' : 'Account Already Registered ⚠️',
+          language === 'ta'
+            ? `இந்த கைபேசி எண்ணில் (${cleanMob}) ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. தயவுசெய்து உங்கள் கணக்கில் நேரடியாக உள்நுழையவும்.`
+            : `An account with mobile number (${cleanMob}) is already registered in the system. Please log in directly.`
+        );
       } else {
         alertService.handleApiError(err, 'Failed to send verification OTP.');
       }
@@ -533,7 +544,7 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
-  // Step 1: Verify OTP and transition to Create Password screen or Step 2
+  // Step 1: Verify OTP and transition to Create Password screen in Step 1
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -558,6 +569,13 @@ export const AlumniRegister: React.FC = () => {
         setHasExistingPassword(true);
       }
 
+      await alertService.showSuccess(
+        language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது! 🔐' : 'OTP Verified Successfully! 🔐',
+        language === 'ta'
+          ? 'உங்கள் கைபேசி எண் சரிபார்க்கப்பட்டது. படி 2-க்குச் செல்ல உங்கள் கணக்கிற்கான புதிய கடவுச்சொல்லை உருவாக்கவும்.'
+          : 'Mobile OTP verified! Now create your account password to proceed to Step 2.'
+      );
+
       if (!location.state?.isPasswordSetup && hasPassword) {
         const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;
         goToStep(Math.max(2, targetStep) as any);
@@ -569,7 +587,7 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
-  // Step 1: Save Password and advance to Step 2 or return to login
+  // Step 1: Save Password and advance to Step 2
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -602,11 +620,11 @@ export const AlumniRegister: React.FC = () => {
         await api.updatePassword(password.trim());
       }
       setHasExistingPassword(true);
-      alertService.showSuccess(
+      await alertService.showSuccess(
         language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது! 🔐' : 'Password Created Successfully! 🔐',
         language === 'ta'
-          ? 'உங்கள் கணக்கு கடவுச்சொல் பாதுகாப்பாகச் சேமிக்கப்பட்டது. இப்போது நீங்கள் உள்நுழையலாம்.'
-          : 'Your account password has been saved securely in database! You can now log in.'
+          ? 'உங்கள் கணக்கு கடவுச்சொல் சேமிக்கப்பட்டது. இப்போது படி 2 (தனிப்பட்ட விவரங்கள்) தொடங்குகிறது.'
+          : 'Your account password has been saved securely! Proceeding to Step 2 (Personal Details).'
       );
       if (location.state?.isPasswordSetup) {
         navigate('/login', { state: { mobile: cleanMob, email } });
@@ -1461,7 +1479,10 @@ export const AlumniRegister: React.FC = () => {
                             required
                             maxLength={10}
                             value={mobile}
-                            onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                            onChange={(e) => {
+                              setMobile(e.target.value.replace(/\D/g, ''));
+                              if (accountAlreadyExists) setAccountAlreadyExists(false);
+                            }}
                             placeholder="9876543210"
                             className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
                           />
@@ -1470,15 +1491,30 @@ export const AlumniRegister: React.FC = () => {
                       </div>
 
                       {accountAlreadyExists && (
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs sm:text-sm text-amber-800 space-y-2">
-                          <p className="font-bold">
+                        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs sm:text-sm text-amber-900 space-y-2.5 shadow-xs animate-fadeIn">
+                          <div className="flex items-center space-x-2 font-extrabold text-amber-950">
+                            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                            <span>
+                              {language === 'ta'
+                                ? 'இந்த கைபேசி எண் ஏற்கனவே பதிவாகியுள்ளது!'
+                                : 'This mobile number is already registered!'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-amber-800 leading-relaxed font-medium">
                             {language === 'ta'
-                              ? 'இந்த கைபேசி எண்ணில் ஏற்கனவே கணக்கு உள்ளது.'
-                              : 'An account already exists with this mobile number.'}
+                              ? `கைபேசி எண் (${mobile}) மூலம் ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. புதிய பதிவு செய்ய முடியாது. உங்கள் கணக்கில் நேரடியாக உள்நுழையவும்.`
+                              : `An account associated with (${mobile}) already exists in the system. You can log in directly instead of registering again.`}
                           </p>
-                          <Link to="/login" className="inline-block font-bold text-[#111111] underline">
-                            {language === 'ta' ? 'நேரடியாக உள்நுழைய இங்கே கிளிக் செய்யவும் →' : 'Click here to Log In directly →'}
-                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/login', { state: { mobile } })}
+                            className="w-full py-2.5 bg-[#111111] hover:bg-gray-800 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs mt-1"
+                          >
+                            <Lock className="w-4 h-4 text-[#F4C542]" />
+                            <span>
+                              {language === 'ta' ? 'இப்போதே உள்நுழையவும் →' : 'Log In To Your Account Now →'}
+                            </span>
+                          </button>
                         </div>
                       )}
 
