@@ -350,8 +350,6 @@ async def provision_admin_for_school(school_id: str, request: ProvisionSchoolAdm
         profile_photo_url=f"https://ui-avatars.com/api/?name={request.full_name}&background=111111&color=ffffff",
         passing_year=2005,
         batch_id=None,
-        admission_number="ADMIN",
-        section=None,
         current_city=None,
         profession="School Administrator",
         verification_status="APPROVED",

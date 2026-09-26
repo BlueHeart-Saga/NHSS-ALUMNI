@@ -172,7 +172,6 @@ export const AlumniManagement: React.FC = () => {
     setChangeBatchTargets([alumni]);
     const defaultYear = alumni.passing_year || (fetchedBatchesList[0]?.passing_year || 2026);
     setBatchMigrateYear(defaultYear);
-    setBatchMigrateSection(alumni.section || 'A');
     setBatchMigrateReason('');
     setIsChangeBatchModalOpen(true);
   };
@@ -251,8 +250,6 @@ export const AlumniManagement: React.FC = () => {
     joining_year: undefined,
     passing_year: new Date().getFullYear(),
     leaving_class: '',
-    admission_number: '',
-    section: 'A',
     no_higher_education: 'NO',
     college_name: '',
     degree: '',
@@ -266,11 +263,9 @@ export const AlumniManagement: React.FC = () => {
     profession: '',
     industry: '',
     total_experience: '',
-    skills: [],
     linkedin_url: '',
     instagram_url: '',
     whatsapp_number: '',
-    website_url: '',
     is_volunteer: 'NO',
     willing_to_donate: 'NO',
     verification_status: 'APPROVED',
@@ -316,8 +311,6 @@ export const AlumniManagement: React.FC = () => {
         (a.full_name || '').toLowerCase().includes(q) ||
         (a.email || '').toLowerCase().includes(q) ||
         (a.mobile || '').includes(q) ||
-        (a.admission_number || '').toLowerCase().includes(q) ||
-        (a.section || '').toLowerCase().includes(q) ||
         (a.current_city || '').toLowerCase().includes(q) ||
         (a.address || '').toLowerCase().includes(q) ||
         (a.profession || '').toLowerCase().includes(q)
@@ -788,8 +781,6 @@ export const AlumniManagement: React.FC = () => {
       joining_year: undefined,
       passing_year: new Date().getFullYear(),
       leaving_class: '',
-      admission_number: '',
-      section: 'A',
       no_higher_education: 'NO',
       college_name: '',
       degree: '',
@@ -803,11 +794,9 @@ export const AlumniManagement: React.FC = () => {
       profession: '',
       industry: '',
       total_experience: '',
-      skills: [],
       linkedin_url: '',
       instagram_url: '',
       whatsapp_number: '',
-      website_url: '',
       is_volunteer: 'NO',
       willing_to_donate: 'NO',
       verification_status: 'APPROVED',
@@ -1440,18 +1429,13 @@ export const AlumniManagement: React.FC = () => {
                           <div className="font-bold text-[#111111] break-words whitespace-normal leading-snug">
                             {a.full_name}
                           </div>
-                          {a.admission_number && (
-                            <div className="text-[10px] text-gray-500 break-all whitespace-normal mt-0.5">
-                              {t('admin_label_adm_prefix')} {a.admission_number}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
-                        {t('admin_label_batch_prefix')} {a.passing_year} {a.section ? `(${a.section})` : ''}
+                        {t('admin_label_batch_prefix')} {a.passing_year}
                       </span>
                     </td>
 
@@ -1728,8 +1712,6 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_joining_year')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_passing_year')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_leaving_class')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_admission_roll')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px]">{t('admin_sheet_section')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_no_higher_ed')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">{t('admin_sheet_college_name')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_degree')}</th>
@@ -1743,11 +1725,9 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_designation')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_industry')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_total_experience')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_skills')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_linkedin')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_instagram')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_whatsapp')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_website')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_status')}</th>
                   <th className="py-2.5 px-3 text-center min-w-[80px] sticky right-0 bg-gray-100 shadow-left z-20">{t('admin_sheet_action')}</th>
                 </tr>
@@ -2028,25 +2008,7 @@ export const AlumniManagement: React.FC = () => {
                         />
                       </td>
 
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="text"
-                          value={getValue('admission_number') || getValue('roll_no')}
-                          onChange={(e) => handleCellEdit(a.id, 'admission_number', e.target.value, 'roll_no')}
-                          onBlur={() => handleCellBlur(a.id)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono"
-                        />
-                      </td>
 
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="text"
-                          value={getValue('section')}
-                          onChange={(e) => handleCellEdit(a.id, 'section', e.target.value)}
-                          onBlur={() => handleCellBlur(a.id)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-semibold uppercase"
-                        />
-                      </td>
 
                       <td className="p-1 border-r border-gray-200">
                         <select
@@ -2180,15 +2142,7 @@ export const AlumniManagement: React.FC = () => {
                         />
                       </td>
 
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="text"
-                          value={Array.isArray(getValue('skills')) ? (getValue('skills') as string[]).join(', ') : (getValue('skills') || '')}
-                          onChange={(e) => handleCellEdit(a.id, 'skills', e.target.value.split(',').map(s => s.trim()))}
-                          onBlur={() => handleCellBlur(a.id)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-xs"
-                        />
-                      </td>
+
 
                       <td className="p-1 border-r border-gray-200">
                         <input
@@ -2220,15 +2174,7 @@ export const AlumniManagement: React.FC = () => {
                         />
                       </td>
 
-                      <td className="p-1 border-r border-gray-200">
-                        <input
-                          type="url"
-                          value={getValue('website_url')}
-                          onChange={(e) => handleCellEdit(a.id, 'website_url', e.target.value)}
-                          onBlur={() => handleCellBlur(a.id)}
-                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-[11px]"
-                        />
-                      </td>
+
 
                       <td className="p-1 border-r border-gray-200">
                         <select
@@ -2652,24 +2598,6 @@ export const AlumniManagement: React.FC = () => {
                       className={addInputCls + ' text-center'}
                     />
                   </div>
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_admission_roll')}</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.admission_number || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, admission_number: e.target.value })}
-                      className={addInputCls + ' font-mono'}
-                    />
-                  </div>
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_section')}</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.section || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, section: e.target.value })}
-                      className={addInputCls + ' text-center uppercase'}
-                    />
-                  </div>
                 </div>
 
                 <div>
@@ -2825,15 +2753,6 @@ export const AlumniManagement: React.FC = () => {
                       className={addInputCls}
                     />
                   </div>
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_skills')}</label>
-                    <input
-                      type="text"
-                      value={Array.isArray(newAlumnus.skills) ? (newAlumnus.skills as string[]).join(', ') : (newAlumnus.skills as any) || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                      className={addInputCls}
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2865,15 +2784,6 @@ export const AlumniManagement: React.FC = () => {
                       value={newAlumnus.whatsapp_number || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, whatsapp_number: e.target.value })}
                       className={addInputCls + ' font-mono text-emerald-800'}
-                    />
-                  </div>
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_website')}</label>
-                    <input
-                      type="url"
-                      value={newAlumnus.website_url || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, website_url: e.target.value })}
-                      className={addInputCls + ' font-mono'}
                     />
                   </div>
                 </div>
@@ -3125,7 +3035,7 @@ export const AlumniManagement: React.FC = () => {
             </div>
             {changeBatchTargets.length === 1 && (
               <div>
-                {t('admin_change_batch_current_label')} <strong>Batch {changeBatchTargets[0].passing_year} (Sec {changeBatchTargets[0].section || 'A'})</strong>
+                {t('admin_change_batch_current_label')} <strong>Batch {changeBatchTargets[0].passing_year}</strong>
               </div>
             )}
           </div>

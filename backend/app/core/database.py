@@ -157,8 +157,7 @@ async def create_indexes():
                 [("school_id", 1), ("batch_id", 1)],
                 [("passing_year", 1), ("verification_status", 1)],
                 [("verification_status", 1), ("passing_year", -1)],
-                "mobile",
-                ("admission_number", {"sparse": True})
+                "mobile"
             ]),
             (db.batches, [
                 ([("school_id", 1), ("passing_year", 1)], {"unique": True}),

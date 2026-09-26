@@ -155,7 +155,6 @@ export interface AlumniProfile {
   blood_group?: string;
   father_name?: string;
   mother_name?: string;
-  relative_students_name?: string;
   current_city?: string;
   address?: string;
   state?: string;
@@ -166,9 +165,6 @@ export interface AlumniProfile {
   admission_year?: number;
   passing_year: number;
   leaving_class?: string;
-  admission_number: string;
-  roll_no?: string;
-  section?: string;
   no_higher_education?: string;
   college_name?: string;
   institution_name?: string;
@@ -187,19 +183,12 @@ export interface AlumniProfile {
   industry?: string;
   experience_years?: number;
   total_experience?: string;
-  skills?: string[];
   linkedin_url?: string;
   instagram_url?: string;
   whatsapp_number?: string;
-  website_url?: string;
   profile_photo_url?: string;
   email: string;
   batch_id?: string;
-  bio?: string;
-  roll_number?: string;
-  house?: string;
-  github_url?: string;
-  twitter_url?: string;
   is_volunteer?: string;
   willing_to_donate?: string;
   phone_visible?: boolean;

@@ -110,8 +110,6 @@ export const AlumniDataReportsModule: React.FC = () => {
         (a.state || '').toLowerCase().includes(q) ||
         (a.profession || '').toLowerCase().includes(q) ||
         (a.company || '').toLowerCase().includes(q) ||
-        (a.admission_number || '').toLowerCase().includes(q) ||
-        (a.section || '').toLowerCase().includes(q) ||
         String(a.passing_year || '').includes(q)
       );
 
@@ -170,7 +168,7 @@ export const AlumniDataReportsModule: React.FC = () => {
   // Client-side CSV export of current filtered view
   const downloadFilteredCSV = () => {
     const headers = [
-      'Name', 'Passing Year', 'Section', 'Admission No', 'Registration Date',
+      'Name', 'Passing Year', 'Registration Date',
       'Mobile', 'Email', 'Blood Group', 'Is Volunteer', 'Willing to Donate',
       'Verification Status', 'Profession', 'Company', 'City', 'State'
     ];
@@ -178,8 +176,6 @@ export const AlumniDataReportsModule: React.FC = () => {
     const rows = sortedAlumni.map((a) => [
       `"${(a.full_name || '').replace(/"/g, '""')}"`,
       a.passing_year || '',
-      `"${a.section || ''}"`,
-      `"${a.admission_number || ''}"`,
       a.created_at ? new Date(a.created_at).toISOString().split('T')[0] : '',
       `"${a.mobile || ''}"`,
       `"${a.email || ''}"`,
@@ -715,10 +711,6 @@ export const AlumniDataReportsModule: React.FC = () => {
                               />
                               <div>
                                 <div className="font-bold text-[#111111] text-sm">{alumnus.full_name}</div>
-                                <div className="flex items-center space-x-2 text-[10px] text-gray-500">
-                                  {alumnus.admission_number && <span>Adm: {alumnus.admission_number}</span>}
-                                  {alumnus.section && <span>Sec: {alumnus.section}</span>}
-                                </div>
                               </div>
                             </div>
                           </td>

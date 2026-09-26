@@ -121,8 +121,7 @@ export const AssociationTeam: React.FC = () => {
       (a) =>
         a.full_name.toLowerCase().includes(term) ||
         a.mobile.includes(term) ||
-        (a.email && a.email.toLowerCase().includes(term)) ||
-        (a.admission_number && a.admission_number.toLowerCase().includes(term))
+        (a.email && a.email.toLowerCase().includes(term))
     ).slice(0, 15);
   }, [alumniList, alumniSearchTerm]);
 

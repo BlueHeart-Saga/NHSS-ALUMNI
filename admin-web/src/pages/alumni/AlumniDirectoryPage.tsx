@@ -202,7 +202,7 @@ export const AlumniDirectoryPage: React.FC = () => {
                   <h4 className="font-bold text-xs sm:text-sm text-[#111111] truncate">{a.full_name}</h4>
                   <div className="flex flex-wrap items-center gap-1 mt-1">
                     <span className="text-[10px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block border border-[#F4C542]/30">
-                      Class of {a.passing_year} {a.section ? `(${a.section})` : ''}
+                      Class of {a.passing_year}
                     </span>
                     {a.blood_group && (
                       <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full inline-flex items-center space-x-0.5 border border-rose-200">
@@ -292,21 +292,11 @@ export const AlumniDirectoryPage: React.FC = () => {
                 <h3 className="font-extrabold text-lg text-[#111111]">{selectedAlumni.full_name}</h3>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-extrabold text-[#854D0E] bg-[#FFF7D6] px-2.5 py-0.5 rounded-full border border-[#F4C542]/40">
-                    Class of {selectedAlumni.passing_year} {selectedAlumni.section ? `(${selectedAlumni.section})` : ''}
+                    Class of {selectedAlumni.passing_year}
                   </span>
-                  {selectedAlumni.admission_number && (
-                    <span className="text-gray-500 font-semibold">Adm: {selectedAlumni.admission_number}</span>
-                  )}
                 </div>
               </div>
             </div>
-
-            {/* Bio Summary */}
-            {selectedAlumni.bio && (
-              <div className="p-3.5 bg-[#FAFAFA] rounded-2xl border border-[#E5E7EB] text-xs text-[#374151] italic leading-relaxed">
-                "{selectedAlumni.bio}"
-              </div>
-            )}
 
             {/* Career & Location */}
             <div className="space-y-2.5 text-xs text-[#374151] pt-3 border-t border-[#E5E7EB]">
@@ -342,48 +332,18 @@ export const AlumniDirectoryPage: React.FC = () => {
               )}
             </div>
 
-            {/* Skills Badges */}
-            {selectedAlumni.skills && selectedAlumni.skills.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-[#E5E7EB]">
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-[#111111]">
-                  <Award className="w-4 h-4 text-amber-700" />
-                  <span>Key Skills & Expertise</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedAlumni.skills.map((skill, i) => (
-                    <span key={i} className="px-2.5 py-0.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-[11px] font-semibold">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Professional Links */}
-            {(selectedAlumni.linkedin_url || selectedAlumni.website_url) && (
+            {selectedAlumni.linkedin_url && (
               <div className="flex flex-wrap gap-3 pt-3 border-t border-[#E5E7EB]">
-                {selectedAlumni.linkedin_url && (
-                  <a
-                    href={selectedAlumni.linkedin_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#0A66C2] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all"
-                  >
-                    <span>LinkedIn Profile</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-                {selectedAlumni.website_url && (
-                  <a
-                    href={selectedAlumni.website_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-xl hover:bg-black transition-all"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Website</span>
-                  </a>
-                )}
+                <a
+                  href={selectedAlumni.linkedin_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#0A66C2] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all"
+                >
+                  <span>LinkedIn Profile</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             )}
 

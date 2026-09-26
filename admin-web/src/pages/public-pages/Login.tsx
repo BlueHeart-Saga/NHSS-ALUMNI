@@ -271,9 +271,67 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-4 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-[#FAFAFA] via-[#FFFDF5] to-[#FDFBF7] flex flex-col items-center justify-center p-4 sm:p-6 font-sans selection:bg-[#F4C542] selection:text-[#111111] relative overflow-hidden">
+      {/* Background Premium Dynamic Light Wave & Responsive Height Design */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        {/* Ambient Light Glow Orbs */}
+        <div className="absolute -top-24 -left-20 w-72 h-72 sm:w-[450px] sm:h-[450px] bg-amber-200/35 rounded-full blur-3xl opacity-70 mix-blend-multiply" />
+        <div className="absolute top-1/3 -right-24 w-80 h-80 sm:w-[550px] sm:h-[550px] bg-[#F4C542]/20 rounded-full blur-3xl opacity-60 mix-blend-multiply" />
+
+        {/* Top-Right Flowing Curved Line Waves */}
+        <svg
+          className="absolute top-0 right-0 w-full max-w-[850px] h-[350px] sm:h-[500px] text-[#F4C542]/30 opacity-90 transition-all duration-700"
+          viewBox="0 0 1000 600"
+          fill="none"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="adminWaveGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F4C542" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#EAB308" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,80 C250,180 600,60 1000,240"
+            stroke="url(#adminWaveGradTop)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M0,130 C300,230 650,110 1000,290"
+            stroke="url(#adminWaveGradTop)"
+            strokeWidth="2"
+            strokeDasharray="6 6"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        {/* Bottom Full-Width Responsive Fluid Wave */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-[180px] sm:h-[260px] opacity-80">
+          <svg
+            className="w-full h-full text-[#F4C542]"
+            viewBox="0 0 1440 320"
+            fill="none"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="adminWaveGradBottom" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.6" />
+                <stop offset="50%" stopColor="#FFF7D6" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#FAFAFA" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              fill="url(#adminWaveGradBottom)"
+              d="M0,160 C280,240 420,100 720,180 C1020,260 1200,140 1440,200 L1440,320 L0,320 Z"
+            />
+          </svg>
+        </div>
+      </div>
+
       {/* Top Header / Home Page Navigation */}
-      <div className="w-full max-w-md flex items-center justify-between mb-4">
+      <div className="w-full max-w-md flex items-center justify-between mb-4 relative z-10">
         <Link
           to="/"
           className="inline-flex items-center space-x-2 text-xs font-semibold text-gray-700 bg-white border border-[#E5E7EB] px-3.5 py-2 rounded-xl shadow-xs hover:bg-gray-50 hover:text-[#111111] transition-all cursor-pointer"
@@ -284,7 +342,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <span className="text-xs font-medium text-gray-400">School Admin Authentication</span>
       </div>
 
-      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xl">
+      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 shadow-xl relative z-10">
         {/* Brand Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#FFF7D6] border-2 border-[#F4C542] rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 text-[#854D0E]">

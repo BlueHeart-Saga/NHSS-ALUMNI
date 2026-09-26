@@ -105,22 +105,30 @@ export const AuthCallback: React.FC = () => {
 
     try {
       await api.linkMobile(cleanDigits);
-      alertService.showSuccess('Mobile Linked', 'Your mobile number has been registered successfully.');
+      try {
+        await api.sendOTP(cleanDigits);
+      } catch (e) { }
+
+      alertService.showSuccess(
+        'Mobile Number Linked',
+        `A 6-digit security code has been sent via SMS to ${cleanDigits}. Please verify it to complete registration.`
+      );
       setShowMobileModal(false);
 
-      if (pendingTarget) {
-        if (pendingTarget.path === '/register') {
-          navigate('/register', {
-            state: {
-              ...pendingTarget.state,
-              mobile: cleanDigits
-            }
-          });
-        } else {
-          navigate(pendingTarget.path);
-        }
+      const targetPath = pendingTarget?.path || '/register';
+      const baseState = pendingTarget?.state || {};
+
+      if (targetPath === '/register') {
+        navigate('/register', {
+          state: {
+            ...baseState,
+            mobile: cleanDigits,
+            otpSent: true,
+            isOtpVerified: false
+          }
+        });
       } else {
-        navigate('/alumni');
+        navigate(targetPath);
       }
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to link mobile number.');
@@ -132,7 +140,12 @@ export const AuthCallback: React.FC = () => {
   const handleSkipMobile = () => {
     setShowMobileModal(false);
     if (pendingTarget) {
-      navigate(pendingTarget.path, { state: pendingTarget.state });
+      navigate(pendingTarget.path, {
+        state: {
+          ...pendingTarget.state,
+          skipOtpScreen: true
+        }
+      });
     } else {
       navigate('/login');
     }
@@ -208,13 +221,7 @@ export const AuthCallback: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#E5E7EB]">
-              <button
-                type="button"
-                onClick={handleSkipMobile}
-                className="text-xs text-[#6B7280] hover:text-[#111111] underline cursor-pointer"
-              >
-                Set up later
-              </button>
+              
               <Button type="submit" disabled={linkingLoading || mobileInput.length < 10}>
                 {linkingLoading ? (
                   <>

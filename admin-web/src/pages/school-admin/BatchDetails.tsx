@@ -69,7 +69,6 @@ export const BatchDetails: React.FC = () => {
     setChangeBatchTarget(alumni);
     const defaultYear = alumni.passing_year || (availableBatches[0]?.passing_year || 2026);
     setTargetPassingYear(defaultYear);
-    setTargetSection(alumni.section || 'A');
     setChangeReason('');
   };
 
@@ -224,7 +223,7 @@ export const BatchDetails: React.FC = () => {
   const alumniOptions = [
     { label: t('admin_batch_modal_select_placeholder'), value: '' },
     ...members.map((m) => ({ 
-      label: `${m.full_name} (${m.admission_number}) ${m.committee_role ? `[${getRoleTitle(m.committee_role)}]` : ''}`, 
+      label: `${m.full_name} ${m.committee_role ? `[${getRoleTitle(m.committee_role)}]` : ''}`, 
       value: m.id 
     }))
   ];
@@ -246,7 +245,6 @@ export const BatchDetails: React.FC = () => {
           <img src={row.profile_photo_url || '/assets/avatar-placeholder.png'} alt="" className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]" />
           <div>
             <div className="font-bold text-[#111111]">{row.full_name}</div>
-            <div className="text-xs text-[#6B7280]">{t('admin_label_adm_prefix')} {row.admission_number}</div>
           </div>
         </div>
       )
@@ -583,7 +581,7 @@ export const BatchDetails: React.FC = () => {
                 {t('admin_change_batch_single_heading').replace('{name}', changeBatchTarget.full_name)}
               </div>
               <div>
-                {t('admin_change_batch_current_label')} <strong>Batch {changeBatchTarget.passing_year} (Sec {changeBatchTarget.section || 'A'})</strong>
+                {t('admin_change_batch_current_label')} <strong>Batch {changeBatchTarget.passing_year}</strong>
               </div>
             </div>
 

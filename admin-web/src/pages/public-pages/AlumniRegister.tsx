@@ -4,7 +4,7 @@ import {
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
   KeyRound, ArrowRight, CheckCircle2, Lock, Camera, Globe, Briefcase,
   BookOpen, ArrowLeft, Upload, Check, Eye, EyeOff, Info, FileText, CheckSquare, ChevronDown, RotateCw,
-  PlayCircle, ExternalLink
+  PlayCircle, ExternalLink, Pencil, AlertTriangle
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
@@ -139,12 +139,6 @@ export const AlumniRegister: React.FC = () => {
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  // Helper to change step and track max step unlocked for backward & forward navigation
-  const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
-    setStep(targetStep);
-    setMaxStepReached((prev) => Math.max(prev, targetStep));
-  };
-
   // Step 1 — Email & Verification State
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -159,6 +153,39 @@ export const AlumniRegister: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+
+  // Helper to change step and track max step unlocked for backward & forward navigation
+  const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
+    if (!isOtpVerified && targetStep > 1) {
+      alertService.showWarning(
+        language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
+        language === 'ta'
+          ? 'தொடர்வதற்கு முன் படி 1-இல் OTP மூலம் கணக்கைச் சரிபார்க்க வேண்டும்.'
+          : 'Please verify your phone/email via OTP in Step 1 before proceeding to other steps.'
+      );
+      setStep(1);
+      return;
+    }
+    if (targetStep === 1 && isOtpVerified) {
+      alertService.showInfo(
+        language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+        language === 'ta'
+          ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
+          : 'Your account verification is complete. Step 1 is locked.'
+      );
+      return;
+    }
+    setStep(targetStep);
+    setMaxStepReached((prev) => Math.max(prev, targetStep));
+  };
+
+  useEffect(() => {
+    if (isOtpVerified && step === 1) {
+      setStep(2);
+    } else if (!isOtpVerified && step > 1) {
+      setStep(1);
+    }
+  }, [isOtpVerified, step]);
 
   useEffect(() => {
     if (resendCountdown > 0) {
@@ -211,12 +238,12 @@ export const AlumniRegister: React.FC = () => {
   const [leavingClass, setLeavingClass] = useState('10th');
 
   // Step 4 — Higher Education Details
+  const [hasHigherEducation, setHasHigherEducation] = useState<'YES' | 'NO' | ''>('');
   const [noHigherEducation, setNoHigherEducation] = useState(false);
   const [collegeName, setCollegeName] = useState('');
   const [degree, setDegree] = useState('');
   const [otherDegree, setOtherDegree] = useState('');
   const [stream, setStream] = useState('');
-  const [registerNumber, setRegisterNumber] = useState('');
   const [collegeJoiningYear, setCollegeJoiningYear] = useState('');
   const [collegePassingYear, setCollegePassingYear] = useState('');
 
@@ -226,25 +253,64 @@ export const AlumniRegister: React.FC = () => {
   const [position, setPosition] = useState('');
   const [industry, setIndustry] = useState('');
   const [totalExperience, setTotalExperience] = useState('');
-  const [skills, setSkills] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
   const [isVolunteer, setIsVolunteer] = useState('');       // NEW — 'YES' | 'NO' | ''
   const [willingToDonate, setWillingToDonate] = useState(''); // NEW — 'YES' | 'NO' | ''
 
   const currentYearNum = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYearNum - 1959 }, (_, i) => currentYearNum - i);
   const bloodGroupOptions = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
-  const leavingClassOptions = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+  const leavingClassOptions = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
   const degreeOptions = [
     "B.E.", "B.Tech.", "M.E.", "M.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA",
     "BBA", "MBA", "B.Com.", "M.Com.", "BA", "MA", "Diploma", "Ph.D.", "Other - write something"
   ];
   const employmentStatusOptions = [
-    "Employed", "Business / Self-Employed", "Student", "Unemployed", "Retired"
+    "Employed", "Business / Self-Employed", "Seeking Opportunities", "Retired"
   ];
+
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
+
+  const markInvalidAndScroll = (missingList: { key: string; label: string }[]) => {
+    const nextSet = new Set<string>();
+    missingList.forEach(m => nextSet.add(m.key));
+    setInvalidFields(nextSet);
+
+    if (missingList.length > 0) {
+      const firstKey = missingList[0].key;
+      const el = document.getElementById(`field-${firstKey}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try { el.focus(); } catch (e) { }
+      }
+
+      const labels = missingList.map(m => m.label);
+      alertService.showWarning(
+        language === 'ta' ? 'தேவையான விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing',
+        language === 'ta'
+          ? `தொடர மஞ்சள் நிறத்தில் குறிக்கப்பட்ட புலங்களை நிரப்பவும்:\n• ${labels.join('\n• ')}`
+          : `Please complete the following highlighted fields to continue:\n• ${labels.join('\n• ')}`
+      );
+    }
+  };
+
+  const clearInvalidField = (key: string) => {
+    if (invalidFields.has(key)) {
+      setInvalidFields(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const getHighlightCls = (key: string) => {
+    return invalidFields.has(key)
+      ? "bg-amber-50/90 border-amber-400 ring-2 ring-amber-300/80 rounded-xl p-2.5 transition-all shadow-xs"
+      : "";
+  };
 
   useEffect(() => {
     // Fetch School Name from backend public stats
@@ -268,31 +334,52 @@ export const AlumniRegister: React.FC = () => {
     }
 
     if (location.state?.email) {
-      setOtpSent(true);
-      setShowEmailInput(true);
+      if (location.state?.isGoogleAuth) {
+        setIsGoogleAuth(true);
+      }
+
+      if (location.state?.mobile && !location.state?.skipOtpScreen) {
+        setOtpSent(true);
+        setShowEmailInput(true);
+        setStep(1);
+        setIsOtpVerified(false);
+      } else {
+        setOtpSent(false);
+        setStep(1);
+        setIsOtpVerified(false);
+      }
+
       if (location.state?.isPasswordSetup) {
         setStep(1);
         setMaxStepReached(1);
         setIsOtpVerified(false);
-      } else if (location.state?.resumeStep) {
-        goToStep(location.state.resumeStep as any);
       }
       if (location.state?.hasPassword) setHasExistingPassword(true);
       if (location.state?.fullName) setFullName(location.state.fullName);
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
-      if (location.state?.isGoogleAuth) setIsGoogleAuth(true);
     }
 
     if (api.getToken()) {
       api.getProfile()
         .then((p: any) => {
           if (p) {
-            if (p.email) { setEmail(p.email); setOtpSent(true); setShowEmailInput(true); }
-            if (p.full_name) setFullName(p.full_name);
+            if (p.email) setEmail(p.email);
+            if (p.mobile) {
+              setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
+              setIsOtpVerified(true);
+              setOtpSent(true);
+              setShowEmailInput(true);
+            } else {
+              setOtpSent(false);
+            }
+            if (p.full_name || p.name) setFullName(p.full_name || p.name);
             if (p.profile_photo_url) setProfilePhotoUrl(p.profile_photo_url);
-            if (p.mobile) setMobile(p.mobile.replace(/^\+91\s?/, ''));
+            if (p.mobile) setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
             if (p.address) setAddress(p.address);
             if (p.current_city || p.city) setCurrentCity(p.current_city || p.city);
+            if (p.state) setState(p.state);
+            if (p.country) setCountry(p.country);
+            if (p.country_code) setMobilePrefix(p.country_code);
             if (p.gender) setGender(p.gender);
             if (p.dob) setDob(p.dob);
             if (p.blood_group) setBloodGroup(p.blood_group);
@@ -302,22 +389,27 @@ export const AlumniRegister: React.FC = () => {
             if (p.joining_year) setJoiningYear(String(p.joining_year));
             if (p.passing_year) setPassingYear(String(p.passing_year));
             if (p.leaving_class) setLeavingClass(p.leaving_class);
+
             const isNoCollege = p.no_higher_education === true || String(p.no_higher_education).toUpperCase() === 'YES' || String(p.no_higher_education).toLowerCase() === 'true';
             setNoHigherEducation(Boolean(isNoCollege));
             if (p.college_name || p.other_college) setCollegeName(p.college_name || p.other_college);
             if (p.degree) setDegree(p.degree);
             if (p.other_degree) setOtherDegree(p.other_degree);
             if (p.stream || p.other_stream) setStream(p.stream || p.other_stream);
+            if (p.college_joining_year) setCollegeJoiningYear(String(p.college_joining_year));
+            if (p.college_passing_year) setCollegePassingYear(String(p.college_passing_year));
+
             if (p.employment_status) setEmploymentStatus(p.employment_status);
             if (p.company) setCompany(p.company);
-            if (p.position) setPosition(p.position);
+            if (p.position || p.profession) setPosition(p.position || p.profession);
             if (p.industry) setIndustry(p.industry);
-            if (p.total_experience) setTotalExperience(p.total_experience);
-            if (p.skills) setSkills(p.skills);
+            if (p.total_experience) setTotalExperience(String(p.total_experience));
             if (p.linkedin_url) setLinkedinUrl(p.linkedin_url);
             if (p.instagram_url) setInstagramUrl(p.instagram_url);
             if (p.whatsapp_number) setWhatsappNumber(p.whatsapp_number);
-            if (p.website_url) setWebsiteUrl(p.website_url);
+            if (p.is_volunteer) setIsVolunteer(p.is_volunteer);
+            if (p.willing_to_donate) setWillingToDonate(p.willing_to_donate);
+
             // Evaluate exact pending registration step based on filled fields
             const hasPersonal = Boolean(
               (p.full_name || p.name) && (p.mobile || p.email) &&
@@ -333,13 +425,13 @@ export const AlumniRegister: React.FC = () => {
               (p.stream || p.other_stream)
             );
             const hasEducation = noCollege || hasCollege;
-            const hasProfessional = Boolean(p.employment_status);
+            const hasVolunteerDonation = Boolean(p.is_volunteer && p.willing_to_donate);
 
             let pendingStep: 1 | 2 | 3 | 4 | 5 | 6 = 2;
             if (!hasPersonal) pendingStep = 2;
             else if (!hasSchool) pendingStep = 3;
             else if (!hasEducation) pendingStep = 4;
-            else if (!hasProfessional) pendingStep = 5;
+            else if (!hasVolunteerDonation) pendingStep = 5;
             else pendingStep = 6;
 
             // If all required profile fields are present, auto-redirect directly to the Alumni Portal
@@ -362,18 +454,38 @@ export const AlumniRegister: React.FC = () => {
       try {
         const d = JSON.parse(savedDraft);
         if (d.fullName) setFullName(d.fullName);
+        if (d.email && !email) setEmail(d.email);
         if (d.mobile) setMobile(d.mobile);
         if (d.gender) setGender(d.gender);
         if (d.dob) setDob(d.dob);
         if (d.bloodGroup) setBloodGroup(d.bloodGroup);
         if (d.fatherName) setFatherName(d.fatherName);
         if (d.motherName) setMotherName(d.motherName);
+        if (d.country) setCountry(d.country);
+        if (d.state) setState(d.state);
+        if (d.address) setAddress(d.address);
         if (d.currentCity) setCurrentCity(d.currentCity);
-        if (d.passingYear) setPassingYear(d.passingYear);
-        if (d.joiningYear) setJoiningYear(d.joiningYear);
+        if (d.schoolName) setSchoolName(d.schoolName);
+        if (d.joiningYear) setJoiningYear(String(d.joiningYear));
+        if (d.passingYear) setPassingYear(String(d.passingYear));
+        if (d.leavingClass) setLeavingClass(d.leavingClass);
+        if (d.noHigherEducation !== undefined) setNoHigherEducation(d.noHigherEducation);
+        if (d.collegeName) setCollegeName(d.collegeName);
+        if (d.degree) setDegree(d.degree);
+        if (d.otherDegree) setOtherDegree(d.otherDegree);
+        if (d.stream) setStream(d.stream);
+        if (d.collegeJoiningYear) setCollegeJoiningYear(String(d.collegeJoiningYear));
+        if (d.collegePassingYear) setCollegePassingYear(String(d.collegePassingYear));
+        if (d.employmentStatus) setEmploymentStatus(d.employmentStatus);
+        if (d.company) setCompany(d.company);
+        if (d.position) setPosition(d.position);
+        if (d.industry) setIndustry(d.industry);
+        if (d.totalExperience) setTotalExperience(String(d.totalExperience));
+        if (d.linkedinUrl) setLinkedinUrl(d.linkedinUrl);
         if (d.instagramUrl) setInstagramUrl(d.instagramUrl);
         if (d.whatsappNumber) setWhatsappNumber(d.whatsappNumber);
-        if (d.websiteUrl) setWebsiteUrl(d.websiteUrl);
+        if (d.isVolunteer) setIsVolunteer(d.isVolunteer);
+        if (d.willingToDonate) setWillingToDonate(d.willingToDonate);
       } catch (e) { }
     }
   }, [location.state]);
@@ -397,12 +509,12 @@ export const AlumniRegister: React.FC = () => {
     setAccountAlreadyExists(false);
 
     const cleanMob = mobile.replace(/\D/g, '');
-    if (!cleanMob || cleanMob.length !== 10) {
+    if (!cleanMob || cleanMob.length !== 10 || !['6', '7', '8', '9'].includes(cleanMob[0])) {
       alertService.showWarning(
-        language === 'ta' ? 'கைபேசி எண் தேவை' : 'Mobile Number Required',
+        language === 'ta' ? 'செல்லுபடியாகும் கைபேசி எண் தேவை' : 'Valid Mobile Number Required',
         language === 'ta'
-          ? 'தயவுசெய்து சரியான 10-இலக்க கைபேசி எண்ணை உள்ளிடவும்.'
-          : 'Please enter a valid 10-digit mobile number to receive your SMS OTP verification code.'
+          ? 'தயவுசெய்து 6, 7, 8 அல்லது 9 இல் தொடங்கும் 10-இலக்க இந்திய கைபேசி எண்ணை உள்ளிடவும்.'
+          : 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.'
       );
       return;
     }
@@ -511,6 +623,18 @@ export const AlumniRegister: React.FC = () => {
   // Immediate step data persistence helper
   const saveStepDataToDB = async (partialData: any) => {
     try {
+      const currentDraft = {
+        fullName, email, mobile, gender, dob, bloodGroup, fatherName, motherName,
+        country, state, address, currentCity, schoolName, joiningYear, passingYear, leavingClass,
+        noHigherEducation, collegeName, degree, otherDegree, stream, collegeJoiningYear, collegePassingYear,
+        employmentStatus, company, position, industry, totalExperience, linkedinUrl, instagramUrl, whatsappNumber,
+        isVolunteer, willingToDonate,
+        ...partialData
+      };
+      localStorage.setItem('alumni_register_draft', JSON.stringify(currentDraft));
+    } catch (e) { }
+
+    try {
       if (api.getToken()) {
         await api.register(partialData);
       }
@@ -532,28 +656,48 @@ export const AlumniRegister: React.FC = () => {
   const handleStep2Next = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const missing: string[] = [];
-    if (!fullName || !fullName.trim()) missing.push('Full Name');
-    if (!gender) missing.push('Gender');
-    if (!dob) missing.push('Date of Birth');
-    if (!country || !country.trim()) missing.push('Country');
-    if (!state || !state.trim()) missing.push('Current State');
-    if (!address || !address.trim()) missing.push('Address');
-    if (!currentCity || !currentCity.trim()) missing.push('Current City');
-    if (!mobile || !mobile.trim()) missing.push('Mobile Number');
+    const missing: { key: string; label: string }[] = [];
+    if (!fullName || !fullName.trim()) missing.push({ key: 'fullName', label: 'Full Name' });
+    if (!gender) missing.push({ key: 'gender', label: 'Gender' });
+    if (!dob) missing.push({ key: 'dob', label: 'Date of Birth' });
+    if (!country || !country.trim()) missing.push({ key: 'country', label: 'Country' });
+    if (!state || !state.trim()) missing.push({ key: 'state', label: 'Current State' });
+    if (!address || !address.trim()) missing.push({ key: 'address', label: 'Address' });
+    if (!currentCity || !currentCity.trim()) missing.push({ key: 'currentCity', label: 'Current City' });
+    if (!mobile || !mobile.trim()) missing.push({ key: 'mobile', label: 'Mobile Phone Number' });
 
     if (missing.length > 0) {
-      alertService.showWarning(
-        'Required Personal Information Missing',
-        `Please complete the following required fields to continue:\n• ${missing.join('\n• ')}`
-      );
+      markInvalidAndScroll(missing);
       return;
     }
 
-    if (mobile.replace(/\D/g, '').length < 10) {
-      alertService.showWarning('Invalid Mobile Number', 'Please enter a valid 10-digit mobile phone number.');
+    const cleanMob = mobile.replace(/\D/g, '');
+    if (!cleanMob || cleanMob.length !== 10 || !['6', '7', '8', '9'].includes(cleanMob[0])) {
+      alertService.showWarning(
+        language === 'ta' ? 'செல்லுபடியாகும் கைபேசி எண் தேவை' : 'Valid Mobile Number Required',
+        language === 'ta'
+          ? 'தயவுசெய்து 6, 7, 8 அல்லது 9 இல் தொடங்கும் 10-இலக்க இந்திய கைபேசி எண்ணை உள்ளிடவும்.'
+          : 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.'
+      );
+      markInvalidAndScroll([{ key: 'mobile', label: '10-digit Indian Mobile Number' }]);
       return;
     }
+
+    if (dob) {
+      const selectedDob = new Date(dob);
+      const today = new Date();
+      if (selectedDob >= today) {
+        alertService.showWarning(
+          language === 'ta' ? 'செல்லுபடியற்ற பிறந்த தேதி' : 'Invalid Date of Birth',
+          language === 'ta'
+            ? 'பிறந்த தேதி இன்றைய தேதிக்கு முன்பாக இருக்க வேண்டும்.'
+            : 'Date of birth cannot be today or in the future.'
+        );
+        markInvalidAndScroll([{ key: 'dob', label: 'Valid Date of Birth' }]);
+        return;
+      }
+    }
+    setInvalidFields(new Set());
 
     // Auto-generate avatar if no custom photo was uploaded
     const photoToUse = profilePhotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName.trim())}&background=F4C542&color=111111`;
@@ -585,30 +729,67 @@ export const AlumniRegister: React.FC = () => {
     goToStep(3);
   };
 
+  const getCalculated10thBatchYear = (leavingClassStr: string, yearStr: string): number | null => {
+    const year = parseInt(yearStr, 10);
+    if (isNaN(year)) return null;
+    const match = leavingClassStr.match(/(\d+)/);
+    if (!match) return year;
+    const classNum = parseInt(match[1], 10);
+    if (isNaN(classNum) || classNum >= 10) return year;
+    return year + (10 - classNum);
+  };
+
   // Step 3 Validation: School Details -> Step 4 (Education History)
   const handleStep3Next = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const missing: string[] = [];
-    if (!schoolName || !schoolName.trim()) missing.push('School Name');
-    if (!joiningYear) missing.push('Admission / Joining Year');
-    if (!passingYear) missing.push('Leaving / Passing Year');
-    if (!leavingClass) missing.push('Class / Standard at Leaving');
+    const missing: { key: string; label: string }[] = [];
+    if (!schoolName || !schoolName.trim()) missing.push({ key: 'schoolName', label: 'School Name' });
+    if (!passingYear) missing.push({ key: 'passingYear', label: 'Leaving / Passing Year' });
+    if (!leavingClass) missing.push({ key: 'leavingClass', label: 'Class / Standard at Leaving' });
 
     if (missing.length > 0) {
-      alertService.showWarning(
-        'Required School Details Missing',
-        `Please complete the following required fields to continue:\n• ${missing.join('\n• ')}`
-      );
+      markInvalidAndScroll(missing);
       return;
     }
+    setInvalidFields(new Set());
 
-    if (parseInt(joiningYear) > parseInt(passingYear)) {
-      alertService.showWarning(
-        'Invalid School Education Timeline',
-        `Admission / Joining Year (${joiningYear}) cannot be greater (later) than Leaving / Passing Year (${passingYear}). Please correct your school timeline.`
-      );
-      return;
+    // Trigger SweetAlert confirmation for 1st–9th Standard leavers
+    if (leavingClass !== '10th') {
+      const calculatedBatchYear = getCalculated10thBatchYear(leavingClass, passingYear);
+      const title = language === 'ta'
+        ? '🎓 உங்கள் Batch ஆண்டு கணக்கிடப்படும்'
+        : '🎓 Estimated Alumni Batch Year';
+
+      const htmlContent = language === 'ta'
+        ? `<div style="text-align: left; font-size: 13px; line-height: 1.6; color: #374151;">
+            <p style="margin-bottom: 10px;">நீங்கள் <strong>${leavingClass} வகுப்பில் ${passingYear}</strong> ஆம் ஆண்டு இந்தப் பள்ளியை விட்டு வெளியேறியதாகத் தேர்வு செய்துள்ளீர்கள்.</p>
+            <p style="margin-bottom: 12px;">உங்கள் Alumni Batch, <strong>10-ஆம் வகுப்பு முடித்திருக்க வேண்டிய ஆண்டை அடிப்படையாகக் கொண்டு</strong> கணக்கிடப்படும்.</p>
+            <div style="margin: 14px 0; padding: 12px; background-color: #FFF9E6; border: 1px solid #F4C542; border-radius: 14px; text-align: center;">
+              <div style="font-size: 13px; font-weight: 700; color: #854D0E;">${leavingClass} வகுப்பு — ${passingYear}</div>
+              <div style="font-size: 18px; font-weight: 900; color: #111111; margin: 2px 0;">↓</div>
+              <div style="font-size: 15px; font-weight: 800; color: #713F12;">10-ஆம் வகுப்பு Batch — ${calculatedBatchYear || passingYear}</div>
+            </div>
+            <p style="text-align: center; font-weight: 700; color: #111111; margin-top: 10px;">இந்த விவரங்கள் சரியாக உள்ளதா?</p>
+          </div>`
+        : `<div style="text-align: left; font-size: 13px; line-height: 1.6; color: #374151;">
+            <p style="margin-bottom: 10px;">You selected leaving after <strong>${leavingClass} Standard in ${passingYear}</strong>.</p>
+            <p style="margin-bottom: 12px;">Your Alumni Batch is estimated <strong>based on the year you would complete 10th Standard</strong>.</p>
+            <div style="margin: 14px 0; padding: 12px; background-color: #FFF9E6; border: 1px solid #F4C542; border-radius: 14px; text-align: center;">
+              <div style="font-size: 13px; font-weight: 700; color: #854D0E;">${leavingClass} Std — ${passingYear}</div>
+              <div style="font-size: 18px; font-weight: 900; color: #111111; margin: 2px 0;">↓</div>
+              <div style="font-size: 15px; font-weight: 800; color: #713F12;">Estimated 10th Batch — ${calculatedBatchYear || passingYear}</div>
+            </div>
+            <p style="text-align: center; font-weight: 700; color: #111111; margin-top: 10px;">Are these details correct?</p>
+          </div>`;
+
+      const confirmBtnText = language === 'ta' ? '✓ ஆம், தொடரவும்' : '✓ Yes, Continue';
+      const cancelBtnText = language === 'ta' ? '← மாற்றவும்' : '← Change';
+
+      const confirmed = await alertService.showConfirmHtml(title, htmlContent, confirmBtnText, cancelBtnText);
+      if (!confirmed) {
+        return; // Stay on Step 3 for user to modify choices
+      }
     }
 
     // Save Step 3 details immediately to DB
@@ -632,32 +813,23 @@ export const AlumniRegister: React.FC = () => {
   const handleStep4Next = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!noHigherEducation) {
-      const missing: string[] = [];
-      if (!collegeName || !collegeName.trim()) missing.push('College / Institution Name');
-      if (!degree) missing.push('Degree / Course');
-      if (degree === 'Other - write something' && (!otherDegree || !otherDegree.trim())) missing.push('Custom Degree Name');
-      if (!stream || !stream.trim()) missing.push('Department / Stream');
-      if (!collegeJoiningYear) missing.push('College Joining Year');
-      if (!collegePassingYear) missing.push('College Passing Year');
-
-      if (missing.length > 0) {
-        alertService.showWarning(
-          'Required College Details Missing',
-          `Please complete the following required fields (or check "No higher education") to continue:\n• ${missing.join('\n• ')}`
-        );
-        return;
-      }
-
-      if (parseInt(collegeJoiningYear) > parseInt(collegePassingYear)) {
-        alertService.showWarning(
-          'Invalid College Education Timeline',
-          `College Admission / Joining Year (${collegeJoiningYear}) cannot be greater (later) than College Passing / Graduation Year (${collegePassingYear}). Please correct your college timeline.`
-        );
-        return;
-      }
+    const missing: { key: string; label: string }[] = [];
+    if (!hasHigherEducation) {
+      missing.push({ key: 'hasHigherEducation', label: 'Did you pursue Higher Education?' });
     }
+    if (missing.length > 0) {
+      markInvalidAndScroll(missing);
+      return;
+    }
+    setInvalidFields(new Set());
+
+    const hasCollegeData = Boolean(
+      (collegeName && collegeName.trim()) ||
+      degree ||
+      (stream && stream.trim()) ||
+      collegePassingYear
+    );
+    const isNoCollege = hasHigherEducation === 'NO' || !hasCollegeData;
 
     // Save Step 4 details immediately to DB
     const fullMobile = getFullMobile();
@@ -668,14 +840,13 @@ export const AlumniRegister: React.FC = () => {
       mobile: fullMobile,
       address: address.trim(),
       passing_year: parseInt(passingYear) || 2015,
-      no_higher_education: noHigherEducation,
-      college_name: !noHigherEducation ? collegeName.trim() : undefined,
-      degree: !noHigherEducation ? finalDegree : undefined,
-      other_degree: degree === 'Other - write something' ? otherDegree.trim() : undefined,
-      stream: !noHigherEducation ? stream.trim() : undefined,
-      register_number: !noHigherEducation ? registerNumber.trim() : undefined,
-      college_joining_year: !noHigherEducation && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
-      college_passing_year: !noHigherEducation && collegePassingYear ? parseInt(collegePassingYear) : undefined,
+      no_higher_education: isNoCollege,
+      college_name: !isNoCollege && collegeName ? collegeName.trim() : undefined,
+      degree: !isNoCollege && finalDegree ? finalDegree : undefined,
+      other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
+      stream: !isNoCollege && stream ? stream.trim() : undefined,
+      college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
+      college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
       current_city: currentCity.trim()
     });
 
@@ -686,19 +857,15 @@ export const AlumniRegister: React.FC = () => {
   const handleStep5Next = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const missing: string[] = [];
-    if (!employmentStatus) missing.push('Employment Status');
-    if (!currentCity || !currentCity.trim()) missing.push('Current City');
-    if (!isVolunteer) missing.push('Volunteer');
-    if (!willingToDonate) missing.push('Willing to Donate');
+    const missing: { key: string; label: string }[] = [];
+    if (!isVolunteer) missing.push({ key: 'isVolunteer', label: 'Willing to Volunteer?' });
+    if (!willingToDonate) missing.push({ key: 'willingToDonate', label: 'Willing to Donate?' });
 
     if (missing.length > 0) {
-      alertService.showWarning(
-        'Required Professional Details Missing',
-        `Please complete the following required fields to continue:\n• ${missing.join('\n• ')}`
-      );
+      markInvalidAndScroll(missing);
       return;
     }
+    setInvalidFields(new Set());
 
     // Save Step 5 details immediately to DB
     const fullMobile = getFullMobile();
@@ -708,17 +875,15 @@ export const AlumniRegister: React.FC = () => {
       mobile: fullMobile,
       address: address.trim(),
       passing_year: parseInt(passingYear) || 2015,
-      employment_status: employmentStatus,
+      employment_status: employmentStatus || undefined,
       company: company.trim() || undefined,
       position: position.trim() || undefined,
-      profession: position.trim() || employmentStatus,
+      profession: position.trim() || employmentStatus || undefined,
       industry: industry.trim() || undefined,
       total_experience: totalExperience || undefined,
-      skills: skills.trim() || undefined,
       linkedin_url: linkedinUrl.trim() || undefined,
       instagram_url: instagramUrl.trim() || undefined,
       whatsapp_number: whatsappNumber.trim() || undefined,
-      website_url: websiteUrl.trim() || undefined,
       is_volunteer: isVolunteer || undefined,
       willing_to_donate: willingToDonate || undefined,
       current_city: currentCity.trim()
@@ -731,24 +896,113 @@ export const AlumniRegister: React.FC = () => {
 
   // Step 6 Submission: Final Register
   const handleFinalRegister = async () => {
-    if (!agreeTerms) {
-      alertService.showWarning(
-        language === 'ta' ? 'விதிமுறைகளை ஏற்கவும்' : 'Terms Required',
+    // 1. Validate Step 2: Personal Details
+    const missingStep2: { key: string; label: string }[] = [];
+    if (!fullName || !fullName.trim()) missingStep2.push({ key: 'fullName', label: 'Full Name' });
+    if (!gender) missingStep2.push({ key: 'gender', label: 'Gender' });
+    if (!dob) missingStep2.push({ key: 'dob', label: 'Date of Birth' });
+    if (!country || !country.trim()) missingStep2.push({ key: 'country', label: 'Country' });
+    if (!state || !state.trim()) missingStep2.push({ key: 'state', label: 'Current State' });
+    if (!address || !address.trim()) missingStep2.push({ key: 'address', label: 'Address' });
+    if (!currentCity || !currentCity.trim()) missingStep2.push({ key: 'currentCity', label: 'Current City' });
+    if (!mobile || mobile.replace(/\D/g, '').length < 10) missingStep2.push({ key: 'mobile', label: '10-digit Mobile Phone Number' });
+
+    if (missingStep2.length > 0) {
+      const labels = missingStep2.map(m => m.label);
+      await alertService.showWarning(
+        language === 'ta' ? 'தனிப்பட்ட விவரங்கள் விடுபட்டுள்ளன' : 'Step 2 Details Missing',
         language === 'ta'
-          ? 'பதிவைச் சமர்ப்பிக்க விதிகளையும் தனியுரிமைக் கொள்கையையும் ஒப்புக் கொள்ள வேண்டும்.'
-          : 'Please accept the Alumni Terms & Association policies before submitting your registration.'
+          ? `படி 2-ல் பின்வரும் விவரங்கள் பூர்த்தி செய்யப்படவில்லை:\n• ${labels.join('\n• ')}\n\nசரிசெய்ய அந்த படிக்கு மாற்றப்படுகிறீர்கள்.`
+          : `The following required fields in Step 2 (Personal Info) are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 2 to complete.`
       );
+      goToStep(2);
+      setTimeout(() => markInvalidAndScroll(missingStep2), 100);
       return;
     }
 
+    // 2. Validate Step 3: School Details
+    const missingStep3: { key: string; label: string }[] = [];
+    if (!schoolName || !schoolName.trim()) missingStep3.push({ key: 'schoolName', label: 'School Name' });
+    if (!passingYear) missingStep3.push({ key: 'passingYear', label: 'Leaving / Passing Year' });
+    if (!leavingClass) missingStep3.push({ key: 'leavingClass', label: 'Class / Standard at Leaving' });
+
+    if (missingStep3.length > 0) {
+      const labels = missingStep3.map(m => m.label);
+      await alertService.showWarning(
+        language === 'ta' ? 'பள்ளி விவரங்கள் விடுபட்டுள்ளன' : 'Step 3 Details Missing',
+        language === 'ta'
+          ? `படி 3-ல் பின்வரும் விவரங்கள் பூர்த்தி செய்யப்படவில்லை:\n• ${labels.join('\n• ')}\n\nசரிசெய்ய அந்த படிக்கு மாற்றப்படுகிறீர்கள்.`
+          : `The following required fields in Step 3 (School Details) are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 3 to complete.`
+      );
+      goToStep(3);
+      setTimeout(() => markInvalidAndScroll(missingStep3), 100);
+      return;
+    }
+
+    // 3. Validate Step 4: Higher Education Selection
+    const missingStep4: { key: string; label: string }[] = [];
+    if (!hasHigherEducation) missingStep4.push({ key: 'hasHigherEducation', label: 'Did you pursue Higher Education?' });
+
+    if (missingStep4.length > 0) {
+      const labels = missingStep4.map(m => m.label);
+      await alertService.showWarning(
+        language === 'ta' ? 'உயர் கல்வி விருப்பம் விடுபட்டுள்ளது' : 'Step 4 Selection Missing',
+        language === 'ta'
+          ? `படி 4-ல் உயர் கல்வி பயின்றீர்களா என்பதைத் தேர்ந்தெடுக்க வேண்டும்:\n• ${labels.join('\n• ')}\n\nசரிசெய்ய அந்த படிக்கு மாற்றப்படுகிறீர்கள்.`
+          : `Please select whether you pursued Higher Education in Step 4:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 4 to select.`
+      );
+      goToStep(4);
+      setTimeout(() => markInvalidAndScroll(missingStep4), 100);
+      return;
+    }
+
+    // 4. Validate Step 5: Volunteer & Donate Preferences
+    const missingStep5: { key: string; label: string }[] = [];
+    if (!isVolunteer) missingStep5.push({ key: 'isVolunteer', label: 'Willing to Volunteer?' });
+    if (!willingToDonate) missingStep5.push({ key: 'willingToDonate', label: 'Willing to Donate?' });
+
+    if (missingStep5.length > 0) {
+      const labels = missingStep5.map(m => m.label);
+      await alertService.showWarning(
+        language === 'ta' ? 'தன்னார்வ / நன்கொடை விருப்பங்கள் விடுபட்டுள்ளன' : 'Step 5 Preferences Missing',
+        language === 'ta'
+          ? `படி 5-ல் பின்வரும் விருப்பங்கள் தேர்ந்தெடுக்கப்படவில்லை:\n• ${labels.join('\n• ')}\n\nசரிசெய்ய அந்த படிக்கு மாற்றப்படுகிறீர்கள்.`
+          : `The following required options in Step 5 are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 5 to select.`
+      );
+      goToStep(5);
+      setTimeout(() => markInvalidAndScroll(missingStep5), 100);
+      return;
+    }
+
+    // 4. Validate Terms Agreement
+    if (!agreeTerms) {
+      await alertService.showWarning(
+        language === 'ta' ? 'விதிமுறைகளை ஏற்கவும்' : 'Terms & Conditions Required',
+        language === 'ta'
+          ? 'அதிகாரப்பூர்வ முன்னாள் மாணவர்கள் பதிவைச் சமர்ப்பிக்க விதிகளையும் தனியுரிமைக் கொள்கையையும் ஒப்புக் கொள்ள வேண்டும்.'
+          : 'Please check the Terms & Conditions box to agree to the Alumni Association rules before submitting your registration.'
+      );
+      markInvalidAndScroll([{ key: 'agreeTerms', label: 'Terms & Conditions Agreement' }]);
+      return;
+    }
+
+    setInvalidFields(new Set());
     setLoading(true);
     setError(null);
     try {
+      const hasCollegeData = Boolean(
+        (collegeName && collegeName.trim()) ||
+        degree ||
+        (stream && stream.trim()) ||
+        collegeJoiningYear ||
+        collegePassingYear
+      );
+      const isNoCollege = noHigherEducation || !hasCollegeData;
       const finalDegree = degree === 'Other - write something' ? otherDegree : degree;
 
       const payload = {
         email: email.trim().toLowerCase(),
-        mobile: mobile.trim(),
+        mobile: getFullMobile(),
         password: password ? password.trim() : undefined,
         full_name: fullName.trim(),
         gender: gender,
@@ -768,30 +1022,26 @@ export const AlumniRegister: React.FC = () => {
         joining_year: parseInt(joiningYear) || 2010,
         passing_year: parseInt(passingYear) || 2015,
         leaving_class: leavingClass,
-        admission_number: "ADM-" + Math.floor(1000 + Math.random() * 9000),
 
         // Higher Education
-        no_higher_education: noHigherEducation,
-        college_name: !noHigherEducation ? collegeName.trim() : undefined,
-        degree: !noHigherEducation ? finalDegree : undefined,
-        other_degree: degree === 'Other - write something' ? otherDegree.trim() : undefined,
-        stream: !noHigherEducation ? stream.trim() : undefined,
-        register_number: !noHigherEducation ? registerNumber.trim() : undefined,
-        college_joining_year: !noHigherEducation && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
-        college_passing_year: !noHigherEducation && collegePassingYear ? parseInt(collegePassingYear) : undefined,
+        no_higher_education: isNoCollege,
+        college_name: !isNoCollege && collegeName ? collegeName.trim() : undefined,
+        degree: !isNoCollege && finalDegree ? finalDegree : undefined,
+        other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
+        stream: !isNoCollege && stream ? stream.trim() : undefined,
+        college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
+        college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
 
         // Professional & Social Contact Details
-        employment_status: employmentStatus,
+        employment_status: employmentStatus || undefined,
         company: company.trim() || undefined,
         position: position.trim() || undefined,
-        profession: position.trim() || employmentStatus,
+        profession: position.trim() || employmentStatus || undefined,
         industry: industry.trim() || undefined,
         total_experience: totalExperience || undefined,
-        skills: skills.trim() || undefined,
         linkedin_url: linkedinUrl.trim() || undefined,
         instagram_url: instagramUrl.trim() || undefined,
         whatsapp_number: whatsappNumber.trim() || undefined,
-        website_url: websiteUrl.trim() || undefined,
         is_volunteer: isVolunteer || 'NO',
         willing_to_donate: willingToDonate || 'NO'
       };
@@ -815,7 +1065,9 @@ export const AlumniRegister: React.FC = () => {
     {
       num: 1,
       label: language === 'ta' ? 'கணக்கு சரிபார்ப்பு' : 'Sign Up',
-      sub: language === 'ta' ? 'SMS OTP சரிபார்க்க' : 'Verify Mobile OTP'
+      sub: isOtpVerified
+        ? (language === 'ta' ? 'சரிபார்க்கப்பட்டது' : 'Verified')
+        : (language === 'ta' ? 'SMS OTP சரிபார்க்க' : 'Verify Mobile OTP')
     },
     {
       num: 2,
@@ -825,7 +1077,7 @@ export const AlumniRegister: React.FC = () => {
     {
       num: 3,
       label: language === 'ta' ? 'பள்ளி விவரங்கள்' : 'School Details',
-      sub: language === 'ta' ? 'படித்த ஆண்டு & வகுப்பு' : 'Passing Year & Batch'
+      sub: language === 'ta' ? '10-ஆம் வகுப்பு ஆண்டு & பிரிவு' : '10th Year & Alumni Batch'
     },
     {
       num: 4,
@@ -844,56 +1096,39 @@ export const AlumniRegister: React.FC = () => {
     },
   ];
 
-  // Helper to compute expected 12th graduation batch year
-  const getEffectiveBatchYear = (passingYearStr: string, classStr: string): number => {
-    const yr = parseInt(passingYearStr) || 2015;
-    if (!classStr) return yr;
-    const num = parseInt(classStr.replace(/\D/g, ''));
-    if (isNaN(num) || num >= 12 || num < 1) return yr;
-    return yr + (12 - num);
-  };
-  const effectiveBatchYear = getEffectiveBatchYear(passingYear, leavingClass);
-  const calculatedBatchName = passingYear ? `Batch of ${effectiveBatchYear}` : 'Select Passing Year';
+  const effectiveBatchYear = passingYear ? parseInt(passingYear) : 2010;
+  const calculatedBatchName = passingYear
+    ? (leavingClass === '10th' ? `Batch of ${passingYear}` : `Left after ${leavingClass} Standard (${passingYear})`)
+    : 'Select Passing Year';
 
   // Helper to check if a specific step's required form data is fully filled
   const isStepCompleted = (stepNum: number): boolean => {
     switch (stepNum) {
       case 1:
-        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth || (password && password.length >= 6)));
+        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth || (password && password.trim().length >= 6)));
       case 2:
         return Boolean(
-          fullName && fullName.trim() &&
-          gender &&
-          dob &&
-          address && address.trim() &&
-          currentCity && currentCity.trim() &&
+          fullName && fullName.trim() !== '' &&
+          gender && gender !== '' &&
+          dob && dob !== '' &&
+          country && country.trim() !== '' &&
+          state && state.trim() !== '' &&
+          address && address.trim() !== '' &&
+          currentCity && currentCity.trim() !== '' &&
           mobile && mobile.replace(/\D/g, '').length >= 10
         );
       case 3:
         return Boolean(
-          schoolName && schoolName.trim() &&
-          joiningYear &&
-          passingYear &&
-          leavingClass &&
-          parseInt(joiningYear) <= parseInt(passingYear)
+          schoolName && schoolName.trim() !== '' &&
+          passingYear && passingYear !== '' &&
+          leavingClass && leavingClass !== ''
         );
       case 4:
-        if (noHigherEducation) return true;
-        return Boolean(
-          collegeName && collegeName.trim() &&
-          degree &&
-          (degree !== 'Other - write something' || (otherDegree && otherDegree.trim())) &&
-          stream && stream.trim() &&
-          collegeJoiningYear &&
-          collegePassingYear &&
-          parseInt(collegeJoiningYear) <= parseInt(collegePassingYear)
-        );
+        return Boolean(hasHigherEducation === 'YES' || hasHigherEducation === 'NO');
       case 5:
         return Boolean(
-          employmentStatus &&
-          currentCity && currentCity.trim() &&
-          isVolunteer &&
-          willingToDonate
+          isVolunteer && (isVolunteer === 'YES' || isVolunteer === 'NO') &&
+          willingToDonate && (willingToDonate === 'YES' || willingToDonate === 'NO')
         );
       case 6:
         return Boolean(agreeTerms);
@@ -906,10 +1141,88 @@ export const AlumniRegister: React.FC = () => {
   const realProgressPercent = Math.round((completedDataStepsCount / 6) * 100);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111111] pt-6 sm:pt-8 pb-16 font-sans selection:bg-[#F4C542] selection:text-[#111111]">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-[#FAFAFA] via-[#FFFDF5] to-[#FDFBF7] text-[#111111] pt-6 sm:pt-8 lg:pt-10 pb-6 sm:pb-8 font-sans selection:bg-[#F4C542] selection:text-[#111111] relative">
 
+      {/* Background Premium Dynamic Light Wave & Responsive Height Design */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        {/* Ambient Light Glow Orbs */}
+        <div className="absolute -top-24 -left-20 w-72 h-72 sm:w-[500px] sm:h-[500px] bg-amber-200/35 rounded-full blur-3xl opacity-70 mix-blend-multiply" />
+        <div className="absolute top-1/3 -right-24 w-80 h-80 sm:w-[600px] sm:h-[600px] bg-[#F4C542]/20 rounded-full blur-3xl opacity-60 mix-blend-multiply" />
+        <div className="absolute -bottom-24 left-1/4 w-72 h-72 sm:w-[500px] sm:h-[500px] bg-yellow-100/60 rounded-full blur-3xl opacity-80" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Top-Right Flowing Curved Line Waves */}
+        <svg
+          className="absolute top-0 right-0 w-full max-w-[900px] h-[350px] sm:h-[550px] md:h-[700px] text-[#F4C542]/30 opacity-90 transition-all duration-700"
+          viewBox="0 0 1000 600"
+          fill="none"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="regWaveGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F4C542" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#EAB308" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="regWaveFillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFF7D6" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#FAFAFA" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,0 C300,90 650,20 1000,160 L1000,0 Z"
+            fill="url(#regWaveFillGrad)"
+          />
+          <path
+            d="M0,80 C250,180 600,60 1000,240"
+            stroke="url(#regWaveGradTop)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M0,130 C300,230 650,110 1000,290"
+            stroke="url(#regWaveGradTop)"
+            strokeWidth="2"
+            strokeDasharray="6 6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M0,180 C350,280 700,160 1000,340"
+            stroke="url(#regWaveGradTop)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        {/* Bottom Full-Width Responsive Fluid Wave */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-[180px] sm:h-[260px] md:h-[340px] opacity-80">
+          <svg
+            className="w-full h-full text-[#F4C542]"
+            viewBox="0 0 1440 320"
+            fill="none"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="regWaveGradBottom" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.6" />
+                <stop offset="50%" stopColor="#FFF7D6" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#FAFAFA" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              fill="url(#regWaveGradBottom)"
+              d="M0,160 C280,240 420,100 720,180 C1020,260 1200,140 1440,200 L1440,320 L0,320 Z"
+            />
+            <path
+              d="M0,160 C280,240 420,100 720,180 C1020,260 1200,140 1440,200"
+              stroke="#F4C542"
+              strokeOpacity="0.3"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
 
         {/* Mobile Compact Progress Header (Visible on Mobile & Tablet < 1024px) */}
         <div className="lg:hidden bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-sm space-y-3 mb-6">
@@ -937,8 +1250,8 @@ export const AlumniRegister: React.FC = () => {
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* LEFT SIDEBAR: Sticky Scroll Premium Vertical Stepper UI (Anchored comfortably below header) */}
-          <div className="hidden lg:block lg:col-span-4 sticky top-[148px] self-start space-y-6">
+          {/* LEFT SIDEBAR: Sticky Scroll Premium Vertical Stepper UI */}
+          <div className="hidden lg:block lg:col-span-4 sticky top-28 lg:top-[136px] self-start space-y-6">
             <div className="bg-white/95 backdrop-blur-sm border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-md shadow-gray-200/50 transition-all">
               <div className="mb-6 pb-4 border-b border-gray-100">
                 {/* <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#FFF7D6] text-[#854D0E] text-[11px] font-extrabold uppercase tracking-wider rounded-full border border-[#F4C542]/60 mb-2">
@@ -958,8 +1271,8 @@ export const AlumniRegister: React.FC = () => {
                 {stepsList.map((s, index) => {
                   const isActive = step === s.num;
                   const isFilled = isStepCompleted(s.num);
-                  const isUnlocked = s.num <= maxStepReached || s.num <= step || (otpSent && s.num <= maxStepReached + 1) || isFilled;
-                  const isCompleted = isFilled && (!isActive || s.num < step);
+                  const isUnlocked = s.num === 1 ? true : (isOtpVerified && (s.num <= maxStepReached || s.num <= step || isFilled));
+                  const isCompleted = isFilled;
                   const isLast = index === stepsList.length - 1;
 
                   return (
@@ -970,6 +1283,25 @@ export const AlumniRegister: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
+                            if (s.num === 1 && isOtpVerified) {
+                              alertService.showInfo(
+                                language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+                                language === 'ta'
+                                  ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
+                                  : 'Your account verification is complete. Step 1 is locked.'
+                              );
+                              return;
+                            }
+                            if (!isOtpVerified && s.num > 1) {
+                              alertService.showWarning(
+                                language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
+                                language === 'ta'
+                                  ? 'தொடர்வதற்கு முன் படி 1-இல் OTP மூலம் கணக்கைச் சரிபார்க்க வேண்டும்.'
+                                  : 'Please verify your phone/email via OTP in Step 1 first.'
+                              );
+                              setStep(1);
+                              return;
+                            }
                             if (isUnlocked) {
                               goToStep(s.num as any);
                             } else {
@@ -982,7 +1314,9 @@ export const AlumniRegister: React.FC = () => {
                             }
                           }}
                           className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all cursor-pointer ${isCompleted
-                              ? 'bg-[#10B981] text-white shadow-xs'
+                              ? isActive
+                                ? 'bg-[#10B981] text-white ring-4 ring-[#10B981]/30 shadow-xs scale-105'
+                                : 'bg-[#10B981] text-white shadow-xs'
                               : isActive
                                 ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
                                 : 'bg-gray-100 border border-gray-300 text-gray-400'
@@ -1002,13 +1336,36 @@ export const AlumniRegister: React.FC = () => {
 
                       {/* Step Text Label */}
                       <div
-                        onClick={() => isUnlocked && goToStep(s.num as any)}
-                        className={`min-w-0 flex-1 pt-0.5 ${isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        onClick={() => {
+                          if (s.num === 1 && isOtpVerified) {
+                            alertService.showInfo(
+                              language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+                              language === 'ta'
+                                ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
+                                : 'Your account verification is complete. Step 1 is locked.'
+                            );
+                            return;
+                          }
+                          if (!isOtpVerified && s.num > 1) {
+                            alertService.showWarning(
+                              language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
+                              language === 'ta'
+                                ? 'தொடர்வதற்கு முன் படி 1-இல் OTP மூலம் கணக்கைச் சரிபார்க்க வேண்டும்.'
+                                : 'Please verify your phone/email via OTP in Step 1 first.'
+                            );
+                            setStep(1);
+                            return;
+                          }
+                          if (isUnlocked) {
+                            goToStep(s.num as any);
+                          }
+                        }}
+                        className={`min-w-0 flex-1 pt-0.5 ${isUnlocked && !(s.num === 1 && isOtpVerified) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                       >
-                        <div className={`text-sm leading-tight transition-colors ${isActive
-                            ? 'font-extrabold text-[#111111]'
-                            : isCompleted
-                              ? 'font-bold text-gray-800 hover:text-[#111111]'
+                        <div className={`text-sm leading-tight transition-colors ${isCompleted
+                            ? 'font-bold text-[#10B981]'
+                            : isActive
+                              ? 'font-extrabold text-[#111111]'
                               : 'font-semibold text-gray-400'
                           }`}>
                           {s.label}
@@ -1080,22 +1437,15 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 1: Sign Up & Mobile Phone SMS Verification */}
               {step === 1 && (
                 <div className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-[#111111]">
-                        {language === 'ta' ? 'படி 1: கணக்கு சரிபார்ப்பு' : 'Step 1: Account Verification'}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {language === 'ta'
-                          ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை கைபேசி எண்ணைச் சரிபார்க்கவும்'
-                          : 'Verify your primary mobile number to begin your alumni registration'}
-                      </p>
-                    </div>
-                    {maxStepReached > 1 && (
-                      <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(2)}>
-                        {language === 'ta' ? 'படி 2-க்கு செல்ல' : 'Forward to Step 2'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </Button>
-                    )}
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 1: கணக்கு சரிபார்ப்பு' : 'Step 1: Account Verification'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta'
+                        ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை கைபேசி எண்ணைச் சரிபார்க்கவும்'
+                        : 'Verify your primary mobile number to begin your alumni registration'}
+                    </p>
                   </div>
 
                   {!otpSent ? (
@@ -1300,49 +1650,43 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 2: Personal Information */}
               {step === 2 && (
                 <form onSubmit={handleStep2Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-[#111111]">
-                        {language === 'ta' ? 'படி 2: தனிப்பட்ட விவரங்கள்' : 'Step 2: Personal Information'}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {language === 'ta' ? 'உங்கள் தொடர்பு விவரங்கள் மற்றும் சுயவிவரப் புகைப்படத்தை வழங்கவும்' : 'Provide your verified contact details and profile photograph'}
-                      </p>
-                    </div>
-                    {maxStepReached > 2 && (
-                      <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(3)}>
-                        {language === 'ta' ? 'படி 3-க்கு செல்ல' : 'Forward to Step 3'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </Button>
-                    )}
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 2: தனிப்பட்ட விவரங்கள்' : 'Step 2: Personal Information'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta' ? 'உங்கள் தொடர்பு விவரங்கள் மற்றும் சுயவிவரப் புகைப்படத்தை வழங்கவும்' : 'Provide your verified contact details and profile photograph'}
+                    </p>
                   </div>
 
                   {/* Photo Upload */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                      {language === 'ta' ? 'சுயவிவர புகைப்படம்' : 'Profile Photograph'} <span className="text-rose-500">*</span>
+                      {language === 'ta' ? 'சுயவிவர புகைப்படம்' : 'Profile Photograph'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                     </label>
-                    <div className="flex items-center space-x-5">
-                      <div className="w-20 h-20 rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
-                        {profilePhotoUrl ? (
-                          <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-8 h-8 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-semibold rounded-xl cursor-pointer transition-all border border-gray-200">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>{language === 'ta' ? 'புகைப்படத்தைப் பதிவேற்றவும்' : 'Upload Photo'}</span>
+                    <div className="flex items-center">
+                      <div className="relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gray-50">
+                          {profilePhotoUrl ? (
+                            <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-10 h-10 text-gray-400" />
+                          )}
+                        </div>
+                        <label
+                          className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#111111] hover:bg-gray-800 text-white flex items-center justify-center shadow-md border-2 border-white transition-all cursor-pointer"
+                          title={language === 'ta' ? 'புகைப்படத்தை மாற்று' : 'Upload Photo'}
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-white" />
                           <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </label>
-                        <p className="text-[11px] text-gray-500">JPG, PNG format up to 5MB</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Full Name */}
-                    <div className="sm:col-span-2">
+                    <div id="field-fullName" className={`sm:col-span-2 ${getHighlightCls('fullName')}`}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'முழு பெயர் (சான்றிதழில் உள்ளது போல்)' : 'Full Name (As per school records)'} <span className="text-rose-500">*</span>
                       </label>
@@ -1350,14 +1694,23 @@ export const AlumniRegister: React.FC = () => {
                         type="text"
                         required
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => {
+                          setFullName(e.target.value);
+                          clearInvalidField('fullName');
+                        }}
                         placeholder={language === 'ta' ? 'உங்கள் அதிகாரப்பூர்வ முழு பெயரை உள்ளிடவும்' : 'Enter your full official name'}
                         className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
+                      {invalidFields.has('fullName') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'முழு பெயரை உள்ளிடவும்' : 'Full Name is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Gender */}
-                    <div>
+                    <div id="field-gender" className={getHighlightCls('gender')}>
                       <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                         {language === 'ta' ? 'பாலினம்' : 'Gender'} <span className="text-rose-500">*</span>
                       </label>
@@ -1365,7 +1718,10 @@ export const AlumniRegister: React.FC = () => {
                         <select
                           required
                           value={gender}
-                          onChange={(e) => setGender(e.target.value)}
+                          onChange={(e) => {
+                            setGender(e.target.value);
+                            clearInvalidField('gender');
+                          }}
                           className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] appearance-none pr-8 cursor-pointer"
                         >
                           <option value="">{language === 'ta' ? 'பாலினத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Gender'}</option>
@@ -1376,10 +1732,16 @@ export const AlumniRegister: React.FC = () => {
                         </select>
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
+                      {invalidFields.has('gender') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'பாலினத்தைத் தேர்ந்தெடுக்கவும்' : 'Gender is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Date of Birth */}
-                    <div>
+                    <div id="field-dob" className={getHighlightCls('dob')}>
                       <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                         {language === 'ta' ? 'பிறந்த தேதி' : 'Date of Birth'} <span className="text-rose-500">*</span>
                       </label>
@@ -1387,9 +1749,18 @@ export const AlumniRegister: React.FC = () => {
                         type="date"
                         required
                         value={dob}
-                        onChange={(e) => setDob(e.target.value)}
+                        onChange={(e) => {
+                          setDob(e.target.value);
+                          clearInvalidField('dob');
+                        }}
                         className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111]"
                       />
+                      {invalidFields.has('dob') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'பிறந்த தேதியை உள்ளிடவும்' : 'Date of Birth is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Blood Group */}
@@ -1414,36 +1785,8 @@ export const AlumniRegister: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Father's Name */}
-                    <div>
-                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        {language === 'ta' ? 'தந்தையின் பெயர்' : "Father's Name"} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={fatherName}
-                        onChange={(e) => setFatherName(e.target.value)}
-                        placeholder={language === 'ta' ? 'தந்தையின் பெயர் உள்ளிடவும்' : "Enter father's full name"}
-                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
-                      />
-                    </div>
-
-                    {/* Mother's Name */}
-                    <div>
-                      <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        {language === 'ta' ? 'தாயாரின் பெயர்' : "Mother's Name"} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={motherName}
-                        onChange={(e) => setMotherName(e.target.value)}
-                        placeholder={language === 'ta' ? 'தாயாரின் பெயர் உள்ளிடவும்' : "Enter mother's full name"}
-                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111] placeholder-gray-400"
-                      />
-                    </div>
-
                     {/* Mobile Number with Country Code */}
-                    <div className="sm:col-span-2 grid grid-cols-12 gap-4">
+                    <div id="field-mobile" className={`sm:col-span-2 grid grid-cols-12 gap-4 ${getHighlightCls('mobile')}`}>
                       <div className="col-span-5 sm:col-span-4">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                           {language === 'ta' ? 'நாட்டு குறியீடு' : 'Country Code'} <span className="text-rose-500">*</span>
@@ -1476,12 +1819,21 @@ export const AlumniRegister: React.FC = () => {
                           type="tel"
                           required
                           value={mobile}
-                          onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                          onChange={(e) => {
+                            setMobile(e.target.value.replace(/\D/g, ''));
+                            clearInvalidField('mobile');
+                          }}
                           placeholder="9876543210"
                           maxLength={10}
                           className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
+                      {invalidFields.has('mobile') && (
+                        <p className="col-span-12 text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? '10-இலக்க செல்லுபடியாகும் கைபேசி எண்ணை உள்ளிடவும்' : 'Valid 10-digit mobile number is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Email Address (For Account Notifications & Approval Notices) */}
@@ -1502,7 +1854,7 @@ export const AlumniRegister: React.FC = () => {
                     </div>
 
                     {/* Country Dropdown */}
-                    <div>
+                    <div id="field-country" className={getHighlightCls('country')}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'வசிக்கும் நாடு' : 'Country'} <span className="text-rose-500">*</span>
                       </label>
@@ -1512,6 +1864,7 @@ export const AlumniRegister: React.FC = () => {
                           value={country}
                           onChange={(e) => {
                             setCountry(e.target.value);
+                            clearInvalidField('country');
                             const found = countries.find(c => c.name === e.target.value);
                             if (found) setMobilePrefix(found.dialCode);
                           }}
@@ -1525,10 +1878,16 @@ export const AlumniRegister: React.FC = () => {
                         </select>
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
+                      {invalidFields.has('country') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'நாட்டைத் தேர்ந்தெடுக்கவும்' : 'Country is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Current State */}
-                    <div>
+                    <div id="field-state" className={getHighlightCls('state')}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'தற்போதைய மாநிலம்' : 'Current State'} <span className="text-rose-500">*</span>
                       </label>
@@ -1536,14 +1895,23 @@ export const AlumniRegister: React.FC = () => {
                         type="text"
                         required
                         value={state}
-                        onChange={(e) => setState(e.target.value)}
+                        onChange={(e) => {
+                          setState(e.target.value);
+                          clearInvalidField('state');
+                        }}
                         placeholder="e.g. Tamil Nadu"
                         className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
+                      {invalidFields.has('state') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'மாநிலத்தை உள்ளிடவும்' : 'State is required'}
+                        </p>
+                      )}
                     </div>
 
-                                        {/* Address (NEW) */}
-                    <div className="sm:col-span-2">
+                    {/* Address (NEW) */}
+                    <div id="field-address" className={`sm:col-span-2 ${getHighlightCls('address')}`}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'முழு முகவரி' : 'Address'} <span className="text-rose-500">*</span>
                       </label>
@@ -1551,7 +1919,10 @@ export const AlumniRegister: React.FC = () => {
                         required
                         rows={2}
                         value={address}
-                        onChange={(e) => setAddress(e.target.value)}
+                        onChange={(e) => {
+                          setAddress(e.target.value);
+                          clearInvalidField('address');
+                        }}
                         placeholder={
                           language === 'ta'
                             ? 'எ.கா. 12, வடக்கு தெரு, தூத்துக்குடி'
@@ -1559,10 +1930,16 @@ export const AlumniRegister: React.FC = () => {
                         }
                         className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal resize-none"
                       />
+                      {invalidFields.has('address') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'முகவரியை உள்ளிடவும்' : 'Address is required'}
+                        </p>
+                      )}
                     </div>
 
                     {/* Current City */}
-                    <div className="sm:col-span-2">
+                    <div id="field-currentCity" className={`sm:col-span-2 ${getHighlightCls('currentCity')}`}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'தற்போதைய நகரம்' : 'Current City'} <span className="text-rose-500">*</span>
                       </label>
@@ -1570,27 +1947,27 @@ export const AlumniRegister: React.FC = () => {
                         type="text"
                         required
                         value={currentCity}
-                        onChange={(e) => setCurrentCity(e.target.value)}
+                        onChange={(e) => {
+                          setCurrentCity(e.target.value);
+                          clearInvalidField('currentCity');
+                        }}
                         placeholder="e.g. Chennai / Madurai"
                         className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                       />
+                      {invalidFields.has('currentCity') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'நகரத்தை உள்ளிடவும்' : 'Current City is required'}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <Button type="button" variant="secondary" onClick={() => goToStep(1)}>
-                      <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
+                    <div />
+                    <Button type="submit" className="font-bold">
+                      {language === 'ta' ? 'சேமித்து பள்ளி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to School Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
                     </Button>
-                    <div className="flex items-center space-x-2">
-                      {maxStepReached > 2 && (
-                        <Button type="button" variant="secondary" onClick={() => goToStep(3)}>
-                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
-                        </Button>
-                      )}
-                      <Button type="submit" className="font-bold">
-                        {language === 'ta' ? 'சேமித்து பள்ளி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to School Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
-                      </Button>
-                    </div>
                   </div>
                 </form>
               )}
@@ -1599,25 +1976,20 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 3: School Details */}
               {step === 3 && (
                 <form onSubmit={handleStep3Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-[#111111]">
-                        {language === 'ta' ? 'படி 3: பள்ளி கல்வி விவரங்கள்' : 'Step 3: School Education Details'}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {language === 'ta' ? 'உங்கள் பள்ளி, சேர்ந்த ஆண்டு, தேர்ச்சி பெற்ற ஆண்டு மற்றும் வகுப்பைக் குறிப்பிடவும்' : 'Specify your school study timeline and passing batch'}
-                      </p>
-                    </div>
-                    {maxStepReached > 3 && (
-                      <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(4)}>
-                        {language === 'ta' ? 'படி 4-க்கு செல்ல' : 'Forward to Step 4'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </Button>
-                    )}
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 3: பள்ளி கல்வி விவரங்கள்' : 'Step 3: School Education Details'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta'
+                        ? 'இப்பள்ளியில் படித்த காலத்தைக் குறிப்பிடவும். உங்கள் முன்னாள் மாணவர்கள் வகுப்பு 10-ஆம் வகுப்பு ஆண்டின் அடிப்படையில் கணக்கிடப்படும்.'
+                        : 'Tell us when you studied at this school. Your alumni batch is based on your 10th Standard year.'}
+                    </p>
                   </div>
 
                   <div className="space-y-6">
                     {/* School Name */}
-                    <div>
+                    <div id="field-schoolName" className={getHighlightCls('schoolName')}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         {language === 'ta' ? 'பள்ளியின் பெயர்' : 'School Name'} <span className="text-rose-500">*</span>
                       </label>
@@ -1625,57 +1997,54 @@ export const AlumniRegister: React.FC = () => {
                         type="text"
                         required
                         value={schoolName}
-                        onChange={(e) => setSchoolName(e.target.value)}
+                        onChange={(e) => {
+                          setSchoolName(e.target.value);
+                          clearInvalidField('schoolName');
+                        }}
                         className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-bold text-[#111111]"
                       />
+                      {invalidFields.has('schoolName') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'பள்ளியின் பெயரை உள்ளிடவும்' : 'School Name is required'}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Admission / Joining Year */}
-                      <div>
+                    {/* 10th Standard / School Leaving Year */}
+                    <div>
+                      <div id="field-passingYear" className={getHighlightCls('passingYear')}>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'பள்ளியில் சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <select
-                            required
-                            value={joiningYear}
-                            onChange={(e) => setJoiningYear(e.target.value)}
-                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
-                          >
-                            <option value="">{language === 'ta' ? 'சேர்ந்த ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Joining Year'}</option>
-                            {yearOptions.map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      {/* Leaving / Passing Year */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'பள்ளியை விட்டு வெளியேறிய / தேர்ச்சி பெற்ற ஆண்டு' : 'Leaving / Passing Year'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? '10-ஆம் வகுப்பு / பள்ளி வெளியேறிய ஆண்டு' : '10TH STANDARD / SCHOOL LEAVING YEAR'} <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <select
                             required
                             value={passingYear}
-                            onChange={(e) => setPassingYear(e.target.value)}
+                            onChange={(e) => {
+                              setPassingYear(e.target.value);
+                              clearInvalidField('passingYear');
+                            }}
                             className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
                           >
-                            <option value="">{language === 'ta' ? 'தேர்ச்சி பெற்ற ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Year'}</option>
+                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
                             {yearOptions.map(y => (
                               <option key={y} value={y}>{y}</option>
                             ))}
                           </select>
                           <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
+                        {invalidFields.has('passingYear') && (
+                          <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            {language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : '10th Standard / School Leaving Year is required'}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Class / Standard at Leaving with Selection Chips */}
-                    <div>
+                    {/* Class / Standard at Leaving with Selection Chips (1st to 10th only) */}
+                    <div id="field-leavingClass" className={getHighlightCls('leavingClass')}>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         {language === 'ta' ? 'பள்ளி முடித்த போது இருந்த வகுப்பு' : 'Class / Standard at Leaving'} <span className="text-rose-500">*</span>
                       </label>
@@ -1684,7 +2053,10 @@ export const AlumniRegister: React.FC = () => {
                           <button
                             key={cls}
                             type="button"
-                            onClick={() => setLeavingClass(cls)}
+                            onClick={() => {
+                              setLeavingClass(cls);
+                              clearInvalidField('leavingClass');
+                            }}
                             className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${leavingClass === cls
                                 ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -1694,39 +2066,78 @@ export const AlumniRegister: React.FC = () => {
                           </button>
                         ))}
                       </div>
-                    </div>
+                      {invalidFields.has('leavingClass') && (
+                        <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          {language === 'ta' ? 'வகுப்பைத் தேர்ந்தெடுக்கவும்' : 'Leaving Class is required'}
+                        </p>
+                      )}
 
-                    {/* Auto-generated Batch Preview Box */}
-                    <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <GraduationCap className="w-6 h-6 text-[#854D0E]" />
-                        <div>
-                          <div className="text-xs text-[#854D0E] font-medium">
-                            {language === 'ta' ? 'ஒதுக்கப்பட்ட கல்வி வகுப்புத் தொகுதி' : 'Assigned Academic Batch'}
-                          </div>
-                          <div className="text-sm font-bold text-[#111111]">{calculatedBatchName}</div>
+                      {/* Informational Callout for 11th / 12th Students */}
+                      <div className="mt-3 p-3.5 bg-[#FFF9E6] border border-[#F4C542]/70 rounded-2xl text-xs text-[#854D0E] font-medium flex items-start space-x-3 shadow-xs">
+                        <Info className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="font-extrabold block text-[#713F12] text-xs sm:text-sm">
+                            {language === 'ta' ? 'இங்கு 11 அல்லது 12-ஆம் வகுப்பு படித்தீர்களா?' : 'Studied 11th or 12th Standard here?'}
+                          </span>
+                          <p className="text-[#854D0E] leading-relaxed">
+                            {language === 'ta'
+                              ? 'உங்கள் முன்னாள் மாணவர்கள் வகுப்பு 10-ஆம் வகுப்பு தேர்ச்சி ஆண்டின் அடிப்படையில் மட்டுமே கணக்கிடப்படும். தயவுசெய்து மேலே "10th Std" தேர்ந்தெடுத்து, இப்பள்ளியில் 10-ஆம் வகுப்பு முடித்த ஆண்டை உள்ளிடவும்.'
+                              : 'Your alumni batch is based on your 10th Standard passing year, not your 11th or 12th year. Please select 10th Std above and enter the year you completed 10th Standard at this school.'}
+                          </p>
                         </div>
                       </div>
-                      <span className="px-3 py-1 bg-[#F4C542] text-[#111111] text-xs font-bold rounded-lg">
-                        {language === 'ta' ? 'தானாக உருவாக்கப்பட்டது' : 'Auto Generated'}
-                      </span>
                     </div>
+
+                    {/* Batch Result Box */}
+                    {(() => {
+                      const calculatedYear = getCalculated10thBatchYear(leavingClass, passingYear);
+                      return (
+                        <div className="p-4 sm:p-5 bg-[#FFF7D6] border border-[#F4C542]/70 rounded-2xl flex items-center space-x-3.5 shadow-xs">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-[#F4C542] flex items-center justify-center shrink-0 shadow-xs">
+                            <GraduationCap className="w-5 h-5 text-[#854D0E]" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-[#854D0E] uppercase tracking-wider">
+                              {language === 'ta' ? 'உங்கள் முன்னாள் மாணவர்கள் Batch' : 'Your Alumni Batch'}
+                            </div>
+                            <div className="text-base sm:text-lg font-extrabold text-[#111111]">
+                              {leavingClass === '10th' ? (
+                                passingYear ? `Batch of ${passingYear}` : (language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Passing Year')
+                              ) : (
+                                calculatedYear ? `${calculatedYear} Batch` : (language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Leaving Year')
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-600 font-medium mt-0.5">
+                              {leavingClass === '10th' ? (
+                                language === 'ta'
+                                  ? 'உங்கள் 10-ஆம் வகுப்பு தேர்ச்சி ஆண்டின் அடிப்படையில் கணக்கிடப்பட்டது.'
+                                  : 'Calculated using your 10th Standard passing year.'
+                              ) : (
+                                passingYear ? (
+                                  language === 'ta'
+                                    ? `${leavingClass} வகுப்பில் ${passingYear}-ல் வெளியேறியதன் அடிப்படையில் கணக்கிடப்பட்டது.`
+                                    : `Calculated based on leaving after ${leavingClass} Std in ${passingYear}.`
+                                ) : (
+                                  language === 'ta'
+                                    ? 'கணக்கிடப்பட்ட 10-ஆம் வகுப்பு Alumni Batch.'
+                                    : 'Estimated 10th-standard Alumni Batch.'
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(2)}>
                       <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
-                    <div className="flex items-center space-x-2">
-                      {maxStepReached > 3 && (
-                        <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
-                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
-                        </Button>
-                      )}
-                      <Button type="submit" className="font-bold">
-                        {language === 'ta' ? 'சேமித்து உயர் கல்வி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Education History'} <ArrowRight className="w-4 h-4 ml-1.5" />
-                      </Button>
-                    </div>
+                    <Button type="submit" className="font-bold">
+                      {language === 'ta' ? 'சேமித்து உயர் கல்வி விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Education History'} <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </Button>
                   </div>
                 </form>
               )}
@@ -1735,48 +2146,99 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 4: Higher Education / College Details */}
               {step === 4 && (
                 <form onSubmit={handleStep4Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-[#111111]">
-                        {language === 'ta' ? 'படி 4: உயர் கல்வி விவரங்கள்' : 'Step 4: Education History'}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {language === 'ta' ? 'கல்லூரி, பட்டப்படிப்பு மற்றும் உயர் கல்வி விவரங்கள்' : 'College, Degree, and Higher Education Details'}
-                      </p>
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 4: உயர் கல்வி விவரங்கள்' : 'Step 4: Education History'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta' ? 'கல்லூரி, பட்டப்படிப்பு மற்றும் உயர் கல்வி விவரங்கள்' : 'College, Degree, and Higher Education Details'}
+                    </p>
+                  </div>
+
+                  {/* Option: Radio Button Choice for Higher Education */}
+                  <div id="field-hasHigherEducation" className={`p-5 bg-white border border-[#E5E7EB] rounded-2xl shadow-xs space-y-3 ${getHighlightCls('hasHigherEducation')}`}>
+                    <div className="flex items-center space-x-2">
+                      <GraduationCap className="w-5 h-5 text-[#854D0E] shrink-0" />
+                      <label className="block text-xs sm:text-sm font-extrabold text-[#111111] uppercase tracking-wider">
+                        {language === 'ta' ? 'உயர் கல்வி / கல்லூரிப் படிப்பு பயின்றுள்ளீர்களா?' : 'Did you pursue Higher Education / College?'} <span className="text-rose-500">*</span>
+                      </label>
                     </div>
-                    {maxStepReached > 4 && (
-                      <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(5)}>
-                        {language === 'ta' ? 'படி 5-க்கு செல்ல' : 'Forward to Step 5'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </Button>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {language === 'ta'
+                        ? 'கல்லூரி, பட்டப்படிப்பு அல்லது டிப்ளமோ முடித்திருந்தால் "ஆம்" என்பதைத் தேர்ந்தெடுக்கவும்'
+                        : 'Select "Yes" if you attended college, university, or diploma courses after school'}
+                    </p>
+                    <div className="flex flex-wrap gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasHigherEducation('YES');
+                          setNoHigherEducation(false);
+                          clearInvalidField('hasHigherEducation');
+                        }}
+                        className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl border transition-all flex items-center space-x-2.5 cursor-pointer ${hasHigherEducation === 'YES'
+                            ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                          }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${hasHigherEducation === 'YES' ? 'border-white bg-white' : 'border-gray-400 bg-transparent'
+                          }`}>
+                          {hasHigherEducation === 'YES' && <span className="w-2 h-2 rounded-full bg-[#111111]" />}
+                        </span>
+                        <span>{language === 'ta' ? 'ஆம், உயர் கல்வி படித்துள்ளேன்' : 'Yes, I pursued Higher Education'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasHigherEducation('NO');
+                          setNoHigherEducation(true);
+                          clearInvalidField('hasHigherEducation');
+                        }}
+                        className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl border transition-all flex items-center space-x-2.5 cursor-pointer ${hasHigherEducation === 'NO'
+                            ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                          }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${hasHigherEducation === 'NO' ? 'border-white bg-white' : 'border-gray-400 bg-transparent'
+                          }`}>
+                          {hasHigherEducation === 'NO' && <span className="w-2 h-2 rounded-full bg-[#111111]" />}
+                        </span>
+                        <span>{language === 'ta' ? 'இல்லை / பள்ளி படிப்புடன் முடிந்தது' : 'No / No higher education'}</span>
+                      </button>
+                    </div>
+                    {invalidFields.has('hasHigherEducation') && (
+                      <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        {language === 'ta' ? 'உயர் கல்வி விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Please select whether you pursued Higher Education'}
+                      </p>
                     )}
                   </div>
 
-                  {/* Option: Checkbox for No Higher Education */}
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id="noHigherEducation"
-                      checked={noHigherEducation}
-                      onChange={(e) => setNoHigherEducation(e.target.checked)}
-                      className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer"
-                    />
-                    <label htmlFor="noHigherEducation" className="text-xs font-semibold text-[#111111] cursor-pointer select-none">
-                      {language === 'ta' ? 'உயர் கல்வி இல்லை / பள்ளி படிப்புடன் முடிந்தது' : 'No higher education / Not applicable or prefer not to say'}
-                    </label>
-                  </div>
+                  {/* Below fields open ONLY if user selects YES (Higher Education) */}
+                  {hasHigherEducation === 'YES' && (
+                    <div className="space-y-6 pt-2 animate-fadeIn border-t border-gray-100 mt-4">
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          {language === 'ta'
+                            ? 'உங்கள் கல்லூரி மற்றும் பட்டப்படிப்பு விவரங்களை கீழே உள்ளிடவும்:'
+                            : 'Please enter your college and degree details below:'}
+                        </span>
+                      </div>
 
-                  {!noHigherEducation && (
-                    <div className="space-y-6 pt-2">
                       {/* College / Institution Name */}
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'கல்லூரி / கல்வி நிறுவனத்தின் பெயர்' : 'College / Institution Name'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'கல்லூரி / கல்வி நிறுவனத்தின் பெயர்' : 'College / Institution Name'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
-                          required={!noHigherEducation}
                           value={collegeName}
-                          onChange={(e) => setCollegeName(e.target.value)}
+                          onChange={(e) => {
+                            setCollegeName(e.target.value);
+                            clearInvalidField('collegeName');
+                          }}
                           placeholder="e.g. Anna University / IIT Madras / Loyola College"
                           className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
@@ -1785,14 +2247,17 @@ export const AlumniRegister: React.FC = () => {
                       {/* Degree / Course Dropdown & Chips */}
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                          {language === 'ta' ? 'பட்டப்படிப்பு / தகுதி' : 'Degree / Course'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'பட்டப்படிப்பு / தகுதி' : 'Degree / Course'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <div className="flex flex-wrap gap-2 mb-3">
                           {["B.E.", "B.Tech.", "B.Sc.", "M.Sc.", "BCA", "MCA", "BBA", "MBA", "B.Com.", "Diploma"].map(deg => (
                             <button
                               key={deg}
                               type="button"
-                              onClick={() => setDegree(deg)}
+                              onClick={() => {
+                                setDegree(deg);
+                                clearInvalidField('degree');
+                              }}
                               className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${degree === deg
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -1804,9 +2269,11 @@ export const AlumniRegister: React.FC = () => {
                         </div>
                         <div className="relative">
                           <select
-                            required={!noHigherEducation}
                             value={degree}
-                            onChange={(e) => setDegree(e.target.value)}
+                            onChange={(e) => {
+                              setDegree(e.target.value);
+                              clearInvalidField('degree');
+                            }}
                             className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
                           >
                             <option value="">{language === 'ta' ? 'மற்ற பட்டப்படிப்பைக் தேர்ந்தெடுக்கவும்' : 'Or select another Degree...'}</option>
@@ -1822,13 +2289,15 @@ export const AlumniRegister: React.FC = () => {
                       {degree === 'Other - write something' && (
                         <div className="p-4 bg-[#FFF7D6]/60 border border-[#F4C542]/40 rounded-xl space-y-1.5">
                           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            {language === 'ta' ? 'பட்டப்படிப்பின் பெயரை உள்ளிடவும்' : 'Enter Degree / Qualification Name'} <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'பட்டப்படிப்பின் பெயரை உள்ளிடவும்' : 'Enter Degree / Qualification Name'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                           </label>
                           <input
                             type="text"
-                            required
                             value={otherDegree}
-                            onChange={(e) => setOtherDegree(e.target.value)}
+                            onChange={(e) => {
+                              setOtherDegree(e.target.value);
+                              clearInvalidField('otherDegree');
+                            }}
                             placeholder="e.g. B.Des / B.Arch / MBBS"
                             className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                           />
@@ -1838,73 +2307,40 @@ export const AlumniRegister: React.FC = () => {
                       {/* Department / Stream */}
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'துறை / பாடப்பிரிவு' : 'Department / Stream / Major'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? 'துறை / பாடப்பிரிவு' : 'Department / Stream / Major'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
                         <input
                           type="text"
-                          required={!noHigherEducation}
                           value={stream}
-                          onChange={(e) => setStream(e.target.value)}
+                          onChange={(e) => {
+                            setStream(e.target.value);
+                            clearInvalidField('stream');
+                          }}
                           placeholder="e.g. Computer Science / Mechanical Engineering / Physics"
                           className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
                         />
                       </div>
 
-                      {/* Register / Roll Number (Optional) */}
+                      {/* College Passing Year */}
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'பதிவு எண்' : 'Register / Roll Number'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                          {language === 'ta' ? 'முடித்த ஆண்டு' : 'Graduation / Passing Year'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                         </label>
-                        <input
-                          type="text"
-                          value={registerNumber}
-                          onChange={(e) => setRegisterNumber(e.target.value)}
-                          placeholder="e.g. 710015104001"
-                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* College Joining Year */}
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                            {language === 'ta' ? 'சேர்ந்த ஆண்டு' : 'Admission / Joining Year'} <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <select
-                              required={!noHigherEducation}
-                              value={collegeJoiningYear}
-                              onChange={(e) => setCollegeJoiningYear(e.target.value)}
-                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
-                            >
-                              <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
-                              {yearOptions.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
-                        </div>
-
-                        {/* College Passing Year */}
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                            {language === 'ta' ? 'முடித்த ஆண்டு' : 'Graduation / Passing Year'} <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <select
-                              required={!noHigherEducation}
-                              value={collegePassingYear}
-                              onChange={(e) => setCollegePassingYear(e.target.value)}
-                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
-                            >
-                              <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
-                              {yearOptions.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
+                        <div className="relative">
+                          <select
+                            value={collegePassingYear}
+                            onChange={(e) => {
+                              setCollegePassingYear(e.target.value);
+                              clearInvalidField('collegePassingYear');
+                            }}
+                            className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] font-normal appearance-none pr-8 cursor-pointer"
+                          >
+                            <option value="">{language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : 'Select Year'}</option>
+                            {yearOptions.map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
                     </div>
@@ -1914,16 +2350,9 @@ export const AlumniRegister: React.FC = () => {
                     <Button type="button" variant="secondary" onClick={() => goToStep(3)}>
                       <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
-                    <div className="flex items-center space-x-2">
-                      {maxStepReached > 4 && (
-                        <Button type="button" variant="secondary" onClick={() => goToStep(5)}>
-                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
-                        </Button>
-                      )}
-                      <Button type="submit" className="font-bold">
-                        {language === 'ta' ? 'சேமித்து வேலை விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Professional Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
-                      </Button>
-                    </div>
+                    <Button type="submit" className="font-bold">
+                      {language === 'ta' ? 'சேமித்து வேலை விவரங்களுக்கு செல்லவும்' : 'Save & Continue to Professional Details'} <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </Button>
                   </div>
                 </form>
               )}
@@ -1931,34 +2360,26 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 5: Professional & Work Details */}
               {step === 5 && (
                 <form onSubmit={handleStep5Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-[#111111]">
-                        {language === 'ta' ? 'படி 5: தற்போதைய வேலை மற்றும் பணி விவரங்கள்' : 'Step 5: Current Professional Details'}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {language === 'ta' ? 'பணி அனுபவம், தற்போதைய நிறுவனம் மற்றும் திறன்கள்' : 'Work experience, current organization, and skills'}
-                      </p>
-                    </div>
-                    {maxStepReached > 5 && (
-                      <Button type="button" variant="secondary" size="sm" onClick={() => goToStep(6)}>
-                        {language === 'ta' ? 'படி 6-க்கு செல்ல' : 'Forward to Step 6'} <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </Button>
-                    )}
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-[#111111]">
+                      {language === 'ta' ? 'படி 5: தற்போதைய வேலை மற்றும் பணி விவரங்கள்' : 'Step 5: Current Professional Details'}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'ta' ? 'பணி அனுபவம், தற்போதைய நிறுவனம் மற்றும் திறன்கள்' : 'Work experience, current organization, and skills'}
+                    </p>
                   </div>
 
                   <div className="space-y-6">
-                    {/* Employment Status with Selection Chips */}
+                    {/* Employment Status with Selection Chips (Optional) */}
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                        {language === 'ta' ? 'வேலை நிலை' : 'Employment Status'} <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'வேலை நிலை' : 'Employment Status'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
                       </label>
                       <div className="flex flex-wrap gap-2 pt-1 mb-2">
                         {[
                           { key: "Employed", labelEn: "Employed", labelTa: "பணியில் உள்ளவர்" },
                           { key: "Business / Self-Employed", labelEn: "Business / Self-Employed", labelTa: "சுயதொழில் / தொழில்முனைவோர்" },
-                          { key: "Student", labelEn: "Student", labelTa: "மாணவர்" },
-                          { key: "Unemployed", labelEn: "Unemployed", labelTa: "வேலையில்லாதவர்" },
+                          { key: "Seeking Opportunities", labelEn: "Seeking Opportunities", labelTa: "வாய்ப்புத் தேடுபவர்" },
                           { key: "Retired", labelEn: "Retired", labelTa: "ஓய்வு பெற்றவர்" },
                         ].map((opt) => (
                           <button
@@ -1976,163 +2397,95 @@ export const AlumniRegister: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Company / Organization (Optional) */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'நிறுவனம் / அமைப்பு' : 'Company / Organization'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
-                          placeholder="e.g. Tata Consultancy Services / Google"
-                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
-                        />
-                      </div>
+                    {/* Conditional Professional Fields — Hidden when Seeking Opportunities */}
+                    {employmentStatus !== 'Seeking Opportunities' && (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {/* Company / Organization (Optional) */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                              {language === 'ta' ? 'நிறுவனம் / அமைப்பு' : 'Company / Organization'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={company}
+                              onChange={(e) => setCompany(e.target.value)}
+                              placeholder="e.g. Tata Consultancy Services / Google"
+                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
+                            />
+                          </div>
 
-                      {/* Position / Job Role (Optional) */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'பதவி / வேலை தலைப்பு' : 'Position / Job Role'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={position}
-                          onChange={(e) => setPosition(e.target.value)}
-                          placeholder="e.g. Senior Software Engineer / Manager"
-                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Industry (Optional) */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? 'தொழில் துறை' : 'Industry'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={industry}
-                          onChange={(e) => setIndustry(e.target.value)}
-                          placeholder="e.g. Information Technology / Healthcare"
-                          className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
-                        />
-                      </div>
-
-                      {/* Total Years of Experience (Optional Chips) */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                          {language === 'ta' ? 'மொத்த அனுபவம்' : 'Total Experience'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                        </label>
-                        <div className="flex flex-wrap gap-2 pt-0.5">
-                          {["0-1 Years", "1-3 Years", "3-5 Years", "5-10 Years", "10+ Years"].map(exp => (
-                            <button
-                              key={exp}
-                              type="button"
-                              onClick={() => setTotalExperience(exp)}
-                              className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${totalExperience === exp
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                                }`}
-                            >
-                              {exp}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Professional Skills (Optional) */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                        {language === 'ta' ? 'முக்கிய தொழில் திறன்கள்' : 'Professional Skills'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={skills}
-                        onChange={(e) => setSkills(e.target.value)}
-                        placeholder="e.g. Python, React, Project Management, Sales"
-                        className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
-                      />
-                    </div>
-
-                    {/* Social & Contact Share Links Section */}
-                    <div className="pt-4 border-t border-gray-100 space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Globe className="w-4 h-4 text-[#854D0E]" />
-                        <h3 className="text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider">
-                          {language === 'ta' ? 'சமூக ஊடக & தொடர்பு பகிர்தல் இணைப்புகள்' : 'Social & Contact Share Links'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* LinkedIn Profile */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                            LinkedIn Profile
-                          </label>
-                          <input
-                            type="url"
-                            value={linkedinUrl}
-                            onChange={(e) => setLinkedinUrl(e.target.value)}
-                            placeholder="https://linkedin.com/in/username"
-                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
-                          />
+                          {/* Position / Job Role (Optional) */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                              {language === 'ta' ? 'பதவி / வேலை தலைப்பு' : 'Position / Job Role'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={position}
+                              onChange={(e) => setPosition(e.target.value)}
+                              placeholder="e.g. Senior Software Engineer / Manager"
+                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
+                            />
+                          </div>
                         </div>
 
-                        {/* Instagram Profile */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                            Instagram Profile / Handle
-                          </label>
-                          <input
-                            type="text"
-                            value={instagramUrl}
-                            onChange={(e) => setInstagramUrl(e.target.value)}
-                            placeholder="https://instagram.com/username or @username"
-                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
-                          />
-                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {/* Industry (Optional) */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                              {language === 'ta' ? 'தொழில் துறை' : 'Industry'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={industry}
+                              onChange={(e) => setIndustry(e.target.value)}
+                              placeholder="e.g. Information Technology / Healthcare"
+                              className="w-full py-2.5 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base text-[#111111] placeholder-gray-400 font-normal"
+                            />
+                          </div>
 
-                        {/* WhatsApp Number */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                            WhatsApp Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            value={whatsappNumber}
-                            onChange={(e) => setWhatsappNumber(e.target.value)}
-                            placeholder="+919876543210"
-                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
-                          />
+                          {/* Total Years of Experience (Optional Chips) */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                              {language === 'ta' ? 'மொத்த அனுபவம்' : 'Total Experience'} <span className="text-gray-400 font-normal">{language === 'ta' ? '(விருப்பமானது)' : '(Optional)'}</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2 pt-0.5">
+                              {["0-1 Years", "1-3 Years", "3-5 Years", "5-10 Years", "10+ Years"].map(exp => (
+                                <button
+                                  key={exp}
+                                  type="button"
+                                  onClick={() => setTotalExperience(exp)}
+                                  className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${totalExperience === exp
+                                      ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                      : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                    }`}
+                                >
+                                  {exp}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
+                      </>
+                    )}
 
-                                                {/* Website URL */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                            Personal / Business Website
-                          </label>
-                          <input
-                            type="url"
-                            value={websiteUrl}
-                            onChange={(e) => setWebsiteUrl(e.target.value)}
-                            placeholder="https://yourwebsite.com"
-                            className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-sm font-semibold text-[#111111] placeholder-gray-400"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+
+
 
                         {/* Volunteer — NEW */}
-                        <div>
+                        <div id="field-isVolunteer" className={getHighlightCls('isVolunteer')}>
                           <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                            {language === 'ta' ? 'தன்னார்வ தொண்டர்' : 'Volunteer'} <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'தன்னார்வ தொண்டர்' : 'Willing to Volunteer?'} <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex flex-wrap gap-2 pt-0.5">
                             <button
                               type="button"
-                              onClick={() => setIsVolunteer('YES')}
+                              onClick={() => {
+                                setIsVolunteer('YES');
+                                clearInvalidField('isVolunteer');
+                              }}
                               className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'YES'
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -2142,7 +2495,10 @@ export const AlumniRegister: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setIsVolunteer('NO')}
+                              onClick={() => {
+                                setIsVolunteer('NO');
+                                clearInvalidField('isVolunteer');
+                              }}
                               className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'NO'
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -2151,17 +2507,26 @@ export const AlumniRegister: React.FC = () => {
                               {language === 'ta' ? 'இல்லை' : 'No'}
                             </button>
                           </div>
+                          {invalidFields.has('isVolunteer') && (
+                            <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              {language === 'ta' ? 'தன்னார்வ விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Volunteer is required'}
+                            </p>
+                          )}
                         </div>
 
                         {/* Willing to Donate — NEW */}
-                        <div>
+                        <div id="field-willingToDonate" className={getHighlightCls('willingToDonate')}>
                           <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                            {language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்' : 'Willing to Donate'} <span className="text-rose-500">*</span>
+                            {language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்' : 'Willing to Donate?'} <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex flex-wrap gap-2 pt-0.5">
                             <button
                               type="button"
-                              onClick={() => setWillingToDonate('YES')}
+                              onClick={() => {
+                                setWillingToDonate('YES');
+                                clearInvalidField('willingToDonate');
+                              }}
                               className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'YES'
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -2171,7 +2536,10 @@ export const AlumniRegister: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setWillingToDonate('NO')}
+                              onClick={() => {
+                                setWillingToDonate('NO');
+                                clearInvalidField('willingToDonate');
+                              }}
                               className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'NO'
                                   ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                   : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -2180,25 +2548,23 @@ export const AlumniRegister: React.FC = () => {
                               {language === 'ta' ? 'இல்லை' : 'No'}
                             </button>
                           </div>
+                          {invalidFields.has('willingToDonate') && (
+                            <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              {language === 'ta' ? 'நன்கொடை விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Donate is required'}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
                       <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
-                    <div className="flex items-center space-x-2">
-                      {maxStepReached > 5 && (
-                        <Button type="button" variant="secondary" onClick={() => goToStep(6)}>
-                          {language === 'ta' ? 'முன்னோக்கி →' : 'Forward →'}
-                        </Button>
-                      )}
-                      <Button type="submit" className="font-bold">
-                        {language === 'ta' ? 'சரிபார்த்து சமர்ப்பிக்க செல்லவும்' : 'Review & Submit Registration'} <ArrowRight className="w-4 h-4 ml-1.5" />
-                      </Button>
-                    </div>
+                    <Button type="submit" className="font-bold">
+                      {language === 'ta' ? 'சரிபார்த்து சமர்ப்பிக்க செல்லவும்' : 'Review & Submit Registration'} <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </Button>
                   </div>
                 </form>
               )}
@@ -2256,14 +2622,7 @@ export const AlumniRegister: React.FC = () => {
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'ரத்த வகை:' : 'Blood Group:'}</span>
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{bloodGroup || 'N/A'}</span>
                         </div>
-                        <div>
-                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தந்தையின் பெயர்:' : "Father's Name:"}</span>
-                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{fatherName || 'N/A'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தாயாரின் பெயர்:' : "Mother's Name:"}</span>
-                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{motherName || 'N/A'}</span>
-                        </div>
+
                                                 <div className="sm:col-span-2 lg:col-span-3">
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'முகவரி:' : 'Address:'}</span>
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{address || 'N/A'}</span>
@@ -2324,8 +2683,8 @@ export const AlumniRegister: React.FC = () => {
                             <span className="text-sm sm:text-base font-bold text-[#111111]">{degree === 'Other - write something' ? otherDegree : degree} ({stream})</span>
                           </div>
                           <div>
-                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'கல்லூரி காலம்:' : 'College Period:'}</span>
-                            <span className="text-sm sm:text-base font-bold text-[#111111]">{collegeJoiningYear || 'N/A'} – {collegePassingYear || 'N/A'}</span>
+                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'முடித்த ஆண்டு:' : 'Graduation Year:'}</span>
+                            <span className="text-sm sm:text-base font-bold text-[#111111]">{collegePassingYear || 'N/A'}</span>
                           </div>
                         </div>
                       )}
@@ -2372,12 +2731,7 @@ export const AlumniRegister: React.FC = () => {
                             <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{whatsappNumber}</span>
                           </div>
                         )}
-                                                {websiteUrl && (
-                          <div>
-                            <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Website:</span>
-                            <span className="text-sm sm:text-base font-bold text-[#111111] truncate block">{websiteUrl}</span>
-                          </div>
-                        )}
+
                         <div>
                           <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'தன்னார்வ தொண்டர்:' : 'Volunteer:'}</span>
                           <span className="text-sm sm:text-base font-bold text-[#111111]">{isVolunteer === 'YES' ? 'Yes' : 'No'}</span>
@@ -2391,12 +2745,15 @@ export const AlumniRegister: React.FC = () => {
                   </div>
 
                   {/* Terms & Conditions Acceptance */}
-                  <div className="p-4 sm:p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-start space-x-3">
+                  <div id="field-agreeTerms" className={`p-4 sm:p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-start space-x-3 ${getHighlightCls('agreeTerms')}`}>
                     <input
                       type="checkbox"
                       id="agreeTerms"
                       checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      onChange={(e) => {
+                        setAgreeTerms(e.target.checked);
+                        clearInvalidField('agreeTerms');
+                      }}
                       className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer mt-0.5 shrink-0"
                     />
                     <label htmlFor="agreeTerms" className="text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed cursor-pointer select-none">
@@ -2405,6 +2762,12 @@ export const AlumniRegister: React.FC = () => {
                         : 'I confirm that all information provided in this registration form is accurate. I agree to the Alumni Terms of Association and Privacy Guidelines.'}
                     </label>
                   </div>
+                  {invalidFields.has('agreeTerms') && (
+                    <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      {language === 'ta' ? 'பதிவைச் சமர்ப்பிக்க விதிகளையும் தனியுரிமைக் கொள்கையையும் ஒப்புக் கொள்ள வேண்டும்' : 'Please check the box to accept Terms & Conditions before submitting'}
+                    </p>
+                  )}
 
                   <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(5)} className="w-full sm:w-auto">
@@ -2414,10 +2777,9 @@ export const AlumniRegister: React.FC = () => {
                       type="button"
                       onClick={handleFinalRegister}
                       isLoading={loading}
-                      disabled={!agreeTerms}
-                      className="w-full sm:w-auto bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold py-3.5 px-8 text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto bg-[#F4C542] hover:bg-[#E5B532] text-[#111111] font-extrabold py-3.5 px-8 text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer"
                     >
-                      <span>{language === 'ta' ? 'அதிகாரப்பூர்வ பதிவைச் சமர்ப்பிக்கவும்' : 'Submit Official Registration'}</span>
+                      <span>{language === 'ta' ? 'பதிவைச் சமர்ப்பிக்கவும்' : 'Submit Registration'}</span>
                       <ShieldCheck className="w-5 h-5 ml-1.5 stroke-[2.5]" />
                     </Button>
                   </div>

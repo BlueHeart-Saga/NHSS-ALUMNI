@@ -160,17 +160,8 @@ async def export_alumni_csv(
         raw_id = str(a.get("_id", ""))
         raw_mobile = a.get("mobile", "") or ""
         raw_country_code = a.get("country_code", "") or "91"
-        raw_adm_no = a.get("admission_number", "") or ""
-        raw_roll_no = a.get("roll_no", "") or ""
         raw_college_reg = a.get("college_register_no") or a.get("register_number") or ""
         raw_whatsapp = a.get("whatsapp_number", "") or ""
-
-        # Skills list or string
-        skills_val = a.get("skills", "")
-        if isinstance(skills_val, list):
-            skills_str = ", ".join(str(s) for s in skills_val if s)
-        else:
-            skills_str = str(skills_val) if skills_val is not None else ""
 
         # Higher education flag
         no_high_ed = a.get("no_higher_education")
@@ -338,16 +329,8 @@ async def export_alumni_excel(
         raw_id = str(a.get("_id", ""))
         raw_mobile = str(a.get("mobile", "") or "")
         raw_country_code = str(a.get("country_code", "") or "91")
-        raw_adm_no = str(a.get("admission_number", "") or "")
-        raw_roll_no = str(a.get("roll_no", "") or "")
         raw_college_reg = str(a.get("college_register_no") or a.get("register_number") or "")
         raw_whatsapp = str(a.get("whatsapp_number", "") or "")
-
-        skills_val = a.get("skills", "")
-        if isinstance(skills_val, list):
-            skills_str = ", ".join(str(s) for s in skills_val if s)
-        else:
-            skills_str = str(skills_val) if skills_val is not None else ""
 
         no_high_ed = a.get("no_higher_education")
         if isinstance(no_high_ed, bool):
@@ -500,7 +483,6 @@ async def export_event_attendance_csv(
         writer.writerow([
             alumni.get("full_name", "Unknown") if alumni else "Unknown",
             alumni.get("passing_year", "") if alumni else "",
-            alumni.get("admission_number", "") if alumni else "",
             att.get("rsvp_status", ""),
             att.get("adults_count", 1),
             att.get("children_count", 0),

@@ -91,9 +91,7 @@ export const VerificationQueue: React.FC = () => {
                     <div>
                       <h3 className="font-bold text-[#111111] text-base">{item.full_name}</h3>
                       <span className="text-xs text-[#6B7280]">
-                        {t('admin_verify_batch_line')
-                          .replace('{batch}', String(item.passing_year))
-                          .replace('{section}', String(item.section))}
+                        Batch {item.passing_year}
                       </span>
                     </div>
                   </div>
@@ -135,10 +133,7 @@ export const VerificationQueue: React.FC = () => {
                 )}
 
                 <div className="space-y-2 text-xs bg-[#FAFAFA] border border-[#E5E7EB] p-3 rounded-xl mb-4">
-                  <div>
-                    <span className="text-[#6B7280]">{t('admin_verify_label_admission')}</span>{' '}
-                    <strong className="text-[#111111]">{item.admission_number}</strong>
-                  </div>
+
                   <div>
                     <span className="text-[#6B7280]">{t('admin_verify_label_mobile')}</span>{' '}
                     <strong className="text-[#111111]">{item.mobile}</strong>

@@ -9,7 +9,7 @@ import { api } from '../../services/api';
 export const AlumniProfilePage: React.FC = () => {
   const { user, school, setUser } = useOutletContext<AlumniContextType>();
 
-  const [profileSubTab, setProfileSubTab] = useState<'personal' | 'education' | 'employment' | 'skills' | 'social' | 'visibility'>('personal');
+  const [profileSubTab, setProfileSubTab] = useState<'personal' | 'education' | 'employment' | 'social' | 'visibility'>('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   
@@ -20,22 +20,15 @@ export const AlumniProfilePage: React.FC = () => {
     current_city: user?.current_city || '',
     state: user?.state || 'Tamil Nadu',
     country: user?.country || 'India',
-    bio: user?.bio || '',
     passing_year: user?.passing_year || 2010,
-    admission_number: user?.admission_number || '',
-    roll_number: user?.roll_number || user?.admission_number || '',
-    section: user?.section || '',
-    house: user?.house || '',
     stream: user?.stream || '',
     profession: user?.profession || '',
     company: user?.company || '',
     industry: user?.industry || '',
     experience_years: user?.experience_years || 0,
-    skills: user?.skills || [],
     linkedin_url: user?.linkedin_url || '',
-    github_url: user?.github_url || '',
-    twitter_url: user?.twitter_url || '',
-    website_url: user?.website_url || '',
+    instagram_url: user?.instagram_url || '',
+    whatsapp_number: user?.whatsapp_number || '',
     profile_photo_url: user?.profile_photo_url || '',
     blood_group: user?.blood_group || '',
     is_volunteer: user?.is_volunteer || 'NO',
@@ -44,7 +37,6 @@ export const AlumniProfilePage: React.FC = () => {
     directory_visible: user?.directory_visible ?? true,
     email_visible: user?.email_visible || false
   });
-  const [newSkillInput, setNewSkillInput] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -52,8 +44,7 @@ export const AlumniProfilePage: React.FC = () => {
         ...prev,
         ...user,
         state: user.state || prev.state || 'Tamil Nadu',
-        country: user.country || prev.country || 'India',
-        roll_number: user.roll_number || user.admission_number || prev.roll_number || ''
+        country: user.country || prev.country || 'India'
       }));
     }
   }, [user]);
@@ -114,20 +105,6 @@ export const AlumniProfilePage: React.FC = () => {
     }
   };
 
-  const handleAddSkill = () => {
-    if (!newSkillInput.trim()) return;
-    const currentSkills = profileForm.skills || [];
-    if (!currentSkills.includes(newSkillInput.trim())) {
-      setProfileForm({ ...profileForm, skills: [...currentSkills, newSkillInput.trim()] });
-    }
-    setNewSkillInput('');
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    const currentSkills = profileForm.skills || [];
-    setProfileForm({ ...profileForm, skills: currentSkills.filter(s => s !== skillToRemove) });
-  };
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans text-[#111111]">
       {/* Header */}
@@ -158,7 +135,6 @@ export const AlumniProfilePage: React.FC = () => {
           { id: 'personal', label: 'Personal Information', icon: User },
           { id: 'education', label: 'Education / School', icon: BookOpen },
           { id: 'employment', label: 'Current Employment', icon: Briefcase },
-          { id: 'skills', label: 'Skills & Interests', icon: Award },
           { id: 'social', label: 'Social Links', icon: Share2 },
           { id: 'visibility', label: 'Profile Visibility', icon: Eye }
         ].map(tab => (
@@ -324,17 +300,6 @@ export const AlumniProfilePage: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div>
-            <label className="block font-semibold text-[#374151] mb-1 text-xs">Bio Summary</label>
-            <textarea
-              rows={3}
-              value={profileForm.bio || ''}
-              onChange={e => setProfileForm({ ...profileForm, bio: e.target.value })}
-              placeholder="Brief bio for your batchmates..."
-              className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl text-xs focus:outline-none focus:border-[#F4C542]"
-            ></textarea>
-          </div>
         </div>
       )}
 
@@ -363,38 +328,6 @@ export const AlumniProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-[#374151] mb-1">Roll / Admission Number</label>
-              <input
-                type="text"
-                value={profileForm.roll_number || ''}
-                onChange={e => setProfileForm({ ...profileForm, roll_number: e.target.value })}
-                className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[#374151] mb-1">Section</label>
-              <input
-                type="text"
-                value={profileForm.section || ''}
-                onChange={e => setProfileForm({ ...profileForm, section: e.target.value })}
-                placeholder="e.g. A Section"
-                className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[#374151] mb-1">House / Branch</label>
-              <input
-                type="text"
-                value={profileForm.house || ''}
-                onChange={e => setProfileForm({ ...profileForm, house: e.target.value })}
-                placeholder="e.g. Red House, Jubilee House"
-                className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
-              />
-            </div>
-
-            <div>
               <label className="block font-semibold text-[#374151] mb-1">High School Stream</label>
               <input
                 type="text"
@@ -410,7 +343,7 @@ export const AlumniProfilePage: React.FC = () => {
 
       {/* SUB-TAB 3: CURRENT EMPLOYMENT */}
       {profileSubTab === 'employment' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
+        <div className="bg-[#FFFFFF] p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-[#374151] mb-1">Current Profession / Title</label>
@@ -458,42 +391,6 @@ export const AlumniProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* SUB-TAB 4: SKILLS & INTERESTS */}
-      {profileSubTab === 'skills' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-6 text-xs">
-          <div>
-            <label className="block font-semibold text-[#374151] mb-2">Technical & Professional Skills</label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3">
-              <input
-                type="text"
-                value={newSkillInput}
-                onChange={e => setNewSkillInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                placeholder="Type a skill and press Add or Enter..."
-                className="flex-1 p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
-              />
-              <button
-                type="button"
-                onClick={handleAddSkill}
-                className="w-full sm:w-auto px-4 py-2.5 bg-[#111111] text-white font-bold rounded-xl hover:bg-gray-800 shrink-0 text-center"
-              >
-                Add Skill
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(profileForm.skills || []).map((skill, idx) => (
-                <span key={idx} className="inline-flex items-center space-x-1.5 px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full font-semibold">
-                  <span>{skill}</span>
-                  <button onClick={() => handleRemoveSkill(skill)} className="hover:text-red-600">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* SUB-TAB 5: SOCIAL / PROFESSIONAL LINKS */}
       {profileSubTab === 'social' && (
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4 text-xs">
@@ -504,16 +401,6 @@ export const AlumniProfilePage: React.FC = () => {
               value={profileForm.linkedin_url || ''}
               onChange={e => setProfileForm({ ...profileForm, linkedin_url: e.target.value })}
               placeholder="https://linkedin.com/in/username"
-              className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold text-[#374151] mb-1">Personal Website / Portfolio</label>
-            <input
-              type="url"
-              value={profileForm.website_url || ''}
-              onChange={e => setProfileForm({ ...profileForm, website_url: e.target.value })}
-              placeholder="https://mywebsite.com"
               className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542]"
             />
           </div>

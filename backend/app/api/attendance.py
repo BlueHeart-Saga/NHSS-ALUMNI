@@ -166,7 +166,6 @@ async def get_attendance_roster(
             "alumni_id": att["alumni_id"],
             "full_name": alumni["full_name"] if alumni else "Unknown",
             "passing_year": alumni["passing_year"] if alumni else 2010,
-            "admission_number": alumni.get("admission_number", "") if alumni else "",
             "rsvp_status": att["rsvp_status"],
             "adults_count": att.get("adults_count", 1),
             "children_count": att.get("children_count", 0),

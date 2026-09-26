@@ -206,6 +206,28 @@ export const alertService = {
   },
 
   /**
+   * Display Confirmation Dialog with HTML (Returns Promise<boolean>)
+   */
+  showConfirmHtml: async (
+    title: string,
+    html: string,
+    confirmButtonText: string = 'Confirm',
+    cancelButtonText: string = 'Cancel'
+  ): Promise<boolean> => {
+    const result = await BrandSwal.fire({
+      icon: 'info',
+      title: title,
+      html: html,
+      showCancelButton: true,
+      confirmButtonText: confirmButtonText,
+      cancelButtonText: cancelButtonText,
+      iconColor: '#F4C542',
+      reverseButtons: true
+    });
+    return result.isConfirmed;
+  },
+
+  /**
    * Display Loading Indicator (Processing API Action)
    */
   showLoading: (title: string = 'Processing...', text: string = 'Please wait while we complete your request.') => {

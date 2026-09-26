@@ -284,7 +284,7 @@ export const AlumniLayout: React.FC = () => {
                   {language === 'ta' ? 'சமர்ப்பிக்கப்பட்ட விவரங்கள்' : 'Submitted Registration Summary'}
                 </span>
                 <span className="text-gray-500 font-mono text-[11px] truncate ml-2">
-                  Ref: {user?.admission_number || 'REG-PENDING'}
+                  Ref: REG-PENDING
                 </span>
               </div>
 

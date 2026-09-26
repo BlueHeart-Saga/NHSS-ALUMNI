@@ -230,10 +230,7 @@ export const Dashboard: React.FC = () => {
                       )}
                     </div>
                     <div className="text-xs text-[#6B7280]">
-                      {t('admin_dashboard_queue_meta')
-                        .replace('{batch}', String(a.passing_year))
-                        .replace('{adm}', String(a.admission_number))
-                        .replace('{mobile}', String(a.mobile))}
+                      Batch {a.passing_year} • {a.mobile}
                     </div>
                   </div>
                 </div>
@@ -307,10 +304,7 @@ export const Dashboard: React.FC = () => {
                   )}
                 </div>
                 <div className="text-xs text-[#6B7280] mt-0.5">
-                  {t('admin_dashboard_detail_batch_line')
-                    .replace('{batch}', String(selectedAlumni.passing_year))
-                    .replace('{section}', selectedAlumni.section ? t('admin_dashboard_detail_section_suffix').replace('{section}', String(selectedAlumni.section)) : '')
-                    .replace('{adm}', String(selectedAlumni.admission_number || t('admin_dashboard_detail_na')))}
+                  Batch {selectedAlumni.passing_year}
                 </div>
                 {selectedAlumni.profession && (
                   <div className="text-xs text-[#854D0E] font-medium mt-1">
@@ -401,10 +395,7 @@ export const Dashboard: React.FC = () => {
                       {t('admin_dashboard_detail_class_of').replace('{year}', String(selectedAlumni.passing_year))}
                     </div>
                   </div>
-                  <div>
-                    <span className="text-[#6B7280]">{t('admin_dashboard_detail_label_admission_no')}</span>
-                    <div className="font-semibold text-[#111111]">{selectedAlumni.admission_number || t('admin_dashboard_detail_na')}</div>
-                  </div>
+
                   {selectedAlumni.degree && (
                     <div>
                       <span className="text-[#6B7280]">{t('admin_dashboard_detail_label_higher_ed')}</span>
@@ -514,10 +505,7 @@ export const Dashboard: React.FC = () => {
                   {t('admin_dashboard_confirm_heading').replace('{name}', confirmingAlumni.full_name)}
                 </p>
                 <p className="mt-1 text-[#6B7280]">
-                  {t('admin_dashboard_confirm_body')}{' '}
-                  {t('admin_dashboard_confirm_meta')
-                    .replace('{batch}', String(confirmingAlumni.passing_year))
-                    .replace('{adm}', String(confirmingAlumni.admission_number || t('admin_dashboard_detail_na')))}
+                  {t('admin_dashboard_confirm_body')} (Batch {confirmingAlumni.passing_year})
                 </p>
                 <p className="mt-1.5 text-xs text-[#854D0E] font-medium">
                   {t('admin_dashboard_confirm_note')}

@@ -482,32 +482,94 @@ export const AlumniLogin: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#FAFAFA] text-[#111111] pt-2 sm:pt-4 pb-2 animate-fadeIn font-normal relative overflow-hidden">
+    <div className="min-h-[100dvh] flex flex-col pt-3 sm:pt-4 pb-3 sm:pb-4 bg-gradient-to-br from-[#FAFAFA] via-[#FFFDF5] to-[#FDFBF7] text-[#111111] animate-fadeIn font-normal relative overflow-hidden">
 
-      {/* Background Premium Dynamic Wave Design */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <svg className="absolute -top-10 -left-24 w-[650px] h-[650px] text-[#F4C542]/20 opacity-80" viewBox="0 0 1000 1000" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M0,100 C300,250 200,450 500,350 C800,250 600,600 0,800" />
-          <path d="M0,160 C350,310 250,510 550,410 C850,310 650,710 0,910" />
-          <path d="M0,220 C400,370 300,570 600,470 C900,370 700,770 0,970" />
+      {/* Background Premium Dynamic Light Wave & Responsive Height Design */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        {/* Ambient Light Glow Orbs */}
+        <div className="absolute -top-24 -left-20 w-72 h-72 sm:w-[450px] sm:h-[450px] bg-amber-200/35 rounded-full blur-3xl opacity-70 mix-blend-multiply" />
+        <div className="absolute top-1/3 -right-24 w-80 h-80 sm:w-[550px] sm:h-[550px] bg-[#F4C542]/20 rounded-full blur-3xl opacity-60 mix-blend-multiply" />
+        <div className="absolute -bottom-24 left-1/4 w-72 h-72 sm:w-[480px] sm:h-[480px] bg-yellow-100/60 rounded-full blur-3xl opacity-80" />
+
+        {/* Top-Right Flowing Curved Line Waves */}
+        <svg
+          className="absolute top-0 right-0 w-full max-w-[850px] h-[350px] sm:h-[500px] md:h-[650px] text-[#F4C542]/30 opacity-90 transition-all duration-700"
+          viewBox="0 0 1000 600"
+          fill="none"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="waveGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F4C542" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#EAB308" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="waveFillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FFF7D6" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#FAFAFA" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {/* Light Filled Wave Accent */}
+          <path
+            d="M0,0 C300,90 650,20 1000,160 L1000,0 Z"
+            fill="url(#waveFillGrad)"
+          />
+          {/* Multi-layered Curved Stroke Waves */}
+          <path
+            d="M0,80 C250,180 600,60 1000,240"
+            stroke="url(#waveGradTop)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M0,130 C300,230 650,110 1000,290"
+            stroke="url(#waveGradTop)"
+            strokeWidth="2"
+            strokeDasharray="6 6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M0,180 C350,280 700,160 1000,340"
+            stroke="url(#waveGradTop)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </svg>
 
-        <svg className="absolute -bottom-20 -left-20 w-[550px] h-[550px] text-[#F4C542]/10" viewBox="0 0 1000 1000" fill="currentColor">
-          <path d="M0,1000 C300,800 400,600 500,700 C600,800 700,600 1000,500 L1000,1000 Z" />
-        </svg>
-
-        <svg className="absolute -top-32 -right-32 w-[800px] h-[800px] text-[#F4C542]/15" viewBox="0 0 1000 1000" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M1000,0 C700,200 600,400 500,300 C400,200 300,400 0,500" />
-          <path d="M1000,50 C750,250 650,450 550,350 C450,250 350,450 0,550" />
-          <path d="M1000,100 C800,300 700,500 600,400 C500,300 400,500 0,600" />
-        </svg>
+        {/* Bottom Full-Width Responsive Fluid Wave */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-[180px] sm:h-[260px] md:h-[340px] opacity-80">
+          <svg
+            className="w-full h-full text-[#F4C542]"
+            viewBox="0 0 1440 320"
+            fill="none"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="waveGradBottom" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.6" />
+                <stop offset="50%" stopColor="#FFF7D6" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#FAFAFA" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              fill="url(#waveGradBottom)"
+              d="M0,160 C280,240 420,100 720,180 C1020,260 1200,140 1440,200 L1440,320 L0,320 Z"
+            />
+            <path
+              d="M0,160 C280,240 420,100 720,180 C1020,260 1200,140 1440,200"
+              stroke="#F4C542"
+              strokeOpacity="0.3"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* LEFT COLUMN: Sticky School Branding & Value Props */}
-          <div className="lg:col-span-6 order-2 lg:order-1 lg:sticky top-28 space-y-6 pr-0 lg:pr-6 mt-6 lg:mt-0">
+          <div className="lg:col-span-6 order-2 lg:order-1 lg:sticky top-28 lg:top-[136px] space-y-6 pr-0 lg:pr-6 mt-6 lg:mt-0">
 
             {/* Header Branding */}
             {/* <div className="flex items-center space-x-4">
@@ -615,10 +677,10 @@ export const AlumniLogin: React.FC = () => {
                     setShowDemoModal(true);
                   }}
                   className="px-3 py-1.5 bg-[#FFF7D6] hover:bg-[#FFEAA7] border border-[#F4C542] text-[#854D0E] font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-2xs transition-all cursor-pointer"
-                  title={language === 'ta' ? 'டெமோ வீடியோ வழிகாட்டியைக் காண்க' : 'Watch Demo Video Guide'}
+                  title={language === 'ta' ? 'வீடியோ வழிகாட்டியைக் காண்க' : 'Watch Demo Video Guide'}
                 >
                   <Play className="w-3.5 h-3.5 fill-[#854D0E] text-[#854D0E]" />
-                  <span>{language === 'ta' ? 'டெமோ வீடியோ' : 'Demo Guide'}</span>
+                  <span>{language === 'ta' ? 'வழிகாட்டி வீடியோ' : 'Demo Guide'}</span>
                 </button>
                 {/* <LanguageSelector /> */}
 
@@ -1389,7 +1451,7 @@ export const AlumniLogin: React.FC = () => {
   >
     <Video className="w-4 h-4 shrink-0 text-[#854D0E]" />
     <span>
-      {language === 'ta' ? 'டெமோ வழிகாட்டி வீடியோவைப் பாருங்கள்' : 'Watch Demo Video Guide'}
+      {language === 'ta' ? 'வழிகாட்டி வீடியோவைப் பாருங்கள்' : 'Watch Demo Video Guide'}
     </span>
   </button>
 </div>

@@ -155,12 +155,8 @@ export const AlumniDocumentsPage: React.FC = () => {
             <p className="font-bold text-[#111111] truncate">{user?.full_name || 'Verified Alumni'}</p>
           </div>
           <div className="p-3 bg-white/70 rounded-xl border border-amber-200/60">
-            <span className="text-gray-500 font-semibold block text-[10px]">BATCH YEAR & SECTION</span>
-            <p className="font-bold text-[#111111]">Class of {user?.passing_year || 2010} {user?.section ? `(${user.section})` : ''}</p>
-          </div>
-          <div className="p-3 bg-white/70 rounded-xl border border-amber-200/60">
-            <span className="text-gray-500 font-semibold block text-[10px]">ADMISSION NO</span>
-            <p className="font-bold text-[#111111]">{user?.admission_number || user?.roll_number || 'N/A'}</p>
+            <span className="text-gray-500 font-semibold block text-[10px]">BATCH YEAR</span>
+            <p className="font-bold text-[#111111]">Class of {user?.passing_year || 2010}</p>
           </div>
           <div className="p-3 bg-white/70 rounded-xl border border-amber-200/60">
             <span className="text-gray-500 font-semibold block text-[10px]">CERTIFICATE ID</span>

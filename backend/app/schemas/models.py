@@ -94,8 +94,8 @@ class UserRegistrationRequest(BaseModel):
     gender: Optional[str] = None
     dob: Optional[str] = None
     blood_group: Optional[str] = None
-    is_volunteer: Optional[str] = "NO"
-    willing_to_donate: Optional[str] = "NO"
+    is_volunteer: Optional[str] = None
+    willing_to_donate: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
     profile_photo_url: Optional[str] = None
@@ -112,8 +112,6 @@ class UserRegistrationRequest(BaseModel):
     joining_year: Optional[int] = None
     passing_year: Optional[int] = 2010
     leaving_class: Optional[str] = "12th"
-    admission_number: Optional[str] = "N/A"
-    section: Optional[str] = "A"
 
     # Higher Education / College Details
     no_higher_education: Optional[bool] = False
@@ -121,7 +119,6 @@ class UserRegistrationRequest(BaseModel):
     degree: Optional[str] = None
     other_degree: Optional[str] = None
     stream: Optional[str] = None
-    register_number: Optional[str] = None
     college_joining_year: Optional[int] = None
     college_passing_year: Optional[int] = None
 
@@ -134,11 +131,9 @@ class UserRegistrationRequest(BaseModel):
     industry: Optional[str] = None
     total_experience: Optional[str] = None
     industries: Optional[str] = None
-    skills: Optional[str] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[str] = None
-    website_url: Optional[str] = None
 
     # Legacy fallbacks
     other_college: Optional[str] = None
@@ -179,9 +174,6 @@ class AdminCreateAlumniRequest(BaseModel):
     admission_year: Optional[Any] = None
     passing_year: Optional[Any] = 2010
     leaving_class: Optional[Any] = "12th"
-    admission_number: Optional[Any] = "N/A"
-    roll_no: Optional[Any] = None
-    section: Optional[Any] = "A"
     no_higher_education: Optional[Any] = "NO"
     college_name: Optional[str] = None
     institution_name: Optional[str] = None
@@ -200,13 +192,11 @@ class AdminCreateAlumniRequest(BaseModel):
     industry: Optional[str] = None
     experience_years: Optional[Any] = None
     total_experience: Optional[Any] = None
-    skills: Optional[Any] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[Any] = None
-    website_url: Optional[str] = None
-    is_volunteer: Optional[Any] = "NO"
-    willing_to_donate: Optional[Any] = "NO"
+    is_volunteer: Optional[Any] = None
+    willing_to_donate: Optional[Any] = None
     verification_status: Optional[str] = "APPROVED"
 
     @field_validator("email", mode="before")
@@ -251,7 +241,6 @@ class UserProfileResponse(BaseModel):
     blood_group: Optional[str] = None
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
-    relative_students_name: Optional[str] = None
     current_city: Optional[str] = None
     address: Optional[str] = None
     state: Optional[str] = None
@@ -262,9 +251,6 @@ class UserProfileResponse(BaseModel):
     admission_year: Optional[Any] = None
     passing_year: Optional[Any] = 2010
     leaving_class: Optional[Any] = None
-    admission_number: Optional[Any] = "N/A"
-    roll_no: Optional[Any] = None
-    section: Optional[Any] = "A"
     no_higher_education: Optional[Any] = "NO"
     college_name: Optional[str] = None
     institution_name: Optional[str] = None
@@ -283,15 +269,9 @@ class UserProfileResponse(BaseModel):
     industry: Optional[str] = None
     experience_years: Optional[Any] = None
     total_experience: Optional[Any] = None
-    skills: Optional[List[str]] = []
-    bio: Optional[str] = None
-    house: Optional[str] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[Any] = None
-    github_url: Optional[str] = None
-    twitter_url: Optional[str] = None
-    website_url: Optional[str] = None
     profile_photo_url: Optional[str] = None
     phone_visible: bool = False
     directory_visible: bool = True
@@ -303,8 +283,8 @@ class UserProfileResponse(BaseModel):
     roles: List[str] = ["ALUMNI"]
     committee_role: Optional[str] = None
     committee_role_title: Optional[str] = None
-    is_volunteer: Optional[Any] = "NO"
-    willing_to_donate: Optional[Any] = "NO"
+    is_volunteer: Optional[Any] = None
+    willing_to_donate: Optional[Any] = None
     email_visible: bool = False
     registration_submitted: Optional[bool] = False
     created_at: Optional[datetime] = None
@@ -328,18 +308,6 @@ class UserProfileResponse(BaseModel):
             return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
         except Exception:
             return datetime.now(timezone.utc)
-
-    @field_validator("skills", mode="before")
-    @classmethod
-    def _coerce_skills(cls, v):
-        """Accept list, comma-separated string, or None."""
-        if v is None:
-            return []
-        if isinstance(v, list):
-            return [str(s) for s in v if s is not None]
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
-        return []
 
     @field_validator("roles", mode="before")
     @classmethod
@@ -367,25 +335,17 @@ class UpdateProfileRequest(BaseModel):
     company: Optional[str] = None
     industry: Optional[str] = None
     experience_years: Optional[int] = None
-    bio: Optional[str] = None
-    admission_number: Optional[str] = None
     passing_year: Optional[int] = None
-    section: Optional[str] = None
-    house: Optional[str] = None
     stream: Optional[str] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[str] = None
-    github_url: Optional[str] = None
-    twitter_url: Optional[str] = None
-    website_url: Optional[str] = None
     profile_photo_url: Optional[str] = None
     email_visible: Optional[bool] = None
     phone_visible: Optional[bool] = None
     directory_visible: Optional[bool] = None
     is_volunteer: Optional[str] = None
     willing_to_donate: Optional[str] = None
-    skills: Optional[List[str]] = None
 
     @field_validator("email", mode="before")
     @classmethod

@@ -30,7 +30,6 @@ export const AlumniBatchesPage: React.FC = () => {
 
   const committeeMembers = batchMembers.filter(a => a.committee_role || a.roles?.includes('BATCH_COORDINATOR'));
   const uniqueCities = Array.from(new Set(batchMembers.map(a => a.current_city).filter(Boolean)));
-  const uniqueSections = Array.from(new Set(batchMembers.map(a => a.section).filter(Boolean)));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
@@ -81,7 +80,7 @@ export const AlumniBatchesPage: React.FC = () => {
               {language === 'ta' ? 'வகுப்பு கண்ணோட்டம் & குழுத் தலைவர்கள்' : 'Batch Overview & Committee'}
             </h3>
             <p className="text-xs text-[#4B5563] leading-relaxed">
-              The batch of {user?.passing_year} consists of {batchMembers.length} verified alumni across {uniqueSections.length || 1} section(s). The batch committee coordinates class reunions, student scholarship drives, and regional chapter meetups.
+              The batch of {user?.passing_year} consists of {batchMembers.length} verified alumni. The batch committee coordinates class reunions, student scholarship drives, and regional chapter meetups.
             </p>
             
             <div className="border-t border-[#E5E7EB] pt-4 space-y-3">
@@ -129,10 +128,7 @@ export const AlumniBatchesPage: React.FC = () => {
                 <span className="text-gray-500">Active Cities</span>
                 <span className="font-bold">{uniqueCities.length} Cities</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-[#E5E7EB]">
-                <span className="text-gray-500">Sections</span>
-                <span className="font-bold">{uniqueSections.join(', ') || 'General Section'}</span>
-              </div>
+
             </div>
           </div>
         </div>
@@ -155,7 +151,7 @@ export const AlumniBatchesPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs sm:text-sm text-[#111111] truncate">{a.full_name}</h4>
                     <span className="text-[10px] font-semibold text-[#854D0E] bg-[#FFF7D6] px-2 py-0.5 rounded-full inline-block mt-0.5">
-                      Class of {a.passing_year} {a.section ? `(${a.section})` : ''}
+                      Class of {a.passing_year}
                     </span>
                     <p className="text-[11px] text-[#6B7280] mt-2 truncate">
                       {a.profession || 'Alumnus'} {a.current_city ? `• ${a.current_city}` : ''}
@@ -223,7 +219,7 @@ export const AlumniBatchesPage: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-base text-[#111111]">{selectedAlumni.full_name}</h3>
-                <p className="text-amber-800 font-semibold">Class of {selectedAlumni.passing_year} {selectedAlumni.section ? `(${selectedAlumni.section})` : ''}</p>
+                <p className="text-amber-800 font-semibold">Class of {selectedAlumni.passing_year}</p>
               </div>
             </div>
 
