@@ -419,6 +419,17 @@ async def send_otp(request: SendOTPRequest):
         alumni_rec = await db.alumni.find_one({"$or": query}) if query else None
 
         if user or alumni_rec:
+            ver_status = (alumni_rec.get("verification_status") if alumni_rec else None) or (user.get("verification_status") if user else None)
+            is_approved = (
+                str(ver_status or "").upper() in ("APPROVED", "VERIFIED") or
+                (alumni_rec and (alumni_rec.get("is_verified") is True or str(alumni_rec.get("status", "")).upper() == "APPROVED")) or
+                (user and (user.get("is_verified") is True or str(user.get("status", "")).upper() == "APPROVED"))
+            )
+            if is_approved:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"ACCOUNT_ALREADY_APPROVED: Your alumni account ({identifier}) is already verified and approved. Please log in directly to the Alumni Portal."
+                )
             raise HTTPException(
                 status_code=409,
                 detail=f"ACCOUNT_ALREADY_REGISTERED: An account with '{identifier}' is already registered. Please log in to your account."
@@ -1247,6 +1258,20 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         existing_user = await db.users.find_one({"_id": user_obj_id})
         existing_alumni = await db.alumni.find_one({"user_id": user_id})
 
+        # CRITICAL: Detect if the alumnus is ALREADY APPROVED or VERIFIED
+        is_already_approved = bool(
+            (existing_alumni and (
+                str(existing_alumni.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED") or
+                str(existing_alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED") or
+                existing_alumni.get("is_verified") is True
+            )) or
+            (existing_user and (
+                str(existing_user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED") or
+                str(existing_user.get("status", "")).upper() in ("APPROVED", "VERIFIED") or
+                existing_user.get("is_verified") is True
+            ))
+        )
+
         # Resolve full_name and mobile — allow partial saves without requiring them
         resolved_full_name = request.full_name or (existing_alumni.get("full_name") if existing_alumni else None) or (existing_user.get("full_name") if existing_user else None)
         raw_mobile = request.mobile or (existing_alumni.get("mobile") if existing_alumni else None) or (existing_user.get("mobile") if existing_user else None)
@@ -1358,7 +1383,14 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 request.registration_submitted or 
                 (request.full_name and request.gender and request.dob and request.passing_year)
             )
-            target_status = "PENDING" if (is_full_submission or current_status == "PENDING") else (current_status if current_status in ["APPROVED", "REJECTED"] else "DRAFT")
+
+            # Prevent approved alumni from being demoted back to PENDING
+            if is_already_approved:
+                target_status = "APPROVED"
+                target_notes = (existing_alumni.get("verification_notes") if existing_alumni else None) or "Verified Alumni Member"
+            else:
+                target_status = "PENDING" if (is_full_submission or current_status == "PENDING") else (current_status if current_status in ["APPROVED", "REJECTED"] else "DRAFT")
+                target_notes = "Awaiting admin review" if target_status == "PENDING" else "Registration draft in progress"
             
             alumni_doc = {
                 "school_id": school_id,
@@ -1372,7 +1404,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 "current_city": request.current_city,
                 "profession": request.position or request.profession,
                 "verification_status": target_status,
-                "verification_notes": "Awaiting admin review" if target_status == "PENDING" else "Registration draft in progress",
+                "verification_notes": target_notes,
                 "registration_submitted": bool(is_full_submission or (existing_alumni and existing_alumni.get("registration_submitted"))),
                 "email_visible": False,
                 "updated_at": now,
@@ -1384,7 +1416,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 {"$set": alumni_doc},
                 upsert=True
             )
-            if target_status == "PENDING":
+            if not is_already_approved and target_status == "PENDING":
                 await db.users.update_one(
                     {"_id": user_obj_id},
                     {"$set": {"status": "PENDING", "verification_status": "PENDING"}}
@@ -1392,17 +1424,18 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
 
         alumni = await db.alumni.find_one({"user_id": user_id})
 
-        # Create audit log
-        await db.audit_logs.insert_one({
-            "school_id": school_id,
-            "user_id": user_id,
-            "action": "ALUMNI_REGISTERED",
-            "resource_type": "alumni",
-            "resource_id": str(alumni["_id"]) if (alumni and "_id" in alumni) else str(user_id),
-            "timestamp": now
-        })
+        # Create audit log only if not already approved
+        if not is_already_approved:
+            await db.audit_logs.insert_one({
+                "school_id": school_id,
+                "user_id": user_id,
+                "action": "ALUMNI_REGISTERED",
+                "resource_type": "alumni",
+                "resource_id": str(alumni["_id"]) if (alumni and "_id" in alumni) else str(user_id),
+                "timestamp": now
+            })
 
-        # Dispatch Registration Thank-You Email asynchronously in background ONLY ONCE upon final submission
+        # Dispatch Registration Thank-You Email asynchronously in background ONLY ONCE upon initial final submission
         already_sent_thank_you = bool(
             (alumni and alumni.get("registration_thank_you_email_sent")) or
             (existing_alumni and existing_alumni.get("registration_thank_you_email_sent"))
@@ -1413,7 +1446,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         )
 
         reg_email = str(request.email) if request.email else (alumni.get("email") if alumni else None)
-        if reg_email and is_final_submission and not already_sent_thank_you:
+        if not is_already_approved and reg_email and is_final_submission and not already_sent_thank_you:
             # Immediately record in MongoDB that the thank-you email has been dispatched for this alumnus
             await db.alumni.update_one(
                 {"user_id": user_id},
@@ -2057,7 +2090,16 @@ async def request_reverification(
     if not existing:
         raise HTTPException(status_code=404, detail="Alumni profile record not found.")
 
-    current_ver_status = existing.get("verification_status")
+    current_ver_status = str(existing.get("verification_status") or "").upper()
+    existing_status = str(existing.get("status") or "").upper()
+    is_verified_flag = existing.get("is_verified") is True
+
+    # If already APPROVED or VERIFIED, disallow re-verification requests!
+    if current_ver_status in ("APPROVED", "VERIFIED") or existing_status in ("APPROVED", "VERIFIED") or is_verified_flag:
+        raise HTTPException(
+            status_code=400,
+            detail="Your alumni profile is already verified and approved. Re-verification request cannot be submitted."
+        )
 
     # If already pending re-request, allow updating the note without incrementing attempt count
     if current_ver_status == "PENDING" and existing.get("is_rerequest"):

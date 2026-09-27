@@ -176,7 +176,7 @@ export const AlumniLayout: React.FC = () => {
     );
   }
 
-  const isApproved = user?.verification_status === 'APPROVED';
+  const isApproved = (user?.verification_status as string) === 'APPROVED' || (user?.verification_status as string) === 'VERIFIED';
 
   // =========================================================================
   // UNVERIFIED USER VIEW: CLEAN PAGE WITHOUT NAVBAR OR SIDEBAR

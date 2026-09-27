@@ -612,6 +612,21 @@ export const AlumniRegister: React.FC = () => {
       );
     } catch (err: any) {
       const errMsg = err?.message || String(err);
+      if (errMsg.includes('ACCOUNT_ALREADY_APPROVED') || errMsg.toLowerCase().includes('already verified and approved')) {
+        setAccountAlreadyExists(true);
+        const proceedToLogin = await alertService.showConfirm(
+          language === 'ta' ? 'கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டது' : 'Account Already Approved',
+          language === 'ta'
+            ? `கைபேசி எண் (${cleanMob}) ஏற்கனவே பள்ளி நிர்வாகத்தால் சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது. நீங்கள் மீண்டும் பதிவு செய்யத் தேவையில்லை. உங்கள் கணக்கில் உள்நுழைய விரும்புகிறீர்களா?`
+            : `An account with mobile number (${cleanMob}) is already verified and approved! You do not need to register again. Would you like to log in to the Alumni Portal now?`,
+          language === 'ta' ? 'உள்நுழையச் செல்லவும் →' : 'Proceed to Log In →',
+          language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
+        );
+        if (proceedToLogin) {
+          navigate(`/login?mobile=${cleanMob}`, { state: { mobile: cleanMob } });
+        }
+        return;
+      }
       if (errMsg.includes('ACCOUNT_ALREADY_REGISTERED') || errMsg.toLowerCase().includes('already registered') || err?.status === 409) {
         setAccountAlreadyExists(true);
         const proceedToLogin = await alertService.showConfirm(
@@ -652,6 +667,21 @@ export const AlumniRegister: React.FC = () => {
       const activeId = cleanMob.length >= 10 ? cleanMob : email;
       const res = await api.verifyOTP(activeId, otp);
       setIsOtpVerified(true);
+      
+      const isApprovedOrVerified =
+        res.verification_status === 'APPROVED' ||
+        res.verification_status === 'VERIFIED';
+
+      if (isApprovedOrVerified) {
+        await alertService.showSuccess(
+          language === 'ta' ? 'கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டது!' : 'Account Already Approved!',
+          language === 'ta'
+            ? 'உங்கள் முன்னாள் மாணவர் கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது. நீங்கள் முன்னாள் மாணவர் தளத்திற்கு செல்கிறீர்கள்.'
+            : 'Your alumni account is already verified and approved! Redirecting you to the Alumni Portal.'
+        );
+        navigate('/alumni', { replace: true });
+        return;
+      }
       
       // Query MongoDB database directly to determine if a password already exists
       let dbHasPassword = Boolean(res.has_password);
