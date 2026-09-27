@@ -47,7 +47,7 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
             ) {
               navigate('/developer');
             } else {
-              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED', u.verification_status);
               navigate(target);
             }
           }
@@ -90,7 +90,7 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
       const res = await api.login(cleanEmail, password);
 
       const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
-      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required, res.verification_status);
       if (
         upperRoles.includes('SUPER_ADMIN') ||
         upperRoles.includes('DEVELOPER') ||

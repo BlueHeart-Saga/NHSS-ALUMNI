@@ -426,6 +426,18 @@ export const AlumniRegister: React.FC = () => {
       api.getProfile()
         .then(async (p: any) => {
           if (p) {
+            // If alumnus is already approved or verified, immediately navigate to the Alumni Portal
+            const isApprovedOrVerified =
+              p.verification_status === 'APPROVED' ||
+              p.verification_status === 'VERIFIED' ||
+              p.status === 'APPROVED' ||
+              p.is_verified === true;
+
+            if (isApprovedOrVerified) {
+              navigate('/alumni', { replace: true });
+              return;
+            }
+
             let dbHasPassword = Boolean(p.has_password);
             const userIdentifier = p.mobile || p.email;
             if (!dbHasPassword && userIdentifier) {

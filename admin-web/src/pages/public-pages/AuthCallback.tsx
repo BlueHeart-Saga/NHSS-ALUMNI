@@ -51,7 +51,8 @@ export const AuthCallback: React.FC = () => {
 
     api.getMe()
       .then((u) => {
-        const targetPath = getRedirectPathForRoles(u.roles, registrationRequired);
+        const isVerified = u.verification_status?.toUpperCase() === 'APPROVED' || u.verification_status?.toUpperCase() === 'VERIFIED';
+        const targetPath = getRedirectPathForRoles(u.roles, isVerified ? false : registrationRequired, u.verification_status);
         const nextState = {
           email: email || u.email,
           fullName: name || u.full_name,

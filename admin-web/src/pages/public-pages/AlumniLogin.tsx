@@ -141,7 +141,8 @@ export const AlumniLogin: React.FC = () => {
       api.getMe()
         .then((u) => {
           if (u && u.roles) {
-            const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+            const isVerified = u.verification_status?.toUpperCase() === 'APPROVED' || u.verification_status?.toUpperCase() === 'VERIFIED';
+            const target = getRedirectPathForRoles(u.roles, !isVerified && u.verification_status === 'NOT_REGISTERED', u.verification_status);
             navigate(target);
           }
         })
@@ -168,7 +169,8 @@ export const AlumniLogin: React.FC = () => {
       // If password field is left empty, attempt check to see if user has a password in DB
       const passwordToSubmit = password ? password : 'CHECK_PASSWORD_STATUS';
       const res = await api.login(identifier, passwordToSubmit, rememberMe);
-      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
+      const targetPath = getRedirectPathForRoles(res.roles, isVerified ? false : res.registration_required, res.verification_status);
 
       if (targetPath === '/register') {
         navigate('/register', {
@@ -241,7 +243,8 @@ export const AlumniLogin: React.FC = () => {
 
     try {
       const res = await api.verifyOTP(email, otp);
-      const targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
+      const targetPath = getRedirectPathForRoles(res.roles, isVerified ? false : res.registration_required, res.verification_status);
 
       if (targetPath === '/register') {
         navigate('/register', {
@@ -467,7 +470,8 @@ export const AlumniLogin: React.FC = () => {
       );
 
       if (res.access_token) {
-        const targetPath = getRedirectPathForRoles(res.roles || ['ALUMNI'], res.registration_required);
+        const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
+        const targetPath = getRedirectPathForRoles(res.roles || ['ALUMNI'], isVerified ? false : res.registration_required, res.verification_status);
         if (targetPath === '/register') {
           navigate('/register', {
             state: {
@@ -1257,21 +1261,27 @@ export const AlumniLogin: React.FC = () => {
                           <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                           <span>{language === 'ta' ? 'கணக்கு இல்லை. தயவுசெய்து முதலில் பதிவு செய்யவும்.' : 'No account found matching this mobile number.'}</span>
                         </div>
-                        <Link
-                          to={{
-                            pathname: '/register',
-                            search: email.replace(/\D/g, '').length >= 10
-                              ? `?mobile=${encodeURIComponent(email.replace(/\D/g, '').slice(-10))}`
-                              : (email.includes('@') ? `?email=${encodeURIComponent(email)}` : '')
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const cleanDigits = email.replace(/\D/g, '');
+                            const isMob = cleanDigits.length >= 10;
+                            const isEm = email.includes('@');
+                            const searchStr = isMob
+                              ? `?mobile=${encodeURIComponent(cleanDigits.slice(-10))}`
+                              : (isEm ? `?email=${encodeURIComponent(email)}` : '');
+                            navigate(`/register${searchStr}`, {
+                              state: {
+                                mobile: isMob ? cleanDigits.slice(-10) : undefined,
+                                email: isEm ? email : undefined
+                              }
+                            });
                           }}
-                          state={{
-                            mobile: email.replace(/\D/g, '').length >= 10 ? email.replace(/\D/g, '').slice(-10) : undefined,
-                            email: email.includes('@') ? email : undefined
-                          }}
-                          className="font-semibold text-rose-800 hover:underline shrink-0 ml-1"
+                          className="font-semibold text-rose-800 hover:underline shrink-0 ml-1 cursor-pointer bg-transparent border-none p-0"
                         >
                           {language === 'ta' ? 'பதிவு செய்ய' : 'Register Now'}
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>

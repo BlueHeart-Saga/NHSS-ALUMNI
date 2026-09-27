@@ -49,7 +49,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
               navigate('/school-admin');
             } else {
-              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED');
+              const target = getRedirectPathForRoles(u.roles, u.verification_status === 'NOT_REGISTERED', u.verification_status);
               navigate(target);
             }
           }
@@ -88,7 +88,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       const res = await api.login(email.trim(), password);
 
       const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
-      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required, res.verification_status);
       if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
         targetPath = '/school-admin';
       }
@@ -127,7 +127,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       const res = await api.verifyAdminOTP(email.trim(), otp.trim());
       const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());
-      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required);
+      let targetPath = getRedirectPathForRoles(res.roles, res.registration_required, res.verification_status);
       if (upperRoles.includes('SCHOOL_ADMIN') || upperRoles.includes('SUPER_ADMIN')) {
         targetPath = '/school-admin';
       }
