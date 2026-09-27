@@ -11,6 +11,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
 import type { AuditStatement, MeetingMinute } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 /* ============================================================
  * SECTION A — AUDIT STATEMENTS
@@ -405,7 +406,7 @@ export const AuditManager: React.FC = () => {
                     </div>
                     <p className="text-xs text-[#6B7280] mt-0.5">
                       {item.financial_year} · {item.period_start} - {item.period_end}
-                      {item.posted_date && ` · ${item.posted_date}`}
+                      {item.posted_date && ` · ${formatDateDDMMYYYY(item.posted_date)}`}
                     </p>
                   </div>
                   <div className="flex items-center space-x-1.5 shrink-0">
@@ -529,7 +530,7 @@ export const AuditManager: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-[#6B7280] mt-0.5">
-                    {item.meeting_date}
+                    {formatDateDDMMYYYY(item.meeting_date)}
                     {item.meeting_time && ` · ${item.meeting_time}`}
                     {item.meeting_type && ` · ${item.meeting_type}`}
                   </p>
@@ -618,7 +619,7 @@ export const AuditManager: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
-              label={t('admin_audit_form_posted_date')}
+              label={`${t('admin_audit_form_posted_date')} (DD-MM-YYYY)`}
               placeholder={t('admin_audit_form_posted_date_placeholder')}
               value={auditForm.posted_date}
               onChange={(e) => setAuditForm({ ...auditForm, posted_date: e.target.value })}
@@ -726,12 +727,19 @@ export const AuditManager: React.FC = () => {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input
-              label="Meeting Date *"
-              type="date"
-              value={meetingForm.meeting_date}
-              onChange={(e) => setMeetingForm({ ...meetingForm, meeting_date: e.target.value })}
-            />
+            <div>
+              <Input
+                label="Meeting Date (DD-MM-YYYY) *"
+                type="date"
+                value={meetingForm.meeting_date}
+                onChange={(e) => setMeetingForm({ ...meetingForm, meeting_date: e.target.value })}
+              />
+              {meetingForm.meeting_date && (
+                <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                  {formatDateDDMMYYYY(meetingForm.meeting_date)}
+                </span>
+              )}
+            </div>
             <Input
               label="Meeting Time"
               placeholder="e.g. 12:00 PM – 1:45 PM"

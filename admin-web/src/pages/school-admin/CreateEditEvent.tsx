@@ -8,6 +8,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
 import { Batch } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const CreateEditEvent: React.FC = () => {
   const navigate = useNavigate();
@@ -287,13 +288,20 @@ export const CreateEditEvent: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input
-            label={t('admin_event_label_date')}
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            required
-          />
+          <div>
+            <Input
+              label={`${t('admin_event_label_date')} (DD-MM-YYYY)`}
+              type="date"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              required
+            />
+            {eventDate && (
+              <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                {formatDateDDMMYYYY(eventDate)}
+              </span>
+            )}
+          </div>
           <Input
             label={t('admin_event_label_start_time')}
             placeholder={t('admin_event_placeholder_start_time')}

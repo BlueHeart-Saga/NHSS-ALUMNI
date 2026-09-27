@@ -6,6 +6,7 @@ import { Input, Select } from '../../components/Input';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 interface Props {
   embedded?: boolean;
@@ -214,12 +215,19 @@ export const AlumniContribute: React.FC<Props> = ({ embedded = false, onSubmitte
           onChange={(e) => setPurposeNote(e.target.value)}
         />
 
-        <Input
-          label={t('alumni_contribute_form_date')}
-          type="date"
-          value={contributionDate}
-          onChange={(e) => setContributionDate(e.target.value)}
-        />
+        <div>
+          <Input
+            label={`${t('alumni_contribute_form_date')} (DD-MM-YYYY)`}
+            type="date"
+            value={contributionDate}
+            onChange={(e) => setContributionDate(e.target.value)}
+          />
+          {contributionDate && (
+            <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+              {formatDateDDMMYYYY(contributionDate)}
+            </span>
+          )}
+        </div>
 
         <Input
           label="Contact Number *"

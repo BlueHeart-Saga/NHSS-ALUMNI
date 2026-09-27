@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import { EventItem } from '../../types';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const AlumniEventsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -107,7 +108,7 @@ export const AlumniEventsPage: React.FC = () => {
                       <div className="text-xs text-gray-500 space-y-1.5 pt-2 border-t border-[#E5E7EB]">
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>{new Date(ev.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          <span>{formatDateDDMMYYYY(ev.event_date)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -159,7 +160,7 @@ export const AlumniEventsPage: React.FC = () => {
               <div key={ev.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <h4 className="font-bold text-sm text-[#111111]">{ev.title}</h4>
-                  <p className="text-xs text-gray-500">{ev.event_date} • {ev.venue}</p>
+                  <p className="text-xs text-gray-500">{formatDateDDMMYYYY(ev.event_date)} • {ev.venue}</p>
                 </div>
                 <button
                   onClick={() => setQrTicketEvent(ev)}
@@ -184,7 +185,7 @@ export const AlumniEventsPage: React.FC = () => {
             events.filter(e => new Date(e.event_date) < new Date()).map(ev => (
               <div key={ev.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB]">
                 <h4 className="font-bold text-xs text-[#111111]">{ev.title}</h4>
-                <p className="text-xs text-gray-500 mt-1">Held on {new Date(ev.event_date).toLocaleDateString()} • {ev.venue}</p>
+                <p className="text-xs text-gray-500 mt-1">Held on {formatDateDDMMYYYY(ev.event_date)} • {ev.venue}</p>
               </div>
             ))
           ) : (
@@ -203,7 +204,7 @@ export const AlumniEventsPage: React.FC = () => {
 
             <div>
               <h3 className="font-bold text-base text-[#111111]">{selectedEvent.title}</h3>
-              <p className="text-gray-500 mt-1">{selectedEvent.event_date} • {selectedEvent.venue}</p>
+              <p className="text-gray-500 mt-1">{formatDateDDMMYYYY(selectedEvent.event_date)} • {selectedEvent.venue}</p>
             </div>
 
             <div className="space-y-3">
@@ -291,7 +292,7 @@ export const AlumniEventsPage: React.FC = () => {
             <div className="text-xs text-gray-600 space-y-1">
               <p className="font-bold">{user?.full_name}</p>
               <p>{qrTicketEvent.venue}</p>
-              <p>{qrTicketEvent.event_date}</p>
+              <p>{formatDateDDMMYYYY(qrTicketEvent.event_date)}</p>
             </div>
           </div>
         </div>

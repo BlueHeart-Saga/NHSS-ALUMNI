@@ -11,6 +11,7 @@ import { alertService } from '../../services/alertService';
 import { SchoolEventItem } from '../../types';
 import { getAssetUrl } from '../../utils/asset';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 // Maps category keys to their translation key. Used for the category badges on the event cards.
 const CATEGORY_TRANSLATION_KEY: Record<string, string> = {
@@ -496,7 +497,7 @@ export const SchoolEventsManager: React.FC = () => {
                   <div className="space-y-2 text-xs text-[#111111] bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-[#854D0E] shrink-0" />
-                      <span className="font-semibold">{ev.event_date} ({ev.start_time} - {ev.end_time})</span>
+                      <span className="font-semibold">{formatDateDDMMYYYY(ev.event_date)} ({ev.start_time} - {ev.end_time})</span>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -621,7 +622,7 @@ export const SchoolEventsManager: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#111111] mb-1">
-                    {t('admin_school_events_form_event_date_label')} <span className="text-rose-500">*</span>
+                    {t('admin_school_events_form_event_date_label')} (DD-MM-YYYY) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -630,16 +631,26 @@ export const SchoolEventsManager: React.FC = () => {
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                     required
                   />
+                  {formData.event_date && (
+                    <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                      {formatDateDDMMYYYY(formData.event_date)}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_end_date_label')}</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">{t('admin_school_events_form_end_date_label')} (DD-MM-YYYY)</label>
                   <input
                     type="date"
                     value={formData.end_date || ''}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#111111]"
                   />
+                  {formData.end_date && (
+                    <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                      {formatDateDDMMYYYY(formData.end_date)}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -780,7 +791,7 @@ export const SchoolEventsManager: React.FC = () => {
               <div className="space-y-2 text-xs text-[#111111] bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-[#854D0E] shrink-0" />
-                  <span className="font-semibold">{viewingEvent.event_date} ({viewingEvent.start_time} - {viewingEvent.end_time})</span>
+                  <span className="font-semibold">{formatDateDDMMYYYY(viewingEvent.event_date)} ({viewingEvent.start_time} - {viewingEvent.end_time})</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4 text-[#854D0E] shrink-0" />

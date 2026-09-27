@@ -23,6 +23,7 @@ import { ImageUploadAndEdit } from '../../components/ImageUploadAndEdit';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Announcement, Batch } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Category config with translation keys for labels.
@@ -383,7 +384,7 @@ export const AnnouncementsManager: React.FC = () => {
                       <span className="text-[#4B5563] font-medium">
                         {t('admin_announcements_by_prefix').replace('{name}', item.created_by_name)}
                       </span>
-                      <span>{new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span>{formatDateDDMMYYYY(item.created_at)}</span>
                     </div>
 
                     {/* Action Buttons */}

@@ -3,6 +3,7 @@ import { Users, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import type { TopContributor } from '../../../../types';
 import { AuditSectionPagination } from './AuditSectionPagination';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 
 interface Props {
   contributors: TopContributor[];
@@ -89,7 +90,7 @@ export const TopContributorsTable: React.FC<Props> = ({ contributors, financialY
                   </td>
                   <td className="px-3 py-3 text-[#4B5563]">{c.batch || '—'}</td>
                   <td className="px-3 py-3 font-bold text-[#111111]">{fmtINR(c.amount)}</td>
-                  <td className="px-3 py-3 text-[#4B5563]">{c.contribution_date || '—'}</td>
+                  <td className="px-3 py-3 text-[#4B5563]">{formatDateDDMMYYYY(c.contribution_date, '—')}</td>
                 </tr>
               ))}
             </tbody>

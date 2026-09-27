@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAssetUrl } from '../../utils/asset';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 interface EventItem {
   id: string;
@@ -356,7 +357,7 @@ export const PublicEvents: React.FC = () => {
                       {/* Date Badge Pill */}
                       <div className="absolute bottom-3 right-3 z-10 bg-black/80 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-xl border border-white/20 flex items-center space-x-1">
                         <Calendar className="w-3.5 h-3.5 text-[#F4C542]" />
-                        <span>{event.event_date}</span>
+                        <span>{formatDateDDMMYYYY(event.event_date)}</span>
                       </div>
                     </div>
 
@@ -489,7 +490,7 @@ export const PublicEvents: React.FC = () => {
                 <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3.5 py-1.5 rounded-xl">
                   <Calendar className="w-4 h-4 text-[#854D0E]" />
                   <span>
-                    {selectedPreviewEvent.event_date}{' '}
+                    {formatDateDDMMYYYY(selectedPreviewEvent.event_date)}{' '}
                     {selectedPreviewEvent.start_time && `• ${selectedPreviewEvent.start_time}`}
                   </span>
                 </div>

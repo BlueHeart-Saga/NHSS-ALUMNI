@@ -23,6 +23,7 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { CurrentStaffSection } from './components/CurrentStaffSection';
 import { OldStaffsSection } from './components/OldStaffsSection';
 import { api } from '../../services/api';
@@ -621,7 +622,7 @@ export const PublicSchool: React.FC = () => {
                         <span className="text-[10px] font-bold text-[#854D0E] uppercase truncate">{photo.category}</span>
                         {photo.date && !isNaN(Date.parse(photo.date)) && (
                           <span className="text-[10px] font-medium text-gray-400 shrink-0">
-                            {new Date(photo.date).toLocaleDateString(language === 'ta' ? 'ta-IN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {formatDateDDMMYYYY(photo.date)}
                           </span>
                         )}
                       </div>

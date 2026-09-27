@@ -11,6 +11,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { StatsGridSkeleton, TableSkeleton } from '../../components/EmptyState';
 import { api } from '../../services/api';
+import { formatDateDDMMYYYY, formatDateTimeDDMMYYYY } from '../../utils/dateUtils';
 
 export const DeveloperPortal: React.FC = () => {
   const location = useLocation();
@@ -1357,7 +1358,7 @@ export const DeveloperPortal: React.FC = () => {
                         <td className="p-3.5 text-gray-600">{item.email}</td>
                         <td className="p-3.5 font-mono text-gray-600">{item.mobile}</td>
                         <td className="p-3.5 font-medium">{item.responsibility}</td>
-                        <td className="p-3.5 text-gray-500">{new Date(item.created_at).toLocaleDateString()}</td>
+                        <td className="p-3.5 text-gray-500">{formatDateDDMMYYYY(item.created_at)}</td>
                         <td className="p-3.5">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                             item.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
@@ -1720,8 +1721,8 @@ export const DeveloperPortal: React.FC = () => {
                 </div>
 
                 <div className="p-3 bg-gray-50 rounded-xl border text-[11px] text-gray-500 flex justify-between">
-                  <span>Created At: <strong>{viewingUser.created_at || 'N/A'}</strong></span>
-                  {viewingUser.updated_at && <span>Updated: <strong>{viewingUser.updated_at}</strong></span>}
+                  <span>Created At: <strong>{formatDateTimeDDMMYYYY(viewingUser.created_at) || 'N/A'}</strong></span>
+                  {viewingUser.updated_at && <span>Updated: <strong>{formatDateTimeDDMMYYYY(viewingUser.updated_at)}</strong></span>}
                 </div>
               </div>
             ) : (

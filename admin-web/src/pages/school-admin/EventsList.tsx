@@ -9,6 +9,7 @@ import { EventItem } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { getAssetUrl } from '../../utils/asset';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const EventsList: React.FC = () => {
   const navigate = useNavigate();
@@ -167,7 +168,7 @@ export const EventsList: React.FC = () => {
                   <div className="space-y-2 text-xs text-[#111111] bg-gray-50 p-3 rounded-2xl border border-gray-100">
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-[#854D0E] shrink-0" />
-                      <span className="font-semibold">{ev.event_date} ({ev.start_time} - {ev.end_time})</span>
+                      <span className="font-semibold">{formatDateDDMMYYYY(ev.event_date)} ({ev.start_time} - {ev.end_time})</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="w-4 h-4 text-[#854D0E] shrink-0" />

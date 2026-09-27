@@ -3,6 +3,7 @@ import { Calendar, MapPin, ArrowRight, ExternalLink, Clock, Users, X, QrCode, Sh
 import { useLanguage } from '../../../../context/LanguageContext';
 import { EventsSkeleton } from './SkeletonLoaders';
 import { getAssetUrl } from '../../../../utils/asset';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 
 interface EventItem {
   id: string;
@@ -320,7 +321,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm font-semibold text-gray-700">
                           <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3 py-1 rounded-xl shadow-2xs">
                             <Calendar className="w-4 h-4 text-[#854D0E]" />
-                            <span>{currentEvent.event_date} {currentEvent.start_time && `• ${currentEvent.start_time}`}</span>
+                            <span>{formatDateDDMMYYYY(currentEvent.event_date)} {currentEvent.start_time && `• ${currentEvent.start_time}`}</span>
                           </div>
                           {currentEvent.venue && (
                             <div className="flex items-center space-x-1.5 bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-xl">
@@ -415,7 +416,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               {/* Event Date & Time Field */}
               <div className="inline-flex items-center space-x-2 text-xs sm:text-sm font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-2 rounded-2xl shadow-xs">
                 <Clock className="w-4 h-4 text-[#854D0E]" />
-                <span>{selectedPreviewEvent.event_date} ({selectedPreviewEvent.start_time || '10:00 AM'})</span>
+                <span>{formatDateDDMMYYYY(selectedPreviewEvent.event_date)} ({selectedPreviewEvent.start_time || '10:00 AM'})</span>
               </div>
 
               {/* Event Description */}

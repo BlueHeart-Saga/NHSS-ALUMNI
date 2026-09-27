@@ -5,6 +5,7 @@ import {
 import { api } from '../../services/api';
 import { SchoolEventItem } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const AlumniSchoolEventsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -133,7 +134,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
                     <div className="space-y-1.5 text-xs text-[#4B5563]">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                        <span>{event.event_date} {event.end_date ? `to ${event.end_date}` : ''}</span>
+                        <span>{formatDateDDMMYYYY(event.event_date)} {event.end_date ? `to ${formatDateDDMMYYYY(event.end_date)}` : ''}</span>
                       </div>
 
                       <div className="flex items-center space-x-2">
@@ -219,7 +220,7 @@ export const AlumniSchoolEventsPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#FAFAFA] p-3.5 rounded-2xl border border-[#E5E7EB]">
                 <div>
                   <span className="text-gray-500 font-semibold block text-[10px]">{language === 'ta' ? 'தேதி' : 'EVENT DATE'}</span>
-                  <span className="font-bold text-[#111111]">{selectedEvent.event_date}</span>
+                  <span className="font-bold text-[#111111]">{formatDateDDMMYYYY(selectedEvent.event_date)}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 font-semibold block text-[10px]">{language === 'ta' ? 'நேரம்' : 'TIME'}</span>

@@ -17,6 +17,7 @@ import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { api } from '../../../services/api';
 import { useLanguage } from '../../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../../utils/dateUtils';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -214,7 +215,7 @@ export const HomePage: React.FC = () => {
             </span>
             <p className="text-xs text-[#6B7280] leading-relaxed">{selectedEvent.description}</p>
             <div className="text-xs text-[#111111] space-y-1.5 bg-[#FAFAFA] p-4 rounded-xl border border-[#E5E7EB]">
-              <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Date:</strong> {selectedEvent.event_date} ({selectedEvent.start_time})</span></div>
+              <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Date:</strong> {formatDateDDMMYYYY(selectedEvent.event_date)} ({selectedEvent.start_time})</span></div>
               <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Venue:</strong> {selectedEvent.venue}</span></div>
               <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span><strong>Attending:</strong> {selectedEvent.attending_count} Alumni Confirmed</span></div>
             </div>
@@ -269,11 +270,7 @@ export const HomePage: React.FC = () => {
               </span>
               <div className="text-xs text-[#6B7280]">
                 {language === 'ta' ? 'தேதி: ' : 'Published on '}
-                {new Date(selectedNews.created_at).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
+                {formatDateDDMMYYYY(selectedNews.created_at)}
               </div>
             </div>
 

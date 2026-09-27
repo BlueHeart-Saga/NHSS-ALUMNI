@@ -8,6 +8,7 @@ import { LoadingState } from '../../components/EmptyState';
 import { QRScannerModal } from '../../components/QRScannerModal';
 import { api } from '../../services/api';
 import { EventItem, AttendanceDashboard } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const EventDetails: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -64,7 +65,7 @@ export const EventDetails: React.FC = () => {
           <p className="text-sm text-[#6B7280] mt-1 max-w-2xl">{eventItem.description}</p>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 text-xs font-semibold text-[#111111]">
-            <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span>{eventItem.event_date} ({eventItem.start_time} - {eventItem.end_time})</span></span>
+            <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span>{formatDateDDMMYYYY(eventItem.event_date)} ({eventItem.start_time} - {eventItem.end_time})</span></span>
             <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" /> <span>{eventItem.venue} ({eventItem.address})</span></span>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AlumniProfile } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const VerificationQueue: React.FC = () => {
   const { t, language } = useLanguage();
@@ -677,7 +678,7 @@ export const VerificationQueue: React.FC = () => {
                           <span>Attempt #{entry.attempt}</span>
                           {entry.requested_at && (
                             <span className="text-[10px] font-normal text-gray-500">
-                              ({new Date(entry.requested_at).toLocaleDateString()})
+                              ({formatDateDDMMYYYY(entry.requested_at)})
                             </span>
                           )}
                         </span>
@@ -751,7 +752,7 @@ export const VerificationQueue: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-gray-500 block text-[11px]">{language === 'ta' ? 'பிறந்த தேதி:' : 'Date of Birth:'}</span>
-                  <div className="font-semibold text-[#111111]">{viewingAlumni.dob || viewingAlumni.date_of_birth || '—'}</div>
+                  <div className="font-semibold text-[#111111]">{formatDateDDMMYYYY(viewingAlumni.dob || viewingAlumni.date_of_birth, '—')}</div>
                 </div>
                 <div>
                   <span className="text-gray-500 block text-[11px]">{language === 'ta' ? 'இரத்த வகை:' : 'Blood Group:'}</span>

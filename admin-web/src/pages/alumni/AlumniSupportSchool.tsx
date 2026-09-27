@@ -18,6 +18,7 @@ import { AlumniMyContributions } from './AlumniMyContributions';
 import { AlumniSponsors } from './AlumniSponsors';
 import { TopContributorsTable } from '../public-pages/Audit/components/TopContributorsTable';
 import type { Contribution, Sponsor, TopContributor } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 const fmtINR = (n: number) =>
   new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
@@ -144,7 +145,7 @@ const MyActivitiesPage: React.FC = () => {
                 <tbody className="divide-y divide-[#F3F4F6] text-xs">
                   {contributions.slice(0, 4).map((c) => (
                     <tr key={c.id} className="hover:bg-[#FAFAFA]">
-                      <td className="px-2 py-2 text-[#4B5563]">{c.contribution_date || '—'}</td>
+                      <td className="px-2 py-2 text-[#4B5563]">{formatDateDDMMYYYY(c.contribution_date, '—')}</td>
                       <td className="px-2 py-2 text-right font-bold text-[#111111]">
                         {fmtINR(c.amount)}
                       </td>
@@ -193,7 +194,7 @@ const MyActivitiesPage: React.FC = () => {
                   {sponsors.slice(0, 4).map((s) => (
                     <tr key={s.id} className="hover:bg-[#FAFAFA]">
                       <td className="px-2 py-2 text-[#4B5563]">
-                        {s.created_at?.slice(0, 10) || s.financial_year || '—'}
+                        {formatDateDDMMYYYY(s.created_at) || s.financial_year || '—'}
                       </td>
                       <td className="px-2 py-2 text-[#4B5563]">{s.sponsored_item || '—'}</td>
                       <td className="px-2 py-2 text-right font-bold text-[#111111]">

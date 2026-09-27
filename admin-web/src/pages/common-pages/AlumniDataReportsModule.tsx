@@ -8,6 +8,7 @@ import {
 import { api } from '../../services/api';
 import { AlumniProfile } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { StatsGridSkeleton } from '../../components/EmptyState';
 
 export const AlumniDataReportsModule: React.FC = () => {
@@ -176,7 +177,7 @@ export const AlumniDataReportsModule: React.FC = () => {
     const rows = sortedAlumni.map((a) => [
       `"${(a.full_name || '').replace(/"/g, '""')}"`,
       a.passing_year || '',
-      a.created_at ? new Date(a.created_at).toISOString().split('T')[0] : '',
+      a.created_at ? formatDateDDMMYYYY(a.created_at) : '',
       `"${a.mobile || ''}"`,
       `"${a.email || ''}"`,
       `"${a.blood_group || ''}"`,
@@ -201,16 +202,7 @@ export const AlumniDataReportsModule: React.FC = () => {
   };
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    try {
-      return new Date(dateStr).toLocaleDateString(language === 'ta' ? 'ta-IN' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatDateDDMMYYYY(dateStr, 'N/A');
   };
 
   const renderStatusBadge = (status?: string) => {

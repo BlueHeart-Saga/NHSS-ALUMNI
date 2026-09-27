@@ -5,6 +5,7 @@ import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
 import { AlumniProfile, Announcement } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const AlumniBatchesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -186,7 +187,7 @@ export const AlumniBatchesPage: React.FC = () => {
                 <div key={notice.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] space-y-2">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-gray-500 gap-1 sm:gap-0">
                     <span className="font-bold text-[#111111]">{notice.title}</span>
-                    <span>{new Date(notice.created_at).toLocaleDateString()}</span>
+                    <span>{formatDateDDMMYYYY(notice.created_at)}</span>
                   </div>
                   <p className="text-xs text-[#374151] leading-relaxed">{notice.content}</p>
                 </div>

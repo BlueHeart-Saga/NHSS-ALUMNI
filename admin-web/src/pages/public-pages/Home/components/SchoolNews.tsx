@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ArrowRight, Newspaper, Clock, FileText, Megaphone, PartyPopper, BookOpen, Award, Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 import { NewsSkeleton } from './SkeletonLoaders';
 
 export interface NewsItem {
@@ -169,13 +170,7 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, 
                       {/* Date Badge */}
                       <div className="flex items-center space-x-2 text-[11px] sm:text-xs font-semibold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full w-fit border border-[#F4C542]/60">
                         <Calendar className="w-3.5 h-3.5 text-[#854D0E]" />
-                        <span>
-                          {new Date(item.created_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </span>
+                        <span>{formatDateDDMMYYYY(item.created_at)}</span>
                       </div>
 
                       {/* Main Title */}

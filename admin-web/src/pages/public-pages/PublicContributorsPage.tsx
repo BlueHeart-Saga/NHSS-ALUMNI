@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import type { TopContributor } from '../../types';
 import { EmptyState, LoadingState } from '../../components/EmptyState';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 const currentIndianFY = (): string => {
   const now = new Date();
@@ -106,7 +107,7 @@ export const PublicContributorsPage: React.FC = () => {
                       <td className="px-4 py-3 text-right font-bold text-[#111111]">
                         {fmtINR(contributor.amount)}
                       </td>
-                      <td className="px-4 py-3 text-[#4B5563]">{contributor.contribution_date || '—'}</td>
+                      <td className="px-4 py-3 text-[#4B5563]">{formatDateDDMMYYYY(contributor.contribution_date, '—')}</td>
                     </tr>
                   ))}
                 </tbody>

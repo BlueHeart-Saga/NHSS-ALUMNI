@@ -11,6 +11,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Contribution, ContributionStatus } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { AdminContributionModal } from './AdminContributionModal';
 
 const fmtINR = (n: number) =>
@@ -291,7 +292,7 @@ export const ContributionManager: React.FC = () => {
                     <td className="px-4 py-3 text-right font-bold text-[#111111]">
                       {fmtINR(c.amount)}
                     </td>
-                    <td className="px-4 py-3 text-[#4B5563]">{c.contribution_date || '—'}</td>
+                    <td className="px-4 py-3 text-[#4B5563]">{formatDateDDMMYYYY(c.contribution_date, '—')}</td>
                     <td className="px-4 py-3 text-[#4B5563]">{c.financial_year || '—'}</td>
                     <td className="px-4 py-3 text-[#4B5563]">
                       {t(PURPOSE_KEYS[c.purpose || 'GENERAL'] || 'contribution_purpose_general')}
@@ -436,7 +437,7 @@ export const ContributionManager: React.FC = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 text-xs">
                   <span className="sm:w-44 shrink-0 font-semibold text-[#6B7280]">Contribution Date</span>
-                  <span className="text-[#111111] break-words">{valueOrFallback(detailsItem.contribution_date)}</span>
+                  <span className="text-[#111111] break-words">{formatDateDDMMYYYY(detailsItem.contribution_date, '—')}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 text-xs">
                   <span className="sm:w-44 shrink-0 font-semibold text-[#6B7280]">Financial Year</span>
@@ -513,7 +514,7 @@ export const ContributionManager: React.FC = () => {
                   <span className="sm:w-44 shrink-0 font-semibold text-[#6B7280]">Submitted On</span>
                   <span className="text-[#111111] break-words">
                     {valueOrFallback(
-                      detailsItem.created_at ? detailsItem.created_at.slice(0, 10) : undefined
+                      detailsItem.created_at ? formatDateDDMMYYYY(detailsItem.created_at) : undefined
                     )}
                   </span>
                 </div>
@@ -563,12 +564,19 @@ export const ContributionManager: React.FC = () => {
                 { label: 'REJECTED', value: 'REJECTED' },
               ]}
             />
-            <Input
-              label={t('admin_contributions_form_date')}
-              type="date"
-              value={editItem.contribution_date || ''}
-              onChange={(e) => setEditItem({ ...editItem, contribution_date: e.target.value })}
-            />
+            <div>
+              <Input
+                label={`${t('admin_contributions_form_date')} (DD-MM-YYYY)`}
+                type="date"
+                value={editItem.contribution_date || ''}
+                onChange={(e) => setEditItem({ ...editItem, contribution_date: e.target.value })}
+              />
+              {editItem.contribution_date && (
+                <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                  {formatDateDDMMYYYY(editItem.contribution_date)}
+                </span>
+              )}
+            </div>
             <Input
               label={t('admin_contributions_form_fy')}
               value={editItem.financial_year || ''}

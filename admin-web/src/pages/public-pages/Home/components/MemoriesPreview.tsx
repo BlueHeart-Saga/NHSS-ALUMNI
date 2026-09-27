@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Camera, Calendar, MapPin, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { getAssetUrl } from '../../../../utils/asset';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 import { MemoriesSkeleton } from './SkeletonLoaders';
 
 interface PastEventItem {
@@ -91,7 +92,7 @@ export const MemoriesPreview: React.FC<MemoriesPreviewProps> = ({ memories, load
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 sm:p-6 flex flex-col justify-end space-y-1.5 sm:space-y-2 z-10">
                       <span className="text-[10px] sm:text-xs font-bold text-[#F4C542] bg-[#111111] border border-[#F4C542]/50 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full self-start inline-flex items-center space-x-1">
                         <Calendar className="w-3 h-3 text-[#F4C542] mr-1 inline" />
-                        <span>{event.event_date || 'Past Event'}</span>
+                        <span>{event.event_date ? formatDateDDMMYYYY(event.event_date) : 'Past Event'}</span>
                       </span>
 
                       <h3 className="text-lg sm:text-xl font-bold text-white leading-tight drop-shadow-md group-hover:text-[#F4C542] transition-colors line-clamp-1">

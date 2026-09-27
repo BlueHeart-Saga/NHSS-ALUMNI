@@ -7,6 +7,7 @@ import {
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import type { Notification } from '../../types';
 
 export interface LiveNotificationItem {
@@ -83,8 +84,8 @@ export const AlumniNotificationsPage: React.FC = () => {
             id: `sevent-${e.id || Math.random()}`,
             category: 'SCHOOL_EVENT',
             title: `School Event: ${e.title}`,
-            message: `${e.category.replace(/_/g, ' ')} scheduled for ${e.event_date} at ${e.venue}. ${e.description ? e.description.slice(0, 100) + '...' : ''}`,
-            timestamp: e.event_date || 'Upcoming',
+            message: `${e.category.replace(/_/g, ' ')} scheduled for ${formatDateDDMMYYYY(e.event_date)} at ${e.venue}. ${e.description ? e.description.slice(0, 100) + '...' : ''}`,
+            timestamp: formatDateDDMMYYYY(e.event_date) || 'Upcoming',
             statusTag: e.status || 'UPCOMING',
             isRead: false,
             linkUrl: '/alumni/school-events'
@@ -102,8 +103,8 @@ export const AlumniNotificationsPage: React.FC = () => {
             id: `aevent-${e.id || Math.random()}`,
             category: 'REUNION',
             title: `Alumni Event: ${e.title}`,
-            message: `Batch Get-Together on ${e.event_date} at ${e.venue}. RSVP status: ${e.user_rsvp || 'PENDING'}.`,
-            timestamp: e.event_date || 'Upcoming',
+            message: `Batch Get-Together on ${formatDateDDMMYYYY(e.event_date)} at ${e.venue}. RSVP status: ${e.user_rsvp || 'PENDING'}.`,
+            timestamp: formatDateDDMMYYYY(e.event_date) || 'Upcoming',
             statusTag: e.status || 'PUBLISHED',
             isRead: false,
             linkUrl: '/alumni/events'
@@ -308,7 +309,7 @@ export const AlumniNotificationsPage: React.FC = () => {
                         {n.statusTag}
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400 font-medium">{n.timestamp}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">{formatDateDDMMYYYY(n.timestamp) || n.timestamp}</span>
                   </div>
                 </div>
                 <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{n.message}</p>

@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
 import { FeedbackItem, CreateFeedbackPayload } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 const CATEGORIES = [
   { key: 'SUGGESTIONS', label: 'Suggestions / பரிந்துரைகள்' },
@@ -224,7 +225,7 @@ export const AlumniFeedback: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1">
                   <span>Batch: <strong className="text-[#111111]">{item.batch_year}</strong></span>
-                  <span>Submitted: {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recently'}</span>
+                  <span>Submitted: {item.created_at ? formatDateDDMMYYYY(item.created_at) : 'Recently'}</span>
                 </div>
               </div>
             ))}

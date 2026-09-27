@@ -3,6 +3,7 @@ import { HandHeart, ExternalLink, ArrowRight } from 'lucide-react';
 import { Modal } from '../../../../components/Modal';
 import { useLanguage } from '../../../../context/LanguageContext';
 import type { Sponsor } from '../../../../types';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 import { AuditSectionPagination } from './AuditSectionPagination';
 
 interface Props {
@@ -18,9 +19,7 @@ export const SponsorsGrid: React.FC<Props> = ({ sponsors, financialYear, onViewA
   const [currentPage, setCurrentPage] = useState(1);
 
   const formatDate = (value?: string) => {
-    if (!value) return 'N/A';
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB');
+    return formatDateDDMMYYYY(value, 'N/A');
   };
 
   const formatAmount = (amount?: number) => {

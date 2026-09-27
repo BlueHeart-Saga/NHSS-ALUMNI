@@ -12,6 +12,7 @@ import { Button } from '../../components/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { DemoVideoModal, VideoType } from '../../components/DemoVideoModal';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 
 interface CountryOption {
@@ -2003,7 +2004,7 @@ export const AlumniRegister: React.FC = () => {
                     {/* Date of Birth */}
                     <div id="field-dob" className={getHighlightCls('dob')}>
                       <label className="block text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        {language === 'ta' ? 'பிறந்த தேதி' : 'Date of Birth'} <span className="text-rose-500">*</span>
+                        {language === 'ta' ? 'பிறந்த தேதி' : 'Date of Birth'} <span className="text-xs font-normal text-gray-500">(DD-MM-YYYY)</span> <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -2016,6 +2017,11 @@ export const AlumniRegister: React.FC = () => {
                         }}
                         className="w-full py-2 px-0 bg-transparent border-b-2 border-gray-300 focus:border-[#111111] focus:outline-none transition-colors text-base font-semibold text-[#111111]"
                       />
+                      {dob && (
+                        <span className="text-xs text-[#854D0E] font-semibold mt-1 block">
+                          {language === 'ta' ? 'தேர்ந்தெடுக்கப்பட்ட தேதி:' : 'Selected:'} {formatDateDDMMYYYY(dob)}
+                        </span>
+                      )}
                       {invalidFields.has('dob') && (
                         <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -2885,7 +2891,7 @@ export const AlumniRegister: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பிறந்த தேதி:' : 'Date of Birth:'}</span>
-                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{dob || 'N/A'}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{formatDateDDMMYYYY(dob) || 'N/A'}</span>
                         </div>
                         <div>
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'ரத்த வகை:' : 'Blood Group:'}</span>

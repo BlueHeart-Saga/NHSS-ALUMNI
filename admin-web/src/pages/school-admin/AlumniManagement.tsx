@@ -13,6 +13,7 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { AlumniProfile, Batch } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 const ADD_FORM_TOTAL_STEPS = 5;
 
@@ -1699,7 +1700,7 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_mobile')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[90px]">{t('admin_sheet_country_code')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_gender')}</th>
-                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_dob')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_dob')} (DD-MM-YYYY)</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[200px]">{t('admin_sheet_email')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_blood_group')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[150px]">{t('admin_sheet_father_name')}</th>
@@ -1874,7 +1875,8 @@ export const AlumniManagement: React.FC = () => {
                       <td className="p-1 border-r border-gray-200">
                         <input
                           type="text"
-                          value={getValue('date_of_birth') || getValue('dob')}
+                          placeholder="DD-MM-YYYY"
+                          value={formatDateDDMMYYYY(getValue('date_of_birth') || getValue('dob'))}
                           onChange={(e) => handleCellEdit(a.id, 'date_of_birth', e.target.value, 'dob')}
                           onBlur={() => handleCellBlur(a.id)}
                           className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-mono"
@@ -2309,7 +2311,7 @@ export const AlumniManagement: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_dob')} *</label>
+                    <label className={addLabelCls}>{t('admin_sheet_dob')} (DD-MM-YYYY) *</label>
                     <input
                       type="date"
                       max={new Date().toLocaleDateString('en-CA')}
@@ -2317,6 +2319,11 @@ export const AlumniManagement: React.FC = () => {
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, date_of_birth: e.target.value })}
                       className={addInputCls}
                     />
+                    {newAlumnus.date_of_birth && (
+                      <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+                        {formatDateDDMMYYYY(newAlumnus.date_of_birth)}
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -6,6 +6,7 @@ import { LoadingState, EmptyState } from '../../components/EmptyState';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Contribution } from '../../types';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 const fmtINR = (n: number) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
 
@@ -99,7 +100,7 @@ export const AlumniMyContributions: React.FC<Props> = ({ embedded = false, onMak
               <tbody className="divide-y divide-[#F3F4F6] text-xs">
                 {items.map((c) => (
                   <tr key={c.id} className="hover:bg-[#FAFAFA]">
-                    <td className="px-4 py-3 text-[#4B5563]">{c.contribution_date || '—'}</td>
+                    <td className="px-4 py-3 text-[#4B5563]">{formatDateDDMMYYYY(c.contribution_date, '—')}</td>
                     <td className="px-4 py-3 text-right font-bold text-[#111111]">
                       {fmtINR(c.amount)}
                     </td>

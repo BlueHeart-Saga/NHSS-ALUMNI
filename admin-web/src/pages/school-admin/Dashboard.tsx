@@ -14,6 +14,7 @@ import { alertService } from '../../services/alertService';
 import { DashboardReport, AlumniProfile, EventItem } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -203,7 +204,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 text-xs font-semibold text-[#111111]">
               <span className="inline-flex items-center gap-1.5 bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
                 <Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                <span>{upcomingEvent.event_date} ({upcomingEvent.start_time})</span>
+                <span>{formatDateDDMMYYYY(upcomingEvent.event_date)} ({upcomingEvent.start_time})</span>
               </span>
               <span className="inline-flex items-center gap-1.5 bg-[#FAFAFA] border border-[#E5E7EB] px-3 py-1.5 rounded-xl">
                 <MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" />
@@ -321,7 +322,7 @@ export const Dashboard: React.FC = () => {
                       onClick={() => {
                         setConfirmingAlumni(a);
                         setApprovalNote(
-                          `${t('admin_dashboard_approval_default_note')} - ${new Date().toLocaleDateString()}`
+                          `${t('admin_dashboard_approval_default_note')} - ${formatDateDDMMYYYY(new Date())}`
                         );
                       }}
                     >
@@ -456,7 +457,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[#6B7280]">{t('admin_dashboard_detail_label_dob')}</span>
-                    <div className="font-semibold text-[#111111]">{selectedAlumni.dob || selectedAlumni.date_of_birth || '—'}</div>
+                    <div className="font-semibold text-[#111111]">{formatDateDDMMYYYY(selectedAlumni.dob || selectedAlumni.date_of_birth, '—')}</div>
                   </div>
                   <div>
                     <span className="text-[#6B7280]">{t('admin_dashboard_detail_label_blood')}</span>
@@ -571,7 +572,7 @@ export const Dashboard: React.FC = () => {
                   setSelectedAlumni(null);
                   setConfirmingAlumni(toApprove);
                   setApprovalNote(
-                    `${t('admin_dashboard_approval_default_note')} - ${new Date().toLocaleDateString()}`
+                    `${t('admin_dashboard_approval_default_note')} - ${formatDateDDMMYYYY(new Date())}`
                   );
                 }}
               >

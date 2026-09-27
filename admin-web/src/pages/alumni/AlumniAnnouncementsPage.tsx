@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { Announcement } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const AlumniAnnouncementsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -33,7 +34,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
                   <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
                     {language === 'ta' ? 'பள்ளி அறிவிப்பு' : `${ann.target || 'SCHOOL'} ANNOUNCEMENT`}
                   </span>
-                  <span className="text-xs text-gray-500">{new Date(ann.created_at).toLocaleDateString()}</span>
+                  <span className="text-xs text-gray-500">{formatDateDDMMYYYY(ann.created_at)}</span>
                 </div>
                 <h3 className="font-bold text-sm text-[#111111]">{ann.title}</h3>
                 <p className="text-xs text-[#374151] leading-relaxed">{ann.content}</p>

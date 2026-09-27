@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input, Select } from './Input';
 import { useLanguage } from '../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../utils/dateUtils';
 import type {
   ContributionFormValues,
   ReceiptRequired,
@@ -73,13 +74,20 @@ export const ContributionFormFields: React.FC<Props> = ({
       />
 
       {/* 4. Contribution Date */}
-      <Input
-        label={t('alumni_contribute_form_date')}
-        type="date"
-        value={values.contributionDate}
-        onChange={(e) => setField('contributionDate', e.target.value)}
-        disabled={disabled}
-      />
+      <div>
+        <Input
+          label={`${t('alumni_contribute_form_date')} (DD-MM-YYYY)`}
+          type="date"
+          value={values.contributionDate}
+          onChange={(e) => setField('contributionDate', e.target.value)}
+          disabled={disabled}
+        />
+        {values.contributionDate && (
+          <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
+            {formatDateDDMMYYYY(values.contributionDate)}
+          </span>
+        )}
+      </div>
 
       {/* 5. Contact Number */}
       <Input

@@ -4,18 +4,13 @@ import { api } from '../../../../services/api';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { LoadingState } from '../../../../components/EmptyState';
 import type { MeetingMinute } from '../../../../types';
+import { formatDateDDMMYYYY } from '../../../../utils/dateUtils';
 
 const MEETINGS_PER_PAGE = 5;
 
-/** Format "YYYY-MM-DD" → "20 September 2026" */
+/** Format date → "DD-MM-YYYY" */
 const formatDate = (iso: string): string => {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  } catch {
-    return iso;
-  }
+  return formatDateDDMMYYYY(iso);
 };
 
 /** Grab the first 3–4 non-empty lines from the notes field for the preview. */

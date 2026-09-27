@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import { EventItem, Announcement } from '../../types';
 import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 
 export const AlumniDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -206,7 +207,7 @@ export const AlumniDashboard: React.FC = () => {
                     {language === 'ta' ? 'பள்ளி அறிவிப்பு' : `${ann.target || 'SCHOOL'} NOTICE`}
                   </span>
                   <span className="text-[11px] text-[#6B7280]">
-                    {new Date(ann.created_at).toLocaleDateString()}
+                    {formatDateDDMMYYYY(ann.created_at)}
                   </span>
                 </div>
                 <h4 className="font-bold text-xs text-[#111111]">{ann.title}</h4>
