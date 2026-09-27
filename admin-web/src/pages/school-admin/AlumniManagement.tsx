@@ -637,23 +637,33 @@ export const AlumniManagement: React.FC = () => {
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to approve alumni.');
     }
-  };
+  // Single & Bulk Deleting states
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const handleSingleDelete = async (id: string, name: string) => {
     const confirmed = await alertService.showConfirm(
       'Delete Alumni & User Account?',
-      `Are you sure you want to permanently delete "${name}"? This will permanently remove their alumni profile, portal login account, and all associated user data. This action cannot be undone.`,
+      `Are you sure you want to permanently delete "${name}"? This will permanently remove their alumni profile, portal login account, and all associated user data across the entire database. This action cannot be undone.`,
       'Delete All Data',
       'Cancel'
     );
     if (!confirmed) return;
 
+    setDeletingId(id);
     try {
       const res = await api.deleteAlumniAdmin(id);
-      alertService.showSuccess('Alumni & Account Deleted', res.message || `Record and user account for ${name} have been removed.`);
+      alertService.showSuccess('Alumni & Account Deleted', res.message || `Record and user account for ${name} have been completely removed.`);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       fetchAlumni(true);
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to delete record.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -745,12 +755,13 @@ export const AlumniManagement: React.FC = () => {
 
     const confirmed = await alertService.showConfirm(
       'Bulk Delete Alumni & User Accounts?',
-      `Are you sure you want to PERMANENTLY delete ${ids.length} selected alumni profile(s)? This will permanently remove their alumni profiles, portal login accounts, and all associated user data. This action cannot be undone.`,
+      `Are you sure you want to PERMANENTLY delete ${ids.length} selected alumni profile(s)? This will permanently remove their alumni profiles, portal login accounts, and all associated user data across the entire database. This action cannot be undone.`,
       'Delete Selected',
       'Cancel'
     );
     if (!confirmed) return;
 
+    setBulkDeleting(true);
     try {
       const res = await api.bulkDeleteAlumniAdmin(ids);
       alertService.showSuccess('Bulk Deleted', res.message || `Deleted ${ids.length} alumni profile(s) and linked user accounts.`);
@@ -758,6 +769,8 @@ export const AlumniManagement: React.FC = () => {
       fetchAlumni(true);
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to delete selected alumni.');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -1588,9 +1601,11 @@ export const AlumniManagement: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleSingleDelete(a.id, a.full_name)}
-                        className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                        disabled={deletingId === a.id}
+                        className={`px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 ${deletingId === a.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
-                        {t('admin_action_delete')}
+                        {deletingId === a.id && <RefreshCw className="w-3 h-3 animate-spin text-rose-600" />}
+                        <span>{deletingId === a.id ? 'Deleting...' : t('admin_action_delete')}</span>
                       </button>
                     </td>
                   </tr>
@@ -2196,10 +2211,15 @@ export const AlumniManagement: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleSingleDelete(a.id, a.full_name)}
-                          className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer transition-colors"
+                          disabled={deletingId === a.id}
+                          className={`p-1 text-rose-600 hover:bg-rose-50 rounded transition-colors ${deletingId === a.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           title={t('admin_action_delete')}
                         >
-                          <Trash2 className="w-3.5 h-3.5 mx-auto" />
+                          {deletingId === a.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 mx-auto animate-spin text-rose-600" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5 mx-auto" />
+                          )}
                         </button>
                       </td>
                     </tr>

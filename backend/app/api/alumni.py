@@ -1524,133 +1524,238 @@ async def admin_delete_alumni(
 
     # 1. Build lookup query for the alumni record
     filter_or = []
-    try:
-        filter_or.append({"_id": ObjectId(alumni_id)})
-    except Exception:
-        pass
+    if ObjectId.is_valid(alumni_id):
+        try:
+            filter_or.append({"_id": ObjectId(alumni_id)})
+        except Exception:
+            pass
     filter_or.append({"_id": alumni_id})
+    filter_or.append({"user_id": alumni_id})
 
     query = {"$or": filter_or}
-    if school_id:
-        query = {"$and": [{"school_id": school_id}, {"$or": filter_or}]}
+    if school_id and current_user.get("role") not in ["SUPER_ADMIN", "PRIMARY_DEVELOPER"]:
+        school_filter_or = [
+            {"school_id": school_id},
+            {"school_id": str(school_id)},
+            {"school_id": None},
+            {"school_id": ""},
+            {"school_id": "PLATFORM"}
+        ]
+        if ObjectId.is_valid(str(school_id)):
+            try:
+                school_filter_or.append({"school_id": ObjectId(str(school_id))})
+            except Exception:
+                pass
+        query = {"$and": [{"$or": school_filter_or}, {"$or": filter_or}]}
 
     alumnus = await db.alumni.find_one(query)
     if not alumnus:
-        # Fallback: check if the alumni_id provided was actually a user_id
-        user_id_query = {"user_id": alumni_id}
-        if school_id:
-            user_id_query = {"school_id": school_id, "user_id": alumni_id}
-        alumnus = await db.alumni.find_one(user_id_query)
-
-    if not alumnus:
-        return {"success": True, "message": "Alumni record not found or already deleted"}
-
-    alumni_actual_id = alumnus["_id"]
-    alumni_str_id = str(alumni_actual_id)
-    user_id = alumnus.get("user_id")
-    mobile = alumnus.get("mobile")
-    email = alumnus.get("email")
+        alumnus = await db.alumni.find_one({"$or": filter_or})
 
     PROTECTED_ADMIN_ROLES = {"SUPER_ADMIN", "PRIMARY_DEVELOPER", "DEVELOPER", "SCHOOL_ADMIN"}
 
-    # 2. Find and delete linked user from db.users
-    user_doc = None
-    if user_id:
+    alumni_actual_id = alumnus["_id"] if alumnus else None
+    alumni_str_id = str(alumni_actual_id) if alumni_actual_id else alumni_id
+
+    # Collect all identifiers
+    all_alumni_keys = []
+    if alumni_actual_id:
+        all_alumni_keys.append(alumni_actual_id)
+        all_alumni_keys.append(str(alumni_actual_id))
+    if ObjectId.is_valid(alumni_id):
         try:
-            user_doc = await db.users.find_one({"_id": ObjectId(str(user_id))})
+            all_alumni_keys.append(ObjectId(alumni_id))
         except Exception:
             pass
-        if not user_doc:
-            user_doc = await db.users.find_one({"_id": str(user_id)})
+    all_alumni_keys.append(alumni_id)
+    all_alumni_keys = list({k for k in all_alumni_keys if k})
 
-    if not user_doc:
-        candidate_or = []
-        if mobile:
-            candidate_or.extend(build_mobile_query_filter(mobile))
-        if email:
-            candidate_or.append({"email": {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}})
-        if candidate_or:
-            cand_q = {"$or": candidate_or}
-            if school_id:
-                cand_q = {"$and": [{"school_id": school_id}, {"$or": candidate_or}]}
-            candidates = await db.users.find(cand_q).to_list(length=10)
-            for cand in candidates:
-                cand_roles = set(cand.get("roles") or ([cand.get("role")] if cand.get("role") else []))
-                if not cand_roles.intersection(PROTECTED_ADMIN_ROLES):
-                    user_doc = cand
-                    break
+    # Collect all phones / emails / user_ids
+    raw_mobiles = []
+    raw_emails = []
+    raw_user_ids = []
 
-    deleted_user_id = None
-    if user_doc:
-        cand_roles = set(user_doc.get("roles") or ([user_doc.get("role")] if user_doc.get("role") else []))
-        if not cand_roles.intersection(PROTECTED_ADMIN_ROLES):
-            deleted_user_id = str(user_doc["_id"])
-            await db.users.delete_one({"_id": user_doc["_id"]})
-            logger.info(f"Cascade deleted user account {deleted_user_id} for alumni {alumni_str_id}")
-        else:
-            logger.warning(f"Protected admin account {user_doc.get('_id')} retained during alumni cascade delete.")
+    if alumnus:
+        if alumnus.get("user_id"):
+            raw_user_ids.append(str(alumnus["user_id"]))
+        for field in ["mobile", "phone", "phone_number", "whatsapp_number", "secondary_phone", "contact_number"]:
+            val = alumnus.get(field)
+            if val:
+                raw_mobiles.append(str(val).strip())
+        for field in ["email", "secondary_email"]:
+            val = alumnus.get(field)
+            if val:
+                raw_emails.append(str(val).strip())
+    else:
+        raw_user_ids.append(alumni_id)
+        if is_valid_indian_mobile(alumni_id):
+            raw_mobiles.append(alumni_id)
+        elif "@" in alumni_id:
+            raw_emails.append(alumni_id)
+
+    # Expand all mobile variants
+    all_mobile_variants = set()
+    for m in raw_mobiles:
+        for v in get_mobile_query_variants(m):
+            all_mobile_variants.add(v)
+
+    all_emails = list({e.lower() for e in raw_emails if e})
+
+    # Build user lookup query across all variations
+    user_lookup_or = []
+    for uid in raw_user_ids:
+        if ObjectId.is_valid(uid):
+            try:
+                user_lookup_or.append({"_id": ObjectId(uid)})
+            except Exception:
+                pass
+        user_lookup_or.append({"_id": uid})
+
+    if all_mobile_variants:
+        user_lookup_or.append({"mobile": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"phone": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"phone_number": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"whatsapp_number": {"$in": list(all_mobile_variants)}})
+
+    for em in all_emails:
+        user_lookup_or.append({"email": {"$regex": f"^{re.escape(em)}$", "$options": "i"}})
+
+    matched_users = []
+    if user_lookup_or:
+        matched_users = await db.users.find({"$or": user_lookup_or}).to_list(length=100)
+
+    user_ids_to_delete = []
+    all_user_str_ids = set(raw_user_ids)
+
+    for u in matched_users:
+        u_roles = set(u.get("roles") or ([u.get("role")] if u.get("role") else ["ALUMNI"]))
+        # Never delete protected administrator accounts
+        if u_roles.intersection(PROTECTED_ADMIN_ROLES):
+            logger.warning(f"Protected admin account {u.get('_id')} retained during alumni cascade delete.")
+            continue
+
+        user_ids_to_delete.append(u["_id"])
+        all_user_str_ids.add(str(u["_id"]))
+
+        # Also extract user's mobile & email to ensure complete cascade
+        for field in ["mobile", "phone", "phone_number", "whatsapp_number", "contact_number"]:
+            u_mob = u.get(field)
+            if u_mob:
+                for v in get_mobile_query_variants(str(u_mob)):
+                    all_mobile_variants.add(v)
+        if u.get("email"):
+            all_emails.append(str(u["email"]).strip().lower())
+
+    all_emails = list(set(all_emails))
+    all_user_str_ids_list = [uid for uid in all_user_str_ids if uid]
+
+    # 1. Delete user accounts from db.users
+    deleted_users_count = 0
+    if user_ids_to_delete:
+        del_user_res = await db.users.delete_many({"_id": {"$in": user_ids_to_delete}})
+        deleted_users_count = del_user_res.deleted_count
+        logger.info(f"Cascade deleted {deleted_users_count} user account(s) for alumni {alumni_str_id}")
+
+    # 2. Delete alumni records from db.alumni
+    alumni_del_or = []
+    if alumni_actual_id:
+        alumni_del_or.append({"_id": alumni_actual_id})
+    if ObjectId.is_valid(alumni_id):
+        try:
+            alumni_del_or.append({"_id": ObjectId(alumni_id)})
+        except Exception:
+            pass
+    alumni_del_or.append({"_id": alumni_id})
+    if all_user_str_ids_list:
+        alumni_del_or.append({"user_id": {"$in": all_user_str_ids_list}})
+    if all_mobile_variants:
+        alumni_del_or.append({"mobile": {"$in": list(all_mobile_variants)}})
+        alumni_del_or.append({"phone": {"$in": list(all_mobile_variants)}})
+    if all_emails:
+        for em in all_emails:
+            alumni_del_or.append({"email": {"$regex": f"^{re.escape(em)}$", "$options": "i"}})
+
+    del_alumni_res = await db.alumni.delete_many({"$or": alumni_del_or})
+    logger.info(f"Deleted {del_alumni_res.deleted_count} alumni record(s) for {alumni_str_id}")
 
     # 3. Clean up associated data collections
-    user_id_keys = [alumni_str_id]
-    if user_id:
-        user_id_keys.append(str(user_id))
-    if deleted_user_id and deleted_user_id not in user_id_keys:
-        user_id_keys.append(deleted_user_id)
+    combined_user_keys = all_user_str_ids_list + [str(k) for k in all_alumni_keys]
 
-    await db.notifications.delete_many({"user_id": {"$in": user_id_keys}})
+    await db.notifications.delete_many({"user_id": {"$in": combined_user_keys}})
     await db.document_requests.delete_many({
         "$or": [
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"user_id": {"$in": user_id_keys}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.feedbacks.delete_many({
         "$or": [
-            {"user_id": {"$in": user_id_keys}},
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}}
+            {"user_id": {"$in": combined_user_keys}},
+            {"alumni_id": {"$in": all_alumni_keys}}
         ]
     })
 
     invitation_q = [
-        {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-        {"user_id": {"$in": user_id_keys}}
+        {"alumni_id": {"$in": all_alumni_keys}},
+        {"user_id": {"$in": combined_user_keys}}
     ]
-    if mobile:
-        invitation_q.append({"mobile": mobile})
+    if all_mobile_variants:
+        invitation_q.append({"mobile": {"$in": list(all_mobile_variants)}})
     await db.account_invitations.delete_many({"$or": invitation_q})
 
     await db.checkins.delete_many({
         "$or": [
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"user_id": {"$in": user_id_keys}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.event_attendance.delete_many({
         "$or": [
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"user_id": {"$in": user_id_keys}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.mentors.delete_many({
         "$or": [
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"user_id": {"$in": user_id_keys}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.mentorship_requests.delete_many({
         "$or": [
-            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"mentor_id": {"$in": [alumni_str_id, alumni_actual_id]}},
-            {"user_id": {"$in": user_id_keys}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"mentor_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
+        ]
+    })
+    await db.memories.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}},
+            {"created_by": {"$in": combined_user_keys}}
+        ]
+    })
+    await db.contributions.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
 
-    # 4. Delete the alumni record itself
-    await db.alumni.delete_one({"_id": alumni_actual_id})
+    # Clean up OTP stores so user can immediately re-register cleanly
+    otp_keys_to_clear = list(all_mobile_variants) + [e.lower() for e in all_emails]
+    if otp_keys_to_clear:
+        try:
+            await db.otp_store.delete_many({"key": {"$in": otp_keys_to_clear}})
+        except Exception:
+            pass
+
     return {
         "success": True,
-        "message": "Alumni record and linked user account deleted successfully",
-        "user_deleted": bool(deleted_user_id)
+        "message": "Alumni record, user login account, and all associated data deleted successfully",
+        "alumni_deleted": del_alumni_res.deleted_count,
+        "user_deleted": deleted_users_count > 0,
+        "users_deleted": deleted_users_count
     }
 
 @router.post("/bulk-update")
@@ -1785,126 +1890,188 @@ async def bulk_delete_alumni(
         str_ids.append(aid)
 
     query = {"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}
-    if school_id:
-        query = {"$and": [{"school_id": school_id}, query]}
+    if school_id and current_user.get("role") not in ["SUPER_ADMIN", "PRIMARY_DEVELOPER"]:
+        school_filter_or = [
+            {"school_id": school_id},
+            {"school_id": str(school_id)},
+            {"school_id": None},
+            {"school_id": ""},
+            {"school_id": "PLATFORM"}
+        ]
+        if ObjectId.is_valid(str(school_id)):
+            try:
+                school_filter_or.append({"school_id": ObjectId(str(school_id))})
+            except Exception:
+                pass
+        query = {"$and": [{"$or": school_filter_or}, query]}
 
     # 1. Fetch all matching alumni records
     alumni_docs = await db.alumni.find(query).to_list(length=len(request.alumni_ids) * 2)
     if not alumni_docs:
-        return {"success": True, "message": "No matching alumni records found", "deleted": 0, "users_deleted": 0}
+        alumni_docs = await db.alumni.find({"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}).to_list(length=len(request.alumni_ids) * 2)
 
     alumni_oids = [doc["_id"] for doc in alumni_docs]
     alumni_str_ids = [str(doc["_id"]) for doc in alumni_docs]
 
+    all_alumni_keys = list(set(alumni_oids + alumni_str_ids + str_ids))
+
     user_str_ids = set()
     user_oids = []
-    mobiles = set()
-    emails = set()
+    raw_mobiles = set()
+    raw_emails = set()
 
     for doc in alumni_docs:
         uid = doc.get("user_id")
         if uid:
             uid_str = str(uid)
             user_str_ids.add(uid_str)
-            try:
-                user_oids.append(ObjectId(uid_str))
-            except Exception:
-                pass
-        mob = doc.get("mobile")
-        if mob:
-            mobiles.add(mob)
-        em = doc.get("email")
-        if em:
-            emails.add(em.strip().lower())
+            if ObjectId.is_valid(uid_str):
+                try:
+                    user_oids.append(ObjectId(uid_str))
+                except Exception:
+                    pass
+        for field in ["mobile", "phone", "phone_number", "whatsapp_number", "secondary_phone", "contact_number"]:
+            m = doc.get(field)
+            if m:
+                raw_mobiles.add(str(m).strip())
+        for field in ["email", "secondary_email"]:
+            em = doc.get(field)
+            if em:
+                raw_emails.add(str(em).strip().lower())
 
     PROTECTED_ADMIN_ROLES = {"SUPER_ADMIN", "PRIMARY_DEVELOPER", "DEVELOPER", "SCHOOL_ADMIN"}
 
+    # Expand mobile variants
+    all_mobile_variants = set()
+    for m in raw_mobiles:
+        for v in get_mobile_query_variants(m):
+            all_mobile_variants.add(v)
+
     # 2. Find and delete linked users (non-admin accounts only)
     user_lookup_or = []
-    if user_oids or user_str_ids:
-        user_lookup_or.append({"_id": {"$in": user_oids + list(user_str_ids)}})
-    if mobiles:
-        for m in mobiles:
-            user_lookup_or.extend(build_mobile_query_filter(m))
-    if emails:
-        for em in emails:
+    all_uids = list(set(user_oids + [ObjectId(uid) for uid in user_str_ids if ObjectId.is_valid(uid)]))
+    all_uid_strs = list(user_str_ids)
+    if all_uids or all_uid_strs:
+        user_lookup_or.append({"_id": {"$in": all_uids + all_uid_strs}})
+    if all_mobile_variants:
+        user_lookup_or.append({"mobile": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"phone": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"phone_number": {"$in": list(all_mobile_variants)}})
+        user_lookup_or.append({"whatsapp_number": {"$in": list(all_mobile_variants)}})
+    if raw_emails:
+        for em in raw_emails:
             user_lookup_or.append({"email": {"$regex": f"^{re.escape(em)}$", "$options": "i"}})
 
     user_ids_to_delete = []
     if user_lookup_or:
-        user_find_query = {"$or": user_lookup_or}
-        if school_id:
-            user_find_query = {"$and": [{"school_id": school_id}, {"$or": user_lookup_or}]}
-        matched_users = await db.users.find(user_find_query).to_list(length=1000)
+        matched_users = await db.users.find({"$or": user_lookup_or}).to_list(length=1000)
         for u in matched_users:
-            u_roles = set(u.get("roles") or ([u.get("role")] if u.get("role") else []))
+            u_roles = set(u.get("roles") or ([u.get("role")] if u.get("role") else ["ALUMNI"]))
             if not u_roles.intersection(PROTECTED_ADMIN_ROLES):
                 user_ids_to_delete.append(u["_id"])
                 user_str_ids.add(str(u["_id"]))
+                for field in ["mobile", "phone", "phone_number", "whatsapp_number", "contact_number"]:
+                    u_mob = u.get(field)
+                    if u_mob:
+                        for v in get_mobile_query_variants(str(u_mob)):
+                            all_mobile_variants.add(v)
+                if u.get("email"):
+                    raw_emails.add(str(u["email"]).strip().lower())
 
     deleted_users_count = 0
     if user_ids_to_delete:
         del_user_res = await db.users.delete_many({"_id": {"$in": user_ids_to_delete}})
         deleted_users_count = del_user_res.deleted_count
 
-    all_user_str_ids = list(user_str_ids)
-    all_alumni_id_keys = alumni_str_ids + alumni_oids
+    all_user_str_ids_list = [uid for uid in user_str_ids if uid]
+    combined_user_keys = all_user_str_ids_list + [str(k) for k in all_alumni_keys]
 
     # 3. Clean up associated collections
-    if all_user_str_ids:
-        await db.notifications.delete_many({"user_id": {"$in": all_user_str_ids}})
+    if combined_user_keys:
+        await db.notifications.delete_many({"user_id": {"$in": combined_user_keys}})
 
     await db.document_requests.delete_many({
         "$or": [
-            {"alumni_id": {"$in": all_alumni_id_keys}},
-            {"user_id": {"$in": all_user_str_ids}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.feedbacks.delete_many({
         "$or": [
-            {"user_id": {"$in": all_user_str_ids}},
-            {"alumni_id": {"$in": all_alumni_id_keys}}
+            {"user_id": {"$in": combined_user_keys}},
+            {"alumni_id": {"$in": all_alumni_keys}}
         ]
     })
 
-    inv_queries = [{"alumni_id": {"$in": all_alumni_id_keys}}]
-    if all_user_str_ids:
-        inv_queries.append({"user_id": {"$in": all_user_str_ids}})
-    if mobiles:
-        inv_queries.append({"mobile": {"$in": list(mobiles)}})
+    inv_queries = [
+        {"alumni_id": {"$in": all_alumni_keys}},
+        {"user_id": {"$in": combined_user_keys}}
+    ]
+    if all_mobile_variants:
+        inv_queries.append({"mobile": {"$in": list(all_mobile_variants)}})
     await db.account_invitations.delete_many({"$or": inv_queries})
 
     await db.checkins.delete_many({
         "$or": [
-            {"alumni_id": {"$in": all_alumni_id_keys}},
-            {"user_id": {"$in": all_user_str_ids}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.event_attendance.delete_many({
         "$or": [
-            {"alumni_id": {"$in": all_alumni_id_keys}},
-            {"user_id": {"$in": all_user_str_ids}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.mentors.delete_many({
         "$or": [
-            {"alumni_id": {"$in": all_alumni_id_keys}},
-            {"user_id": {"$in": all_user_str_ids}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
     await db.mentorship_requests.delete_many({
         "$or": [
-            {"alumni_id": {"$in": all_alumni_id_keys}},
-            {"mentor_id": {"$in": all_alumni_id_keys}},
-            {"user_id": {"$in": all_user_str_ids}}
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"mentor_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
+        ]
+    })
+    await db.memories.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}},
+            {"created_by": {"$in": combined_user_keys}}
+        ]
+    })
+    await db.contributions.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_keys}},
+            {"user_id": {"$in": combined_user_keys}}
         ]
     })
 
+    otp_keys = list(all_mobile_variants) + [e.lower() for e in raw_emails]
+    if otp_keys:
+        try:
+            await db.otp_store.delete_many({"key": {"$in": otp_keys}})
+        except Exception:
+            pass
+
     # 4. Delete alumni records
-    res = await db.alumni.delete_many({"_id": {"$in": alumni_oids}})
+    alumni_del_or = [{"_id": {"$in": alumni_oids + obj_ids + str_ids}}]
+    if all_user_str_ids_list:
+        alumni_del_or.append({"user_id": {"$in": all_user_str_ids_list}})
+    if all_mobile_variants:
+        alumni_del_or.append({"mobile": {"$in": list(all_mobile_variants)}})
+        alumni_del_or.append({"phone": {"$in": list(all_mobile_variants)}})
+    if raw_emails:
+        for em in raw_emails:
+            alumni_del_or.append({"email": {"$regex": f"^{re.escape(em)}$", "$options": "i"}})
+
+    res = await db.alumni.delete_many({"$or": alumni_del_or})
     return {
         "success": True,
-        "message": f"Deleted {res.deleted_count} alumni records and {deleted_users_count} linked user accounts",
+        "message": f"Deleted {res.deleted_count} alumni record(s) and {deleted_users_count} linked user account(s)",
         "deleted": res.deleted_count,
         "users_deleted": deleted_users_count
     }

@@ -441,7 +441,7 @@ export const AlumniLayout: React.FC = () => {
               </button>
 
               <button
-                onClick={() => navigate(`/register?mobile=${user?.mobile || ''}`)}
+                onClick={() => navigate(`/register?mobile=${user?.mobile || ''}`, { state: { editMode: true } })}
                 className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
               >
                 <User className="w-4 h-4 text-gray-500" />

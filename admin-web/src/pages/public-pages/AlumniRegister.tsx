@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShieldCheck, Mail, Phone, User, GraduationCap, Building2, MapPin,
@@ -154,6 +154,7 @@ export const AlumniRegister: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+  const step1VerifiedRef = useRef(false);
 
   // Helper to smoothly scroll viewport to top of the registration form card with comfortable top clearance
   const scrollToFormTop = () => {
@@ -170,8 +171,8 @@ export const AlumniRegister: React.FC = () => {
   };
 
   // Helper to change step and track max step unlocked for backward & forward navigation
-  const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
-    const isStep1Complete = isOtpVerified && (hasExistingPassword || isGoogleAuth);
+  const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6, bypassStep1Check = false) => {
+    const isStep1Complete = bypassStep1Check || step1VerifiedRef.current || (isOtpVerified && (hasExistingPassword || isGoogleAuth));
     if (!isStep1Complete && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
@@ -246,7 +247,7 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const isStep1Complete = isOtpVerified && (hasExistingPassword || isGoogleAuth);
+    const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && (hasExistingPassword || isGoogleAuth));
     if (!isStep1Complete && step > 1) {
       setStep(1);
     }
@@ -453,6 +454,9 @@ export const AlumniRegister: React.FC = () => {
                 dbHasPassword = Boolean(statusRes.has_password);
               } catch (e) {}
             }
+            if (dbHasPassword) {
+              step1VerifiedRef.current = true;
+            }
             setHasExistingPassword(dbHasPassword);
             setIsOtpVerified(true);
             if (p.email) setEmail(p.email);
@@ -525,7 +529,7 @@ export const AlumniRegister: React.FC = () => {
             else pendingStep = 6;
 
             // If all required profile fields are present, auto-redirect directly to the Alumni Portal
-            if (pendingStep === 6 && (p.full_name || p.name) && (p.passing_year || p.mobile)) {
+            if (pendingStep === 6 && (p.full_name || p.name) && (p.passing_year || p.mobile) && !location.state?.editMode) {
               navigate('/alumni', { replace: true });
               return;
             }
@@ -713,6 +717,9 @@ export const AlumniRegister: React.FC = () => {
       setHasExistingPassword(dbHasPassword);
 
       if (dbHasPassword) {
+        step1VerifiedRef.current = true;
+        setHasExistingPassword(true);
+        setIsOtpVerified(true);
         await alertService.showSuccess(
           language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
           language === 'ta'
@@ -721,7 +728,7 @@ export const AlumniRegister: React.FC = () => {
         );
         if (!location.state?.isPasswordSetup) {
           const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;
-          goToStep(Math.max(2, targetStep) as any);
+          goToStep(Math.max(2, targetStep) as any, true);
         }
       } else {
         await alertService.showSuccess(
@@ -770,6 +777,7 @@ export const AlumniRegister: React.FC = () => {
       } else {
         await api.updatePassword(password.trim());
       }
+      step1VerifiedRef.current = true;
       setHasExistingPassword(true);
       setIsOtpVerified(true);
       await alertService.showSuccess(
@@ -781,7 +789,7 @@ export const AlumniRegister: React.FC = () => {
       if (location.state?.isPasswordSetup) {
         navigate('/login', { state: { mobile: cleanMob, email } });
       } else {
-        goToStep(2);
+        goToStep(2, true);
       }
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to save account password.');
