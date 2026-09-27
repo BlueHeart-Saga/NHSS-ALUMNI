@@ -149,7 +149,7 @@ async def list_pending_verifications(
 async def verify_alumni(
     alumni_id: str,
     request: VerificationDecisionRequest,
-    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN"]))
+    current_user: dict = Depends(require_roles(["SCHOOL_ADMIN", "SUPER_ADMIN", "PRIMARY_DEVELOPER"]))
 ):
     db = get_db()
     school_id = current_user.get("school_id")
@@ -161,6 +161,13 @@ async def verify_alumni(
         query = {"_id": alumni_id}
 
     alumni = await db.alumni.find_one(query)
+    if not alumni:
+        # Fallback: check if the alumni_id provided was actually a user_id
+        try:
+            alumni = await db.alumni.find_one({"$or": [{"user_id": alumni_id}, {"user_id": ObjectId(alumni_id)}]})
+        except Exception:
+            alumni = await db.alumni.find_one({"user_id": alumni_id})
+
     if not alumni:
         raise HTTPException(status_code=404, detail="Alumni application not found")
 
@@ -195,14 +202,25 @@ async def verify_alumni(
         "rejection_reason": note_val if request.status in ["REJECTED", "SUSPENDED"] else (None if request.status == "APPROVED" else alumni.get("rejection_reason")),
         "is_rerequest": False,
         "rerequest_history": history,
-        "verified_by": current_user["user_id"],
+        "verified_by": current_user.get("user_id") or str(current_user.get("_id", "admin")),
         "verified_at": now
     }
 
     try:
-        await db.alumni.update_one({"_id": ObjectId(alumni_id)}, {"$set": update_data})
+        await db.alumni.update_one({"_id": ObjectId(alumni.get("_id"))}, {"$set": update_data})
     except Exception:
-        await db.alumni.update_one({"_id": alumni_id}, {"$set": update_data})
+        await db.alumni.update_one({"_id": alumni.get("_id")}, {"$set": update_data})
+
+    # Prepare user update payload with active account status
+    user_update_data = dict(update_data)
+    if request.status == "APPROVED":
+        user_update_data["status"] = "ACTIVE"
+        user_update_data["account_status"] = "ACTIVE"
+    elif request.status == "SUSPENDED":
+        user_update_data["status"] = "SUSPENDED"
+        user_update_data["account_status"] = "SUSPENDED"
+    elif request.status == "REJECTED":
+        user_update_data["status"] = "REJECTED"
 
     # Update ALL other cards/documents belonging to the same user in db.alumni and db.users
     user_match_or = []
@@ -215,7 +233,6 @@ async def verify_alumni(
 
     mob_val = alumni.get("mobile") or alumni.get("phone") or alumni.get("whatsapp_number")
     if mob_val:
-        from app.utils.helpers import get_mobile_query_variants
         user_match_or.append({"mobile": {"$in": list(get_mobile_query_variants(mob_val))}})
 
     email_val = alumni.get("email")
@@ -224,13 +241,13 @@ async def verify_alumni(
 
     if user_match_or:
         await db.alumni.update_many({"$or": user_match_or}, {"$set": update_data})
-        await db.users.update_many({"$or": user_match_or}, {"$set": update_data})
+        await db.users.update_many({"$or": user_match_or}, {"$set": user_update_data})
 
     if user_id_ref:
         try:
-            await db.users.update_one({"_id": ObjectId(user_id_ref)}, {"$set": update_data})
+            await db.users.update_one({"_id": ObjectId(user_id_ref)}, {"$set": user_update_data})
         except Exception:
-            await db.users.update_one({"_id": user_id_ref}, {"$set": update_data})
+            await db.users.update_one({"_id": user_id_ref}, {"$set": user_update_data})
 
     # -------------------------------------------------------------------------
     # Email notification dispatch (non-blocking, non-fatal).
@@ -310,23 +327,26 @@ async def verify_alumni(
         else:
             email_missing = True
 
-    # Log audit
-    await db.audit_logs.insert_one({
-        "school_id": school_id,
-        "user_id": current_user["user_id"],
-        "action": f"ALUMNI_{request.status}",
-        "resource_type": "alumni",
-        "resource_id": alumni_id,
-        "metadata": {
-            "previous": alumni.get("verification_status"),
-            "new": request.status,
-            "reason": request.notes,
-            "email_sent": email_sent,
-            "email_missing": email_missing,
-            "email_error": email_error,
-        },
-        "timestamp": now
-    })
+    # Log audit safely
+    try:
+        await db.audit_logs.insert_one({
+            "school_id": school_id,
+            "user_id": current_user.get("user_id") or str(current_user.get("_id", "system")),
+            "action": f"ALUMNI_{request.status}",
+            "resource_type": "alumni",
+            "resource_id": str(alumni.get("_id") or alumni_id),
+            "metadata": {
+                "previous": alumni.get("verification_status"),
+                "new": request.status,
+                "reason": request.notes,
+                "email_sent": email_sent,
+                "email_missing": email_missing,
+                "email_error": email_error,
+            },
+            "timestamp": now
+        })
+    except Exception as audit_err:
+        logger.warning(f"Failed to record audit log for alumni verification {alumni_id}: {audit_err}")
 
     # Build a clear, scenario-aware response message.
     base_msg = f"Alumni application status updated to {request.status}"

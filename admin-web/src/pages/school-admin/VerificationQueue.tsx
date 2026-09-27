@@ -598,6 +598,7 @@ export const VerificationQueue: React.FC = () => {
         isOpen={Boolean(viewingAlumni)}
         onClose={() => setViewingAlumni(null)}
         title={language === 'ta' ? 'முன்னாள் மாணவர் முழு சுயவிவர விவரங்கள்' : 'Full Alumni Member Profile & Registration Details'}
+        maxWidth="max-w-3xl"
       >
         {viewingAlumni && (
           <div className="space-y-5 text-xs max-h-[80vh] overflow-y-auto pr-1">
