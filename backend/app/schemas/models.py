@@ -85,6 +85,7 @@ class TokenResponse(BaseModel):
     resume_step: Optional[int] = 2
     alumni_id: Optional[str] = None
     school_id: Optional[str] = None
+    has_password: Optional[bool] = False
 
 class UserRegistrationRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -284,6 +285,7 @@ class UserProfileResponse(BaseModel):
     account_status: Optional[str] = "ACTIVE"
     invitation_status: Optional[str] = None
     phone_verified: Optional[bool] = False
+    has_password: Optional[bool] = False
     roles: List[str] = ["ALUMNI"]
     committee_role: Optional[str] = None
     committee_role_title: Optional[str] = None

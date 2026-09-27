@@ -188,6 +188,7 @@ class ApiClient {
       verification_status: string;
       registration_required: boolean;
       resume_step?: number;
+      has_password?: boolean;
     }>('/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ email, mobile, otp }),

@@ -890,6 +890,11 @@ async def verify_otp(request: VerifyOTPRequest):
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
+    stored_password = (user.get("password") or user.get("password_hash")) if user else None
+    if not stored_password and alumni:
+        stored_password = alumni.get("password") or alumni.get("password_hash")
+    has_password = bool(stored_password and str(stored_password).strip())
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -899,7 +904,8 @@ async def verify_otp(request: VerifyOTPRequest):
         registration_required=registration_required,
         resume_step=resume_step,
         alumni_id=str(alumni["_id"]) if alumni else None,
-        school_id=school_id
+        school_id=school_id,
+        has_password=has_password
     )
 
 @router.post("/admin/verify-otp", response_model=TokenResponse)
@@ -957,6 +963,9 @@ async def verify_admin_otp(request: VerifyOTPRequest):
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
+    stored_password = (user.get("password") or user.get("password_hash")) if user else None
+    has_pass = bool(stored_password and str(stored_password).strip())
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -965,7 +974,8 @@ async def verify_admin_otp(request: VerifyOTPRequest):
         verification_status=alumni.get("verification_status") if alumni else "APPROVED",
         registration_required=False,
         alumni_id=str(alumni["_id"]) if alumni else None,
-        school_id=school_id
+        school_id=school_id,
+        has_password=has_pass
     )
 
 @router.post("/update-password")
@@ -1087,7 +1097,8 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
         verification_status=verification_status,
         registration_required=registration_required,
         resume_step=resume_step,
-        school_id=school_id
+        school_id=school_id,
+        has_password=True
     )
 
 class ContactAdminRequest(BaseModel):
@@ -1405,6 +1416,9 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         full_name_val = (user_doc.get("full_name") if user_doc else None) or current_user.get("full_name") or "User"
         mobile_val = current_user.get("mobile") or (user_doc.get("mobile") if user_doc else None)
         
+        user_pass = (user_doc.get("password") or user_doc.get("password_hash")) if user_doc else None
+        has_pass = bool(user_pass and str(user_pass).strip())
+
         return UserProfileResponse(
             id=current_user["user_id"],
             user_id=current_user["user_id"],
@@ -1417,6 +1431,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             admission_number="N/A",
             verification_status="NOT_REGISTERED",
             roles=current_user.get("roles", ["ALUMNI"]),
+            has_password=has_pass,
             created_at=datetime.now(timezone.utc)
         )
 
@@ -1485,6 +1500,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         is_volunteer=alumni.get("is_volunteer"),
         willing_to_donate=alumni.get("willing_to_donate"),
         roles=current_user.get("roles", ["ALUMNI"]),
+        has_password=bool(((user_doc.get("password") or user_doc.get("password_hash")) if user_doc else None) or (alumni.get("password") or alumni.get("password_hash") if alumni else None)),
         email_visible=alumni.get("email_visible", False),
         created_at=alumni.get("created_at", datetime.now(timezone.utc))
     )

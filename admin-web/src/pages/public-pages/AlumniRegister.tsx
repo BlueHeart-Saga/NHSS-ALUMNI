@@ -145,9 +145,7 @@ export const AlumniRegister: React.FC = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
-  const [hasExistingPassword, setHasExistingPassword] = useState<boolean>(() => {
-    return sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
-  });
+  const [hasExistingPassword, setHasExistingPassword] = useState<boolean>(false);
   const [accountAlreadyExists, setAccountAlreadyExists] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
   const [password, setPassword] = useState('');
@@ -158,23 +156,23 @@ export const AlumniRegister: React.FC = () => {
 
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
-    const hasSavedPass = sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
-    if (!isOtpVerified && !hasSavedPass && targetStep > 1) {
+    const isStep1Complete = isOtpVerified && (hasExistingPassword || isGoogleAuth);
+    if (!isStep1Complete && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
         language === 'ta'
-          ? 'தொடர்வதற்கு முன் படி 1-இல் OTP மூலம் கணக்கைச் சரிபார்க்க வேண்டும்.'
-          : 'Please verify your phone/email via OTP in Step 1 before proceeding to other steps.'
+          ? 'தொடர்வதற்கு முன் படி 1-இல் OTP சரிபார்த்து கடவுச்சொல்லை அமைக்க வேண்டும்.'
+          : 'Please verify your mobile via OTP and set up your password in Step 1 before proceeding.'
       );
       setStep(1);
       return;
     }
-    if (targetStep === 1 && (isOtpVerified || hasSavedPass)) {
+    if (targetStep === 1 && isStep1Complete) {
       alertService.showInfo(
         language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
         language === 'ta'
-          ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
-          : 'Your account verification is complete. Step 1 is locked.'
+          ? 'உங்கள் கணக்கு சரிபார்ப்பு மற்றும் கடவுச்சொல் முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
+          : 'Your account verification and password setup is complete. Step 1 is locked.'
       );
       return;
     }
@@ -183,11 +181,11 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const hasSavedPass = sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
-    if (!isOtpVerified && !hasSavedPass && step > 1) {
+    const isStep1Complete = isOtpVerified && (hasExistingPassword || isGoogleAuth);
+    if (!isStep1Complete && step > 1) {
       setStep(1);
     }
-  }, [isOtpVerified, step]);
+  }, [isOtpVerified, hasExistingPassword, isGoogleAuth, step]);
 
   useEffect(() => {
     if (resendCountdown > 0) {
@@ -360,15 +358,20 @@ export const AlumniRegister: React.FC = () => {
     }
 
     if (api.getToken()) {
-      setHasExistingPassword(true);
       setIsOtpVerified(true);
-      sessionStorage.setItem('alumni_has_password', 'true');
       api.getProfile()
-        .then((p: any) => {
+        .then(async (p: any) => {
           if (p) {
-            setHasExistingPassword(true);
+            let dbHasPassword = Boolean(p.has_password);
+            const userIdentifier = p.mobile || p.email;
+            if (!dbHasPassword && userIdentifier) {
+              try {
+                const statusRes = await api.checkPasswordStatus(String(userIdentifier));
+                dbHasPassword = Boolean(statusRes.has_password);
+              } catch (e) {}
+            }
+            setHasExistingPassword(dbHasPassword);
             setIsOtpVerified(true);
-            sessionStorage.setItem('alumni_has_password', 'true');
             if (p.email) setEmail(p.email);
             if (p.mobile) {
               setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
@@ -574,21 +577,34 @@ export const AlumniRegister: React.FC = () => {
       const res = await api.verifyOTP(activeId, otp);
       setIsOtpVerified(true);
       
-      const hasPassword = hasExistingPassword || isGoogleAuth || Boolean(res.resume_step && res.resume_step >= 3);
-      if (hasPassword) {
-        setHasExistingPassword(true);
+      // Query MongoDB database directly to determine if a password already exists
+      let dbHasPassword = Boolean(res.has_password);
+      if (!dbHasPassword && activeId) {
+        try {
+          const passCheck = await api.checkPasswordStatus(activeId);
+          dbHasPassword = Boolean(passCheck.has_password);
+        } catch (e) {}
       }
+      setHasExistingPassword(dbHasPassword);
 
-      await alertService.showSuccess(
-        language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
-        language === 'ta'
-          ? 'உங்கள் கைபேசி எண் சரிபார்க்கப்பட்டது. படி 2-க்குச் செல்ல உங்கள் கணக்கிற்கான புதிய கடவுச்சொல்லை உருவாக்கவும்.'
-          : 'Mobile OTP verified! Now create your account password to proceed to Step 2.'
-      );
-
-      if (!location.state?.isPasswordSetup && hasPassword) {
-        const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;
-        goToStep(Math.max(2, targetStep) as any);
+      if (dbHasPassword) {
+        await alertService.showSuccess(
+          language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
+          language === 'ta'
+            ? 'உங்கள் கணக்கிற்கான கடவுச்சொல் ஏற்கனவே உருவாக்கப்பட்டுள்ளது. பதிவை நிறைவு செய்ய படி 2-க்குச் செல்லவும்.'
+            : 'Account verified! Your account password is confirmed in the database. Proceed to Step 2.'
+        );
+        if (!location.state?.isPasswordSetup) {
+          const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;
+          goToStep(Math.max(2, targetStep) as any);
+        }
+      } else {
+        await alertService.showSuccess(
+          language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
+          language === 'ta'
+            ? 'உங்கள் கைபேசி எண் சரிபார்க்கப்பட்டது. படி 2-க்குச் செல்ல உங்கள் கணக்கிற்கான புதிய கடவுச்சொல்லை உருவாக்கவும்.'
+            : 'Mobile OTP verified! Now create your account password to proceed to Step 2.'
+        );
       }
     } catch (err: any) {
       alertService.handleApiError(err, 'Invalid verification code entered.');
@@ -631,7 +647,6 @@ export const AlumniRegister: React.FC = () => {
       }
       setHasExistingPassword(true);
       setIsOtpVerified(true);
-      sessionStorage.setItem('alumni_has_password', 'true');
       await alertService.showSuccess(
         language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது!' : 'Password Created Successfully!',
         language === 'ta'
@@ -1184,7 +1199,7 @@ export const AlumniRegister: React.FC = () => {
   const isStepCompleted = (stepNum: number): boolean => {
     switch (stepNum) {
       case 1:
-        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth || (password && password.trim().length >= 6)));
+        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth));
       case 2:
         return Boolean(
           fullName && fullName.trim() !== '' &&
@@ -1664,7 +1679,7 @@ export const AlumniRegister: React.FC = () => {
                         </button>
                       </div>
                     </form>
-                  ) : (hasExistingPassword || isGoogleAuth || Boolean(api.getToken())) ? (
+                  ) : (hasExistingPassword || isGoogleAuth) ? (
                     <div className="space-y-6 animate-fadeIn">
                       <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center space-x-3">
                         <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
