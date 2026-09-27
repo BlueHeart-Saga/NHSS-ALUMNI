@@ -1206,10 +1206,10 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         request.joining_year = None
         request.college_joining_year = None
 
-        # Calculate 12th equivalent batch year — use existing_alumni as fallback for partial step saves
+        # Calculate 10th equivalent batch year — use existing_alumni as fallback for partial step saves
         # Note: existing_alumni is fetched after pre_imported check below; here we use request values with safe defaults
         raw_passing_yr = request.passing_year or 2010
-        leaving_cls = request.leaving_class or "12th"
+        leaving_cls = request.leaving_class or "10th"
         cls_num = None
         if leaving_cls:
             import re
@@ -1217,8 +1217,8 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             if matches:
                 cls_num = int(matches[0])
 
-        if cls_num and 1 <= cls_num < 12:
-            effective_batch_year = raw_passing_yr + (12 - cls_num)
+        if cls_num and 1 <= cls_num < 10:
+            effective_batch_year = raw_passing_yr + (10 - cls_num)
         else:
             effective_batch_year = raw_passing_yr
 
@@ -1327,7 +1327,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "mother_name": request.mother_name,
             "country_code": request.country_code if request.country_code else None,
             "school_name": request.school_name,
-            "leaving_class": request.leaving_class,
+            "leaving_class": request.leaving_class or (existing_alumni.get("leaving_class") if existing_alumni else None) or "10th",
             "no_higher_education": request.no_higher_education,  # Can be True or False — both valid
             "college_name": request.college_name,
             "degree": request.degree,

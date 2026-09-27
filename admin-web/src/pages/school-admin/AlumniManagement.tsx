@@ -250,7 +250,7 @@ export const AlumniManagement: React.FC = () => {
     school_name: '',
     joining_year: undefined,
     passing_year: new Date().getFullYear(),
-    leaving_class: '',
+    leaving_class: '10th',
     no_higher_education: 'NO',
     college_name: '',
     degree: '',
@@ -781,7 +781,7 @@ export const AlumniManagement: React.FC = () => {
       school_name: '',
       joining_year: undefined,
       passing_year: new Date().getFullYear(),
-      leaving_class: '',
+      leaving_class: '10th',
       no_higher_education: 'NO',
       college_name: '',
       degree: '',
@@ -2596,16 +2596,37 @@ export const AlumniManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_leaving_class')}</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.leaving_class || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, leaving_class: e.target.value })}
-                      className={addInputCls + ' text-center'}
-                    />
+                <div>
+                  <label className={addLabelCls}>{t('admin_sheet_leaving_class')} *</label>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'].map((cls) => (
+                      <button
+                        key={cls}
+                        type="button"
+                        onClick={() => setNewAlumnus({ ...newAlumnus, leaving_class: cls })}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                          (newAlumnus.leaving_class || '10th') === cls
+                            ? 'bg-[#111111] text-white border-[#111111] shadow-2xs'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cls}
+                      </button>
+                    ))}
                   </div>
+                  {newAlumnus.passing_year && (
+                    <div className="mt-2.5 p-2 bg-[#FFF7D6] border border-[#F4C542]/70 rounded-xl text-xs text-[#854D0E] font-semibold flex items-center justify-between shadow-2xs">
+                      <span>{language === 'ta' ? 'அலுமினி Batch (10-ஆம் வகுப்பு அடிப்படை):' : 'Alumni Batch (10th Standard Basis):'}</span>
+                      <span className="font-extrabold text-[#111111] text-sm">
+                        Batch of {(() => {
+                          const py = Number(newAlumnus.passing_year);
+                          const match = (newAlumnus.leaving_class || '10th').match(/\d+/);
+                          const num = match ? parseInt(match[0], 10) : 10;
+                          return num < 10 ? py + (10 - num) : py;
+                        })()}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div>

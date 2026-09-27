@@ -178,7 +178,7 @@ class AdminCreateAlumniRequest(BaseModel):
     joining_year: Optional[Any] = None
     admission_year: Optional[Any] = None
     passing_year: Optional[Any] = 2010
-    leaving_class: Optional[Any] = "12th"
+    leaving_class: Optional[Any] = "10th"
     no_higher_education: Optional[Any] = "NO"
     college_name: Optional[str] = None
     institution_name: Optional[str] = None

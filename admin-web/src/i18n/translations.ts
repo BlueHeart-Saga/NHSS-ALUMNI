@@ -226,7 +226,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_bulk_deselect_all: "Deselect All",
 
     // Editable Sheet view
-    admin_sheet_editor_title: "Full Spreadsheet Editor — All 41 Fields Editable Directly Below",
+    admin_sheet_editor_title: "Full Spreadsheet Editor — All Fields Editable Directly Below",
     admin_sheet_rows_rendered: "Rows Rendered",
     admin_sheet_save_edited: "Save",
     admin_sheet_saving: "Saving...",
@@ -2210,7 +2210,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_bulk_deselect_all: "அனைத்தையும் தேர்வுநீக்கு",
 
     // Editable Sheet view
-    admin_sheet_editor_title: "முழு விரிதாள் தொகுப்பி — கீழே அனைத்து 41 புலங்களும் நேரடியாக திருத்தக்கூடியவை",
+    admin_sheet_editor_title: "முழு விரிதாள் தொகுப்பி — கீழே அனைத்து புலங்களும் நேரடியாக திருத்தக்கூடியவை",
     admin_sheet_rows_rendered: "வரிசைகள் காட்டப்படுகின்றன",
     admin_sheet_save_edited: "சேமி",
     admin_sheet_saving: "சேமிக்கப்படுகிறது...",

@@ -690,7 +690,7 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
         "joining_year": to_int_or_none(row.get("joining_year")),
         "admission_year": to_int_or_none(row.get("joining_year")),
         "passing_year": passing_year,
-        "leaving_class": (row.get("leaving_class") or "").strip(),
+        "leaving_class": (row.get("leaving_class") or "").strip() or "10th",
         "admission_number": adm_no,
         "roll_no": roll_no,
         "section": (row.get("section") or "A").strip(),
@@ -1474,11 +1474,24 @@ async def admin_update_alumni(
     elif "admission_year" in update_fields:
         update_fields["joining_year"] = update_fields["admission_year"]
 
-    if "passing_year" in update_fields:
+    if "passing_year" in update_fields or "leaving_class" in update_fields:
         try:
-            yr = int(update_fields["passing_year"])
+            yr = int(update_fields.get("passing_year") or 2010)
+            leaving_cls = str(update_fields.get("leaving_class") or "10th").strip()
+            cls_num = None
+            if leaving_cls:
+                matches = re.findall(r'\d+', str(leaving_cls))
+                if matches:
+                    cls_num = int(matches[0])
+
+            if cls_num and 1 <= cls_num < 10:
+                eff_year = yr + (10 - cls_num)
+            else:
+                eff_year = yr
+
+            update_fields["passing_year"] = eff_year
             school_id = current_user.get("school_id")
-            b_query = {"passing_year": yr}
+            b_query = {"passing_year": eff_year}
             if school_id:
                 b_query["school_id"] = school_id
             matched_batch = await db.batches.find_one(b_query)
@@ -1487,9 +1500,9 @@ async def admin_update_alumni(
             else:
                 b_res = await db.batches.insert_one({
                     "school_id": school_id or "PLATFORM",
-                    "name": f"Batch of {yr}",
-                    "passing_year": yr,
-                    "description": f"Official Alumni Batch for Class of {yr}",
+                    "name": f"Batch of {eff_year}",
+                    "passing_year": eff_year,
+                    "description": f"Official Alumni Batch for Class of {eff_year}",
                     "created_at": datetime.now(timezone.utc)
                 })
                 update_fields["batch_id"] = b_res.inserted_id
@@ -1962,7 +1975,7 @@ async def admin_create_alumni(
         res_user = await db.users.insert_one(new_user)
         user_id = str(res_user.inserted_id)
 
-    # Batch resolution
+    # Batch resolution based on 10th standard
     raw_passing_yr = 2010
     if request.passing_year:
         try:
@@ -1970,12 +1983,24 @@ async def admin_create_alumni(
         except (ValueError, TypeError):
             raw_passing_yr = 2010
 
-    batch = await db.batches.find_one({"school_id": school_id, "passing_year": raw_passing_yr})
-    if not batch and 1960 <= raw_passing_yr <= 2035:
+    leaving_cls = str(request.leaving_class).strip() if request.leaving_class else "10th"
+    cls_num = None
+    if leaving_cls:
+        matches = re.findall(r'\d+', str(leaving_cls))
+        if matches:
+            cls_num = int(matches[0])
+
+    if cls_num and 1 <= cls_num < 10:
+        effective_batch_year = raw_passing_yr + (10 - cls_num)
+    else:
+        effective_batch_year = raw_passing_yr
+
+    batch = await db.batches.find_one({"school_id": school_id, "passing_year": effective_batch_year})
+    if not batch and 1960 <= effective_batch_year <= 2035:
         b_res = await db.batches.insert_one({
             "school_id": school_id,
-            "name": f"Batch of {raw_passing_yr}",
-            "passing_year": raw_passing_yr,
+            "name": f"Batch of {effective_batch_year}",
+            "passing_year": effective_batch_year,
             "created_at": now
         })
         batch_id = b_res.inserted_id
@@ -2005,9 +2030,9 @@ async def admin_create_alumni(
         "school_name": request.school_name,
         "joining_year": request.joining_year or request.admission_year,
         "admission_year": request.admission_year or request.joining_year,
-        "passing_year": raw_passing_yr,
+        "passing_year": effective_batch_year,
         "batch_id": batch_id,
-        "leaving_class": str(request.leaving_class) if request.leaving_class is not None else "12th",
+        "leaving_class": leaving_cls,
         "admission_number": str(request.admission_number or request.roll_no or "N/A"),
         "roll_no": str(request.roll_no or request.admission_number or "N/A"),
         "section": str(request.section or "A"),
