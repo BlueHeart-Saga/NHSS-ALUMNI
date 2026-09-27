@@ -1229,12 +1229,12 @@ export const AlumniLogin: React.FC = () => {
                     </div>
 
                     {/* Live Mobile/Account Verification Status Badge */}
-                    {liveCheckStatus === 'CHECKING' && (
+                    {/* {liveCheckStatus === 'CHECKING' && (
                       <div className="mt-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 flex items-center space-x-2 animate-fadeIn font-normal">
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 shrink-0" />
                         <span>{language === 'ta' ? 'தரவுத்தளத்தில் கணக்கு சரிபார்க்கப்படுகிறது...' : 'Checking account in database...'}</span>
                       </div>
-                    )}
+                    )} */}
 
                     {liveCheckStatus === 'EXISTS_NO_PASSWORD' && (
                       <div className="mt-2 p-2.5 bg-[#FFF7D6] border border-[#F4C542] rounded-xl text-xs text-[#854D0E] flex items-center justify-between shadow-xs animate-fadeIn">
@@ -1258,7 +1258,7 @@ export const AlumniLogin: React.FC = () => {
                       </div>
                     )}
 
-                    {liveCheckStatus === 'EXISTS_HAS_PASSWORD' && (
+                    {/* {liveCheckStatus === 'EXISTS_HAS_PASSWORD' && (
                       <div className="mt-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center space-x-2 animate-fadeIn font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span>
@@ -1269,7 +1269,7 @@ export const AlumniLogin: React.FC = () => {
                           )}
                         </span>
                       </div>
-                    )}
+                    )} */}
 
                     {liveCheckStatus === 'NOT_EXISTS' && (
                       <div className="mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center justify-between animate-fadeIn font-normal">

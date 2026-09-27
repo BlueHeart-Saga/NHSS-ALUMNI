@@ -1509,14 +1509,136 @@ async def admin_delete_alumni(
     db = get_db()
     school_id = current_user.get("school_id")
 
-    filter_q = {"school_id": school_id} if school_id else {}
+    # 1. Build lookup query for the alumni record
+    filter_or = []
     try:
-        filter_q["_id"] = ObjectId(alumni_id)
+        filter_or.append({"_id": ObjectId(alumni_id)})
     except Exception:
-        filter_q["_id"] = alumni_id
+        pass
+    filter_or.append({"_id": alumni_id})
 
-    await db.alumni.delete_one(filter_q)
-    return {"success": True, "message": "Alumni record deleted successfully"}
+    query = {"$or": filter_or}
+    if school_id:
+        query = {"$and": [{"school_id": school_id}, {"$or": filter_or}]}
+
+    alumnus = await db.alumni.find_one(query)
+    if not alumnus:
+        # Fallback: check if the alumni_id provided was actually a user_id
+        user_id_query = {"user_id": alumni_id}
+        if school_id:
+            user_id_query = {"school_id": school_id, "user_id": alumni_id}
+        alumnus = await db.alumni.find_one(user_id_query)
+
+    if not alumnus:
+        return {"success": True, "message": "Alumni record not found or already deleted"}
+
+    alumni_actual_id = alumnus["_id"]
+    alumni_str_id = str(alumni_actual_id)
+    user_id = alumnus.get("user_id")
+    mobile = alumnus.get("mobile")
+    email = alumnus.get("email")
+
+    PROTECTED_ADMIN_ROLES = {"SUPER_ADMIN", "PRIMARY_DEVELOPER", "DEVELOPER", "SCHOOL_ADMIN"}
+
+    # 2. Find and delete linked user from db.users
+    user_doc = None
+    if user_id:
+        try:
+            user_doc = await db.users.find_one({"_id": ObjectId(str(user_id))})
+        except Exception:
+            pass
+        if not user_doc:
+            user_doc = await db.users.find_one({"_id": str(user_id)})
+
+    if not user_doc:
+        candidate_or = []
+        if mobile:
+            candidate_or.extend(build_mobile_query_filter(mobile))
+        if email:
+            candidate_or.append({"email": {"$regex": f"^{re.escape(email.strip())}$", "$options": "i"}})
+        if candidate_or:
+            cand_q = {"$or": candidate_or}
+            if school_id:
+                cand_q = {"$and": [{"school_id": school_id}, {"$or": candidate_or}]}
+            candidates = await db.users.find(cand_q).to_list(length=10)
+            for cand in candidates:
+                cand_roles = set(cand.get("roles") or ([cand.get("role")] if cand.get("role") else []))
+                if not cand_roles.intersection(PROTECTED_ADMIN_ROLES):
+                    user_doc = cand
+                    break
+
+    deleted_user_id = None
+    if user_doc:
+        cand_roles = set(user_doc.get("roles") or ([user_doc.get("role")] if user_doc.get("role") else []))
+        if not cand_roles.intersection(PROTECTED_ADMIN_ROLES):
+            deleted_user_id = str(user_doc["_id"])
+            await db.users.delete_one({"_id": user_doc["_id"]})
+            logger.info(f"Cascade deleted user account {deleted_user_id} for alumni {alumni_str_id}")
+        else:
+            logger.warning(f"Protected admin account {user_doc.get('_id')} retained during alumni cascade delete.")
+
+    # 3. Clean up associated data collections
+    user_id_keys = [alumni_str_id]
+    if user_id:
+        user_id_keys.append(str(user_id))
+    if deleted_user_id and deleted_user_id not in user_id_keys:
+        user_id_keys.append(deleted_user_id)
+
+    await db.notifications.delete_many({"user_id": {"$in": user_id_keys}})
+    await db.document_requests.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"user_id": {"$in": user_id_keys}}
+        ]
+    })
+    await db.feedbacks.delete_many({
+        "$or": [
+            {"user_id": {"$in": user_id_keys}},
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}}
+        ]
+    })
+
+    invitation_q = [
+        {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+        {"user_id": {"$in": user_id_keys}}
+    ]
+    if mobile:
+        invitation_q.append({"mobile": mobile})
+    await db.account_invitations.delete_many({"$or": invitation_q})
+
+    await db.checkins.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"user_id": {"$in": user_id_keys}}
+        ]
+    })
+    await db.event_attendance.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"user_id": {"$in": user_id_keys}}
+        ]
+    })
+    await db.mentors.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"user_id": {"$in": user_id_keys}}
+        ]
+    })
+    await db.mentorship_requests.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"mentor_id": {"$in": [alumni_str_id, alumni_actual_id]}},
+            {"user_id": {"$in": user_id_keys}}
+        ]
+    })
+
+    # 4. Delete the alumni record itself
+    await db.alumni.delete_one({"_id": alumni_actual_id})
+    return {
+        "success": True,
+        "message": "Alumni record and linked user account deleted successfully",
+        "user_deleted": bool(deleted_user_id)
+    }
 
 @router.post("/bulk-update")
 async def bulk_update_alumni(
@@ -1638,7 +1760,7 @@ async def bulk_delete_alumni(
     school_id = current_user.get("school_id")
 
     if not request.alumni_ids:
-        return {"success": True, "message": "No IDs provided", "deleted": 0}
+        return {"success": True, "message": "No IDs provided", "deleted": 0, "users_deleted": 0}
 
     obj_ids = []
     str_ids = []
@@ -1646,14 +1768,133 @@ async def bulk_delete_alumni(
         try:
             obj_ids.append(ObjectId(aid))
         except Exception:
-            str_ids.append(aid)
+            pass
+        str_ids.append(aid)
 
     query = {"$or": [{"_id": {"$in": obj_ids}}, {"_id": {"$in": str_ids}}]}
     if school_id:
-        query["school_id"] = school_id
+        query = {"$and": [{"school_id": school_id}, query]}
 
-    res = await db.alumni.delete_many(query)
-    return {"success": True, "message": f"Deleted {res.deleted_count} alumni records", "deleted": res.deleted_count}
+    # 1. Fetch all matching alumni records
+    alumni_docs = await db.alumni.find(query).to_list(length=len(request.alumni_ids) * 2)
+    if not alumni_docs:
+        return {"success": True, "message": "No matching alumni records found", "deleted": 0, "users_deleted": 0}
+
+    alumni_oids = [doc["_id"] for doc in alumni_docs]
+    alumni_str_ids = [str(doc["_id"]) for doc in alumni_docs]
+
+    user_str_ids = set()
+    user_oids = []
+    mobiles = set()
+    emails = set()
+
+    for doc in alumni_docs:
+        uid = doc.get("user_id")
+        if uid:
+            uid_str = str(uid)
+            user_str_ids.add(uid_str)
+            try:
+                user_oids.append(ObjectId(uid_str))
+            except Exception:
+                pass
+        mob = doc.get("mobile")
+        if mob:
+            mobiles.add(mob)
+        em = doc.get("email")
+        if em:
+            emails.add(em.strip().lower())
+
+    PROTECTED_ADMIN_ROLES = {"SUPER_ADMIN", "PRIMARY_DEVELOPER", "DEVELOPER", "SCHOOL_ADMIN"}
+
+    # 2. Find and delete linked users (non-admin accounts only)
+    user_lookup_or = []
+    if user_oids or user_str_ids:
+        user_lookup_or.append({"_id": {"$in": user_oids + list(user_str_ids)}})
+    if mobiles:
+        for m in mobiles:
+            user_lookup_or.extend(build_mobile_query_filter(m))
+    if emails:
+        for em in emails:
+            user_lookup_or.append({"email": {"$regex": f"^{re.escape(em)}$", "$options": "i"}})
+
+    user_ids_to_delete = []
+    if user_lookup_or:
+        user_find_query = {"$or": user_lookup_or}
+        if school_id:
+            user_find_query = {"$and": [{"school_id": school_id}, {"$or": user_lookup_or}]}
+        matched_users = await db.users.find(user_find_query).to_list(length=1000)
+        for u in matched_users:
+            u_roles = set(u.get("roles") or ([u.get("role")] if u.get("role") else []))
+            if not u_roles.intersection(PROTECTED_ADMIN_ROLES):
+                user_ids_to_delete.append(u["_id"])
+                user_str_ids.add(str(u["_id"]))
+
+    deleted_users_count = 0
+    if user_ids_to_delete:
+        del_user_res = await db.users.delete_many({"_id": {"$in": user_ids_to_delete}})
+        deleted_users_count = del_user_res.deleted_count
+
+    all_user_str_ids = list(user_str_ids)
+    all_alumni_id_keys = alumni_str_ids + alumni_oids
+
+    # 3. Clean up associated collections
+    if all_user_str_ids:
+        await db.notifications.delete_many({"user_id": {"$in": all_user_str_ids}})
+
+    await db.document_requests.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_id_keys}},
+            {"user_id": {"$in": all_user_str_ids}}
+        ]
+    })
+    await db.feedbacks.delete_many({
+        "$or": [
+            {"user_id": {"$in": all_user_str_ids}},
+            {"alumni_id": {"$in": all_alumni_id_keys}}
+        ]
+    })
+
+    inv_queries = [{"alumni_id": {"$in": all_alumni_id_keys}}]
+    if all_user_str_ids:
+        inv_queries.append({"user_id": {"$in": all_user_str_ids}})
+    if mobiles:
+        inv_queries.append({"mobile": {"$in": list(mobiles)}})
+    await db.account_invitations.delete_many({"$or": inv_queries})
+
+    await db.checkins.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_id_keys}},
+            {"user_id": {"$in": all_user_str_ids}}
+        ]
+    })
+    await db.event_attendance.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_id_keys}},
+            {"user_id": {"$in": all_user_str_ids}}
+        ]
+    })
+    await db.mentors.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_id_keys}},
+            {"user_id": {"$in": all_user_str_ids}}
+        ]
+    })
+    await db.mentorship_requests.delete_many({
+        "$or": [
+            {"alumni_id": {"$in": all_alumni_id_keys}},
+            {"mentor_id": {"$in": all_alumni_id_keys}},
+            {"user_id": {"$in": all_user_str_ids}}
+        ]
+    })
+
+    # 4. Delete alumni records
+    res = await db.alumni.delete_many({"_id": {"$in": alumni_oids}})
+    return {
+        "success": True,
+        "message": f"Deleted {res.deleted_count} alumni records and {deleted_users_count} linked user accounts",
+        "deleted": res.deleted_count,
+        "users_deleted": deleted_users_count
+    }
 
 @router.post("", response_model=UserProfileResponse)
 async def admin_create_alumni(

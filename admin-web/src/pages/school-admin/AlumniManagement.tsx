@@ -641,16 +641,16 @@ export const AlumniManagement: React.FC = () => {
 
   const handleSingleDelete = async (id: string, name: string) => {
     const confirmed = await alertService.showConfirm(
-      'Delete Alumni Record?',
-      `Are you sure you want to permanently delete "${name}"? This action cannot be undone.`,
-      'Delete Record',
+      'Delete Alumni & User Account?',
+      `Are you sure you want to permanently delete "${name}"? This will permanently remove their alumni profile, portal login account, and all associated user data. This action cannot be undone.`,
+      'Delete All Data',
       'Cancel'
     );
     if (!confirmed) return;
 
     try {
-      await api.deleteAlumniAdmin(id);
-      alertService.showSuccess('Alumni Deleted', `Record for ${name} has been removed.`);
+      const res = await api.deleteAlumniAdmin(id);
+      alertService.showSuccess('Alumni & Account Deleted', res.message || `Record and user account for ${name} have been removed.`);
       fetchAlumni(true);
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to delete record.');
@@ -744,16 +744,16 @@ export const AlumniManagement: React.FC = () => {
     if (ids.length === 0) return;
 
     const confirmed = await alertService.showConfirm(
-      'Bulk Delete Selected Alumni?',
-      `Are you sure you want to PERMANENTLY delete ${ids.length} selected alumni profile(s)?`,
+      'Bulk Delete Alumni & User Accounts?',
+      `Are you sure you want to PERMANENTLY delete ${ids.length} selected alumni profile(s)? This will permanently remove their alumni profiles, portal login accounts, and all associated user data. This action cannot be undone.`,
       'Delete Selected',
       'Cancel'
     );
     if (!confirmed) return;
 
     try {
-      await api.bulkDeleteAlumniAdmin(ids);
-      alertService.showSuccess('Bulk Deleted', `Deleted ${ids.length} alumni profile(s).`);
+      const res = await api.bulkDeleteAlumniAdmin(ids);
+      alertService.showSuccess('Bulk Deleted', res.message || `Deleted ${ids.length} alumni profile(s) and linked user accounts.`);
       setSelectedIds(new Set());
       fetchAlumni(true);
     } catch (err: any) {
