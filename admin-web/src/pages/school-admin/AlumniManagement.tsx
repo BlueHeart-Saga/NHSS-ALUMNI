@@ -637,6 +637,8 @@ export const AlumniManagement: React.FC = () => {
     } catch (err: any) {
       alertService.handleApiError(err, 'Failed to approve alumni.');
     }
+  };
+
   // Single & Bulk Deleting states
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
