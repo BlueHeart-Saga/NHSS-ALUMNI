@@ -266,7 +266,7 @@ export const AlumniRegister: React.FC = () => {
     "BBA", "MBA", "B.Com.", "M.Com.", "BA", "MA", "Diploma", "Ph.D.", "Other - write something"
   ];
   const employmentStatusOptions = [
-    "Employed", "Business / Self-Employed", "Seeking Opportunities", "Retired", "Others"
+    "Employed", "Business / Self-Employed", "Seeking Opportunities", "Retired", "Others", "Prefer not to say"
   ];
 
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
@@ -2520,11 +2520,20 @@ export const AlumniRegister: React.FC = () => {
                           { key: "Seeking Opportunities", labelEn: "Seeking Opportunities", labelTa: "வாய்ப்புத் தேடுபவர்" },
                           { key: "Retired", labelEn: "Retired", labelTa: "ஓய்வு பெற்றவர்" },
                           { key: "Others", labelEn: "Others", labelTa: "மற்றவை" },
+                          { key: "Prefer not to say", labelEn: "Prefer not to say", labelTa: "கூற விரும்பவில்லை" },
                         ].map((opt) => (
                           <button
                             key={opt.key}
                             type="button"
-                            onClick={() => setEmploymentStatus(opt.key)}
+                            onClick={() => {
+                              setEmploymentStatus(opt.key);
+                              if (['Seeking Opportunities', 'Others', 'Prefer not to say'].includes(opt.key)) {
+                                setCompany('');
+                                setPosition('');
+                                setIndustry('');
+                                setTotalExperience('');
+                              }
+                            }}
                             className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${employmentStatus === opt.key
                                 ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
@@ -2536,8 +2545,8 @@ export const AlumniRegister: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Conditional Professional Fields — Hidden when Seeking Opportunities */}
-                    {employmentStatus !== 'Seeking Opportunities' && (
+                    {/* Conditional Professional Fields — Hidden when Seeking Opportunities, Others, or Prefer not to say */}
+                    {!['Seeking Opportunities', 'Others', 'Prefer not to say'].includes(employmentStatus) && (
                       <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                           {/* Company / Organization (Optional) */}
@@ -2852,17 +2861,22 @@ export const AlumniRegister: React.FC = () => {
                               : employmentStatus === 'Seeking Opportunities' ? (language === 'ta' ? 'வாய்ப்புத் தேடுபவர்' : 'Seeking Opportunities')
                               : employmentStatus === 'Retired' ? (language === 'ta' ? 'ஓய்வு பெற்றவர்' : 'Retired')
                               : employmentStatus === 'Others' ? (language === 'ta' ? 'மற்றவை' : 'Others')
+                              : employmentStatus === 'Prefer not to say' ? (language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say')
                               : (employmentStatus || 'N/A')}
                           </span>
                         </div>
-                        <div>
-                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span>
-                          <span className="text-sm sm:text-base font-bold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span>
-                        </div>
-                        <div>
-                          <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பணி அனுபவம்:' : 'Experience:'}</span>
-                          <span className="text-sm sm:text-base font-bold text-[#111111]">{totalExperience || 'N/A'}</span>
-                        </div>
+                        {!['Seeking Opportunities', 'Others', 'Prefer not to say'].includes(employmentStatus) && (
+                          <>
+                            <div>
+                              <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span>
+                              <span className="text-sm sm:text-base font-bold text-[#111111]">{company || 'N/A'} {position ? `(${position})` : ''}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'பணி அனுபவம்:' : 'Experience:'}</span>
+                              <span className="text-sm sm:text-base font-bold text-[#111111]">{totalExperience || 'N/A'}</span>
+                            </div>
+                          </>
+                        )}
                         {linkedinUrl && (
                           <div>
                             <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">LinkedIn:</span>
