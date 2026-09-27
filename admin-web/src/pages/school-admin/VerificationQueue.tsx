@@ -18,7 +18,7 @@ export const VerificationQueue: React.FC = () => {
   const { t, language } = useLanguage();
   const [queueList, setQueueList] = useState<AlumniProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'RE_REQUEST' | 'PENDING' | 'REJECTED' | 'APPROVED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'RE_REQUEST' | 'ALL' | 'REJECTED' | 'APPROVED'>('PENDING');
 
   // Search & Pagination States
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,14 +115,14 @@ export const VerificationQueue: React.FC = () => {
   };
 
   const reRequestCount = queueList.filter((item) => item.is_rerequest && item.verification_status === 'PENDING').length;
-  const pendingCount = queueList.filter((item) => item.verification_status === 'PENDING' && !item.is_rerequest).length;
+  const pendingCount = queueList.filter((item) => item.verification_status === 'PENDING').length;
   const rejectedCount = queueList.filter((item) => item.verification_status === 'REJECTED').length;
   const approvedCount = queueList.filter((item) => item.verification_status === 'APPROVED').length;
 
   const filteredQueue = queueList.filter((item) => {
     // 1. Tab filter
     if (activeTab === 'RE_REQUEST' && !(item.is_rerequest && item.verification_status === 'PENDING')) return false;
-    if (activeTab === 'PENDING' && (item.verification_status !== 'PENDING' || item.is_rerequest)) return false;
+    if (activeTab === 'PENDING' && item.verification_status !== 'PENDING') return false;
     if (activeTab === 'REJECTED' && item.verification_status !== 'REJECTED') return false;
     if (activeTab === 'APPROVED' && item.verification_status !== 'APPROVED') return false;
 
@@ -157,10 +157,26 @@ export const VerificationQueue: React.FC = () => {
     return true;
   });
 
-  const totalItems = filteredQueue.length;
+  const sortedFilteredQueue = [...filteredQueue].sort((a, b) => {
+    const getPriority = (item: AlumniProfile) => {
+      if (item.is_rerequest && item.verification_status === 'PENDING') return 1;
+      if (item.verification_status === 'PENDING') return 2;
+      if (item.verification_status === 'REJECTED') return 3;
+      return 4; // APPROVED
+    };
+    const pA = getPriority(a);
+    const pB = getPriority(b);
+    if (pA !== pB) return pA - pB;
+
+    const timeA = new Date(a.rerequested_at || a.updated_at || a.created_at || 0).getTime();
+    const timeB = new Date(b.rerequested_at || b.updated_at || b.created_at || 0).getTime();
+    return timeB - timeA;
+  });
+
+  const totalItems = sortedFilteredQueue.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedQueue = filteredQueue.slice(startIndex, startIndex + pageSize);
+  const paginatedQueue = sortedFilteredQueue.slice(startIndex, startIndex + pageSize);
 
   if (loading) return <TableSkeleton rows={6} />;
 

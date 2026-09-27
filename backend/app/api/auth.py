@@ -1317,7 +1317,11 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         else:
             # Re-use already-fetched existing_alumni
             current_status = existing_alumni.get("verification_status", "DRAFT") if existing_alumni else "DRAFT"
-            target_status = "PENDING" if (request.registration_submitted or current_status == "PENDING") else (current_status if current_status in ["APPROVED", "REJECTED"] else "DRAFT")
+            is_full_submission = bool(
+                request.registration_submitted or 
+                (request.full_name and request.gender and request.dob and request.passing_year)
+            )
+            target_status = "PENDING" if (is_full_submission or current_status == "PENDING") else (current_status if current_status in ["APPROVED", "REJECTED"] else "DRAFT")
             
             alumni_doc = {
                 "school_id": school_id,
@@ -1332,6 +1336,7 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 "profession": request.position or request.profession,
                 "verification_status": target_status,
                 "verification_notes": "Awaiting admin review" if target_status == "PENDING" else "Registration draft in progress",
+                "registration_submitted": bool(is_full_submission or (existing_alumni and existing_alumni.get("registration_submitted"))),
                 "email_visible": False,
                 "updated_at": now,
                 **extra_fields
@@ -1342,6 +1347,11 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
                 {"$set": alumni_doc},
                 upsert=True
             )
+            if target_status == "PENDING":
+                await db.users.update_one(
+                    {"_id": user_obj_id},
+                    {"$set": {"status": "PENDING", "verification_status": "PENDING"}}
+                )
 
         alumni = await db.alumni.find_one({"user_id": user_id})
 

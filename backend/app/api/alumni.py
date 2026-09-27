@@ -57,7 +57,7 @@ async def list_pending_verifications(
             query.update(school_filter)
 
     cursor = db.alumni.find(query).sort([("is_rerequest", -1), ("rerequested_at", -1), ("updated_at", -1), ("created_at", -1)])
-    pending = await cursor.to_list(length=300)
+    pending = await cursor.to_list(length=1000)
 
     # Batch fetch all matching users in 1 single DB query (Fix N+1 query loop)
     user_ids = []

@@ -154,6 +154,18 @@ export const AlumniRegister: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
+  // Helper to smoothly scroll viewport to top of the registration form card
+  const scrollToFormTop = () => {
+    const cardEl = document.getElementById('registration-step-card');
+    if (cardEl) {
+      const yOffset = -30;
+      const targetY = cardEl.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  };
+
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
     const isStep1Complete = isOtpVerified && (hasExistingPassword || isGoogleAuth);
@@ -165,6 +177,7 @@ export const AlumniRegister: React.FC = () => {
           : 'Please verify your mobile via OTP and set up your password in Step 1 before proceeding.'
       );
       setStep(1);
+      scrollToFormTop();
       return;
     }
     if (targetStep === 1 && isStep1Complete) {
@@ -178,6 +191,55 @@ export const AlumniRegister: React.FC = () => {
     }
     setStep(targetStep);
     setMaxStepReached((prev) => Math.max(prev, targetStep));
+    scrollToFormTop();
+  };
+
+  // Automatically scroll to top of form card whenever step changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToFormTop();
+    }, 40);
+    return () => clearTimeout(timer);
+  }, [step]);
+
+  // Reusable modern Step Header Banner with progress indicators & clear aesthetic
+  const renderStepHeader = (
+    stepNum: number,
+    icon: React.ReactNode,
+    titleEn: string,
+    titleTa: string,
+    descEn: string,
+    descTa: string
+  ) => {
+    const stepPercents: Record<number, number> = { 1: 15, 2: 35, 3: 55, 4: 70, 5: 85, 6: 100 };
+    const pct = stepPercents[stepNum] || 0;
+
+    return (
+      <div className="relative overflow-hidden bg-gradient-to-r from-amber-50/70 via-[#FFFDF6] to-white border border-[#F4C542]/50 rounded-2xl p-4 sm:p-5 mb-6 shadow-2xs">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FFF7D6] border border-[#F4C542]/80 flex items-center justify-center text-[#854D0E] shadow-2xs shrink-0">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider bg-[#F4C542]/25 text-[#854D0E] border border-[#F4C542]/50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                <span>{language === 'ta' ? `படி ${stepNum} / 6` : `Step ${stepNum} of 6`}</span>
+              </span>
+              <span className="text-xs font-semibold text-gray-400">•</span>
+              <span className="text-xs font-bold text-gray-500">
+                {pct}% {language === 'ta' ? 'நிறைவு' : 'completed'}
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-extrabold text-[#111111] tracking-tight">
+              {language === 'ta' ? titleTa : titleEn}
+            </h2>
+          </div>
+        </div>
+        <p className="text-xs sm:text-sm text-gray-600 font-medium mt-2 leading-relaxed">
+          {language === 'ta' ? descTa : descEn}
+        </p>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -1133,7 +1195,8 @@ export const AlumniRegister: React.FC = () => {
         instagram_url: instagramUrl.trim() || undefined,
         whatsapp_number: whatsappNumber.trim() || undefined,
         is_volunteer: isVolunteer || 'NO',
-        willing_to_donate: willingToDonate || 'NO'
+        willing_to_donate: willingToDonate || 'NO',
+        registration_submitted: true
       };
 
       await api.register(payload);
@@ -1526,21 +1589,19 @@ export const AlumniRegister: React.FC = () => {
           {/* RIGHT COLUMN: Form Card */}
 
           <div className="lg:col-span-8">
-            <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm">
+            <div id="registration-step-card" className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm scroll-mt-24">
 
               {/* STEP 1: Sign Up & Mobile Phone SMS Verification */}
               {step === 1 && (
                 <div className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 1: கணக்கு சரிபார்ப்பு' : 'Step 1: Account Verification'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta'
-                        ? 'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க உங்கள் முதன்மை கைபேசி எண்ணைச் சரிபார்க்கவும்'
-                        : 'Verify your primary mobile number to begin your alumni registration'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    1,
+                    <KeyRound className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 1: Account Verification & Password',
+                    'படி 1: கணக்கு சரிபார்ப்பு & கடவுச்சொல்',
+                    'Verify your primary mobile number to begin your alumni registration and set a secure password.',
+                    'உங்கள் முன்னாள் மாணவர் பதிவைத் தொடங்க முதன்மை கைபேசி எண்ணைச் சரிபார்த்து கடவுச்சொல்லை அமைக்கவும்.'
+                  )}
 
                   {!otpSent ? (
                     <form onSubmit={handleSendEmailOTP} className="space-y-6">
@@ -1787,14 +1848,14 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 2: Personal Information */}
               {step === 2 && (
                 <form onSubmit={handleStep2Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 2: தனிப்பட்ட விவரங்கள்' : 'Step 2: Personal Information'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta' ? 'உங்கள் தொடர்பு விவரங்கள் மற்றும் சுயவிவரப் புகைப்படத்தை வழங்கவும்' : 'Provide your verified contact details and profile photograph'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    2,
+                    <User className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 2: Personal Information',
+                    'படி 2: தனிப்பட்ட விவரங்கள்',
+                    'Provide your verified contact details, current residential address, and profile photograph.',
+                    'உங்கள் தொடர்பு விவரங்கள், தற்போதைய முகவரி மற்றும் சுயவிவரப் புகைப்படத்தை வழங்கவும்.'
+                  )}
 
                   {/* Photo Upload */}
                   <div>
@@ -2114,16 +2175,14 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 3: School Details */}
               {step === 3 && (
                 <form onSubmit={handleStep3Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 3: பள்ளி கல்வி விவரங்கள்' : 'Step 3: School Education Details'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta'
-                        ? 'இப்பள்ளியில் படித்த காலத்தைக் குறிப்பிடவும். உங்கள் முன்னாள் மாணவர்கள் வகுப்பு 10-ஆம் வகுப்பு ஆண்டின் அடிப்படையில் கணக்கிடப்படும்.'
-                        : 'Tell us when you studied at this school. Your alumni batch is based on your 10th Standard year.'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    3,
+                    <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 3: School Education Details',
+                    'படி 3: பள்ளி கல்வி விவரங்கள்',
+                    'Tell us when you studied at this school. Your alumni batch is calculated based on your 10th Standard year.',
+                    'இப்பள்ளியில் படித்த காலத்தைக் குறிப்பிடவும். உங்கள் முன்னாள் மாணவர்கள் வகுப்பு 10-ஆம் வகுப்பு ஆண்டின் அடிப்படையில் கணக்கிடப்படும்.'
+                  )}
 
                   <div className="space-y-6">
                     {/* School Name */}
@@ -2284,14 +2343,14 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 4: Higher Education / College Details */}
               {step === 4 && (
                 <form onSubmit={handleStep4Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 4: உயர் கல்வி விவரங்கள்' : 'Step 4: Education History'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta' ? 'கல்லூரி, பட்டப்படிப்பு மற்றும் உயர் கல்வி விவரங்கள்' : 'College, Degree, and Higher Education Details'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    4,
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 4: Education History',
+                    'படி 4: உயர் கல்வி விவரங்கள்',
+                    'College, degree, diploma, and higher education background after completing school.',
+                    'கல்லூரி, பட்டப்படிப்பு மற்றும் உயர் கல்வி விவரங்களை இங்கே உள்ளிடவும்.'
+                  )}
 
                   {/* Option: Radio Button Choice for Higher Education */}
                   <div id="field-hasHigherEducation" className={`p-5 bg-white border border-[#E5E7EB] rounded-2xl shadow-xs space-y-3 ${getHighlightCls('hasHigherEducation')}`}>
@@ -2498,14 +2557,14 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 5: Professional & Work Details */}
               {step === 5 && (
                 <form onSubmit={handleStep5Next} className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 5: தற்போதைய வேலை மற்றும் பணி விவரங்கள்' : 'Step 5: Current Professional Details'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta' ? 'பணி அனுபவம், தற்போதைய நிறுவனம் மற்றும் திறன்கள்' : 'Work experience, current organization, and skills'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    5,
+                    <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 5: Current Professional Details',
+                    'படி 5: தற்போதைய வேலை மற்றும் பணி விவரங்கள்',
+                    'Work experience, current organization, skills, and community contribution preferences.',
+                    'பணி அனுபவம், தற்போதைய நிறுவனம் மற்றும் பங்களிப்பு விருப்பங்களை வழங்கவும்.'
+                  )}
 
                   <div className="space-y-6">
                     {/* Employment Status with Selection Chips (Optional) */}
@@ -2720,14 +2779,14 @@ export const AlumniRegister: React.FC = () => {
               {/* STEP 6: Review & Submit */}
               {step === 6 && (
                 <div className="space-y-6 animate-fadeIn">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-[#111111]">
-                      {language === 'ta' ? 'படி 6: சரிபார்த்து பதிவை உறுதிசெய்யவும்' : 'Step 6: Review & Confirm Registration'}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {language === 'ta' ? 'இறுதி சமர்ப்பிப்புக்கு முன் உங்கள் அனைத்து விவரங்களையும் கவனமாகச் சரிபார்க்கவும்' : 'Please review all your details carefully before final submission'}
-                    </p>
-                  </div>
+                  {renderStepHeader(
+                    6,
+                    <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D0E]" />,
+                    'Step 6: Review & Confirm Registration',
+                    'படி 6: சரிபார்த்து பதிவை உறுதிசெய்யவும்',
+                    'Please review all your details carefully before submitting your application for school verification.',
+                    'இறுதி சமர்ப்பிப்புக்கு முன் உங்கள் அனைத்து விவரங்களையும் கவனமாகச் சரிபார்க்கவும்.'
+                  )}
 
                   {/* Summary Card Preview */}
                   <div className="space-y-5">

@@ -212,6 +212,7 @@ export interface AlumniProfile {
   committee_role_title?: string;
   email_visible: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ReRequestHistoryItem {
