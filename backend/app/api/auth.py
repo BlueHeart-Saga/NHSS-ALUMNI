@@ -1365,9 +1365,24 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "timestamp": now
         })
 
-        # Dispatch Registration Thank-You Email asynchronously in background
+        # Dispatch Registration Thank-You Email asynchronously in background ONLY ONCE upon final submission
+        already_sent_thank_you = bool(
+            (alumni and alumni.get("registration_thank_you_email_sent")) or
+            (existing_alumni and existing_alumni.get("registration_thank_you_email_sent"))
+        )
+        is_final_submission = bool(
+            request.registration_submitted or
+            (target_status == "PENDING" and request.full_name and (request.dob or request.date_of_birth) and (request.passing_year or effective_batch_year))
+        )
+
         reg_email = str(request.email) if request.email else (alumni.get("email") if alumni else None)
-        if reg_email:
+        if reg_email and is_final_submission and not already_sent_thank_you:
+            # Immediately record in MongoDB that the thank-you email has been dispatched for this alumnus
+            await db.alumni.update_one(
+                {"user_id": user_id},
+                {"$set": {"registration_thank_you_email_sent": True, "registration_thank_you_email_sent_at": now}}
+            )
+
             import asyncio
             from app.services.email import send_registration_thank_you_email
             alumni_name = (alumni.get("full_name") if alumni else request.full_name) or "Alumnus"
