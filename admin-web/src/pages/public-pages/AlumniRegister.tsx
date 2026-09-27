@@ -146,7 +146,7 @@ export const AlumniRegister: React.FC = () => {
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [hasExistingPassword, setHasExistingPassword] = useState<boolean>(() => {
-    return localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+    return sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
   });
   const [accountAlreadyExists, setAccountAlreadyExists] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
@@ -158,7 +158,7 @@ export const AlumniRegister: React.FC = () => {
 
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6) => {
-    const hasSavedPass = localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+    const hasSavedPass = sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
     if (!isOtpVerified && !hasSavedPass && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
@@ -183,7 +183,7 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const hasSavedPass = localStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
+    const hasSavedPass = sessionStorage.getItem('alumni_has_password') === 'true' || Boolean(api.getToken());
     if (!isOtpVerified && !hasSavedPass && step > 1) {
       setStep(1);
     }
@@ -235,7 +235,6 @@ export const AlumniRegister: React.FC = () => {
 
   // Step 3 — School Details
   const [schoolName, setSchoolName] = useState('NHS School');
-  const [joiningYear, setJoiningYear] = useState('');
   const [passingYear, setPassingYear] = useState('');
   const [leavingClass, setLeavingClass] = useState('10th');
 
@@ -246,7 +245,6 @@ export const AlumniRegister: React.FC = () => {
   const [degree, setDegree] = useState('');
   const [otherDegree, setOtherDegree] = useState('');
   const [stream, setStream] = useState('');
-  const [collegeJoiningYear, setCollegeJoiningYear] = useState('');
   const [collegePassingYear, setCollegePassingYear] = useState('');
 
   // Step 5 — Current Professional Details & Social Links
@@ -270,7 +268,7 @@ export const AlumniRegister: React.FC = () => {
     "BBA", "MBA", "B.Com.", "M.Com.", "BA", "MA", "Diploma", "Ph.D.", "Other - write something"
   ];
   const employmentStatusOptions = [
-    "Employed", "Business / Self-Employed", "Seeking Opportunities", "Retired"
+    "Employed", "Business / Self-Employed", "Seeking Opportunities", "Retired", "Others"
   ];
 
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
@@ -364,13 +362,13 @@ export const AlumniRegister: React.FC = () => {
     if (api.getToken()) {
       setHasExistingPassword(true);
       setIsOtpVerified(true);
-      localStorage.setItem('alumni_has_password', 'true');
+      sessionStorage.setItem('alumni_has_password', 'true');
       api.getProfile()
         .then((p: any) => {
           if (p) {
             setHasExistingPassword(true);
             setIsOtpVerified(true);
-            localStorage.setItem('alumni_has_password', 'true');
+            sessionStorage.setItem('alumni_has_password', 'true');
             if (p.email) setEmail(p.email);
             if (p.mobile) {
               setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
@@ -394,7 +392,6 @@ export const AlumniRegister: React.FC = () => {
             if (p.father_name) setFatherName(p.father_name);
             if (p.mother_name) setMotherName(p.mother_name);
             if (p.school_name) setSchoolName(p.school_name);
-            if (p.joining_year) setJoiningYear(String(p.joining_year));
             if (p.passing_year) setPassingYear(String(p.passing_year));
             if (p.leaving_class) setLeavingClass(p.leaving_class);
 
@@ -404,7 +401,6 @@ export const AlumniRegister: React.FC = () => {
             if (p.degree) setDegree(p.degree);
             if (p.other_degree) setOtherDegree(p.other_degree);
             if (p.stream || p.other_stream) setStream(p.stream || p.other_stream);
-            if (p.college_joining_year) setCollegeJoiningYear(String(p.college_joining_year));
             if (p.college_passing_year) setCollegePassingYear(String(p.college_passing_year));
 
             if (p.employment_status) setEmploymentStatus(p.employment_status);
@@ -424,7 +420,7 @@ export const AlumniRegister: React.FC = () => {
               p.gender && p.dob && p.address && (p.current_city || p.city)
             );
             const hasSchool = Boolean(
-              p.school_name && p.joining_year && p.passing_year && p.leaving_class
+              p.school_name && p.passing_year && p.leaving_class
             );
             const noCollege = isNoCollege;
             const hasCollege = Boolean(
@@ -456,8 +452,9 @@ export const AlumniRegister: React.FC = () => {
         .catch(() => { });
     }
 
-    // Restore local draft fallback
-    const savedDraft = localStorage.getItem('alumni_register_draft');
+    // Restore session draft fallback (or database profile fallback)
+    const savedDraft = sessionStorage.getItem('alumni_register_draft') || localStorage.getItem('alumni_register_draft');
+    try { localStorage.removeItem('alumni_register_draft'); } catch (e) {}
     if (savedDraft) {
       try {
         const d = JSON.parse(savedDraft);
@@ -474,7 +471,6 @@ export const AlumniRegister: React.FC = () => {
         if (d.address) setAddress(d.address);
         if (d.currentCity) setCurrentCity(d.currentCity);
         if (d.schoolName) setSchoolName(d.schoolName);
-        if (d.joiningYear) setJoiningYear(String(d.joiningYear));
         if (d.passingYear) setPassingYear(String(d.passingYear));
         if (d.leavingClass) setLeavingClass(d.leavingClass);
         if (d.noHigherEducation !== undefined) setNoHigherEducation(d.noHigherEducation);
@@ -482,7 +478,6 @@ export const AlumniRegister: React.FC = () => {
         if (d.degree) setDegree(d.degree);
         if (d.otherDegree) setOtherDegree(d.otherDegree);
         if (d.stream) setStream(d.stream);
-        if (d.collegeJoiningYear) setCollegeJoiningYear(String(d.collegeJoiningYear));
         if (d.collegePassingYear) setCollegePassingYear(String(d.collegePassingYear));
         if (d.employmentStatus) setEmploymentStatus(d.employmentStatus);
         if (d.company) setCompany(d.company);
@@ -636,7 +631,7 @@ export const AlumniRegister: React.FC = () => {
       }
       setHasExistingPassword(true);
       setIsOtpVerified(true);
-      localStorage.setItem('alumni_has_password', 'true');
+      sessionStorage.setItem('alumni_has_password', 'true');
       await alertService.showSuccess(
         language === 'ta' ? 'கடவுச்சொல் உருவாக்கப்பட்டது!' : 'Password Created Successfully!',
         language === 'ta'
@@ -655,18 +650,19 @@ export const AlumniRegister: React.FC = () => {
     }
   };
 
-  // Immediate step data persistence helper
+  // Immediate step data persistence helper (saves directly to DB & session)
   const saveStepDataToDB = async (partialData: any) => {
     try {
       const currentDraft = {
         fullName, email, mobile, gender, dob, bloodGroup, fatherName, motherName,
-        country, state, address, currentCity, schoolName, joiningYear, passingYear, leavingClass,
-        noHigherEducation, collegeName, degree, otherDegree, stream, collegeJoiningYear, collegePassingYear,
+        country, state, address, currentCity, schoolName, passingYear, leavingClass,
+        noHigherEducation, collegeName, degree, otherDegree, stream, collegePassingYear,
         employmentStatus, company, position, industry, totalExperience, linkedinUrl, instagramUrl, whatsappNumber,
         isVolunteer, willingToDonate,
         ...partialData
       };
-      localStorage.setItem('alumni_register_draft', JSON.stringify(currentDraft));
+      sessionStorage.setItem('alumni_register_draft', JSON.stringify(currentDraft));
+      try { localStorage.removeItem('alumni_register_draft'); } catch (e) {}
     } catch (e) { }
 
     if (api.getToken()) {
@@ -763,7 +759,6 @@ export const AlumniRegister: React.FC = () => {
         school_name: schoolName.trim() || undefined,
         passing_year: passingYear ? parseInt(passingYear) : undefined,
         leaving_class: leavingClass || undefined,
-        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
       });
       goToStep(3);
     } catch (err: any) {
@@ -860,8 +855,7 @@ export const AlumniRegister: React.FC = () => {
         country: country.trim() || 'India',
         // School Details
         school_name: schoolName.trim(),
-        joining_year: joiningYear ? (parseInt(joiningYear) || undefined) : undefined,
-        passing_year: parseInt(passingYear) || 2015,
+        passing_year: parseInt(passingYear) || undefined,
         leaving_class: leavingClass,
       });
       goToStep(4);
@@ -908,14 +902,12 @@ export const AlumniRegister: React.FC = () => {
         school_name: schoolName.trim() || undefined,
         passing_year: parseInt(passingYear) || undefined,
         leaving_class: leavingClass || undefined,
-        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
         // Higher Education
         no_higher_education: isNoCollege,
         college_name: !isNoCollege && collegeName ? collegeName.trim() : undefined,
         degree: !isNoCollege && finalDegree ? finalDegree : undefined,
         other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
         stream: !isNoCollege && stream ? stream.trim() : undefined,
-        college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
         college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
         current_city: currentCity.trim() || undefined,
       });
@@ -954,7 +946,6 @@ export const AlumniRegister: React.FC = () => {
         school_name: schoolName.trim() || undefined,
         passing_year: passingYear ? parseInt(passingYear) : undefined,
         leaving_class: leavingClass || undefined,
-        joining_year: joiningYear ? parseInt(joiningYear) : undefined,
         // Higher Ed (carry forward)
         no_higher_education: hasHigherEducation === 'NO' ? true : (hasHigherEducation === 'YES' ? false : undefined),
         // Professional & Social
@@ -1081,7 +1072,6 @@ export const AlumniRegister: React.FC = () => {
         (collegeName && collegeName.trim()) ||
         degree ||
         (stream && stream.trim()) ||
-        collegeJoiningYear ||
         collegePassingYear
       );
       const isNoCollege = noHigherEducation || !hasCollegeData;
@@ -1106,8 +1096,7 @@ export const AlumniRegister: React.FC = () => {
 
         // School Education
         school_name: schoolName.trim(),
-        joining_year: parseInt(joiningYear) || 2010,
-        passing_year: parseInt(passingYear) || 2015,
+        passing_year: parseInt(passingYear) || undefined,
         leaving_class: leavingClass,
 
         // Higher Education
@@ -1116,7 +1105,6 @@ export const AlumniRegister: React.FC = () => {
         degree: !isNoCollege && finalDegree ? finalDegree : undefined,
         other_degree: degree === 'Other - write something' && otherDegree ? otherDegree.trim() : undefined,
         stream: !isNoCollege && stream ? stream.trim() : undefined,
-        college_joining_year: !isNoCollege && collegeJoiningYear ? parseInt(collegeJoiningYear) : undefined,
         college_passing_year: !isNoCollege && collegePassingYear ? parseInt(collegePassingYear) : undefined,
 
         // Professional & Social Contact Details
@@ -1134,6 +1122,10 @@ export const AlumniRegister: React.FC = () => {
       };
 
       await api.register(payload);
+      try {
+        sessionStorage.removeItem('alumni_register_draft');
+        localStorage.removeItem('alumni_register_draft');
+      } catch (e) {}
       await alertService.showSuccess(
         language === 'ta' ? 'பதிவு முடிந்தது & கணக்கு சமர்ப்பிக்கப்பட்டது!' : 'Registration Submitted Successfully!',
         language === 'ta'
@@ -2142,11 +2134,11 @@ export const AlumniRegister: React.FC = () => {
                       )}
                     </div>
 
-                    {/* 10th Standard / School Leaving Year */}
+                    {/* 10th Standard / School Finish Year */}
                     <div>
                       <div id="field-passingYear" className={getHighlightCls('passingYear')}>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                          {language === 'ta' ? '10-ஆம் வகுப்பு / பள்ளி வெளியேறிய ஆண்டு' : '10TH STANDARD / SCHOOL LEAVING YEAR'} <span className="text-rose-500">*</span>
+                          {language === 'ta' ? '10-ஆம் வகுப்பு / பள்ளி முடித்த ஆண்டு' : '10TH STANDARD / SCHOOL FINISH YEAR'} <span className="text-rose-500">*</span>
                         </label>
                         <div className="relative">
                           <select
@@ -2168,7 +2160,7 @@ export const AlumniRegister: React.FC = () => {
                         {invalidFields.has('passingYear') && (
                           <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
                             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            {language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : '10th Standard / School Leaving Year is required'}
+                            {language === 'ta' ? 'ஆண்டைத் தேர்ந்தெடுக்கவும்' : '10th Standard / School Finish Year is required'}
                           </p>
                         )}
                       </div>
@@ -2512,6 +2504,7 @@ export const AlumniRegister: React.FC = () => {
                           { key: "Business / Self-Employed", labelEn: "Business / Self-Employed", labelTa: "சுயதொழில் / தொழில்முனைவோர்" },
                           { key: "Seeking Opportunities", labelEn: "Seeking Opportunities", labelTa: "வாய்ப்புத் தேடுபவர்" },
                           { key: "Retired", labelEn: "Retired", labelTa: "ஓய்வு பெற்றவர்" },
+                          { key: "Others", labelEn: "Others", labelTa: "மற்றவை" },
                         ].map((opt) => (
                           <button
                             key={opt.key}
@@ -2781,8 +2774,12 @@ export const AlumniRegister: React.FC = () => {
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{schoolName}</span>
                         </div>
                         <div>
-                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'படித்த காலம்:' : 'Study Period:'}</span>
-                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">{joiningYear} – {passingYear}</span>
+                          <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">
+                            {language === 'ta' ? 'பள்ளி முடித்த ஆண்டு:' : 'School Finish Year:'}
+                          </span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#111111]">
+                            {passingYear || '—'}
+                          </span>
                         </div>
                         <div>
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'வெளியேறிய வகுப்பு:' : 'Class at Leaving:'}</span>
@@ -2834,7 +2831,14 @@ export const AlumniRegister: React.FC = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                         <div>
                           <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'வேலை நிலை:' : 'Status:'}</span>
-                          <span className="text-sm sm:text-base font-bold text-[#111111]">{employmentStatus}</span>
+                          <span className="text-sm sm:text-base font-bold text-[#111111]">
+                            {employmentStatus === 'Employed' ? (language === 'ta' ? 'பணியில் உள்ளவர்' : 'Employed')
+                              : employmentStatus === 'Business / Self-Employed' ? (language === 'ta' ? 'சுயதொழில் / தொழில்முனைவோர்' : 'Business / Self-Employed')
+                              : employmentStatus === 'Seeking Opportunities' ? (language === 'ta' ? 'வாய்ப்புத் தேடுபவர்' : 'Seeking Opportunities')
+                              : employmentStatus === 'Retired' ? (language === 'ta' ? 'ஓய்வு பெற்றவர்' : 'Retired')
+                              : employmentStatus === 'Others' ? (language === 'ta' ? 'மற்றவை' : 'Others')
+                              : (employmentStatus || 'N/A')}
+                          </span>
                         </div>
                         <div>
                           <span className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'நிறுவனம் / பதவி:' : 'Company / Role:'}</span>

@@ -184,10 +184,9 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
     if not has_personal:
         return False, 2
 
-    # Check Step 3: School Details
+    # Check Step 3: School Details (Admission/Joining year is optional)
     has_school = bool(
         alumni.get("school_name") and
-        alumni.get("joining_year") and
         alumni.get("passing_year") and
         alumni.get("leaving_class")
     )
@@ -1144,19 +1143,9 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         except Exception:
             user_obj_id = user_id
 
-        # Validate School Timeline
-        if request.joining_year and request.passing_year and request.joining_year > request.passing_year:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid School Timeline: Admission/Joining year ({request.joining_year}) cannot be greater than Leaving/Passing year ({request.passing_year})."
-            )
-
-        # Validate College Timeline
-        if not request.no_higher_education and request.college_joining_year and request.college_passing_year and request.college_joining_year > request.college_passing_year:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid College Timeline: College Admission/Joining year ({request.college_joining_year}) cannot be greater than College Passing/Graduation year ({request.college_passing_year})."
-            )
+        # Neutralize joining_year and college_joining_year (admission years completely removed from registration)
+        request.joining_year = None
+        request.college_joining_year = None
 
         # Calculate 12th equivalent batch year — use existing_alumni as fallback for partial step saves
         # Note: existing_alumni is fetched after pre_imported check below; here we use request values with safe defaults
@@ -1250,6 +1239,13 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         user_update = {k: v for k, v in user_update.items() if v is not None}
         await db.users.update_one({"_id": user_obj_id}, {"$set": user_update})
 
+        # If existing record in DB has legacy joining_year / admission_year, unset them
+        if existing_alumni and (existing_alumni.get("joining_year") or existing_alumni.get("admission_year") or existing_alumni.get("college_joining_year")):
+            await db.alumni.update_one(
+                {"_id": existing_alumni["_id"]},
+                {"$unset": {"joining_year": "", "admission_year": "", "college_joining_year": ""}}
+            )
+
         raw_extra_fields = {
             "gender": request.gender,
             "dob": request.dob or request.date_of_birth,
@@ -1258,14 +1254,12 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
             "mother_name": request.mother_name,
             "country_code": request.country_code if request.country_code else None,
             "school_name": request.school_name,
-            "joining_year": request.joining_year,
             "leaving_class": request.leaving_class,
             "no_higher_education": request.no_higher_education,  # Can be True or False — both valid
             "college_name": request.college_name,
             "degree": request.degree,
             "other_degree": request.other_degree,
             "stream": request.stream,
-            "college_joining_year": request.college_joining_year,
             "college_passing_year": request.college_passing_year,
             "employment_status": request.employment_status,
             "chapter": request.chapter,

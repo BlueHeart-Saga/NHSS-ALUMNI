@@ -13,24 +13,24 @@ The platform defines 3 explicit roles:
 
 | Feature / Action | SCHOOL_ADMIN | BATCH_COORDINATOR (Own Batch) | BATCH_COORDINATOR (Other Batch) | ALUMNI (Verified) | ALUMNI (Pending) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Manage School Profile** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Create / Archive Batches** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Assign Batch Coordinators** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Verify / Reject Alumni** | ✅ | 👁️ (View Pending) | ❌ | ❌ | ❌ |
-| **Import Alumni CSV** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **View Alumni Directory** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **View Member Profile** | ✅ | ✅ | ✅ | ✅ (Respects Privacy) | ❌ |
-| **Create School Event** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Create Batch Event** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Publish / Cancel Event** | ✅ | ✅ (Own Batch) | ❌ | ❌ | ❌ |
-| **Submit Event RSVP** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **View RSVP Dashboard** | ✅ | ✅ (Own Batch) | ❌ | ❌ | ❌ |
-| **Scan QR Check-In** | ✅ | ✅ (Own Batch) | ❌ | ❌ | ❌ |
-| **Broadcast Announcement** | ✅ (School/Batch) | ✅ (Own Batch) | ❌ | ❌ | ❌ |
-| **Upload Memories** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Moderate / Delete Photos** | ✅ | ✅ (Own Batch) | ❌ | ✅ (Own Uploads) | ❌ |
-| **Export Reports / CSV** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **View Audit Logs** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Manage School Profile** | Yes | - | - | - | - |
+| **Create / Archive Batches** | Yes | - | - | - | - |
+| **Assign Batch Coordinators** | Yes | - | - | - | - |
+| **Verify / Reject Alumni** | Yes | View Pending | - | - | - |
+| **Import Alumni CSV** | Yes | - | - | - | - |
+| **View Alumni Directory** | Yes | Yes | Yes | Yes | - |
+| **View Member Profile** | Yes | Yes | Yes | Yes (Respects Privacy) | - |
+| **Create School Event** | Yes | - | - | - | - |
+| **Create Batch Event** | Yes | Yes | - | - | - |
+| **Publish / Cancel Event** | Yes | Yes (Own Batch) | - | - | - |
+| **Submit Event RSVP** | Yes | Yes | Yes | Yes | - |
+| **View RSVP Dashboard** | Yes | Yes (Own Batch) | - | - | - |
+| **Scan QR Check-In** | Yes | Yes (Own Batch) | - | - | - |
+| **Broadcast Announcement** | Yes (School/Batch) | Yes (Own Batch) | - | - | - |
+| **Upload Memories** | Yes | Yes | Yes | Yes | - |
+| **Moderate / Delete Photos** | Yes | Yes (Own Batch) | - | Yes (Own Uploads) | - |
+| **Export Reports / CSV** | Yes | - | - | - | - |
+| **View Audit Logs** | Yes | - | - | - | - |
 
 ---
 

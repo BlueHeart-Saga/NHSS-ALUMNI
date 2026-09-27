@@ -86,7 +86,7 @@ export const DeveloperLogin: React.FC<DeveloperLoginProps> = ({ onLoginSuccess }
     setLoading(true);
 
     try {
-      if (cleanEmail) localStorage.setItem('developer_email', cleanEmail);
+      if (cleanEmail) sessionStorage.setItem('developer_email', cleanEmail);
       const res = await api.login(cleanEmail, password);
 
       const upperRoles = (res.roles || []).map((r: string) => String(r).toUpperCase());

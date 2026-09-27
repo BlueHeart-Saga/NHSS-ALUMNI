@@ -26,14 +26,14 @@ export const VolunteerDonationPrompts: React.FC<VolunteerDonationPromptsProps> =
     
     // Check if donation preference is unset or pending
     const donationUnset = !user.willing_to_donate || user.willing_to_donate === 'PENDING';
-    const bannerDismissed = localStorage.getItem(`donation_banner_dismissed_${user.id}`);
+    const bannerDismissed = sessionStorage.getItem(`donation_banner_dismissed_${user.id}`);
     if (donationUnset && !bannerDismissed) {
       setShowDonationBanner(true);
     }
 
     // Check if volunteer preference is unset
     const volunteerUnset = !user.is_volunteer || user.is_volunteer === 'PENDING';
-    const modalPrompted = localStorage.getItem(`volunteer_modal_prompted_${user.id}`);
+    const modalPrompted = sessionStorage.getItem(`volunteer_modal_prompted_${user.id}`);
     if (volunteerUnset && !modalPrompted) {
       // Auto open modal once after 1.5 seconds delay
       const timer = setTimeout(() => {
@@ -56,7 +56,7 @@ export const VolunteerDonationPrompts: React.FC<VolunteerDonationPromptsProps> =
         setShowDonationBanner(false);
       } else if (field === 'is_volunteer') {
         setShowVolunteerModal(false);
-        localStorage.setItem(`volunteer_modal_prompted_${user.id}`, 'true');
+        sessionStorage.setItem(`volunteer_modal_prompted_${user.id}`, 'true');
       }
     } catch (err) {
       console.error(`Failed to update ${field}:`, err);
@@ -68,14 +68,14 @@ export const VolunteerDonationPrompts: React.FC<VolunteerDonationPromptsProps> =
   const dismissDonationBanner = () => {
     setShowDonationBanner(false);
     if (user?.id) {
-      localStorage.setItem(`donation_banner_dismissed_${user.id}`, 'true');
+      sessionStorage.setItem(`donation_banner_dismissed_${user.id}`, 'true');
     }
   };
 
   const closeVolunteerModal = () => {
     setShowVolunteerModal(false);
     if (user?.id) {
-      localStorage.setItem(`volunteer_modal_prompted_${user.id}`, 'true');
+      sessionStorage.setItem(`volunteer_modal_prompted_${user.id}`, 'true');
     }
   };
 

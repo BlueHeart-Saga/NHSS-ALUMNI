@@ -23,9 +23,9 @@ graph TD
     ShowQR --> Scanner[Coordinator Scans QR Code via Admin Terminal]
     Scanner --> Validate{Backend Token Validation}
 
-    Validate -->|Valid Ticket & RSVP| Success[✓ GREEN SCREEN: Check-In Successful]
-    Validate -->|Ticket Scanned Already| Duplicate[❌ RED ALERT: Duplicate Check-In Blocked]
-    Validate -->|Wrong Event / School| Invalid[❌ RED ALERT: Invalid Ticket Token]
+    Validate -->|Valid Ticket & RSVP| Success[GREEN SCREEN: Check-In Successful]
+    Validate -->|Ticket Scanned Already| Duplicate[RED ALERT: Duplicate Check-In Blocked]
+    Validate -->|Wrong Event / School| Invalid[RED ALERT: Invalid Ticket Token]
     Validate -->|Phone Battery Dead| ManualSearch[Search Alumnus Name / Admission No]
     ManualSearch --> ManualCheckin[Manual Check-in Button]
 ```

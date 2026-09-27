@@ -38,7 +38,7 @@ Dear ABC School 2010 Batchmate,
 We are excited to launch the official ABC School Alumni Portal! 
 
 Please register your alumni profile to join our Class of 2010 Silver Jubilee Reunion:
-👉 Link: https://alumni.abcschool.edu
+Link: https://alumni.abcschool.edu
 
 Once registered, you can view fellow batchmates, RSVP for our upcoming get-together at Hotel Taj Connemara, and receive your digital QR entry ticket.
 

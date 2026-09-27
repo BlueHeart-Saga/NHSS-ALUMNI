@@ -8,20 +8,21 @@ interface DeveloperSidebarProps {
 }
 
 export const DeveloperSidebar: React.FC<DeveloperSidebarProps> = ({ onLogout }) => {
-  const [devMobile, setDevMobile] = useState<string>(() => localStorage.getItem('developer_mobile') || '');
+  const [devMobile, setDevMobile] = useState<string>(() => sessionStorage.getItem('developer_mobile') || '');
   const [isOpenMobile, setIsOpenMobile] = useState(false);
 
   React.useEffect(() => {
+    try { localStorage.removeItem('developer_mobile'); } catch (e) {}
     api.getDeveloperInfo().then((info) => {
       if (info && info.mobile) {
         setDevMobile(info.mobile);
-        localStorage.setItem('developer_mobile', info.mobile);
+        sessionStorage.setItem('developer_mobile', info.mobile);
       }
     }).catch(() => {
       api.getMe().then((user) => {
         if (user && user.mobile) {
           setDevMobile(user.mobile);
-          localStorage.setItem('developer_mobile', user.mobile);
+          sessionStorage.setItem('developer_mobile', user.mobile);
         }
       }).catch(() => {});
     });
@@ -119,7 +120,7 @@ export const DeveloperSidebar: React.FC<DeveloperSidebarProps> = ({ onLogout }) 
               <Key className="w-3.5 h-3.5 text-[#111111]" />
               <span>Developer Access Active</span>
             </div>
-            <div className="text-[#6B7280] text-[10px]">Mobile: <strong>{devMobile || localStorage.getItem('developer_mobile') || ''}</strong></div>
+            <div className="text-[#6B7280] text-[10px]">Mobile: <strong>{devMobile || sessionStorage.getItem('developer_mobile') || ''}</strong></div>
           </div>
 
           <button

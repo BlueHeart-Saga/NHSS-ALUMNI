@@ -9,7 +9,7 @@ import { convertFileToWebP } from '../utils/imageOptimizer';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
-  private token: string | null = sessionStorage.getItem('alumni_access_token') || localStorage.getItem('alumni_access_token');
+  private token: string | null = sessionStorage.getItem('alumni_access_token');
   private cacheMap = new Map<string, { data: any; timestamp: number; ttl: number }>();
   private pendingPromises = new Map<string, Promise<any>>();
   private defaultCacheTTL = 20000; // 20 seconds default TTL
@@ -17,7 +17,9 @@ class ApiClient {
   setToken(token: string) {
     this.token = token;
     sessionStorage.setItem('alumni_access_token', token);
-    localStorage.setItem('alumni_access_token', token);
+    try {
+      localStorage.removeItem('alumni_access_token');
+    } catch (e) {}
     this.clearCache();
   }
 
@@ -25,10 +27,10 @@ class ApiClient {
     this.token = null;
     try {
       sessionStorage.removeItem('alumni_access_token');
-      localStorage.removeItem('alumni_access_token');
       sessionStorage.removeItem('alumni_refresh_token');
-      localStorage.removeItem('alumni_refresh_token');
       sessionStorage.removeItem('developer_mobile');
+      localStorage.removeItem('alumni_access_token');
+      localStorage.removeItem('alumni_refresh_token');
       localStorage.removeItem('developer_mobile');
     } catch (e) {}
     this.clearCache();
@@ -51,7 +53,7 @@ class ApiClient {
   }
 
   getToken(): string | null {
-    return this.token || sessionStorage.getItem('alumni_access_token') || localStorage.getItem('alumni_access_token');
+    return this.token || sessionStorage.getItem('alumni_access_token');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
