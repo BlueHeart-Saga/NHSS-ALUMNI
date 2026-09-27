@@ -426,14 +426,20 @@ export const AlumniRegister: React.FC = () => {
       api.getProfile()
         .then(async (p: any) => {
           if (p) {
-            // If alumnus is already approved or verified, immediately navigate to the Alumni Portal
-            const isApprovedOrVerified =
-              p.verification_status === 'APPROVED' ||
-              p.verification_status === 'VERIFIED' ||
+            // If alumnus is already approved, verified, pending review, or rejected:
+            // They have already completed & submitted registration!
+            // Direct them to /alumni to view full portal or track their status!
+            const normVerif = String(p.verification_status || '').toUpperCase();
+            const isAlreadySubmitted =
+              normVerif === 'APPROVED' ||
+              normVerif === 'VERIFIED' ||
+              normVerif === 'PENDING' ||
+              normVerif === 'REJECTED' ||
               p.status === 'APPROVED' ||
-              p.is_verified === true;
+              p.is_verified === true ||
+              p.registration_submitted === true;
 
-            if (isApprovedOrVerified) {
+            if (isAlreadySubmitted && !location.state?.editMode) {
               navigate('/alumni', { replace: true });
               return;
             }
@@ -668,17 +674,29 @@ export const AlumniRegister: React.FC = () => {
       const res = await api.verifyOTP(activeId, otp);
       setIsOtpVerified(true);
       
-      const isApprovedOrVerified =
-        res.verification_status === 'APPROVED' ||
-        res.verification_status === 'VERIFIED';
+      const normResVerif = String(res.verification_status || '').toUpperCase();
+      const isAlreadySubmitted =
+        normResVerif === 'APPROVED' ||
+        normResVerif === 'VERIFIED' ||
+        normResVerif === 'PENDING' ||
+        normResVerif === 'REJECTED';
 
-      if (isApprovedOrVerified) {
-        await alertService.showSuccess(
-          language === 'ta' ? 'கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டது!' : 'Account Already Approved!',
-          language === 'ta'
-            ? 'உங்கள் முன்னாள் மாணவர் கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது. நீங்கள் முன்னாள் மாணவர் தளத்திற்கு செல்கிறீர்கள்.'
-            : 'Your alumni account is already verified and approved! Redirecting you to the Alumni Portal.'
-        );
+      if (isAlreadySubmitted) {
+        if (normResVerif === 'APPROVED' || normResVerif === 'VERIFIED') {
+          await alertService.showSuccess(
+            language === 'ta' ? 'கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டது!' : 'Account Already Approved!',
+            language === 'ta'
+              ? 'உங்கள் முன்னாள் மாணவர் கணக்கு ஏற்கனவே சரிபார்க்கப்பட்டு அனுமதிக்கப்பட்டுள்ளது. நீங்கள் முன்னாள் மாணவர் தளத்திற்கு செல்கிறீர்கள்.'
+              : 'Your alumni account is already verified and approved! Redirecting you to the Alumni Portal.'
+          );
+        } else {
+          await alertService.showInfo(
+            language === 'ta' ? 'பதிவு ஏற்கனவே சமர்ப்பிக்கப்பட்டது' : 'Registration Already Submitted',
+            language === 'ta'
+              ? 'உங்கள் பதிவு ஏற்கனவே பெறப்பட்டு நிர்வாகியின் ஆய்வில் உள்ளது. சரிபார்ப்பு நிலையை அறிய முன்னாள் மாணவர் தளத்திற்கு செல்கிறீர்கள்.'
+              : 'Your registration is already submitted and under review. Redirecting to check your verification status.'
+          );
+        }
         navigate('/alumni', { replace: true });
         return;
       }

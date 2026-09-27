@@ -173,11 +173,11 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
     user_status = str(user.get("status") or user.get("account_status") or "").upper() if user else ""
 
     if (
-        alumni_verif in ("APPROVED", "VERIFIED") or
-        user_verif in ("APPROVED", "VERIFIED") or
-        alumni_status in ("APPROVED", "VERIFIED") or
-        (alumni and alumni.get("is_verified") is True) or
-        (user and user.get("is_verified") is True)
+        alumni_verif in ("APPROVED", "VERIFIED", "PENDING", "REJECTED") or
+        user_verif in ("APPROVED", "VERIFIED", "PENDING", "REJECTED") or
+        alumni_status in ("APPROVED", "VERIFIED", "PENDING") or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True))
     ):
         return True, 6
 
@@ -807,15 +807,15 @@ async def login(request: LoginRequest):
     # Evaluate profile completion status & wizard resume step
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    is_verified_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED")) or
-        (alumni and (alumni.get("is_verified") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED"))) or
-        (user and (user.get("is_verified") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED")))
+    is_submitted_or_approved = (
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
     )
 
-    # Admin-created users or verified/approved alumni bypass registration wizard entirely.
-    if is_verified_or_approved or is_admin_created_account(user, alumni):
+    # Admin-created users or submitted/verified/approved alumni bypass registration wizard entirely.
+    if is_submitted_or_approved or is_admin_created_account(user, alumni):
         registration_required = False
         resume_step = 6
     else:
@@ -907,15 +907,15 @@ async def verify_otp(request: VerifyOTPRequest):
     
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    is_verified_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED")) or
-        (alumni and (alumni.get("is_verified") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED"))) or
-        (user and (user.get("is_verified") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED")))
+    is_submitted_or_approved = (
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
     )
 
-    # Admin-created users or verified/approved alumni bypass registration wizard entirely.
-    if is_verified_or_approved or is_admin_created_account(user, alumni):
+    # Admin-created users or submitted/verified/approved alumni bypass registration wizard entirely.
+    if is_submitted_or_approved or is_admin_created_account(user, alumni):
         registration_required = False
         resume_step = 6
     else:
@@ -1111,18 +1111,18 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
 
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
-    is_verified_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED")) or
-        (alumni and (alumni.get("is_verified") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED"))) or
-        (user and (user.get("is_verified") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED")))
+    is_submitted_or_approved = (
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
     )
 
     # Admin-created users already have their registration/profile created by
     #    the School Admin. Setting the password completes onboarding, so they
     #    must go straight to the alumni dashboard — NOT through the public
-    #    self-registration wizard. Same for verified/approved alumni.
-    if is_verified_or_approved or was_admin_created or is_admin_created_account(user, alumni):
+    #    self-registration wizard. Same for verified/approved/submitted alumni.
+    if is_submitted_or_approved or was_admin_created or is_admin_created_account(user, alumni):
         registration_required = False
         resume_step = 6
     else:

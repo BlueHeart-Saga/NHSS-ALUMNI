@@ -141,8 +141,12 @@ export const AlumniLogin: React.FC = () => {
       api.getMe()
         .then((u) => {
           if (u && u.roles) {
-            const isVerified = u.verification_status?.toUpperCase() === 'APPROVED' || u.verification_status?.toUpperCase() === 'VERIFIED';
-            const target = getRedirectPathForRoles(u.roles, !isVerified && u.verification_status === 'NOT_REGISTERED', u.verification_status);
+            const isAlreadySubmitted =
+              u.verification_status?.toUpperCase() === 'APPROVED' ||
+              u.verification_status?.toUpperCase() === 'VERIFIED' ||
+              u.verification_status?.toUpperCase() === 'PENDING' ||
+              u.verification_status?.toUpperCase() === 'REJECTED';
+            const target = getRedirectPathForRoles(u.roles, !isAlreadySubmitted && u.verification_status === 'NOT_REGISTERED', u.verification_status);
             navigate(target);
           }
         })
@@ -169,8 +173,12 @@ export const AlumniLogin: React.FC = () => {
       // If password field is left empty, attempt check to see if user has a password in DB
       const passwordToSubmit = password ? password : 'CHECK_PASSWORD_STATUS';
       const res = await api.login(identifier, passwordToSubmit, rememberMe);
-      const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
-      const targetPath = getRedirectPathForRoles(res.roles, isVerified ? false : res.registration_required, res.verification_status);
+      const isAlreadySubmitted =
+        res.verification_status?.toUpperCase() === 'APPROVED' ||
+        res.verification_status?.toUpperCase() === 'VERIFIED' ||
+        res.verification_status?.toUpperCase() === 'PENDING' ||
+        res.verification_status?.toUpperCase() === 'REJECTED';
+      const targetPath = getRedirectPathForRoles(res.roles, isAlreadySubmitted ? false : res.registration_required, res.verification_status);
 
       if (targetPath === '/register') {
         navigate('/register', {
@@ -243,8 +251,12 @@ export const AlumniLogin: React.FC = () => {
 
     try {
       const res = await api.verifyOTP(email, otp);
-      const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
-      const targetPath = getRedirectPathForRoles(res.roles, isVerified ? false : res.registration_required, res.verification_status);
+      const isAlreadySubmitted =
+        res.verification_status?.toUpperCase() === 'APPROVED' ||
+        res.verification_status?.toUpperCase() === 'VERIFIED' ||
+        res.verification_status?.toUpperCase() === 'PENDING' ||
+        res.verification_status?.toUpperCase() === 'REJECTED';
+      const targetPath = getRedirectPathForRoles(res.roles, isAlreadySubmitted ? false : res.registration_required, res.verification_status);
 
       if (targetPath === '/register') {
         navigate('/register', {
@@ -470,8 +482,12 @@ export const AlumniLogin: React.FC = () => {
       );
 
       if (res.access_token) {
-        const isVerified = res.verification_status?.toUpperCase() === 'APPROVED' || res.verification_status?.toUpperCase() === 'VERIFIED';
-        const targetPath = getRedirectPathForRoles(res.roles || ['ALUMNI'], isVerified ? false : res.registration_required, res.verification_status);
+        const isAlreadySubmitted =
+          res.verification_status?.toUpperCase() === 'APPROVED' ||
+          res.verification_status?.toUpperCase() === 'VERIFIED' ||
+          res.verification_status?.toUpperCase() === 'PENDING' ||
+          res.verification_status?.toUpperCase() === 'REJECTED';
+        const targetPath = getRedirectPathForRoles(res.roles || ['ALUMNI'], isAlreadySubmitted ? false : res.registration_required, res.verification_status);
         if (targetPath === '/register') {
           navigate('/register', {
             state: {
