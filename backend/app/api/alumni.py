@@ -1165,6 +1165,41 @@ async def search_directory(
         cursor = cursor.skip(skip)
     alumni_list = await cursor.to_list(length=limit_val)
 
+    # Include any registered alumni from db.users that don't have a separate db.alumni document yet
+    existing_user_ids = {str(a.get("user_id", "")) for a in alumni_list if a.get("user_id")}
+    existing_mobiles = {str(a.get("mobile", "")).replace("+91", "").strip() for a in alumni_list if a.get("mobile")}
+
+    user_query = {"roles": "ALUMNI"}
+    if school_id:
+        user_query["school_id"] = school_id
+    if search:
+        user_query["$or"] = [
+            {"full_name": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": search, "$options": "i"}},
+            {"mobile": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}}
+        ]
+
+    unlinked_users = await db.users.find(user_query).to_list(length=200)
+    for u in unlinked_users:
+        u_id = str(u["_id"])
+        u_mob = str(u.get("mobile", "")).replace("+91", "").strip()
+        if u_id not in existing_user_ids and (not u_mob or u_mob not in existing_mobiles):
+            # Synthetic alumni doc for display & management
+            alumni_list.append({
+                "_id": u["_id"],
+                "user_id": u_id,
+                "school_id": u.get("school_id") or school_id,
+                "full_name": u.get("full_name") or u.get("name") or "Registered Alumni",
+                "mobile": u.get("mobile") or "",
+                "email": u.get("email") or "",
+                "roles": u.get("roles", ["ALUMNI"]),
+                "verification_status": u.get("verification_status") or "APPROVED",
+                "account_status": u.get("account_status") or u.get("status") or "ACTIVE",
+                "passing_year": u.get("passing_year") or 2010,
+                "created_at": u.get("created_at", datetime.now(timezone.utc))
+            })
+
     is_admin = any(r in current_user.get("roles", []) for r in ["SCHOOL_ADMIN", "PRIMARY_DEVELOPER", "SUPER_ADMIN"])
 
     res = []
