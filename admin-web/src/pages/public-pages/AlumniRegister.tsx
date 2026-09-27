@@ -154,12 +154,14 @@ export const AlumniRegister: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  // Helper to smoothly scroll viewport to top of the registration form card
+  // Helper to smoothly scroll viewport to top of the registration form card with comfortable top clearance
   const scrollToFormTop = () => {
     const cardEl = document.getElementById('registration-step-card');
     if (cardEl) {
-      const yOffset = -30;
-      const targetY = cardEl.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      // Offset accounts for PublicLayout sticky header (~136px) + comfortable breathing space
+      const isMobile = window.innerWidth < 1024;
+      const topOffset = isMobile ? 120 : 155;
+      const targetY = cardEl.getBoundingClientRect().top + window.pageYOffset - topOffset;
       window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     } else {
       window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -1298,7 +1300,7 @@ export const AlumniRegister: React.FC = () => {
   const realProgressPercent = Math.round((completedDataStepsCount / 6) * 100);
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-[#FAFAFA] via-[#FFFDF5] to-[#FDFBF7] text-[#111111] pt-6 sm:pt-8 lg:pt-10 pb-6 sm:pb-8 font-sans selection:bg-[#F4C542] selection:text-[#111111] relative">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-[#FAFAFA] via-[#FFFDF5] to-[#FDFBF7] text-[#111111] pt-8 sm:pt-12 lg:pt-16 pb-12 sm:pb-16 font-sans selection:bg-[#F4C542] selection:text-[#111111] relative">
 
       {/* Background Premium Dynamic Light Wave & Responsive Height Design */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
@@ -1379,7 +1381,7 @@ export const AlumniRegister: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {/* Mobile Compact Progress Header (Visible on Mobile & Tablet < 1024px) */}
         <div className="lg:hidden bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-sm space-y-3 mb-6">
@@ -1405,10 +1407,10 @@ export const AlumniRegister: React.FC = () => {
         </div>
 
         {/* Main Grid: Sticky Sidebar Progress (4 cols) & Form Body (8 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
 
           {/* LEFT SIDEBAR: Sticky Scroll Premium Vertical Stepper UI */}
-          <div className="hidden lg:block lg:col-span-4 sticky top-28 lg:top-[136px] self-start space-y-6">
+          <div className="hidden lg:block lg:col-span-4 sticky top-36 lg:top-[155px] self-start space-y-6">
             <div className="bg-white/95 backdrop-blur-sm border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-md shadow-gray-200/50 transition-all">
               <div className="mb-6 pb-4 border-b border-gray-100">
                 {/* <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#FFF7D6] text-[#854D0E] text-[11px] font-extrabold uppercase tracking-wider rounded-full border border-[#F4C542]/60 mb-2">
@@ -1589,7 +1591,7 @@ export const AlumniRegister: React.FC = () => {
           {/* RIGHT COLUMN: Form Card */}
 
           <div className="lg:col-span-8">
-            <div id="registration-step-card" className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm scroll-mt-24">
+            <div id="registration-step-card" className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-sm scroll-mt-40">
 
               {/* STEP 1: Sign Up & Mobile Phone SMS Verification */}
               {step === 1 && (
