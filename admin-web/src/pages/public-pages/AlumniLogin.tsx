@@ -1271,7 +1271,7 @@ export const AlumniLogin: React.FC = () => {
                       </div>
                     )} */}
 
-                    {liveCheckStatus === 'NOT_EXISTS' && (
+                    {/* {liveCheckStatus === 'NOT_EXISTS' && (
                       <div className="mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center justify-between animate-fadeIn font-normal">
                         <div className="flex items-center space-x-1.5">
                           <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
@@ -1299,7 +1299,7 @@ export const AlumniLogin: React.FC = () => {
                           {language === 'ta' ? 'பதிவு செய்ய' : 'Register Now'}
                         </button>
                       </div>
-                    )}
+                    )} */}
                   </div>
 
                   <div>
