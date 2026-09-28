@@ -646,39 +646,6 @@ export const AlumniLayout: React.FC = () => {
         <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
           <LanguageSelector />
 
-          {/* Notifications Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-              className="p-2 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] text-[#4B5563] hover:text-[#111111] hover:bg-[#F3F4F6] relative cursor-pointer"
-              title={t('alumni_nav_notifications')}
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500"></span>
-            </button>
-
-            {showNotificationsDropdown && (
-              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-[#E5E7EB] shadow-xl p-4 z-50 text-xs space-y-3">
-                <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
-                  <h4 className="font-bold text-[#111111]">{t('alumni_nav_notifications')}</h4>
-                  <button onClick={() => { setShowNotificationsDropdown(false); navigate('/alumni/notifications'); }} className="text-amber-800 font-bold text-[11px] hover:underline cursor-pointer">
-                    View All
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  <div className="p-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB]">
-                    <p className="font-bold text-[#111111]">Grand Reunion 2026</p>
-                    <p className="text-gray-500 text-[11px]">RSVP is open for upcoming gathering.</p>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB]">
-                    <p className="font-bold text-[#111111]">Connection Request</p>
-                    <p className="text-gray-500 text-[11px]">Kavitha R accepted your request.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* User Profile avatar */}
           <div className="flex items-center space-x-2.5 sm:space-x-3 pl-2 sm:pl-3 border-l border-[#E5E7EB]">
             <img
@@ -697,13 +664,6 @@ export const AlumniLayout: React.FC = () => {
                 </span>
               )}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 sm:p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-              title={t('nav_logout')}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </header>
@@ -727,110 +687,66 @@ export const AlumniLayout: React.FC = () => {
           ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}
           ${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-64 shadow-2xl translate-x-0' : 'fixed inset-y-0 left-0 z-50 w-64 -translate-x-full lg:translate-x-0 lg:static'}
         `}>
-          <nav className="flex-1 p-3.5 sm:p-4 space-y-5 sm:space-y-6 text-xs">
-
-            {/* SECTION 1: MAIN */}
-            <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_main')}</p>}
-              <div className="space-y-1">
-                <NavLink to="/alumni" end className={navItemClass} title={t('alumni_nav_dashboard')}>
-                  <LayoutDashboard className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_dashboard')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/profile" className={navItemClass} title={t('alumni_nav_profile')}>
-                  <User className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_profile')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/batch" className={navItemClass} title={t('alumni_nav_batches')}>
-                  <Users className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_batches')}</span>}
-                </NavLink>
-              </div>
-            </div>
-
-            {/* SECTION 2: CONNECT */}
-            <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_connect')}</p>}
-              <div className="space-y-1">
-                <NavLink to="/alumni/directory" className={navItemClass} title={t('alumni_nav_directory')}>
-                  <Compass className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_directory')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/reports" className={navItemClass} title={language === 'ta' ? 'அறிக்கைகள் & தன்னார்வலர்கள்' : 'Directory & Reports'}>
-                  <Award className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'அறிக்கைகள் & தன்னார்வலர்கள்' : 'Directory & Reports'}</span>}
-                </NavLink>
-                <NavLink to="/alumni/school-events" className={navItemClass} title={t('alumni_nav_school_events')}>
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_school_events')}</span>}
-                </NavLink>
-              </div>
-            </div>
-
-            {/* SECTION 3: ACTIVITIES */}
-            <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_activities')}</p>}
-              <div className="space-y-1">
-                <NavLink to="/alumni/events" className={navItemClass} title={t('alumni_nav_events')}>
-                  <Calendar className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_events')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/announcements" className={navItemClass} title={t('alumni_nav_announcements')}>
-                  <Bell className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_announcements')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/gallery" className={navItemClass} title={t('alumni_nav_gallery')}>
-                  <Camera className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_gallery')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/feedback" className={navItemClass} title={language === 'ta' ? ' கருத்துகள்' : 'Feedback & Opinions'}>
-                  <MessageSquareQuote className="w-4 h-4 shrink-0 text-[#854D0E]" />
-                  {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'கருத்துகள் & பரிந்துரைகள்' : 'Feedback'}</span>}
-                </NavLink>
-              </div>
-            </div>
-
-            {/* SECTION 4: MY ACCOUNT */}
-            <div>
-              {!sidebarCollapsed && <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">{t('alumni_section_account')}</p>}
-              <div className="space-y-1">
-                <NavLink to="/alumni/documents" className={navItemClass} title={t('alumni_nav_documents')}>
-                  <Award className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_documents')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/notifications" className={navItemClass} title={t('alumni_nav_notifications')}>
-                  <Bell className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_notifications')}</span>}
-                </NavLink>
-                <NavLink to="/alumni/settings" className={navItemClass} title={t('alumni_nav_settings')}>
-                  <Settings className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_settings')}</span>}
-                </NavLink>
-              </div>
-            </div>
+          <nav className="flex-1 p-3.5 sm:p-4 space-y-1 font-medium text-xs">
+            <NavLink to="/alumni" end className={navItemClass} title={t('alumni_nav_dashboard')}>
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_dashboard')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/batch" className={navItemClass} title={t('alumni_nav_batches')}>
+              <Users className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_batches')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/directory" className={navItemClass} title={t('alumni_nav_directory')}>
+              <Compass className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_directory')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/school-events" className={navItemClass} title={t('alumni_nav_school_events')}>
+              <Sparkles className="w-4 h-4 shrink-0 text-[#854D0E]" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_school_events')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/events" className={navItemClass} title={t('alumni_nav_events')}>
+              <Calendar className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_events')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/announcements" className={navItemClass} title={t('alumni_nav_announcements')}>
+              <Bell className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_announcements')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/gallery" className={navItemClass} title={t('alumni_nav_gallery')}>
+              <Camera className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_gallery')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/feedback" className={navItemClass} title={language === 'ta' ? 'கருத்துகள்' : 'Feedback & Opinions'}>
+              <MessageSquareQuote className="w-4 h-4 shrink-0 text-[#854D0E]" />
+              {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'கருத்துகள் & பரிந்துரைகள்' : 'Feedback'}</span>}
+            </NavLink>
+            <NavLink to="/alumni/support" end className={navItemClass} title={t('alumni_nav_support_school')}>
+              <HandHeart className="w-4 h-4 shrink-0 text-[#854D0E]" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_support_school')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/profile" className={navItemClass} title={t('alumni_nav_profile')}>
+              <User className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_profile')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/settings" className={navItemClass} title={t('alumni_nav_settings')}>
+              <Settings className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_settings')}</span>}
+            </NavLink>
           </nav>
-            {/* SECTION 5: SUPPORT SCHOOL */}
-            <div>
-              {!sidebarCollapsed && (
-                <p className="px-3 text-[10px] font-bold tracking-wider text-[#9CA3AF] uppercase mb-2">
-                  {t('alumni_section_support')}
-                </p>
-              )}
-              <div className="space-y-1">
-                <NavLink to="/alumni/support" end className={navItemClass} title={t('alumni_nav_support_school')}>
-                  <HandHeart className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_support_school')}</span>}
-                </NavLink>
-              </div>
-            </div>
 
-          {/* Sidebar Footer info */}
-          {!sidebarCollapsed && (
-            <div className="p-3.5 sm:p-4 border-t border-[#E5E7EB] bg-[#FAFAFA] text-[11px] text-[#6B7280] shrink-0">
-              <p className="font-semibold text-[#111111] truncate">{school?.name || 'Alumni Network'}</p>
-              <p className="mt-0.5 truncate">{school?.city ? `${school.city}, ${school.state || 'India'}` : 'Alumni Platform'}</p>
-            </div>
-          )}
+          {/* Sidebar Bottom Logout Button */}
+          <div className="p-3 sm:p-3.5 border-t border-[#E5E7EB] bg-white shrink-0">
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-bold text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer border border-transparent hover:border-rose-200 ${
+                sidebarCollapsed ? 'justify-center px-1' : ''
+              }`}
+              title={t('nav_logout')}
+            >
+              <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
+              {!sidebarCollapsed && <span className="truncate">{t('nav_logout')}</span>}
+            </button>
+          </div>
         </aside>
 
         {/* 2B. MAIN CONTENT AREA */}

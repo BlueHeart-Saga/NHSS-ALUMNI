@@ -58,7 +58,6 @@ async def test_full_database_lifecycle_e2e():
         "email": "testalumnus@example.com",
         "passing_year": 2010,
         "batch_id": batch_id,
-        "admission_number": "TEST-2010-001",
         "verification_status": "PENDING",
         "created_at": now
     }

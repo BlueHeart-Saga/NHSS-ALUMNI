@@ -202,6 +202,8 @@ class AdminCreateAlumniRequest(BaseModel):
     whatsapp_number: Optional[Any] = None
     is_volunteer: Optional[Any] = None
     willing_to_donate: Optional[Any] = None
+    roll_no: Optional[Any] = None
+    section: Optional[Any] = None
     verification_status: Optional[str] = "APPROVED"
 
     @field_validator("email", mode="before")

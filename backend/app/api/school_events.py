@@ -75,7 +75,14 @@ async def list_school_events(
     events_list = await cursor.to_list(length=200)
 
     res = []
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for doc in events_list:
+        raw_status = doc.get("status", "UPCOMING")
+        ev_date = doc.get("event_date", "")
+        computed_status = raw_status
+        if raw_status == "UPCOMING" and ev_date and ev_date < today_str:
+            computed_status = "COMPLETED"
+
         res.append({
             "id": str(doc["_id"]),
             "school_id": str(doc.get("school_id")) if doc.get("school_id") else None,
@@ -94,7 +101,7 @@ async def list_school_events(
             "cover_image_url": doc.get("cover_image_url"),
             "cover_image_url_ta": doc.get("cover_image_url_ta"),
             "gallery_urls": doc.get("gallery_urls", []),
-            "status": doc.get("status", "UPCOMING"),
+            "status": computed_status,
             "created_at": doc.get("created_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("created_at"), datetime) else str(doc.get("created_at", ""))
         })
     return res

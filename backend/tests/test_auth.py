@@ -48,10 +48,12 @@ def test_is_valid_indian_mobile():
 
 @pytest.fixture(autouse=True)
 def mock_sms_gateway():
-    """Ensure NO real SMS are sent to 2Factor during testing to conserve user tokens."""
+    """Ensure NO real SMS are sent to 2Factor during testing and clear OTP store between tests."""
     from unittest.mock import patch
+    OTP_STORE.clear()
     with patch("app.api.auth.send_sms_otp", return_value=(True, "mock_test_session")):
         yield
+    OTP_STORE.clear()
 
 @pytest.mark.asyncio
 async def test_send_sms_otp_mock():
@@ -72,7 +74,8 @@ async def test_send_sms_otp_mock():
     assert fail_success is False
     assert "Invalid" in fail_reason
 
-def test_otp_store_validation_and_rate_limiting():
+@pytest.mark.asyncio
+async def test_otp_store_validation_and_rate_limiting():
     mobile = "9876543210"
     norm_mob = normalize_indian_mobile(mobile)
     otp = "654321"
@@ -89,13 +92,13 @@ def test_otp_store_validation_and_rate_limiting():
     }
 
     # 2. Validation with correct OTP succeeds and consumes OTP (single-use)
-    record = _validate_and_consume_otp(email=None, mobile=mobile, otp=otp)
+    record = await _validate_and_consume_otp(email=None, mobile=mobile, otp=otp)
     assert record["otp"] == otp
     assert norm_mob not in OTP_STORE  # Consumed
 
     # 3. Subsequent verification of same consumed OTP must fail
     with pytest.raises(HTTPException) as exc_info:
-        _validate_and_consume_otp(email=None, mobile=mobile, otp=otp)
+        await _validate_and_consume_otp(email=None, mobile=mobile, otp=otp)
     assert exc_info.value.status_code == 400
 
     # 4. Expired OTP handling
@@ -108,7 +111,7 @@ def test_otp_store_validation_and_rate_limiting():
         "mobile": norm_mob
     }
     with pytest.raises(HTTPException) as exc_info:
-        _validate_and_consume_otp(email=None, mobile=mobile, otp="112233")
+        await _validate_and_consume_otp(email=None, mobile=mobile, otp="112233")
     assert exc_info.value.status_code == 400
     assert "expired" in exc_info.value.detail.lower()
 
@@ -124,12 +127,12 @@ def test_otp_store_validation_and_rate_limiting():
     # Enter wrong OTP 3 times
     for _ in range(3):
         with pytest.raises(HTTPException) as exc_info:
-            _validate_and_consume_otp(email=None, mobile=mobile, otp="000000")
+            await _validate_and_consume_otp(email=None, mobile=mobile, otp="000000")
         assert exc_info.value.status_code == 400
 
     # 4th attempt exceeds max_attempts (3)
     with pytest.raises(HTTPException) as exc_info:
-        _validate_and_consume_otp(email=None, mobile=mobile, otp="000000")
+        await _validate_and_consume_otp(email=None, mobile=mobile, otp="000000")
     assert exc_info.value.status_code == 429
     assert "attempts" in exc_info.value.detail.lower()
 
@@ -207,7 +210,8 @@ def test_api_send_and_verify_otp_flow():
     resp_reuse = client.post("/api/v1/auth/verify-otp", json={"mobile": test_mobile, "otp": real_otp})
     assert resp_reuse.status_code == 400
 
-def test_resend_otp_invalidates_old_otp():
+@pytest.mark.asyncio
+async def test_resend_otp_invalidates_old_otp():
     from unittest.mock import patch, MagicMock, AsyncMock
     from fastapi.testclient import TestClient
     from app.main import app
@@ -227,7 +231,8 @@ def test_resend_otp_invalidates_old_otp():
 
     # 3. Simulate elapsed cooldown (move created_at back by 35 seconds)
     OTP_STORE[norm_mob]["created_at"] = time.time() - 35
-    OTP_STORE[test_mobile]["created_at"] = time.time() - 35
+    if test_mobile in OTP_STORE:
+        OTP_STORE[test_mobile]["created_at"] = time.time() - 35
 
     # 4. Resend OTP
     resp2 = client.post("/api/v1/auth/send-otp", json={"mobile": test_mobile})
@@ -236,7 +241,7 @@ def test_resend_otp_invalidates_old_otp():
 
     # 5. Old OTP must now be INVALID
     with pytest.raises(HTTPException) as exc_info:
-        _validate_and_consume_otp(email=None, mobile=test_mobile, otp=first_otp)
+        await _validate_and_consume_otp(email=None, mobile=test_mobile, otp=first_otp)
     assert exc_info.value.status_code == 400
     assert "invalid" in exc_info.value.detail.lower()
 

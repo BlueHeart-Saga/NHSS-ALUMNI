@@ -36,7 +36,7 @@ export const AttendanceRoster: React.FC = () => {
       accessor: (row: AttendanceRosterItem) => (
         <div>
           <div className="font-bold text-[#111111]">{row.full_name}</div>
-          <div className="text-xs text-[#6B7280]">Batch {row.passing_year} • Adm: {row.admission_number}</div>
+          <div className="text-xs text-[#6B7280]">Batch {row.passing_year}</div>
         </div>
       )
     },

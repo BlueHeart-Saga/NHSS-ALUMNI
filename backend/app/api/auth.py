@@ -1250,7 +1250,6 @@ async def register_alumni(request: UserRegistrationRequest, current_user: dict =
         dup_query = []
         if request.mobile: dup_query.extend(build_mobile_query_filter(request.mobile))
         if request.email: dup_query.append({"email": str(request.email)})
-        if hasattr(request, 'admission_number') and request.admission_number: dup_query.append({"admission_number": request.admission_number})
 
         pre_imported = await db.alumni.find_one({
             "school_id": school_id,
@@ -1530,7 +1529,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             email=email_val,
             profile_photo_url=(user_doc.get("profile_photo_url") if user_doc else None) or current_user.get("profile_photo_url"),
             passing_year=None,
-            admission_number="N/A",
             verification_status="NOT_REGISTERED",
             roles=current_user.get("roles", ["ALUMNI"]),
             has_password=has_pass,
@@ -1584,7 +1582,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         blood_group=alumni.get("blood_group"),
         passing_year=alumni.get("passing_year"),
         batch_id=batch_id_val,  
-        admission_number=alumni.get("admission_number", "N/A"),
         section=alumni.get("section"),
         address=alumni.get("address"),
         current_city=alumni.get("current_city"),

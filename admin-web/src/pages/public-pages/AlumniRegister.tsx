@@ -172,13 +172,13 @@ export const AlumniRegister: React.FC = () => {
 
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6, bypassStep1Check = false) => {
-    const isStep1Complete = bypassStep1Check || step1VerifiedRef.current || (isOtpVerified && hasExistingPassword);
+    const isStep1Complete = bypassStep1Check || step1VerifiedRef.current || isOtpVerified || Boolean(api.getToken()) || hasExistingPassword;
     if (!isStep1Complete && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
         language === 'ta'
-          ? 'தொடர்வதற்கு முன் படி 1-இல் OTP சரிபார்த்து கடவுச்சொல்லை அமைக்க வேண்டும்.'
-          : 'Please verify your mobile via OTP and set up your password in Step 1 before proceeding.'
+          ? 'தொடர்வதற்கு முன் படி 1-இல் OTP சரிபார்த்து கணக்கைச் சரிபார்க்க வேண்டும்.'
+          : 'Please verify your mobile via OTP in Step 1 before proceeding.'
       );
       setStep(1);
       scrollToFormTop();
@@ -247,7 +247,7 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && hasExistingPassword);
+    const isStep1Complete = step1VerifiedRef.current || isOtpVerified || Boolean(api.getToken()) || hasExistingPassword;
     if (!isStep1Complete && step > 1) {
       setStep(1);
     } else if (isStep1Complete && step === 1 && !location.state?.isPasswordSetup) {
@@ -340,7 +340,7 @@ export const AlumniRegister: React.FC = () => {
 
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
 
-  const markInvalidAndScroll = (missingList: { key: string; label: string }[]) => {
+  const markInvalidAndScroll = (missingList: { key: string; label: string }[], showAlert: boolean = true) => {
     const nextSet = new Set<string>();
     missingList.forEach(m => nextSet.add(m.key));
     setInvalidFields(nextSet);
@@ -353,13 +353,15 @@ export const AlumniRegister: React.FC = () => {
         try { el.focus(); } catch (e) { }
       }
 
-      const labels = missingList.map(m => m.label);
-      alertService.showWarning(
-        language === 'ta' ? 'தேவையான விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing',
-        language === 'ta'
-          ? `தொடர மஞ்சள் நிறத்தில் குறிக்கப்பட்ட புலங்களை நிரப்பவும்:\n• ${labels.join('\n• ')}`
-          : `Please complete the following highlighted fields to continue:\n• ${labels.join('\n• ')}`
-      );
+      if (showAlert) {
+        const labels = missingList.map(m => m.label);
+        alertService.showWarning(
+          language === 'ta' ? 'தேவையான விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing',
+          language === 'ta'
+            ? `தொடர மஞ்சள் நிறத்தில் குறிக்கப்பட்ட புலங்களை நிரப்பவும்:\n• ${labels.join('\n• ')}`
+            : `Please complete the following highlighted fields to continue:\n• ${labels.join('\n• ')}`
+        );
+      }
     }
   };
 
@@ -1156,7 +1158,7 @@ export const AlumniRegister: React.FC = () => {
           : `The following required fields in Step 2 (Personal Info) are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 2 to complete.`
       );
       goToStep(2);
-      setTimeout(() => markInvalidAndScroll(missingStep2), 100);
+      setTimeout(() => markInvalidAndScroll(missingStep2, false), 100);
       return;
     }
 
@@ -1175,7 +1177,7 @@ export const AlumniRegister: React.FC = () => {
           : `The following required fields in Step 3 (School Details) are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 3 to complete.`
       );
       goToStep(3);
-      setTimeout(() => markInvalidAndScroll(missingStep3), 100);
+      setTimeout(() => markInvalidAndScroll(missingStep3, false), 100);
       return;
     }
 
@@ -1192,7 +1194,7 @@ export const AlumniRegister: React.FC = () => {
           : `Please select whether you pursued Higher Education in Step 4:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 4 to select.`
       );
       goToStep(4);
-      setTimeout(() => markInvalidAndScroll(missingStep4), 100);
+      setTimeout(() => markInvalidAndScroll(missingStep4, false), 100);
       return;
     }
 
@@ -1210,7 +1212,7 @@ export const AlumniRegister: React.FC = () => {
           : `The following required options in Step 5 are missing:\n• ${labels.join('\n• ')}\n\nRedirecting to Step 5 to select.`
       );
       goToStep(5);
-      setTimeout(() => markInvalidAndScroll(missingStep5), 100);
+      setTimeout(() => markInvalidAndScroll(missingStep5, false), 100);
       return;
     }
 
@@ -1222,7 +1224,7 @@ export const AlumniRegister: React.FC = () => {
           ? 'அதிகாரப்பூர்வ முன்னாள் மாணவர்கள் பதிவைச் சமர்ப்பிக்க விதிகளையும் தனியுரிமைக் கொள்கையையும் ஒப்புக் கொள்ள வேண்டும்.'
           : 'Please check the Terms & Conditions box to agree to the Alumni Association rules before submitting your registration.'
       );
-      markInvalidAndScroll([{ key: 'agreeTerms', label: 'Terms & Conditions Agreement' }]);
+      markInvalidAndScroll([{ key: 'agreeTerms', label: 'Terms & Conditions Agreement' }], false);
       return;
     }
 

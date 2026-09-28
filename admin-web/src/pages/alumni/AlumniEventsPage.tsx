@@ -28,6 +28,29 @@ export const AlumniEventsPage: React.FC = () => {
       .catch(console.error);
   }, []);
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const isUpcomingEvent = (eventDateStr?: string) => {
+    if (!eventDateStr) return true;
+    const evDateStr = eventDateStr.slice(0, 10);
+    return evDateStr >= getTodayStr();
+  };
+
+  const isPastEvent = (eventDateStr?: string) => {
+    if (!eventDateStr) return false;
+    const evDateStr = eventDateStr.slice(0, 10);
+    return evDateStr < getTodayStr();
+  };
+
+  const upcomingEvents = events.filter(e => isUpcomingEvent(e.event_date));
+  const pastEvents = events.filter(e => isPastEvent(e.event_date));
+
   const handleConfirmRSVP = () => {
     if (!selectedEvent) return;
     if (!registeredEventIds.includes(selectedEvent.id)) {
@@ -62,9 +85,9 @@ export const AlumniEventsPage: React.FC = () => {
 
         <div className="flex overflow-x-auto gap-2 border-b border-[#E5E7EB] sm:border-0 pb-2 sm:pb-0 text-xs font-bold w-full sm:w-auto scrollbar-none">
           {[
-            { id: 'upcoming', label: language === 'ta' ? 'வரவிருக்கும் நிகழ்வுகள்' : 'Upcoming Events' },
-            { id: 'registered', label: language === 'ta' ? 'என் பதிவுகள்' : 'My Registrations' },
-            { id: 'past', label: language === 'ta' ? 'கடந்த நிகழ்வுகள்' : 'Past Events' }
+            { id: 'upcoming', label: language === 'ta' ? `வரவிருக்கும் நிகழ்வுகள் (${upcomingEvents.length})` : `Upcoming Events (${upcomingEvents.length})` },
+            { id: 'registered', label: language === 'ta' ? `என் பதிவுகள் (${registeredEventIds.length})` : `My Registrations (${registeredEventIds.length})` },
+            { id: 'past', label: language === 'ta' ? `கடந்த நிகழ்வுகள் (${pastEvents.length})` : `Past Events (${pastEvents.length})` }
           ].map(tab => (
             <button
               key={tab.id}
@@ -83,8 +106,8 @@ export const AlumniEventsPage: React.FC = () => {
       {/* UPCOMING EVENTS */}
       {eventsSubTab === 'upcoming' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {events.length > 0 ? (
-            events.map(ev => {
+          {upcomingEvents.length > 0 ? (
+            upcomingEvents.map(ev => {
               const displayTitle = language === 'ta' ? (ev.title_ta || ev.title) : ev.title;
               const displayDesc = language === 'ta' ? (ev.description_ta || ev.description) : ev.description;
               const coverImg = language === 'ta' ? (ev.cover_image_url_ta || ev.cover_image_url) : ev.cover_image_url;
@@ -181,8 +204,8 @@ export const AlumniEventsPage: React.FC = () => {
       {eventsSubTab === 'past' && (
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
           <h3 className="font-bold text-base text-[#111111]">Past Events Archive</h3>
-          {events.filter(e => new Date(e.event_date) < new Date()).length > 0 ? (
-            events.filter(e => new Date(e.event_date) < new Date()).map(ev => (
+          {pastEvents.length > 0 ? (
+            pastEvents.map(ev => (
               <div key={ev.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB]">
                 <h4 className="font-bold text-xs text-[#111111]">{ev.title}</h4>
                 <p className="text-xs text-gray-500 mt-1">Held on {formatDateDDMMYYYY(ev.event_date)} • {ev.venue}</p>

@@ -23,7 +23,6 @@ def test_normalize_row_aliases():
         "Full Name": "Karpagadevi .V",
         "Passing Year": "2010",
         "Mobile Number": "+918015391811",
-        "Admission Number": "ADM100",
         "Designation": "Senior Engineer"
     }
     normalized = _normalize_row(raw_row)
@@ -31,7 +30,6 @@ def test_normalize_row_aliases():
     assert normalized["name"] == "Karpagadevi .V"
     assert normalized["batch_year"] == "2010"
     assert normalized["mobile"] == "+918015391811"
-    assert normalized["admission_number"] == "ADM100"
     assert normalized["profession"] == "Senior Engineer"
 
 def test_compute_field_updates():

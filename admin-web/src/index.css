@@ -84,37 +84,36 @@
 /* High-Visibility Table Scrollbar Kit */
 .table-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #94a3b8 #f1f5f9;
+  scrollbar-color: #d97706 #fffbe6;
 }
 
 .table-scrollbar::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .table-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-top: 1px solid #e2e8f0;
+  background: #fffbe6;
   border-radius: 999px;
+  border: 1px solid #fef3c7;
 }
 
 .table-scrollbar::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #d97706;
   border-radius: 999px;
-  border: 2px solid #f1f5f9;
+  border: 1.5px solid #fffbe6;
 }
 
 .table-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-  border: 1.5px solid #f1f5f9;
+  background: #b45309;
 }
 
 .table-scrollbar::-webkit-scrollbar-thumb:active {
-  background: #334155;
+  background: #78350f;
 }
 
 .table-scrollbar::-webkit-scrollbar-corner {
-  background: #e2e8f0;
+  background: #fef3c7;
 }
 
 /* High-Visibility Spreadsheet Scrollbar */
@@ -186,5 +185,10 @@
 
 .animate-fadeIn {
   animation: fadeInSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Ensure SweetAlert2 overlays always render on top of all modal layers */
+.swal2-container {
+  z-index: 999999 !important;
 }
 

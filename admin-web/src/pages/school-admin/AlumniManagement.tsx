@@ -310,11 +310,18 @@ export const AlumniManagement: React.FC = () => {
       const q = search.toLowerCase().trim();
       const matchesSearch = !q || (
         (a.full_name || '').toLowerCase().includes(q) ||
+        (a.name_ta || '').toLowerCase().includes(q) ||
+        (a.full_name_ta || '').toLowerCase().includes(q) ||
         (a.email || '').toLowerCase().includes(q) ||
         (a.mobile || '').includes(q) ||
         (a.current_city || '').toLowerCase().includes(q) ||
         (a.address || '').toLowerCase().includes(q) ||
-        (a.profession || '').toLowerCase().includes(q)
+        (a.profession || '').toLowerCase().includes(q) ||
+        (a.designation || '').toLowerCase().includes(q) ||
+        (a.company_name || '').toLowerCase().includes(q) ||
+        (a.company || '').toLowerCase().includes(q) ||
+        (a.college_name || '').toLowerCase().includes(q) ||
+        (a.institution_name || '').toLowerCase().includes(q)
       );
 
       const matchesBatch = !batchYear || String(a.passing_year) === batchYear;
@@ -672,16 +679,51 @@ export const AlumniManagement: React.FC = () => {
   // NEW: Opens the existing 5-step wizard pre-filled with the selected alumnus.
   //    Sets editingAlumnusId so the submit handler routes to updateAlumniAdmin.
   const handleOpenEditModal = (alumnus: AlumniProfile) => {
-  setEditingAlumnusId(alumnus.id);
-  // Pre-fill every field with the existing record.
-  // Normalize DOB so <input type="date"> accepts it (HTML requires YYYY-MM-DD).
-  setNewAlumnus({
-    ...alumnus,
-    date_of_birth: normalizeDobForInput(alumnus.date_of_birth || alumnus.dob),
-  });
-  setAddFormStep(1);
-  setIsAddModalOpen(true);
-};
+    setEditingAlumnusId(alumnus.id);
+    setNewAlumnus({
+      ...alumnus,
+      full_name: alumnus.full_name || '',
+      name_ta: alumnus.name_ta || alumnus.full_name_ta || '',
+      gender: alumnus.gender || '',
+      date_of_birth: normalizeDobForInput(alumnus.date_of_birth || alumnus.dob),
+      blood_group: alumnus.blood_group || '',
+      father_name: alumnus.father_name || '',
+      mother_name: alumnus.mother_name || '',
+      profile_photo_url: alumnus.profile_photo_url || '',
+      mobile: alumnus.mobile ? alumnus.mobile.replace(/^\+91\s*/, '') : '',
+      country_code: alumnus.country_code || '91',
+      email: alumnus.email || '',
+      address: alumnus.address || '',
+      current_city: alumnus.current_city || '',
+      current_state: alumnus.current_state || alumnus.state || '',
+      country: alumnus.country || 'India',
+      school_name: alumnus.school_name || '',
+      joining_year: alumnus.joining_year || alumnus.admission_year,
+      passing_year: alumnus.passing_year || new Date().getFullYear(),
+      leaving_class: alumnus.leaving_class || '10th',
+      no_higher_education: alumnus.no_higher_education || 'NO',
+      college_name: alumnus.college_name || alumnus.institution_name || '',
+      degree: alumnus.degree || '',
+      custom_degree: alumnus.custom_degree || '',
+      department: alumnus.department || alumnus.stream || '',
+      college_register_no: alumnus.college_register_no || '',
+      college_joining_year: alumnus.college_joining_year,
+      college_passing_year: alumnus.college_passing_year,
+      employment_status: alumnus.employment_status || '',
+      company_name: alumnus.company_name || alumnus.company || '',
+      profession: alumnus.profession || alumnus.designation || '',
+      industry: alumnus.industry || '',
+      total_experience: alumnus.total_experience || (alumnus.experience_years !== undefined && alumnus.experience_years !== null ? String(alumnus.experience_years) : ''),
+      linkedin_url: alumnus.linkedin_url || '',
+      instagram_url: alumnus.instagram_url || '',
+      whatsapp_number: alumnus.whatsapp_number || '',
+      is_volunteer: alumnus.is_volunteer || 'NO',
+      willing_to_donate: alumnus.willing_to_donate || 'NO',
+      verification_status: alumnus.verification_status || 'APPROVED',
+    });
+    setAddFormStep(1);
+    setIsAddModalOpen(true);
+  };
 
   const handleSendInvitation = async (id: string, name: string, mobile: string) => {
     const confirmed = await alertService.showConfirm(
@@ -818,59 +860,49 @@ export const AlumniManagement: React.FC = () => {
       verification_status: 'APPROVED',
     });
     setAddFormStep(1);
-    // NEW: Clear edit mode when the wizard is reset.
     setEditingAlumnusId(null);
   };
 
-  const validateAddStep = (step: number): string[] => {
+  const validateAddStep = (_step: number): string[] => {
+    // Basic verification: Full Name and Mobile Number are the only essential requirements
     const missing: string[] = [];
-    if (step === 1) {
-      if (!newAlumnus.full_name || !String(newAlumnus.full_name).trim()) missing.push('Full Name');
-      if (!newAlumnus.gender) missing.push('Gender');
-      if (!newAlumnus.date_of_birth) missing.push('Date of Birth');
+    if (!newAlumnus.full_name || !String(newAlumnus.full_name).trim()) {
+      missing.push('Full Name');
     }
-    if (step === 2) {
-      if (!newAlumnus.mobile || !String(newAlumnus.mobile).trim()) missing.push('Mobile Number');
-      if (!newAlumnus.current_city || !String(newAlumnus.current_city).trim()) missing.push('Current City');
-    }
-    if (step === 3) {
-      if (!newAlumnus.passing_year) missing.push('Passing Year');
-    }
-    if (step === 4) {
-      // Nothing strictly required — college can be skipped
-    }
-    if (step === 5) {
-      // Nothing strictly required
+    const rawMob = String(newAlumnus.mobile || '').replace(/\D/g, '');
+    if (!rawMob || rawMob.length < 10) {
+      missing.push('Valid 10-digit Mobile Number');
     }
     return missing;
   };
 
-  const goToNextAddStep = () => {
-    const missing = validateAddStep(addFormStep);
-    if (missing.length > 0) {
-      alertService.showWarning(
-        'Required Fields Missing',
-        `Please complete the following required fields to continue:\n• ${missing.join('\n• ')}`
-      );
-      return;
-    }
-    setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
-  };
+  const goToNextAddStep = () => setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
 
   const goToPrevAddStep = () => setAddFormStep((s) => Math.max(s - 1, 1));
 
   const handleCreateAlumnus = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const allMissing: string[] = [];
-    for (let s = 1; s <= ADD_FORM_TOTAL_STEPS; s++) {
-      allMissing.push(...validateAddStep(s));
-    }
-    if (allMissing.length > 0) {
+    const name = (newAlumnus.full_name || '').trim();
+    const rawMob = (newAlumnus.mobile || '').trim();
+    const digitsOnly = rawMob.replace(/\D/g, '');
+    const mob = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+
+    if (!name) {
       alertService.showWarning(
-        'Required Fields Missing',
-        `Please complete the following required fields to continue:\n• ${allMissing.join('\n• ')}`
+        'Required Field Missing',
+        'Please enter the alumnus Full Name.'
       );
+      setAddFormStep(1);
+      return;
+    }
+
+    if (!mob || mob.length !== 10) {
+      alertService.showWarning(
+        'Invalid Mobile Number',
+        'Please enter a valid 10-digit mobile number.'
+      );
+      setAddFormStep(1);
       return;
     }
 
@@ -878,30 +910,39 @@ export const AlumniManagement: React.FC = () => {
     try {
       const payload: any = {
         ...newAlumnus,
-        passing_year: Number(newAlumnus.passing_year),
+        full_name: name,
+        mobile: mob,
+        country_code: newAlumnus.country_code || '91',
+        passing_year: Number(newAlumnus.passing_year) || new Date().getFullYear(),
       };
-      if (newAlumnus.joining_year !== undefined && newAlumnus.joining_year !== null) {
+
+      if (newAlumnus.joining_year !== undefined && newAlumnus.joining_year !== null && String(newAlumnus.joining_year) !== '') {
         payload.joining_year = Number(newAlumnus.joining_year);
       }
-      if (newAlumnus.college_joining_year !== undefined && newAlumnus.college_joining_year !== null) {
+      if (newAlumnus.college_joining_year !== undefined && newAlumnus.college_joining_year !== null && String(newAlumnus.college_joining_year) !== '') {
         payload.college_joining_year = Number(newAlumnus.college_joining_year);
       }
-      if (newAlumnus.college_passing_year !== undefined && newAlumnus.college_passing_year !== null) {
+      if (newAlumnus.college_passing_year !== undefined && newAlumnus.college_passing_year !== null && String(newAlumnus.college_passing_year) !== '') {
         payload.college_passing_year = Number(newAlumnus.college_passing_year);
       }
 
-      // NEW: Route to UPDATE when editing an existing record, otherwise CREATE.
+      // Treat blank email as undefined so pydantic Optional[EmailStr] validation passes
+      if (!payload.email || !String(payload.email).trim()) {
+        delete payload.email;
+      }
+
+      // Route to UPDATE when editing an existing record, otherwise CREATE.
       if (editingAlumnusId) {
         await api.updateAlumniAdmin(editingAlumnusId, payload);
         alertService.showSuccess(
           t('admin_edit_success_body'),
-          `Changes for ${newAlumnus.full_name} have been saved.`
+          `Changes for ${name} have been saved.`
         );
       } else {
         await api.adminCreateAlumni(payload);
         alertService.showSuccess(
           'Alumni Profile Created',
-          `New alumni profile for ${newAlumnus.full_name} added. You can now send them an account activation invitation.`
+          `New alumni profile for ${name} added successfully. You can now send them an account activation invitation.`
         );
       }
 
@@ -1445,19 +1486,34 @@ export const AlumniManagement: React.FC = () => {
                           <div className="font-bold text-[#111111] break-words whitespace-normal leading-snug">
                             {a.full_name}
                           </div>
+                          {(a.name_ta || a.full_name_ta) && (
+                            <div className="text-gray-500 font-serif text-[11px] truncate max-w-[180px]">
+                              {a.name_ta || a.full_name_ta}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
-                        {t('admin_label_batch_prefix')} {a.passing_year}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/50 px-2.5 py-1 rounded-full text-[11px]">
+                          {t('admin_label_batch_prefix')} {a.passing_year}
+                        </span>
+                        {a.leaving_class && (
+                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                            Class {a.leaving_class}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-800">{a.mobile || '-'}</div>
                       <div className="text-gray-500 text-[11px] truncate max-w-[160px]">{a.email || '-'}</div>
+                      {a.whatsapp_number && a.whatsapp_number !== a.mobile && (
+                        <div className="text-emerald-700 text-[10px] font-mono">WA: {a.whatsapp_number}</div>
+                      )}
                     </td>
 
                     <td className="py-3 px-4">
@@ -1730,6 +1786,8 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_joining_year')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_sheet_passing_year')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_sheet_leaving_class')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">Roll / Adm No</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[80px]">Section</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[140px]">{t('admin_sheet_no_higher_ed')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[180px]">{t('admin_sheet_college_name')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_degree')}</th>
@@ -1743,6 +1801,8 @@ export const AlumniManagement: React.FC = () => {
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_designation')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_industry')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[120px]">{t('admin_sheet_total_experience')}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[100px]">{t('admin_col_volunteer') || 'Volunteer'}</th>
+                  <th className="py-2.5 px-3 border-r border-gray-300 min-w-[110px]">{t('admin_col_willing_donor') || 'Donor'}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_linkedin')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[160px]">{t('admin_sheet_instagram')}</th>
                   <th className="py-2.5 px-3 border-r border-gray-300 min-w-[130px]">{t('admin_sheet_whatsapp')}</th>
@@ -2027,7 +2087,25 @@ export const AlumniManagement: React.FC = () => {
                         />
                       </td>
 
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('roll_no') || getValue('college_register_no')}
+                          onChange={(e) => handleCellEdit(a.id, 'roll_no', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white font-mono text-center"
+                        />
+                      </td>
 
+                      <td className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={getValue('section', 'A')}
+                          onChange={(e) => handleCellEdit(a.id, 'section', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
+                          className="w-full px-2 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white text-center font-bold"
+                        />
+                      </td>
 
                       <td className="p-1 border-r border-gray-200">
                         <select
@@ -2161,7 +2239,29 @@ export const AlumniManagement: React.FC = () => {
                         />
                       </td>
 
+                      <td className="p-1 border-r border-gray-200">
+                        <select
+                          value={getValue('is_volunteer', 'NO')}
+                          onChange={(e) => handleCellEdit(a.id, 'is_volunteer', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
+                          className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white cursor-pointer text-center font-bold"
+                        >
+                          <option value="YES">{t('admin_label_yes')}</option>
+                          <option value="NO">{t('admin_label_no')}</option>
+                        </select>
+                      </td>
 
+                      <td className="p-1 border-r border-gray-200">
+                        <select
+                          value={getValue('willing_to_donate', 'NO')}
+                          onChange={(e) => handleCellEdit(a.id, 'willing_to_donate', e.target.value)}
+                          onBlur={() => handleCellBlur(a.id)}
+                          className="w-full px-1.5 py-1 bg-transparent rounded border border-transparent hover:border-gray-300 focus:border-[#111111] focus:bg-white cursor-pointer text-center font-bold"
+                        >
+                          <option value="YES">{t('admin_label_yes')}</option>
+                          <option value="NO">{t('admin_label_no')}</option>
+                        </select>
+                      </td>
 
                       <td className="p-1 border-r border-gray-200">
                         <input
@@ -2272,22 +2372,54 @@ export const AlumniManagement: React.FC = () => {
       >
         <div className="text-xs font-medium">
 
+          {/* Interactive Category Tab Navigation */}
           <div className="mb-4">
-            <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-gray-500 mb-2">
-              <span>{t('admin_add_step_label')} {addFormStep} {t('admin_add_step_of')} {ADD_FORM_TOTAL_STEPS}</span>
-              <span className="text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542]/60 px-2 py-0.5 rounded-full">
-                {addFormStep === 1 && t('admin_add_step_personal')}
-                {addFormStep === 2 && t('admin_add_step_contact')}
-                {addFormStep === 3 && t('admin_add_step_school')}
-                {addFormStep === 4 && t('admin_add_step_higher')}
-                {addFormStep === 5 && t('admin_add_step_professional')}
-              </span>
-            </div>
-            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-              <div
-                className="bg-[#F4C542] h-full transition-all duration-300 rounded-full"
-                style={{ width: `${(addFormStep / ADD_FORM_TOTAL_STEPS) * 100}%` }}
-              />
+            <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+              <button
+                type="button"
+                onClick={() => setAddFormStep(1)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                  addFormStep === 1 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
+                }`}
+              >
+                1. Basic Info *
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddFormStep(2)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                  addFormStep === 2 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
+                }`}
+              >
+                2. Contact & Address
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddFormStep(3)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                  addFormStep === 3 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
+                }`}
+              >
+                3. School & Batch
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddFormStep(4)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                  addFormStep === 4 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
+                }`}
+              >
+                4. Higher Ed
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddFormStep(5)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                  addFormStep === 5 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
+                }`}
+              >
+                5. Work & Preferences
+              </button>
             </div>
           </div>
 
@@ -2896,16 +3028,14 @@ export const AlumniManagement: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                {addFormStep < ADD_FORM_TOTAL_STEPS ? (
-                  <Button type="button" onClick={goToNextAddStep} className="font-bold">
+                {addFormStep < ADD_FORM_TOTAL_STEPS && (
+                  <Button type="button" variant="secondary" onClick={goToNextAddStep} className="font-bold">
                     {t('admin_add_next')} <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
-                ) : (
-                  <Button type="submit" isLoading={isAdding} className="font-bold">
-                    {/* Dynamic submit label: "Save Changes" in edit, "Create Alumni Profile" in add */}
-                    {editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}
-                  </Button>
                 )}
+                <Button type="submit" isLoading={isAdding} className="font-bold bg-[#111111] hover:bg-slate-800 text-white shadow-xs">
+                  {editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}
+                </Button>
               </div>
             </div>
           </form>

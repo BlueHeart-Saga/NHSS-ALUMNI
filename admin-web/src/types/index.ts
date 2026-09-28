@@ -165,6 +165,8 @@ export interface AlumniProfile {
   admission_year?: number;
   passing_year: number;
   leaving_class?: string;
+  roll_no?: string;
+  section?: string;
   no_higher_education?: string;
   college_name?: string;
   institution_name?: string;
@@ -302,7 +304,6 @@ export interface AttendanceRosterItem {
   alumni_id: string;
   full_name: string;
   passing_year: number;
-  admission_number: string;
   rsvp_status: string;
   adults_count: number;
   children_count: number;

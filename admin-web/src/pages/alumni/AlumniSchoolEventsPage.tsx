@@ -57,6 +57,24 @@ export const AlumniSchoolEventsPage: React.FC = () => {
     }))
   ];
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getEventDynamicStatus = (eventDateStr?: string, status?: string) => {
+    if (status === 'CANCELLED') return 'CANCELLED';
+    if (!eventDateStr) return status || 'UPCOMING';
+    const evDateStr = eventDateStr.slice(0, 10);
+    if (evDateStr < getTodayStr()) {
+      return 'COMPLETED';
+    }
+    return status || 'UPCOMING';
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       {/* Header Banner */}
@@ -106,6 +124,8 @@ export const AlumniSchoolEventsPage: React.FC = () => {
             const displayTitle = language === 'ta' ? (event.title_ta || event.title) : event.title;
             const displayDesc = language === 'ta' ? (event.description_ta || event.description) : event.description;
             const coverImg = language === 'ta' ? (event.cover_image_url_ta || event.cover_image_url) : event.cover_image_url;
+            const actualStatus = getEventDynamicStatus(event.event_date, event.status);
+            const isUpcoming = actualStatus === 'UPCOMING';
 
             return (
               <div key={event.id} className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-all group">
@@ -120,9 +140,9 @@ export const AlumniSchoolEventsPage: React.FC = () => {
                       {event.category.replace('_', ' ')}
                     </div>
                     <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                      event.status === 'UPCOMING' ? 'bg-emerald-500 text-white' : 'bg-gray-800/80 text-gray-200'
+                      isUpcoming ? 'bg-emerald-500 text-white' : 'bg-gray-800/80 text-gray-200'
                     }`}>
-                      {event.status === 'UPCOMING' ? (language === 'ta' ? 'வரவிருக்கும்' : 'UPCOMING') : (language === 'ta' ? 'முடிந்தது' : event.status)}
+                      {isUpcoming ? (language === 'ta' ? 'வரவிருக்கும்' : 'UPCOMING') : (language === 'ta' ? 'முடிந்தது' : actualStatus)}
                     </div>
                   </div>
 

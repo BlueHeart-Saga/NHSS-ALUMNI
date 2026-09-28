@@ -132,7 +132,9 @@ export const AuthCallback: React.FC = () => {
         navigate(targetPath);
       }
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to link mobile number.');
+      const msg = typeof err === 'string' ? err : err?.message || 'Failed to link mobile number.';
+      setMobileError(msg);
+      alertService.handleApiError(err, 'This mobile number is already registered or invalid.');
     } finally {
       setLinkingLoading(false);
     }

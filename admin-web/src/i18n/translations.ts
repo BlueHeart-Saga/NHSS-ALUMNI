@@ -163,7 +163,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_btn_exporting_excel: "Exporting Excel...",
 
     // Filter bar
-    admin_filter_search_placeholder: "Search by name, admission no, mobile, email, city, profession...",
+    admin_filter_search_placeholder: "Search by name, mobile, email, city, profession, company...",
     admin_filter_all_batches: "All Batches (1962-2026)",
     admin_filter_class_of: "Class of",
     admin_filter_all_statuses: "All Verification Statuses",
@@ -257,7 +257,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_sheet_joining_year: "Joining Year",
     admin_sheet_passing_year: "Passing Year",
     admin_sheet_leaving_class: "Leaving Class",
-    admin_sheet_admission_roll: "Admission/Roll No",
+    admin_sheet_admission_roll: "Roll No",
     admin_sheet_section: "Section",
     admin_sheet_no_higher_ed: "No Higher Ed",
     admin_sheet_college_name: "College Name",
@@ -2147,7 +2147,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_btn_exporting_excel: "Excel ஏற்றுமதி ஆகிறது...",
 
     // Filter bar
-    admin_filter_search_placeholder: "பெயர், சேர்க்கை எண், மொபைல், மின்னஞ்சல், நகரம், தொழில் மூலம் தேடுங்கள்...",
+    admin_filter_search_placeholder: "பெயர், மொபைல், மின்னஞ்சல், நகரம், தொழில் மூலம் தேடுங்கள்...",
     admin_filter_all_batches: "அணி (1962-2026)",
     admin_filter_class_of: "வகுப்பு",
     admin_filter_all_statuses: "சரிபார்ப்பு நிலை",
@@ -2241,7 +2241,7 @@ export const translations: Record<Language, Record<string, string>> = {
     admin_sheet_joining_year: "சேர்ந்த ஆண்டு",
     admin_sheet_passing_year: "தேர்ச்சி ஆண்டு",
     admin_sheet_leaving_class: "விட்டு வெளியேறிய வகுப்பு",
-    admin_sheet_admission_roll: "சேர்க்கை/பதிவு எண்",
+    admin_sheet_admission_roll: "பதிவு எண்",
     admin_sheet_section: "பிரிவு",
     admin_sheet_no_higher_ed: "உயர்கல்வி இல்லை",
     admin_sheet_college_name: "கல்லூரியின் பெயர்",

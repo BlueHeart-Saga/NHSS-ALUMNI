@@ -98,7 +98,6 @@ async def list_pending_verifications(
                 profile_photo_url=photo_val,
                 passing_year=a.get("passing_year", 2010),
                 batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
-                admission_number=a.get("admission_number") or a.get("roll_no") or "N/A",
                 section=a.get("section"),
                 gender=a.get("gender"),
                 dob=a.get("dob") or a.get("date_of_birth"),
@@ -403,7 +402,6 @@ CSV_HEADER_ALIASES = {
     "name": ["name", "full name", "full_name", "alumnus name", "alumni name"],
     "name_ta": ["name in tamil", "name_ta", "full_name_ta", "tamil name", "tamil_name"],
     "batch_year": ["batch", "batch year", "passing_year", "passing year", "year"],
-    "admission_number": ["admission number", "admission_number", "admission no", "adm no"],
     "roll_no": ["roll no", "roll_no", "roll number", "roll_number"],
     "section": ["section", "sec"],
     "mobile": ["mobile", "mobile number", "mobile_number", "phone", "phone number", "contact"],
@@ -513,7 +511,6 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
         "name":                 "full_name",
         "name_ta":              "name_ta",
         "batch_year":           "passing_year",
-        "admission_number":     "admission_number",
         "roll_no":              "roll_no",
         "section":              "section",
         "mobile":               "mobile",
@@ -662,7 +659,6 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
     status_raw = (row.get("verification_status") or "").strip().upper()
     verification_status = status_raw if status_raw in ("APPROVED", "PENDING", "SUSPENDED", "REJECTED") else "APPROVED"
 
-    adm_no = (row.get("admission_number") or "").strip()
     roll_no = (row.get("roll_no") or "").strip()
 
     return {
@@ -691,7 +687,6 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
         "admission_year": to_int_or_none(row.get("joining_year")),
         "passing_year": passing_year,
         "leaving_class": (row.get("leaving_class") or "").strip() or "10th",
-        "admission_number": adm_no,
         "roll_no": roll_no,
         "section": (row.get("section") or "A").strip(),
         "no_higher_education": no_higher,
@@ -826,7 +821,6 @@ async def import_alumni_csv(
                 pass
 
     existing_by_id = {}
-    existing_by_adm_no = {}
     existing_by_mobile = {}
     existing_by_email = {}
     existing_by_roll_year = {}
@@ -837,10 +831,6 @@ async def import_alumni_csv(
     async for doc in cursor:
         doc_id = doc["_id"]
         existing_by_id[doc_id] = doc
-
-        adm = (doc.get("admission_number") or "").strip().lower()
-        if adm:
-            existing_by_adm_no[adm] = doc
 
         mob = (doc.get("mobile") or "").strip()
         mob_digits = re.sub(r"\D", "", mob)
@@ -900,7 +890,6 @@ async def import_alumni_csv(
         alumni_id_raw = _clean_cell(row.get("alumni_id"))
         name = (row.get("name") or "").strip()
         batch_year = (row.get("batch_year") or "").strip()
-        adm_no = (row.get("admission_number") or "").strip().lower()
         email = (row.get("email") or "").strip().lower()
         mobile_raw = (row.get("mobile") or "").strip()
         mobile_digits = re.sub(r"\D", "", mobile_raw)
@@ -1016,15 +1005,11 @@ async def import_alumni_csv(
             batch_id = await get_or_create_batch(year_int)
             new_oid = ObjectId()
             new_doc = _build_alumni_doc(row, school_id, batch_id, new_oid)
-            if not new_doc.get("admission_number"):
-                new_doc["admission_number"] = f"ROSTER-{year_int}-{total:03d}"
             new_doc["verification_notes"] = "Uploaded via roster bulk import"
             pending_inserts.append(new_doc)
 
             # Register in in-memory indexes to prevent intra-file duplicates
             existing_by_id[new_oid] = new_doc
-            if new_doc.get("admission_number"):
-                existing_by_adm_no[new_doc["admission_number"].strip().lower()] = new_doc
             if new_doc.get("email"):
                 existing_by_email[new_doc["email"].strip().lower()] = new_doc
             if new_doc.get("mobile"):
@@ -1109,7 +1094,6 @@ async def export_import_errors_csv(
             item.get("row"),
             data.get("Name") or data.get("full_name", ""),
             data.get("Batch") or data.get("passing_year", ""),
-            data.get("Admission Number") or data.get("admission_number", ""),
             data.get("Mobile") or data.get("mobile", ""),
             data.get("Email") or data.get("email", ""),
             item.get("reason", "")
@@ -1148,7 +1132,6 @@ async def search_directory(
     if search:
         query["$or"] = [
             {"full_name": {"$regex": search, "$options": "i"}},
-            {"admission_number": {"$regex": search, "$options": "i"}},
             {"current_city": {"$regex": search, "$options": "i"}},
             {"profession": {"$regex": search, "$options": "i"}}
         ]
@@ -1243,8 +1226,7 @@ async def search_directory(
             admission_year=a.get("admission_year") or a.get("joining_year"),
             passing_year=int(a["passing_year"]) if a.get("passing_year") and str(a["passing_year"]).isdigit() else (a.get("passing_year") or 2010),
             leaving_class=str(a["leaving_class"]) if a.get("leaving_class") is not None else None,
-            admission_number=str(a.get("admission_number") or a.get("roll_no") or ""),
-            roll_no=str(a.get("roll_no") or a.get("admission_number") or "") if (a.get("roll_no") or a.get("admission_number")) is not None else None,
+            roll_no=str(a.get("roll_no")) if a.get("roll_no") is not None else None,
             section=str(a["section"]) if a.get("section") is not None else None,
             no_higher_education=(
                 "YES" if a.get("no_higher_education") in [True, "YES", "yes", "true", "True"]
@@ -1393,7 +1375,6 @@ class AdminUpdateAlumniRequest(BaseModel):
     admission_year: Optional[Any] = None
     passing_year: Optional[Any] = None
     leaving_class: Optional[Any] = None
-    admission_number: Optional[Any] = None
     roll_no: Optional[Any] = None
     section: Optional[Any] = None
     no_higher_education: Optional[Any] = None
@@ -1488,11 +1469,6 @@ async def admin_update_alumni(
         update_fields["stream"] = update_fields["department"]
     elif "stream" in update_fields:
         update_fields["department"] = update_fields["stream"]
-
-    if "admission_number" in update_fields:
-        update_fields["roll_no"] = update_fields["admission_number"]
-    elif "roll_no" in update_fields:
-        update_fields["admission_number"] = update_fields["roll_no"]
 
     if "company_name" in update_fields:
         update_fields["company"] = update_fields["company_name"]
@@ -2235,9 +2211,8 @@ async def admin_create_alumni(
         "passing_year": effective_batch_year,
         "batch_id": batch_id,
         "leaving_class": leaving_cls,
-        "admission_number": str(request.admission_number or request.roll_no or "N/A"),
-        "roll_no": str(request.roll_no or request.admission_number or "N/A"),
-        "section": str(request.section or "A"),
+        "roll_no": str(getattr(request, "roll_no", None) or "N/A"),
+        "section": str(getattr(request, "section", None) or "A"),
         "no_higher_education": request.no_higher_education or "NO",
         "college_name": request.college_name or request.institution_name,
         "institution_name": request.institution_name or request.college_name,
@@ -2297,7 +2272,6 @@ async def admin_create_alumni(
         email=alumni_doc["email"] or "",
         passing_year=alumni_doc["passing_year"],
         batch_id=str(batch_id) if batch_id else None,
-        admission_number=alumni_doc["admission_number"],
         section=alumni_doc["section"],
         current_city=alumni_doc["current_city"],
         profession=alumni_doc["profession"],

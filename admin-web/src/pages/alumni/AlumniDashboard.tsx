@@ -38,6 +38,19 @@ export const AlumniDashboard: React.FC = () => {
     });
   }, []);
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const upcomingEvents = events.filter(ev => {
+    if (!ev.event_date) return true;
+    return ev.event_date.slice(0, 10) >= getTodayStr();
+  });
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans text-[#111111]">
       
@@ -99,7 +112,7 @@ export const AlumniDashboard: React.FC = () => {
             <span className="text-xs font-semibold">{language === 'ta' ? 'வரவிருக்கும் நிகழ்வுகள்' : 'Upcoming Events'}</span>
             <Calendar className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-xl sm:text-2xl font-extrabold text-[#111111]">{events.length || stats.total_events || 0}</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-[#111111]">{upcomingEvents.length}</p>
           <span className="text-[11px] text-blue-600 font-semibold mt-1">{language === 'ta' ? 'செயலில் உள்ளவை' : 'Active events'}</span>
         </div>
 
@@ -134,8 +147,8 @@ export const AlumniDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {events.length > 0 ? (
-              events.slice(0, 2).map(ev => {
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.slice(0, 2).map(ev => {
                 const title = language === 'ta' ? (ev.title_ta || ev.title) : ev.title;
                 return (
                   <div key={ev.id} className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
