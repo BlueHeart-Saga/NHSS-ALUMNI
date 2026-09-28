@@ -165,20 +165,23 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
     Step 5: Professional Details (Employment Status)
     Step 6: Preview / Verification Status / Completed
     """
-    # CRITICAL: If the alumnus or user has already been APPROVED or VERIFIED,
-    # their account registration is complete and approved. They must NEVER be redirected to /register.
+    # CRITICAL: If the alumnus or user has already been APPROVED or VERIFIED, or submitted their registration,
+    # their account registration is complete. They must NEVER be redirected to /register.
     alumni_verif = str(alumni.get("verification_status") or "").upper() if alumni else ""
     user_verif = str(user.get("verification_status") or "").upper() if user else ""
     alumni_status = str(alumni.get("status") or "").upper() if alumni else ""
     user_status = str(user.get("status") or user.get("account_status") or "").upper() if user else ""
 
-    if (
-        alumni_verif in ("APPROVED", "VERIFIED", "PENDING", "REJECTED") or
-        user_verif in ("APPROVED", "VERIFIED", "PENDING", "REJECTED") or
-        alumni_status in ("APPROVED", "VERIFIED", "PENDING") or
+    is_verified_or_submitted = (
+        alumni_verif in ("APPROVED", "VERIFIED", "REJECTED") or
+        user_verif in ("APPROVED", "VERIFIED", "REJECTED") or
+        alumni_status in ("APPROVED", "VERIFIED") or
         (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
-        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True))
-    ):
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True)) or
+        (alumni and alumni_verif == "PENDING" and alumni.get("registration_submitted") is not False and alumni.get("passing_year") is not None)
+    )
+
+    if is_verified_or_submitted:
         return True, 6
 
     if not alumni:
@@ -363,7 +366,8 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "full_name": google_name,
             "email": google_email,
             "profile_photo_url": f"https://ui-avatars.com/api/?name={urllib.parse.quote(google_name)}&background=F4C542&color=111111",
-            "verification_status": "PENDING",
+            "verification_status": "DRAFT",
+            "registration_submitted": False,
             "created_at": now
         }
         await db.alumni.update_one(
@@ -808,10 +812,11 @@ async def login(request: LoginRequest):
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
     is_submitted_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
-        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True)) or
+        (alumni and str(alumni.get("verification_status", "")).upper() == "PENDING" and alumni.get("registration_submitted") is not False and alumni.get("passing_year") is not None)
     )
 
     # Admin-created users or submitted/verified/approved alumni bypass registration wizard entirely.
@@ -908,10 +913,11 @@ async def verify_otp(request: VerifyOTPRequest):
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
     is_submitted_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
-        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True)) or
+        (alumni and str(alumni.get("verification_status", "")).upper() == "PENDING" and alumni.get("registration_submitted") is not False and alumni.get("passing_year") is not None)
     )
 
     # Admin-created users or submitted/verified/approved alumni bypass registration wizard entirely.
@@ -1112,10 +1118,11 @@ async def set_password_with_otp(request: SetPasswordWithOTPRequest):
     is_profile_complete, resume_step = calculate_profile_completion_and_resume_step(alumni, user)
 
     is_submitted_or_approved = (
-        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING", "REJECTED")) or
-        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True or str(alumni.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING"))) or
-        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True or str(user.get("status", "")).upper() in ("APPROVED", "VERIFIED", "PENDING")))
+        (verification_status and str(verification_status).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (user and str(user.get("verification_status", "")).upper() in ("APPROVED", "VERIFIED", "REJECTED")) or
+        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
+        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True)) or
+        (alumni and str(alumni.get("verification_status", "")).upper() == "PENDING" and alumni.get("registration_submitted") is not False and alumni.get("passing_year") is not None)
     )
 
     # Admin-created users already have their registration/profile created by

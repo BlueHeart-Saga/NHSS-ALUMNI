@@ -250,6 +250,9 @@ export const AlumniRegister: React.FC = () => {
     const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && (hasExistingPassword || isGoogleAuth));
     if (!isStep1Complete && step > 1) {
       setStep(1);
+    } else if (isStep1Complete && step === 1 && !location.state?.isPasswordSetup) {
+      setStep(2);
+      setMaxStepReached((prev) => Math.max(prev, 2));
     }
   }, [isOtpVerified, hasExistingPassword, isGoogleAuth, step]);
 
@@ -435,11 +438,10 @@ export const AlumniRegister: React.FC = () => {
             const isAlreadySubmitted =
               normVerif === 'APPROVED' ||
               normVerif === 'VERIFIED' ||
-              normVerif === 'PENDING' ||
               normVerif === 'REJECTED' ||
+              (normVerif === 'PENDING' && (p.registration_submitted === true || p.passing_year)) ||
               p.status === 'APPROVED' ||
-              p.is_verified === true ||
-              p.registration_submitted === true;
+              p.is_verified === true;
 
             if (isAlreadySubmitted && !location.state?.editMode) {
               navigate('/alumni', { replace: true });
@@ -716,15 +718,15 @@ export const AlumniRegister: React.FC = () => {
       }
       setHasExistingPassword(dbHasPassword);
 
-      if (dbHasPassword) {
+      if (dbHasPassword || isGoogleAuth) {
         step1VerifiedRef.current = true;
         setHasExistingPassword(true);
         setIsOtpVerified(true);
         await alertService.showSuccess(
           language === 'ta' ? 'OTP சரிபார்க்கப்பட்டது!' : 'OTP Verified Successfully!',
           language === 'ta'
-            ? 'உங்கள் கணக்கிற்கான கடவுச்சொல் ஏற்கனவே உருவாக்கப்பட்டுள்ளது. பதிவை நிறைவு செய்ய படி 2-க்குச் செல்லவும்.'
-            : 'Account verified! Your account password is confirmed in the database. Proceed to Step 2.'
+            ? 'கைபேசி எண் சரிபார்க்கப்பட்டது! படி 2 (தனிப்பட்ட விவரங்கள்) தொடங்குகிறது.'
+            : 'Mobile OTP verified! Proceeding to Step 2 (Personal Details).'
         );
         if (!location.state?.isPasswordSetup) {
           const targetStep = res.resume_step && res.resume_step >= 3 ? Math.min(res.resume_step - 1, 6) : 2;

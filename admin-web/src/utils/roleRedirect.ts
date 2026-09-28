@@ -11,14 +11,13 @@ export const getRedirectPathForRoles = (
   verificationStatus?: string
 ): string => {
   const normStatus = verificationStatus?.toUpperCase();
-  const isAlreadyRegistered =
+  const isApprovedOrVerifiedOrRejected =
     normStatus === 'APPROVED' ||
     normStatus === 'VERIFIED' ||
-    normStatus === 'PENDING' ||
     normStatus === 'REJECTED';
 
   if (!roles || !Array.isArray(roles)) {
-    return (!isAlreadyRegistered && registrationRequired) ? '/register' : '/alumni';
+    return (registrationRequired && !isApprovedOrVerifiedOrRejected) ? '/register' : '/alumni';
   }
 
   const upperRoles = roles.map((r) => String(r).toUpperCase());
@@ -35,15 +34,11 @@ export const getRedirectPathForRoles = (
     return '/school-admin';
   }
 
-  // If user has already completed registration and submitted it (APPROVED, PENDING, REJECTED),
-  // they track their status or access features inside /alumni — NEVER send them to /register!
-  if (isAlreadyRegistered) {
-    return '/alumni';
-  }
-
-  if (registrationRequired) {
+  // Priority 1: If registration is required and user is not yet APPROVED or VERIFIED, send to /register
+  if (registrationRequired && !isApprovedOrVerifiedOrRejected) {
     return '/register';
   }
 
+  // Priority 2: Approved/verified/submitted alumni go to /alumni
   return '/alumni';
 };
