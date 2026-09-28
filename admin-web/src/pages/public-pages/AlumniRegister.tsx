@@ -186,7 +186,7 @@ export const AlumniRegister: React.FC = () => {
     }
     if (targetStep === 1 && isStep1Complete) {
       alertService.showInfo(
-        language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+        language === 'ta' ? 'சரிபார்க்கப்பட்டது' : 'Verified & Locked',
         language === 'ta'
           ? 'உங்கள் கணக்கு சரிபார்ப்பு மற்றும் கடவுச்சொல் முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
           : 'Your account verification and password setup is complete. Step 1 is locked.'
@@ -426,8 +426,16 @@ export const AlumniRegister: React.FC = () => {
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
     }
 
+    const requiresOtpVerification = Boolean(
+      location.state?.mobile &&
+      location.state?.otpSent &&
+      location.state?.isOtpVerified === false
+    );
+
     if (api.getToken()) {
-      setIsOtpVerified(true);
+      if (!requiresOtpVerification) {
+        setIsOtpVerified(true);
+      }
       api.getProfile()
         .then(async (p: any) => {
           if (p) {
@@ -454,20 +462,24 @@ export const AlumniRegister: React.FC = () => {
               try {
                 const statusRes = await api.checkPasswordStatus(String(userIdentifier));
                 dbHasPassword = Boolean(statusRes.has_password);
-              } catch (e) {}
+              } catch (e) { }
             }
             if (dbHasPassword) {
               step1VerifiedRef.current = true;
             }
             setHasExistingPassword(dbHasPassword);
-            setIsOtpVerified(true);
+            if (!requiresOtpVerification) {
+              setIsOtpVerified(true);
+            }
             if (p.email) setEmail(p.email);
             if (p.mobile) {
               setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
-              setIsOtpVerified(true);
+              if (!requiresOtpVerification) {
+                setIsOtpVerified(true);
+              }
               setOtpSent(true);
               setShowEmailInput(true);
-            } else {
+            } else if (!requiresOtpVerification) {
               setOtpSent(false);
             }
             if (p.full_name || p.name) setFullName(p.full_name || p.name);
@@ -546,7 +558,7 @@ export const AlumniRegister: React.FC = () => {
 
     // Restore session draft fallback (or database profile fallback)
     const savedDraft = sessionStorage.getItem('alumni_register_draft') || localStorage.getItem('alumni_register_draft');
-    try { localStorage.removeItem('alumni_register_draft'); } catch (e) {}
+    try { localStorage.removeItem('alumni_register_draft'); } catch (e) { }
     if (savedDraft) {
       try {
         const d = JSON.parse(savedDraft);
@@ -680,7 +692,7 @@ export const AlumniRegister: React.FC = () => {
       const activeId = cleanMob.length >= 10 ? cleanMob : email;
       const res = await api.verifyOTP(activeId, otp);
       setIsOtpVerified(true);
-      
+
       const normResVerif = String(res.verification_status || '').toUpperCase();
       const isAlreadySubmitted =
         normResVerif === 'APPROVED' ||
@@ -707,14 +719,14 @@ export const AlumniRegister: React.FC = () => {
         navigate('/alumni', { replace: true });
         return;
       }
-      
+
       // Query MongoDB database directly to determine if a password already exists
       let dbHasPassword = Boolean(res.has_password);
       if (!dbHasPassword && activeId) {
         try {
           const passCheck = await api.checkPasswordStatus(activeId);
           dbHasPassword = Boolean(passCheck.has_password);
-        } catch (e) {}
+        } catch (e) { }
       }
       setHasExistingPassword(dbHasPassword);
 
@@ -812,7 +824,7 @@ export const AlumniRegister: React.FC = () => {
         ...partialData
       };
       sessionStorage.setItem('alumni_register_draft', JSON.stringify(currentDraft));
-      try { localStorage.removeItem('alumni_register_draft'); } catch (e) {}
+      try { localStorage.removeItem('alumni_register_draft'); } catch (e) { }
     } catch (e) { }
 
     if (api.getToken()) {
@@ -1276,7 +1288,7 @@ export const AlumniRegister: React.FC = () => {
       try {
         sessionStorage.removeItem('alumni_register_draft');
         localStorage.removeItem('alumni_register_draft');
-      } catch (e) {}
+      } catch (e) { }
       await alertService.showSuccess(
         language === 'ta' ? 'பதிவு முடிந்தது & கணக்கு சமர்ப்பிக்கப்பட்டது!' : 'Registration Submitted Successfully!',
         language === 'ta'
@@ -1515,7 +1527,7 @@ export const AlumniRegister: React.FC = () => {
                           onClick={() => {
                             if (s.num === 1 && isOtpVerified) {
                               alertService.showInfo(
-                                language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+                                language === 'ta' ? 'சரிபார்க்கப்பட்டது' : 'Verified & Locked',
                                 language === 'ta'
                                   ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
                                   : 'Your account verification is complete. Step 1 is locked.'
@@ -1544,12 +1556,12 @@ export const AlumniRegister: React.FC = () => {
                             }
                           }}
                           className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all cursor-pointer ${isCompleted
-                              ? isActive
-                                ? 'bg-[#10B981] text-white ring-4 ring-[#10B981]/30 shadow-xs scale-105'
-                                : 'bg-[#10B981] text-white shadow-xs'
-                              : isActive
-                                ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
-                                : 'bg-gray-100 border border-gray-300 text-gray-400'
+                            ? isActive
+                              ? 'bg-[#10B981] text-white ring-4 ring-[#10B981]/30 shadow-xs scale-105'
+                              : 'bg-[#10B981] text-white shadow-xs'
+                            : isActive
+                              ? 'bg-[#F4C542] text-[#111111] ring-4 ring-[#F4C542]/25 shadow-xs scale-105'
+                              : 'bg-gray-100 border border-gray-300 text-gray-400'
                             }`}
                         >
                           {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
@@ -1569,7 +1581,7 @@ export const AlumniRegister: React.FC = () => {
                         onClick={() => {
                           if (s.num === 1 && isOtpVerified) {
                             alertService.showInfo(
-                              language === 'ta' ? 'சரிபார்க்கப்பட்டது & பூட்டப்பட்டது' : 'Verified & Locked',
+                              language === 'ta' ? 'சரிபார்க்கப்பட்டது' : 'Verified & Locked',
                               language === 'ta'
                                 ? 'உங்கள் கணக்கு சரிபார்ப்பு முடிந்தது. படி 1 மீண்டும் செல்ல முடியாது.'
                                 : 'Your account verification is complete. Step 1 is locked.'
@@ -1593,10 +1605,10 @@ export const AlumniRegister: React.FC = () => {
                         className={`min-w-0 flex-1 pt-0.5 ${isUnlocked && !(s.num === 1 && isOtpVerified) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                       >
                         <div className={`text-sm leading-tight transition-colors ${isCompleted
-                            ? 'font-bold text-[#10B981]'
-                            : isActive
-                              ? 'font-extrabold text-[#111111]'
-                              : 'font-semibold text-gray-400'
+                          ? 'font-bold text-[#10B981]'
+                          : isActive
+                            ? 'font-extrabold text-[#111111]'
+                            : 'font-semibold text-gray-400'
                           }`}>
                           {s.label}
                         </div>
@@ -2052,8 +2064,8 @@ export const AlumniRegister: React.FC = () => {
                             type="button"
                             onClick={() => setBloodGroup(bg)}
                             className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${bloodGroup === bg
-                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                               }`}
                           >
                             {bg}
@@ -2333,8 +2345,8 @@ export const AlumniRegister: React.FC = () => {
                               clearInvalidField('leavingClass');
                             }}
                             className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${leavingClass === cls
-                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                               }`}
                           >
                             {cls} {language === 'ta' ? 'வகுப்பு' : 'Std'}
@@ -2452,8 +2464,8 @@ export const AlumniRegister: React.FC = () => {
                           clearInvalidField('hasHigherEducation');
                         }}
                         className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl border transition-all flex items-center space-x-2.5 cursor-pointer ${hasHigherEducation === 'YES'
-                            ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                          ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                           }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${hasHigherEducation === 'YES' ? 'border-white bg-white' : 'border-gray-400 bg-transparent'
@@ -2471,8 +2483,8 @@ export const AlumniRegister: React.FC = () => {
                           clearInvalidField('hasHigherEducation');
                         }}
                         className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl border transition-all flex items-center space-x-2.5 cursor-pointer ${hasHigherEducation === 'NO'
-                            ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                          ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                           }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${hasHigherEducation === 'NO' ? 'border-white bg-white' : 'border-gray-400 bg-transparent'
@@ -2534,8 +2546,8 @@ export const AlumniRegister: React.FC = () => {
                                 clearInvalidField('degree');
                               }}
                               className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${degree === deg
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                                 }`}
                             >
                               {deg}
@@ -2672,8 +2684,8 @@ export const AlumniRegister: React.FC = () => {
                               }
                             }}
                             className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${employmentStatus === opt.key
-                                ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                               }`}
                           >
                             {language === 'ta' ? opt.labelTa : opt.labelEn}
@@ -2742,8 +2754,8 @@ export const AlumniRegister: React.FC = () => {
                                   type="button"
                                   onClick={() => setTotalExperience(exp)}
                                   className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${totalExperience === exp
-                                      ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                      : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                                    ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
                                     }`}
                                 >
                                   {exp}
@@ -2759,91 +2771,91 @@ export const AlumniRegister: React.FC = () => {
 
 
 
-                        {/* Volunteer — NEW */}
-                        <div id="field-isVolunteer" className={getHighlightCls('isVolunteer')}>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                            {language === 'ta' ? 'தன்னார்வ தொண்டர்' : 'Willing to Volunteer?'} <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex flex-wrap gap-2 pt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsVolunteer('YES');
-                                clearInvalidField('isVolunteer');
-                              }}
-                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'YES'
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                                }`}
-                            >
-                              {language === 'ta' ? 'ஆம்' : 'Yes'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsVolunteer('NO');
-                                clearInvalidField('isVolunteer');
-                              }}
-                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'NO'
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                                }`}
-                            >
-                              {language === 'ta' ? 'இல்லை' : 'No'}
-                            </button>
-                          </div>
-                          {invalidFields.has('isVolunteer') && (
-                            <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              {language === 'ta' ? 'தன்னார்வ விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Volunteer is required'}
-                            </p>
-                          )}
+                      {/* Volunteer — NEW */}
+                      <div id="field-isVolunteer" className={getHighlightCls('isVolunteer')}>
+                        <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                          {language === 'ta' ? 'தன்னார்வ தொண்டர்' : 'Willing to Volunteer?'} <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsVolunteer('YES');
+                              clearInvalidField('isVolunteer');
+                            }}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'YES'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                          >
+                            {language === 'ta' ? 'ஆம்' : 'Yes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsVolunteer('NO');
+                              clearInvalidField('isVolunteer');
+                            }}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${isVolunteer === 'NO'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                          >
+                            {language === 'ta' ? 'இல்லை' : 'No'}
+                          </button>
                         </div>
+                        {invalidFields.has('isVolunteer') && (
+                          <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            {language === 'ta' ? 'தன்னார்வ விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Volunteer is required'}
+                          </p>
+                        )}
+                      </div>
 
-                        {/* Willing to Donate — NEW */}
-                        <div id="field-willingToDonate" className={getHighlightCls('willingToDonate')}>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                            {language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்' : 'Willing to Donate?'} <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex flex-wrap gap-2 pt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setWillingToDonate('YES');
-                                clearInvalidField('willingToDonate');
-                              }}
-                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'YES'
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                                }`}
-                            >
-                              {language === 'ta' ? 'ஆம்' : 'Yes'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setWillingToDonate('NO');
-                                clearInvalidField('willingToDonate');
-                              }}
-                              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'NO'
-                                  ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
-                                }`}
-                            >
-                              {language === 'ta' ? 'இல்லை' : 'No'}
-                            </button>
-                          </div>
-                          {invalidFields.has('willingToDonate') && (
-                            <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              {language === 'ta' ? 'நன்கொடை விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Donate is required'}
-                            </p>
-                          )}
+                      {/* Willing to Donate — NEW */}
+                      <div id="field-willingToDonate" className={getHighlightCls('willingToDonate')}>
+                        <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                          {language === 'ta' ? 'நன்கொடை அளிக்க விருப்பம்' : 'Willing to Donate?'} <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWillingToDonate('YES');
+                              clearInvalidField('willingToDonate');
+                            }}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'YES'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                          >
+                            {language === 'ta' ? 'ஆம்' : 'Yes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWillingToDonate('NO');
+                              clearInvalidField('willingToDonate');
+                            }}
+                            className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${willingToDonate === 'NO'
+                              ? 'bg-[#111111] text-white border-[#111111] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-900 hover:bg-gray-50'
+                              }`}
+                          >
+                            {language === 'ta' ? 'இல்லை' : 'No'}
+                          </button>
                         </div>
+                        {invalidFields.has('willingToDonate') && (
+                          <p className="text-xs text-amber-700 font-bold mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            {language === 'ta' ? 'நன்கொடை விருப்பத்தைத் தேர்ந்தெடுக்கவும்' : 'Willing to Donate is required'}
+                          </p>
+                        )}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
                       <ArrowLeft className="w-4 h-4 mr-1.5" /> {language === 'ta' ? 'பின்செல்ல' : 'Back'}
                     </Button>
@@ -2908,7 +2920,7 @@ export const AlumniRegister: React.FC = () => {
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{bloodGroup || 'N/A'}</span>
                         </div>
 
-                                                <div className="sm:col-span-2 lg:col-span-3">
+                        <div className="sm:col-span-2 lg:col-span-3">
                           <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">{language === 'ta' ? 'முகவரி:' : 'Address:'}</span>
                           <span className="text-xs sm:text-sm font-semibold text-[#111111]">{address || 'N/A'}</span>
                         </div>
@@ -2995,11 +3007,11 @@ export const AlumniRegister: React.FC = () => {
                           <span className="text-sm sm:text-base font-bold text-[#111111]">
                             {employmentStatus === 'Employed' ? (language === 'ta' ? 'பணியில் உள்ளவர்' : 'Employed')
                               : employmentStatus === 'Business / Self-Employed' ? (language === 'ta' ? 'சுயதொழில் / தொழில்முனைவோர்' : 'Business / Self-Employed')
-                              : employmentStatus === 'Seeking Opportunities' ? (language === 'ta' ? 'வாய்ப்புத் தேடுபவர்' : 'Seeking Opportunities')
-                              : employmentStatus === 'Retired' ? (language === 'ta' ? 'ஓய்வு பெற்றவர்' : 'Retired')
-                              : employmentStatus === 'Others' ? (language === 'ta' ? 'மற்றவை' : 'Others')
-                              : employmentStatus === 'Prefer not to say' ? (language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say')
-                              : (employmentStatus || 'N/A')}
+                                : employmentStatus === 'Seeking Opportunities' ? (language === 'ta' ? 'வாய்ப்புத் தேடுபவர்' : 'Seeking Opportunities')
+                                  : employmentStatus === 'Retired' ? (language === 'ta' ? 'ஓய்வு பெற்றவர்' : 'Retired')
+                                    : employmentStatus === 'Others' ? (language === 'ta' ? 'மற்றவை' : 'Others')
+                                      : employmentStatus === 'Prefer not to say' ? (language === 'ta' ? 'கூற விரும்பவில்லை' : 'Prefer not to say')
+                                        : (employmentStatus || 'N/A')}
                           </span>
                         </div>
                         {!['Seeking Opportunities', 'Others', 'Prefer not to say'].includes(employmentStatus) && (
