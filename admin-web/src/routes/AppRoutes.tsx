@@ -16,6 +16,8 @@ import { PublicEvents } from '../pages/public-pages/PublicEvents';
 import { PublicMemories } from '../pages/public-pages/PublicMemories';
 import { PublicContact } from '../pages/public-pages/PublicContact';
 import { PublicFeedback } from '../pages/public-pages/PublicFeedback';
+import { PublicTerms } from '../pages/public-pages/PublicTerms';
+import { PublicPrivacy } from '../pages/public-pages/PublicPrivacy';
 import { AlumniLogin } from '../pages/public-pages/AlumniLogin';
 import { AlumniRegister } from '../pages/public-pages/AlumniRegister';
 import { VerifyAccount } from '../pages/public-pages/VerifyAccount';
@@ -99,6 +101,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="contact" element={<PublicContact />} />
         <Route path="feedback" element={<PublicFeedback />} />
         <Route path="karuthukal" element={<PublicFeedback />} />
+        <Route path="terms" element={<PublicTerms />} />
+        <Route path="terms-and-conditions" element={<PublicTerms />} />
+        <Route path="privacy" element={<PublicPrivacy />} />
+        <Route path="privacy-policy" element={<PublicPrivacy />} />
         <Route path="login" element={<AlumniLogin />} />
         <Route path="register" element={<AlumniRegister />} />
         <Route path="verify-account" element={<VerifyAccount />} />

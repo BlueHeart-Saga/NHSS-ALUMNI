@@ -218,6 +218,8 @@ export const PublicLayout: React.FC = () => {
             <Link to="/memories" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_memories')}</Link>
             <Link to="/audit" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_audit')}</Link>
             <Link to="/contact" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_contact')}</Link>
+            <Link to="/terms" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_terms')}</Link>
+            <Link to="/privacy" className="hover:text-[#854D0E] transition-colors whitespace-nowrap">{t('nav_privacy')}</Link>
             <button
               onClick={() => setIsAppModalOpen(true)}
               className="text-[#854D0E] hover:underline font-bold transition-colors inline-flex items-center space-x-1 cursor-pointer whitespace-nowrap"

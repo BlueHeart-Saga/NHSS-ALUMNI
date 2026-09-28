@@ -3066,9 +3066,30 @@ export const AlumniRegister: React.FC = () => {
                       className="w-5 h-5 text-[#F4C542] border-gray-300 rounded focus:ring-[#F4C542] cursor-pointer mt-0.5 shrink-0"
                     />
                     <label htmlFor="agreeTerms" className="text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed cursor-pointer select-none">
-                      {language === 'ta'
-                        ? 'இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். முன்னாள் மாணவர்கள் சங்க விதிகளுக்கு உடன்படுகிறேன்.'
-                        : 'I confirm that all information provided in this registration form is accurate. I agree to the Alumni Terms of Association and Privacy Guidelines.'}
+                      {language === 'ta' ? (
+                        <>
+                          இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். முன்னாள் மாணவர்கள்{' '}
+                          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
+                            சங்க விதிகளுக்கும்
+                          </Link>{' '}
+                          மற்றும்{' '}
+                          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
+                            தனியுரிமைக் கொள்கைக்கும்
+                          </Link>{' '}
+                          உடன்படுகிறேன்.
+                        </>
+                      ) : (
+                        <>
+                          I confirm that all information provided in this registration form is accurate. I agree to the Alumni{' '}
+                          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
+                            Terms of Association
+                          </Link>{' '}
+                          and{' '}
+                          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
+                            Privacy Guidelines
+                          </Link>.
+                        </>
+                      )}
                     </label>
                   </div>
                   {invalidFields.has('agreeTerms') && (
