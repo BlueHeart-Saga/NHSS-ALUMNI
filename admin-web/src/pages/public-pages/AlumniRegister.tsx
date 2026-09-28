@@ -172,7 +172,7 @@ export const AlumniRegister: React.FC = () => {
 
   // Helper to change step and track max step unlocked for backward & forward navigation
   const goToStep = (targetStep: 1 | 2 | 3 | 4 | 5 | 6, bypassStep1Check = false) => {
-    const isStep1Complete = bypassStep1Check || step1VerifiedRef.current || (isOtpVerified && (hasExistingPassword || isGoogleAuth));
+    const isStep1Complete = bypassStep1Check || step1VerifiedRef.current || (isOtpVerified && hasExistingPassword);
     if (!isStep1Complete && targetStep > 1) {
       alertService.showWarning(
         language === 'ta' ? 'கணக்கு சரிபார்ப்பு அவசியம்' : 'Account Verification Required',
@@ -247,14 +247,14 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && (hasExistingPassword || isGoogleAuth));
+    const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && hasExistingPassword);
     if (!isStep1Complete && step > 1) {
       setStep(1);
     } else if (isStep1Complete && step === 1 && !location.state?.isPasswordSetup) {
       setStep(2);
       setMaxStepReached((prev) => Math.max(prev, 2));
     }
-  }, [isOtpVerified, hasExistingPassword, isGoogleAuth, step]);
+  }, [isOtpVerified, hasExistingPassword, step]);
 
   useEffect(() => {
     if (resendCountdown > 0) {
@@ -1335,7 +1335,7 @@ export const AlumniRegister: React.FC = () => {
   const isStepCompleted = (stepNum: number): boolean => {
     switch (stepNum) {
       case 1:
-        return Boolean(isOtpVerified && (hasExistingPassword || isGoogleAuth));
+        return Boolean(isOtpVerified && hasExistingPassword);
       case 2:
         return Boolean(
           fullName && fullName.trim() !== '' &&
@@ -1813,7 +1813,7 @@ export const AlumniRegister: React.FC = () => {
                         </button>
                       </div>
                     </form>
-                  ) : (hasExistingPassword || isGoogleAuth) ? (
+                  ) : hasExistingPassword ? (
                     <div className="space-y-6 animate-fadeIn">
                       <div className="p-4 bg-[#FFF7D6] border border-[#F4C542]/60 rounded-2xl text-xs sm:text-sm text-[#854D0E] font-medium flex items-center space-x-3">
                         <CheckCircle2 className="w-5 h-5 text-[#854D0E] shrink-0" />
