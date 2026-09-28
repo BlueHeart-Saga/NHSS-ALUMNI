@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, MapPin, ArrowRight, Clock, Users, QrCode, Search, Sparkles, Filter, ExternalLink, X, CheckCircle2, ChevronDown, Image as ImageIcon, ShieldCheck } from 'lucide-react';
 import { api } from '../../services/api';
 import { Link } from 'react-router-dom';
@@ -80,6 +81,15 @@ export const PublicEvents: React.FC = () => {
   // Preview Modal State
   const [selectedPreviewEvent, setSelectedPreviewEvent] = useState<EventItem | null>(null);
   const [qrLoaded, setQrLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!selectedPreviewEvent) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [selectedPreviewEvent]);
 
   useEffect(() => {
     let active = true;
@@ -442,9 +452,10 @@ export const PublicEvents: React.FC = () => {
       </div>
 
       {/* DETAILED PREVIEW MODAL WITH QR BARCODE & SKELETON */}
-      {selectedPreviewEvent && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col">
+      {selectedPreviewEvent && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setSelectedPreviewEvent(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               onClick={() => setSelectedPreviewEvent(null)}
@@ -454,7 +465,7 @@ export const PublicEvents: React.FC = () => {
             </button>
 
             {/* Banner Header Image with Progressive Loading */}
-            <div className="h-56 sm:h-64 w-full relative bg-gray-900 shrink-0 overflow-hidden">
+            <div className="h-52 sm:h-64 w-full relative bg-gray-900 shrink-0 overflow-hidden">
               <EventImage
                 src={getCoverImageUrl(selectedPreviewEvent)}
                 alt={
@@ -485,7 +496,7 @@ export const PublicEvents: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs sm:text-sm text-left flex-1">
+            <div className="p-5 sm:p-7 space-y-6 overflow-y-auto text-xs sm:text-sm text-left flex-1">
               <div className="flex flex-wrap gap-2 text-xs font-semibold">
                 <div className="flex items-center space-x-1.5 bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542] px-3.5 py-1.5 rounded-xl">
                   <Calendar className="w-4 h-4 text-[#854D0E]" />
@@ -589,7 +600,8 @@ export const PublicEvents: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

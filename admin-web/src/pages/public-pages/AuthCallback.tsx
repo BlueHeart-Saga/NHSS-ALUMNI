@@ -64,13 +64,26 @@ export const AuthCallback: React.FC = () => {
         // If user does not have a mobile number registered yet, prompt modal to gather mobile number
         if (!u.mobile) {
           setLoading(false);
-          setPendingTarget({ path: targetPath, state: nextState });
+          setPendingTarget({ path: targetPath, state: { ...nextState, otpSent: true, isOtpVerified: false } });
           setShowMobileModal(true);
         } else {
-          alertService.showSuccess('Google Sign In Successful', `Welcome back, ${u.full_name || name || 'User'}!`);
-          if (targetPath === '/register') {
-            navigate('/register', { state: { ...nextState, mobile: u.mobile } });
+          // If user does not have a password set or needs registration, send OTP and direct to Step 1
+          if (targetPath === '/register' || !u.has_password || !isVerified) {
+            api.sendOTP(u.mobile).catch(() => {});
+            alertService.showInfo(
+              'OTP & Password Required',
+              'Please verify your mobile OTP and set up your account password to complete registration.'
+            );
+            navigate('/register', {
+              state: {
+                ...nextState,
+                mobile: u.mobile,
+                otpSent: true,
+                isOtpVerified: false
+              }
+            });
           } else {
+            alertService.showSuccess('Google Sign In Successful', `Welcome back, ${u.full_name || name || 'User'}!`);
             navigate(targetPath);
           }
         }

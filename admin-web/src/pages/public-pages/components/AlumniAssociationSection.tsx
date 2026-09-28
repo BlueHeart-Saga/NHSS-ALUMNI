@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Award, X, MapPin, Briefcase, Calendar, ShieldCheck, User, Crown, Phone, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../../../services/api';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -44,6 +45,16 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<AssociationTeamMember | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Lock body scroll when modal is active
+  useEffect(() => {
+    if (!selectedMember) return;
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = origOverflow;
+    };
+  }, [selectedMember]);
 
   useEffect(() => {
     fetchTeam();
@@ -149,36 +160,6 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
     return language === 'ta' ? 'நிர்வாகி பெயர்' : 'Office Bearer Name';
   };
 
-  const getRoleBadgeStyle = (position: string) => {
-    const lower = (position || '').toLowerCase();
-    if (lower.includes('president') || lower.includes('thalaivar')) {
-      return {
-        bg: 'bg-amber-100 text-amber-900 border-amber-300',
-        badgeColor: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white',
-        icon: Crown
-      };
-    }
-    if (lower.includes('secretary') || lower.includes('seyalalar')) {
-      return {
-        bg: 'bg-blue-100 text-blue-900 border-blue-300',
-        badgeColor: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white',
-        icon: Award
-      };
-    }
-    if (lower.includes('treasurer') || lower.includes('porulalar')) {
-      return {
-        bg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-        badgeColor: 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white',
-        icon: ShieldCheck
-      };
-    }
-    return {
-      bg: 'bg-[#FFF7D6] text-[#854D0E] border-[#F4C542]/70',
-      badgeColor: 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/70',
-      icon: User
-    };
-  };
-
   const getMemberLocation = (m: AssociationTeamMember) => {
     if (!m.location) return '';
     if (language === 'ta') {
@@ -203,14 +184,6 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
         el.scrollIntoView({ behavior: 'smooth' });
       }
     }, 150);
-  };
-
-  const getCardTheme = (position: string, index: number) => {
-    return {
-      avatarBg: 'bg-slate-100',
-      designationColor: 'text-[#111111]',
-      accentCircle: 'bg-slate-300'
-    };
   };
 
   const renderProfileIcon = (positionStr: string) => {
@@ -249,7 +222,7 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
       lang={language === 'ta' ? 'ta' : 'en'} 
       className="py-16 sm:py-24 bg-white border-t border-b border-[#E5E7EB] relative overflow-hidden font-sans leading-relaxed text-[#111111]"
     >
-      {/* Background Ambient Decorative Waves (matching Hero section) */}
+      {/* Background Ambient Decorative Waves */}
       <div className="absolute top-0 right-0 w-1/2 h-full pointer-events-none opacity-40 z-0">
         <svg viewBox="0 0 500 500" className="w-full h-full text-gray-200" fill="none">
           <path d="M0,100 C150,200 350,0 500,100 L500,500 L0,500 Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -275,13 +248,13 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
           </p>
         </div>
 
-        {/* SIMPLE PROFILE CARDS GRID (Role ON TOP & BIG, Name BELOW & NORMAL, Light Slate Avatar) */}
+        {/* PROFILE CARDS GRID */}
         <div className={
           isHomePage
             ? "grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12 max-w-5xl mx-auto pt-2"
             : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 pt-2"
         }>
-          {displayedCards.map((member, idx) => {
+          {displayedCards.map((member) => {
             const posTitle = getMemberPosition(member.position, member.position_ta);
             const memberName = getMemberName(member);
 
@@ -318,7 +291,7 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
           })}
         </div>
 
-        {/* HOME PAGE CTA BUTTON (Matching Hero section golden action button) */}
+        {/* HOME PAGE CTA BUTTON */}
         {isHomePage && (
           <div className="text-center pt-4">
             <button
@@ -369,31 +342,41 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
         )}
       </div>
 
-      {/* PREVIEW MODAL: Full Member Details */}
-      {selectedMember && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-gray-200 overflow-hidden">
+      {/* PREVIEW MODAL: Full Member Details (rendered via createPortal to document.body) */}
+      {selectedMember && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn overflow-y-auto">
+          {/* Overlay backdrop click */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setSelectedMember(null)}
+            aria-hidden="true"
+          />
+
+          <div
+            className="relative z-10 bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-gray-200 overflow-hidden my-auto max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Close Button */}
             <button
               onClick={() => setSelectedMember(null)}
-              className="absolute top-4 right-4 z-20 bg-white/90 hover:bg-white text-gray-700 hover:text-black p-2 rounded-full border border-gray-200 shadow-md transition-colors cursor-pointer"
+              className="absolute top-3.5 right-3.5 z-20 bg-white/90 hover:bg-white text-gray-700 hover:text-black p-2 rounded-full border border-gray-200 shadow-md transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 max-h-[85vh] overflow-y-auto md:overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-12 w-full overflow-y-auto max-h-[88vh]">
               {/* LEFT SIDE: Image or Icon with warm ambient background */}
-              <div className="md:col-span-5 bg-gradient-to-b from-[#FFF7D6] to-[#FEF08A] relative min-h-[320px] md:min-h-[460px] flex items-center justify-center text-[#854D0E]">
+              <div className="md:col-span-5 bg-gradient-to-b from-[#FFFDF2] to-[#FFF7D6] border-b md:border-b-0 md:border-r border-[#F4C542]/40 relative min-h-[260px] md:min-h-[440px] flex items-center justify-center text-[#854D0E] p-4 shrink-0">
                 {selectedMember.photo_url ? (
                   <img
                     src={selectedMember.photo_url}
                     alt={getMemberName(selectedMember)}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full max-h-[380px] object-contain rounded-2xl shadow-sm"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white border-2 border-[#F4C542] shadow-md flex items-center justify-center text-[#854D0E]">
-                      <User className="w-14 h-14 stroke-[2]" />
+                      {renderProfileIcon(selectedMember.position)}
                     </div>
                     <div className="space-y-1">
                       <span className="text-xs font-bold text-[#854D0E] uppercase tracking-wider block">
@@ -405,7 +388,6 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
                     </div>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent md:hidden" />
               </div>
 
               {/* RIGHT SIDE: Details */}
@@ -503,9 +485,9 @@ export const AlumniAssociationSection: React.FC<AlumniAssociationSectionProps> =
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
 };
-

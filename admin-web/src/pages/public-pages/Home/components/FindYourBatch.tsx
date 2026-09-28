@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { GraduationCap, Search, Users, MapPin, ArrowRight, X, Briefcase, Calendar } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { getAssetUrl } from '../../../../utils/asset';
@@ -41,6 +42,15 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
 
   // Modal State for Circular Member Profile Preview
   const [previewMember, setPreviewMember] = useState<SampleMember | null>(null);
+
+  useEffect(() => {
+    if (!previewMember) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [previewMember]);
 
   const handleYearChange = (yearVal: string) => {
     if (!yearVal) {
@@ -232,9 +242,10 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
       </div>
 
       {/* CIRCULAR PROFILE PREVIEW LIGHTBOX MODAL */}
-      {previewMember && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-gray-200 space-y-6 text-center">
+      {previewMember && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setPreviewMember(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-gray-200 space-y-5 my-auto max-h-[90vh] overflow-y-auto text-center" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               onClick={() => setPreviewMember(null)}
@@ -251,13 +262,13 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(previewMember.full_name)}&background=F3F4F6&color=111111`
                 }
                 alt={previewMember.full_name}
-                className="w-28 h-28 rounded-full border-2 border-gray-300 bg-white object-cover shadow-xl"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 border-gray-300 bg-white object-cover shadow-xl shrink-0"
               />
               <div className="space-y-1">
                 <span className="text-xs font-bold text-gray-800 bg-gray-100 border border-gray-300 px-3.5 py-1 rounded-full uppercase tracking-wider inline-block">
                   {language === 'ta' ? `${previewMember.passing_year || selectedYear} ஆம் ஆண்டு வகுப்பு` : `Class of ${previewMember.passing_year || selectedYear}`}
                 </span>
-                <h3 className="text-2xl font-bold text-[#111111] pt-1">{previewMember.full_name}</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-[#111111] pt-1">{previewMember.full_name}</h3>
               </div>
             </div>
 
@@ -295,7 +306,8 @@ export const FindYourBatch: React.FC<FindYourBatchProps> = ({ batches, onSelectB
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

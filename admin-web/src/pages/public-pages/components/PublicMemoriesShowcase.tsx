@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Image as ImageIcon, Layers, Film, FolderPlus, Download, Share2, Eye,
   ChevronLeft, ChevronRight, X, Sparkles, Filter, Calendar, Globe,
@@ -48,6 +49,15 @@ export const PublicMemoriesShowcase: React.FC = () => {
   // Public Upload Modal State (No Login Required)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [mediaType, setMediaType] = useState<'IMAGE' | 'VIDEO' | 'ALBUM'>('IMAGE');
+
+  useEffect(() => {
+    if (!activePhoto && !isUploadModalOpen) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [activePhoto, isUploadModalOpen]);
   const [title, setTitle] = useState('');
   const [albumName, setAlbumName] = useState('Campus Memories');
   const [coverImageUrl, setCoverImageUrl] = useState('');
@@ -612,9 +622,10 @@ export const PublicMemoriesShowcase: React.FC = () => {
       {/* ========================================================================= */}
       {/* LIGHTBOX PREVIEW MODAL (Multi-Photo Carousel, Download & Share) */}
       {/* ========================================================================= */}
-      {activePhoto && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-5 sm:p-8 space-y-5 relative">
+      {activePhoto && createPortal(
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 animate-fadeIn overflow-y-auto">
+          <div className="fixed inset-0" onClick={() => setActivePhoto(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-7 space-y-5 my-auto" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Top Header */}
             <div className="flex items-center justify-between border-b border-gray-200 pb-3">
@@ -671,7 +682,7 @@ export const PublicMemoriesShowcase: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="w-full h-72 sm:h-96 bg-gray-950 rounded-2xl overflow-hidden relative flex items-center justify-center">
+                <div className="w-full h-64 sm:h-96 bg-gray-950 rounded-2xl overflow-hidden relative flex items-center justify-center">
                   <img
                     src={getAssetUrl(
                       (activePhoto.media_urls && activePhoto.media_urls.length > 0)
@@ -747,15 +758,17 @@ export const PublicMemoriesShowcase: React.FC = () => {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* PUBLIC SHARE MEMORY / VIDEO / ALBUM MODAL (NO LOGIN REQUIRED) */}
       {/* ========================================================================= */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn font-sans">
-          <div className="bg-white border-2 border-[#111111] rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-5 relative">
+      {isUploadModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn font-sans">
+          <div className="fixed inset-0" onClick={() => setIsUploadModalOpen(false)} aria-hidden="true" />
+          <div className="relative z-10 bg-white border-2 border-[#111111] rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-5 sm:p-7 space-y-5 my-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 pb-3">
               <div>
                 <h3 className="text-xl font-bold text-[#111111]">
@@ -939,7 +952,8 @@ export const PublicMemoriesShowcase: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Building2,
   MapPin,
@@ -58,6 +59,15 @@ export const PublicSchool: React.FC = () => {
   const navigate = useNavigate();
 
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhotoItem | null>(null);
+
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [selectedPhoto]);
   const realCampusBanner = getAssetUrl('/school-images/banner.png');
   const [profile, setProfile] = useState<PublicSchoolProfile>({
     name: '',
@@ -721,9 +731,10 @@ export const PublicSchool: React.FC = () => {
       </div>
 
       {/* Interactive Lightbox Popup Modal */}
-      {selectedPhoto && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60">
+      {selectedPhoto && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setSelectedPhoto(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border-2 border-[#F4C542]/60 max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               onClick={() => setSelectedPhoto(null)}
@@ -733,16 +744,16 @@ export const PublicSchool: React.FC = () => {
             </button>
 
             {/* Image Preview */}
-            <div className="max-h-[60vh] bg-black overflow-hidden flex items-center justify-center">
+            <div className="max-h-[50vh] sm:max-h-[60vh] bg-black overflow-hidden flex items-center justify-center shrink-0">
               <img
                 src={selectedPhoto.src}
                 alt={selectedPhoto.title}
-                className="max-h-[60vh] w-full object-contain"
+                className="max-h-[50vh] sm:max-h-[60vh] w-full object-contain"
               />
             </div>
 
             {/* Modal Info Bar */}
-            <div className="p-6 bg-white space-y-4">
+            <div className="p-4 sm:p-6 bg-white space-y-4 overflow-y-auto">
               <div>
                 <span className="text-xs font-bold text-[#854D0E] bg-[#FFF7D6] px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]">
                   {selectedPhoto.category}
@@ -759,7 +770,7 @@ export const PublicSchool: React.FC = () => {
                     setSelectedPhoto(null);
                     navigate('/login');
                   }}
-                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer"
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#111111] hover:bg-black text-[#F4C542] text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all border border-[#F4C542]/40 cursor-pointer shrink-0"
                 >
                   <span>{language === 'ta' ? 'உள்நுழைக' : 'Log In'}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -767,7 +778,8 @@ export const PublicSchool: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

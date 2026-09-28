@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, MapPin, ArrowRight, ExternalLink, Clock, Users, X, QrCode, ShieldCheck, Info, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { EventsSkeleton } from './SkeletonLoaders';
@@ -76,10 +77,14 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
 
   // Reset modal image load states on modal open
   useEffect(() => {
-    if (selectedPreviewEvent) {
-      setIsModalImageLoaded(false);
-      setQrLoaded(false);
-    }
+    if (!selectedPreviewEvent) return;
+    setIsModalImageLoaded(false);
+    setQrLoaded(false);
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
   }, [selectedPreviewEvent]);
 
   const handlePrev = () => {
@@ -368,9 +373,10 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
       </div>
 
       {/* FULL LENGTH TOP BANNER PREVIEW MODAL WITH REAL QR CODE BARCODE */}
-      {selectedPreviewEvent && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col">
+      {selectedPreviewEvent && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setSelectedPreviewEvent(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl max-w-3xl w-full shadow-2xl border-2 border-[#F4C542] overflow-hidden max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               onClick={() => setSelectedPreviewEvent(null)}
@@ -380,7 +386,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
             </button>
 
             {/* TOP WIDE BANNER IMAGE WITH SKELETON & INSIDE TITLE & BATCH BADGE */}
-            <div className="h-60 sm:h-72 w-full relative bg-gray-900 shrink-0 overflow-hidden">
+            <div className="h-52 sm:h-64 w-full relative bg-gray-900 shrink-0 overflow-hidden">
               {!isModalImageLoaded && (
                 <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
                   <ImageIcon className="w-12 h-12 text-gray-600 animate-bounce" />
@@ -412,7 +418,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
             </div>
 
             {/* MIDDLE DETAILS & QR CODE CONTENT */}
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-left">
+            <div className="p-5 sm:p-7 overflow-y-auto space-y-6 flex-1 text-left">
               {/* Event Date & Time Field */}
               <div className="inline-flex items-center space-x-2 text-xs sm:text-sm font-bold text-[#854D0E] bg-[#FFF7D6] border border-[#F4C542] px-4 py-2 rounded-2xl shadow-xs">
                 <Clock className="w-4 h-4 text-[#854D0E]" />
@@ -449,13 +455,13 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               </div>
 
               {/* REAL AUTO-GENERATED QR CODE BARCODE SECTION */}
-              <div className="p-6 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-3xl border-2 border-[#F4C542] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-3xl border-2 border-[#F4C542] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
                 <div className="space-y-2 text-center sm:text-left flex-1">
                   <div className="inline-flex items-center space-x-2 text-xs font-bold text-[#F4C542] bg-[#F4C542]/20 px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
                     <QrCode className="w-3.5 h-3.5" />
                     <span>{language === 'ta' ? 'மொபைல் QR ஸ்கேன்' : 'Mobile Scan & RSVP'}</span>
                   </div>
-                  <h4 className="text-lg font-bold text-white">
+                  <h4 className="text-base sm:text-lg font-bold text-white">
                     {language === 'ta' ? 'மொபைல் கேமரா மூலம் ஸ்கேன் செய்க' : 'Scan QR Code with Mobile Phone'}
                   </h4>
                   <p className="text-xs text-gray-300 leading-relaxed">
@@ -466,7 +472,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                 </div>
 
                 {/* Auto-Generated Scannable QR Code Image with Loading Fallback */}
-                <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0 relative min-w-[144px] min-h-[144px] flex flex-col items-center justify-center">
+                <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0 relative min-w-[130px] min-h-[130px] flex flex-col items-center justify-center">
                   {!qrLoaded && (
                     <div className="absolute inset-0 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
                       <QrCode className="w-8 h-8 text-gray-400 animate-spin" />
@@ -479,10 +485,10 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                     alt="Event QR Barcode"
                     loading="eager"
                     onLoad={() => setQrLoaded(true)}
-                    className={`w-32 h-32 object-contain transition-opacity duration-300 ${qrLoaded ? 'opacity-100' : 'opacity-0'
+                    className={`w-28 h-28 object-contain transition-opacity duration-300 ${qrLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                   />
-                  <div className="text-[10px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
+                  <div className="text-[9px] font-bold text-center text-gray-700 mt-1 uppercase tracking-widest">
                     SCAN QR
                   </div>
                 </div>
@@ -517,7 +523,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

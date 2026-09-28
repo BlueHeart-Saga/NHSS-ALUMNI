@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Trophy, Award, Star, Medal, Sparkles, X, GraduationCap, User } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { api } from '../../../../services/api';
@@ -10,6 +11,15 @@ export const SchoolAchieversSection: React.FC = () => {
   const [rankHolders, setRankHolders] = useState<RankHolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHolder, setSelectedHolder] = useState<RankHolder | null>(null);
+
+  useEffect(() => {
+    if (!selectedHolder) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [selectedHolder]);
 
   useEffect(() => {
     api.getPublicRankHolders()
@@ -142,9 +152,10 @@ export const SchoolAchieversSection: React.FC = () => {
       </div>
 
       {/* Achiever Details Modal */}
-      {selectedHolder && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border-2 border-[#111111] rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl relative text-center">
+      {selectedHolder && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setSelectedHolder(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white border-2 border-[#111111] rounded-3xl max-w-md w-full p-5 sm:p-7 space-y-5 shadow-2xl my-auto max-h-[90vh] overflow-y-auto text-center" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedHolder(null)}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#111111] rounded-xl hover:bg-gray-100 cursor-pointer"
@@ -153,7 +164,7 @@ export const SchoolAchieversSection: React.FC = () => {
             </button>
 
             {/* Avatar */}
-            <div className="w-28 h-28 mx-auto rounded-full overflow-hidden border-4 border-[#F4C542] shadow-xl bg-[#FFF7D6] flex items-center justify-center text-[#854D0E]">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-full overflow-hidden border-4 border-[#F4C542] shadow-xl bg-[#FFF7D6] flex items-center justify-center text-[#854D0E] shrink-0">
               {selectedHolder.photograph ? (
                 <img
                   src={getAssetUrl(selectedHolder.photograph)}
@@ -161,7 +172,7 @@ export const SchoolAchieversSection: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-14 h-14 stroke-[2.2] text-[#854D0E]" />
+                <User className="w-12 h-12 sm:w-14 sm:h-14 stroke-[2.2] text-[#854D0E]" />
               )}
             </div>
 
@@ -169,7 +180,7 @@ export const SchoolAchieversSection: React.FC = () => {
               <span className="text-xs font-extrabold bg-[#111111] text-[#F4C542] px-4 py-1 rounded-full uppercase tracking-wider inline-block">
                 {selectedHolder.rank}
               </span>
-              <h3 className="text-2xl font-bold text-[#111111]">{selectedHolder.student_name}</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#111111]">{selectedHolder.student_name}</h3>
               <p className="text-xs text-[#854D0E] font-semibold">{selectedHolder.achievement_title || 'School Academic Rank Holder'}</p>
             </div>
 
@@ -205,7 +216,8 @@ export const SchoolAchieversSection: React.FC = () => {
               Close Achiever Card
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

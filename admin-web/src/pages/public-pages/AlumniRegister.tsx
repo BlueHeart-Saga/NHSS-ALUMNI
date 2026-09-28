@@ -247,7 +247,7 @@ export const AlumniRegister: React.FC = () => {
   };
 
   useEffect(() => {
-    const isStep1Complete = step1VerifiedRef.current || isOtpVerified || Boolean(api.getToken()) || hasExistingPassword;
+    const isStep1Complete = step1VerifiedRef.current || (isOtpVerified && hasExistingPassword);
     if (!isStep1Complete && step > 1) {
       setStep(1);
     } else if (isStep1Complete && step === 1 && !location.state?.isPasswordSetup) {
@@ -428,16 +428,7 @@ export const AlumniRegister: React.FC = () => {
       if (location.state?.profilePhotoUrl) setProfilePhotoUrl(location.state.profilePhotoUrl);
     }
 
-    const requiresOtpVerification = Boolean(
-      location.state?.mobile &&
-      location.state?.otpSent &&
-      location.state?.isOtpVerified === false
-    );
-
     if (api.getToken()) {
-      if (!requiresOtpVerification) {
-        setIsOtpVerified(true);
-      }
       api.getProfile()
         .then(async (p: any) => {
           if (p) {
@@ -466,27 +457,29 @@ export const AlumniRegister: React.FC = () => {
                 dbHasPassword = Boolean(statusRes.has_password);
               } catch (e) { }
             }
-            if (dbHasPassword) {
+
+            const isPhoneOtpVerified = Boolean(
+              p.phone_verified ||
+              p.is_phone_verified ||
+              location.state?.skipOtpScreen === true
+            );
+
+            if (dbHasPassword && isPhoneOtpVerified) {
               step1VerifiedRef.current = true;
             }
+
             setHasExistingPassword(dbHasPassword);
-            if (!requiresOtpVerification) {
-              setIsOtpVerified(true);
-            }
+            setIsOtpVerified(isPhoneOtpVerified);
+
             if (p.email) setEmail(p.email);
             if (p.mobile) {
               setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
-              if (!requiresOtpVerification) {
-                setIsOtpVerified(true);
-              }
               setOtpSent(true);
               setShowEmailInput(true);
-            } else if (!requiresOtpVerification) {
-              setOtpSent(false);
             }
+
             if (p.full_name || p.name) setFullName(p.full_name || p.name);
             if (p.profile_photo_url) setProfilePhotoUrl(p.profile_photo_url);
-            if (p.mobile) setMobile(String(p.mobile).replace(/^\+91\s?/, ''));
             if (p.address) setAddress(p.address);
             if (p.current_city || p.city) setCurrentCity(p.current_city || p.city);
             if (p.state) setState(p.state);
@@ -538,7 +531,8 @@ export const AlumniRegister: React.FC = () => {
             const hasVolunteerDonation = Boolean(p.is_volunteer && p.willing_to_donate);
 
             let pendingStep: 1 | 2 | 3 | 4 | 5 | 6 = 2;
-            if (!hasPersonal) pendingStep = 2;
+            if (!isPhoneOtpVerified || !dbHasPassword) pendingStep = 1;
+            else if (!hasPersonal) pendingStep = 2;
             else if (!hasSchool) pendingStep = 3;
             else if (!hasEducation) pendingStep = 4;
             else if (!hasVolunteerDonation) pendingStep = 5;
@@ -550,7 +544,7 @@ export const AlumniRegister: React.FC = () => {
               return;
             }
 
-            const stepToUse = location.state?.resumeStep || pendingStep;
+            const stepToUse = (!isPhoneOtpVerified || !dbHasPassword) ? 1 : (location.state?.resumeStep || pendingStep);
             setStep(stepToUse as any);
             setMaxStepReached(6);
           }

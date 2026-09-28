@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Award, User, X, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,6 +16,15 @@ export const PublicMemories: React.FC = () => {
   const [selectedHolderModal, setSelectedHolderModal] = useState<RankHolder | null>(null);
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    if (!selectedHolderModal) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [selectedHolderModal]);
 
   useEffect(() => {
     api.getPublicRankHolders()
@@ -398,17 +408,18 @@ export const PublicMemories: React.FC = () => {
       </div>
 
       {/* Achiever detail modal — same fields, matching styles */}
-      {selectedHolderModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border-2 border-[#E7C968] overflow-hidden p-6 text-center space-y-6">
+      {selectedHolderModal && createPortal(
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="fixed inset-0" onClick={() => setSelectedHolderModal(null)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-3xl max-w-lg w-full shadow-2xl border-2 border-[#E7C968] overflow-hidden p-5 sm:p-6 text-center space-y-5 my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedHolderModal(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-black p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-black p-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-28 h-28 mx-auto rounded-full overflow-hidden border-4 border-[#F4C542] shadow-xl bg-[#FFF7D6] flex items-center justify-center text-[#854D0E]">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-full overflow-hidden border-4 border-[#F4C542] shadow-xl bg-[#FFF7D6] flex items-center justify-center text-[#854D0E] shrink-0">
               {selectedHolderModal.photograph ? (
                 <img
                   src={getAssetUrl(selectedHolderModal.photograph)}
@@ -416,7 +427,7 @@ export const PublicMemories: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-14 h-14 stroke-[2.2] text-[#854D0E]" />
+                <User className="w-12 h-12 sm:w-14 sm:h-14 stroke-[2.2] text-[#854D0E]" />
               )}
             </div>
 
@@ -424,7 +435,7 @@ export const PublicMemories: React.FC = () => {
               <span className="text-xs font-extrabold bg-[#111111] text-[#F4C542] px-4 py-1 rounded-full uppercase tracking-wider inline-block">
                 {selectedHolderModal.rank}
               </span>
-              <h3 className="text-2xl font-bold text-[#0B0F14]">{selectedHolderModal.student_name}</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#0B0F14]">{selectedHolderModal.student_name}</h3>
               <p className="text-xs text-[#854D0E] font-semibold">
                 {selectedHolderModal.achievement_title || 'School Academic Rank Holder'}
               </p>
@@ -452,7 +463,8 @@ export const PublicMemories: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

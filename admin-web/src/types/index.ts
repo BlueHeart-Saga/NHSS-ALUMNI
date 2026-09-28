@@ -201,6 +201,7 @@ export interface AlumniProfile {
   account_status?: 'ACTIVE' | 'PENDING_ACTIVATION' | 'SUSPENDED';
   invitation_status?: 'PENDING' | 'SENT' | 'OPENED' | 'EXPIRED' | 'ACCEPTED';
   phone_verified?: boolean;
+  has_password?: boolean;
   is_rerequest?: boolean;
   rerequest_note?: string;
   rerequest_count?: number;

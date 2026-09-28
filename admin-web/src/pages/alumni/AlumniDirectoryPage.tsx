@@ -13,6 +13,7 @@ import { AlumniContextType } from '../../layouts/AlumniLayout';
 import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { StatsGridSkeleton } from '../../components/EmptyState';
 import { getConnectionsStore, sendConnectionRequest, ConnectionItem } from '../../utils/connectionStorage';
+import { AlumniDetailModal } from '../../components/AlumniDetailModal';
 
 export const AlumniDirectoryPage: React.FC = () => {
   const { language } = useLanguage();
@@ -144,6 +145,11 @@ export const AlumniDirectoryPage: React.FC = () => {
   // Filtering Logic
   const filteredAlumni = useMemo(() => {
     return alumniList.filter((a) => {
+      // Respect directory_visible privacy flag (if false and not own profile, hide from directory listing)
+      if (a.directory_visible === false && !isOwnAccount(a)) {
+        return false;
+      }
+
       // Show verified / approved alumni only
       const verStatus = (a.verification_status || 'APPROVED').toUpperCase();
       if (verStatus !== 'APPROVED' && verStatus !== 'VERIFIED') {
@@ -179,7 +185,7 @@ export const AlumniDirectoryPage: React.FC = () => {
 
       return matchSearch && matchBatch && matchCity && matchProf && matchBlood && matchVol && matchDon && matchVer;
     });
-  }, [alumniList, search, batchFilter, cityFilter, professionFilter, bloodFilter, volunteerFilter, donationFilter, verificationFilter]);
+  }, [alumniList, search, batchFilter, cityFilter, professionFilter, bloodFilter, volunteerFilter, donationFilter, verificationFilter, user]);
 
   // Sorting Logic
   const sortedAlumni = useMemo(() => {
@@ -1003,157 +1009,16 @@ export const AlumniDirectoryPage: React.FC = () => {
 
       {/* Comprehensive Alumni Profile Modal (Showing ALL Details properly) */}
       {selectedAlumni && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto table-scrollbar">
-            <button
-              onClick={() => setSelectedAlumni(null)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-[#111111] p-1.5 rounded-full hover:bg-gray-100 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Profile Header */}
-            <div className="flex items-center space-x-4 border-b border-[#E5E7EB] pb-4">
-              <div className="w-20 h-20 rounded-full bg-[#FFF7D6] border-2 border-[#F4C542] overflow-hidden flex items-center justify-center shrink-0 shadow-md">
-                {selectedAlumni.profile_photo_url ? (
-                  <img src={selectedAlumni.profile_photo_url} alt={selectedAlumni.full_name} className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-10 h-10 text-[#854D0E]" />
-                )}
-              </div>
-              <div className="space-y-1.5 min-w-0 flex-1">
-                <h3 className="font-extrabold text-xl text-[#111111] truncate">{selectedAlumni.full_name}</h3>
-                {(selectedAlumni.name_ta || selectedAlumni.full_name_ta) && (
-                  <p className="text-xs text-gray-500 font-serif font-semibold">{selectedAlumni.name_ta || selectedAlumni.full_name_ta}</p>
-                )}
-                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
-                  <span className="font-extrabold text-[#854D0E] bg-[#FFF7D6] px-2.5 py-0.5 rounded-full border border-[#F4C542]/40">
-                    Class of {selectedAlumni.passing_year}
-                  </span>
-                  <span className="inline-flex items-center space-x-1 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px]">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-                    <span>VERIFIED ALUMNUS</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Academic & Registry Identity Grid */}
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs space-y-2">
-              <div className="font-bold text-[#854D0E] uppercase tracking-wider text-[11px] flex items-center">
-                <GraduationCap className="w-4 h-4 mr-1.5 text-[#854D0E]" />
-                Academic Roster Details
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1 text-gray-700">
-                <div>
-                  <span className="text-gray-400 block text-[10px]">Passing Batch Year</span>
-                  <span className="font-bold text-[#111111]">Class of {selectedAlumni.passing_year || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px]">Section</span>
-                  <span className="font-bold text-[#111111]">{selectedAlumni.section || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px]">Blood Group</span>
-                  <span className="font-bold text-rose-700">{selectedAlumni.blood_group || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Volunteer, Donor & Medical Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedAlumni.blood_group && (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
-                  <Droplet className="w-4 h-4 fill-rose-600 text-rose-600" />
-                  <span>Blood Group: {selectedAlumni.blood_group}</span>
-                </div>
-              )}
-              {selectedAlumni.is_volunteer === 'YES' && (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-extrabold">
-                  <HandHeart className="w-4 h-4 text-emerald-700" />
-                  <span>Registered Volunteer</span>
-                </div>
-              )}
-              {selectedAlumni.willing_to_donate === 'YES' && (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#FFF7D6] border border-[#F4C542] text-[#854D0E] text-xs font-extrabold">
-                  <Heart className="w-4 h-4 fill-[#854D0E]" />
-                  <span>Willing Financial Donor</span>
-                </div>
-              )}
-            </div>
-
-            {/* Profession & Location Details */}
-            <div className="space-y-2.5 text-xs text-[#374151] pt-2 border-t border-[#E5E7EB]">
-              {selectedAlumni.profession && (
-                <div className="flex items-center space-x-2.5">
-                  <Building2 className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>
-                    <strong className="text-[#111111]">{selectedAlumni.profession}</strong>
-                    {selectedAlumni.company ? ` at ${selectedAlumni.company}` : ''}
-                  </span>
-                </div>
-              )}
-
-              {selectedAlumni.current_city && (
-                <div className="flex items-center space-x-2.5">
-                  <MapPin className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>
-                    {selectedAlumni.current_city}
-                    {selectedAlumni.state ? `, ${selectedAlumni.state}` : ''}
-                    {selectedAlumni.country ? `, ${selectedAlumni.country}` : ''}
-                  </span>
-                </div>
-              )}
-
-              {selectedAlumni.email && (
-                <div className="flex items-center space-x-2.5">
-                  <Mail className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{selectedAlumni.email_visible !== false ? selectedAlumni.email : 'Email Hidden (Privacy On)'}</span>
-                </div>
-              )}
-
-              {selectedAlumni.college_name && (
-                <div className="flex items-center space-x-2.5">
-                  <GraduationCap className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{selectedAlumni.degree ? `${selectedAlumni.degree} - ` : ''}{selectedAlumni.college_name}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Social & Professional Links */}
-            {selectedAlumni.linkedin_url && (
-              <div className="pt-2 border-t border-[#E5E7EB]">
-                <a
-                  href={selectedAlumni.linkedin_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-[#0A66C2] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all"
-                >
-                  <span>LinkedIn Profile</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            )}
-
-            {/* Modal Connect Action */}
-            <div className="pt-3 border-t border-[#E5E7EB]">
-              {isOwnAccount(selectedAlumni) ? (
-                <div className="w-full py-3 bg-gray-100 border border-gray-300 text-gray-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 cursor-default">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span>This is your own profile</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setConnectModalAlumni(selectedAlumni); setSelectedAlumni(null); }}
-                  className="w-full py-3 bg-[#111111] text-white hover:bg-black rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4 text-[#F4C542]" />
-                  <span>Send Connection Message</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <AlumniDetailModal
+          alumni={selectedAlumni}
+          onClose={() => setSelectedAlumni(null)}
+          isOwnAccount={isOwnAccount(selectedAlumni)}
+          connectionStatus={getConnectionStatus(selectedAlumni.id || selectedAlumni.mobile || selectedAlumni.full_name)}
+          onConnectClick={(a) => {
+            setConnectModalAlumni(a);
+            setSelectedAlumni(null);
+          }}
+        />
       )}
 
       {/* Connect Message Modal */}

@@ -16,6 +16,7 @@ import {
   getConnectionsStore, sendConnectionRequest, updateConnectionStatus, 
   removeConnection, ConnectionItem 
 } from '../../utils/connectionStorage';
+import { AlumniDetailModal } from '../../components/AlumniDetailModal';
 
 export const AlumniBatchesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -607,114 +608,13 @@ export const AlumniBatchesPage: React.FC = () => {
 
       {/* Comprehensive Profile Detail Modal */}
       {selectedAlumni && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative text-xs max-h-[90vh] overflow-y-auto scrollbar-thin">
-            <button onClick={() => setSelectedAlumni(null)} className="absolute top-5 right-5 text-gray-400 hover:text-[#111111] p-1 rounded-full hover:bg-gray-100 cursor-pointer">
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center space-x-4 border-b border-gray-200 pb-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#F4C542] bg-[#FFF7D6] flex items-center justify-center shrink-0 shadow-sm">
-                {selectedAlumni.profile_photo_url ? (
-                  <img src={selectedAlumni.profile_photo_url} alt={selectedAlumni.full_name} className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-8 h-8 text-[#854D0E]" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-extrabold text-lg text-[#111111]">{selectedAlumni.full_name}</h3>
-                {selectedAlumni.name_ta && <p className="text-xs text-gray-500 font-serif">{selectedAlumni.name_ta}</p>}
-                <p className="text-amber-800 font-extrabold text-xs mt-0.5">Class of {selectedAlumni.passing_year}</p>
-              </div>
-            </div>
-
-            {/* Academic & Section details */}
-            <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200 text-center text-xs">
-              <div>
-                <span className="text-gray-400 block text-[10px]">Roll No</span>
-                <span className="font-bold">{selectedAlumni.roll_no || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px]">Section</span>
-                <span className="font-bold">{selectedAlumni.section || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-gray-400 block text-[10px]">Leaving Class</span>
-                <span className="font-bold">{selectedAlumni.leaving_class || '10th'}</span>
-              </div>
-            </div>
-
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {selectedAlumni.blood_group && (
-                <span className="px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-800 font-bold flex items-center gap-1">
-                  <Droplet className="w-3 h-3 fill-rose-600 text-rose-600" />
-                  <span>{selectedAlumni.blood_group}</span>
-                </span>
-              )}
-              {selectedAlumni.is_volunteer === 'YES' && (
-                <span className="px-2.5 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 font-extrabold flex items-center gap-1">
-                  <HandHeart className="w-3 h-3 text-emerald-700" />
-                  <span>VOLUNTEER</span>
-                </span>
-              )}
-              {selectedAlumni.willing_to_donate === 'YES' && (
-                <span className="px-2.5 py-1 rounded-full bg-[#FFF7D6] border border-[#F4C542] text-[#854D0E] font-extrabold flex items-center gap-1">
-                  <Heart className="w-3 h-3 fill-[#854D0E]" />
-                  <span>DONOR</span>
-                </span>
-              )}
-            </div>
-
-            {/* Profession, Location, Email */}
-            <div className="space-y-2 pt-2 border-t border-gray-100 text-gray-700">
-              {selectedAlumni.profession && (
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span><strong className="text-[#111111]">{selectedAlumni.profession}</strong> {selectedAlumni.company ? `@ ${selectedAlumni.company}` : ''}</span>
-                </div>
-              )}
-              {selectedAlumni.current_city && (
-                <div className="flex items-center space-x-2">
-                  <MapPin className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{selectedAlumni.current_city} {selectedAlumni.state ? `, ${selectedAlumni.state}` : ''}</span>
-                </div>
-              )}
-              {selectedAlumni.email && selectedAlumni.email_visible !== false && (
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{selectedAlumni.email}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Connect Button */}
-            <div className="pt-2">
-              {isOwnAccount(selectedAlumni) ? (
-                <div className="w-full py-2.5 bg-gray-100 border border-gray-300 text-gray-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 cursor-default">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span>This is your own profile</span>
-                </div>
-              ) : getConnectionStatus(selectedAlumni.id || selectedAlumni.mobile || selectedAlumni.full_name) === 'ACCEPTED' ? (
-                <button
-                  disabled
-                  className="w-full py-2.5 bg-emerald-100 border border-emerald-300 text-emerald-800 font-extrabold text-xs rounded-xl flex items-center justify-center space-x-2 cursor-default"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Connected Friend</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => { handleConnectClick(selectedAlumni); setSelectedAlumni(null); }}
-                  className="w-full py-2.5 bg-[#111111] text-[#F4C542] hover:bg-black rounded-xl font-bold text-xs shadow-xs transition-all flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4 text-[#F4C542]" />
-                  <span>Connect with Classmate</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <AlumniDetailModal
+          alumni={selectedAlumni}
+          onClose={() => setSelectedAlumni(null)}
+          isOwnAccount={isOwnAccount(selectedAlumni)}
+          connectionStatus={getConnectionStatus(selectedAlumni.id || selectedAlumni.mobile || selectedAlumni.full_name)}
+          onConnectClick={handleConnectClick}
+        />
       )}
 
       {/* Connect Message Modal */}

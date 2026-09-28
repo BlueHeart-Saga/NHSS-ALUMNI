@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, X, Video } from 'lucide-react';
 
 export type VideoType = 'LOGIN' | 'REGISTRATION' | 'CREATE_PASSWORD';
@@ -70,6 +71,15 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
     setIframeLoading(true);
   }, [activeType, activeLang]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const currentVideo = DEMO_VIDEOS[activeType];
@@ -80,13 +90,14 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
   const effectiveDriveId = effectiveLang === 'ta' ? currentVideo.driveIdTa : currentVideo.driveIdEn;
   const embedUrl = `https://drive.google.com/file/d/${effectiveDriveId}/preview`;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto"
       onClick={onClose}
     >
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
       <div
-        className="relative w-full max-w-4xl bg-[#111111] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp"
+        className="relative z-10 w-full max-w-4xl bg-[#111111] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto animate-scaleUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -189,6 +200,7 @@ export const DemoVideoModal: React.FC<DemoVideoModalProps> = ({
           ></iframe>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -44,6 +44,59 @@ export const AlumniSettingsPage: React.FC = () => {
   const [showOtpPass, setShowOtpPass] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
+  // Handle 6-digit OTP input card refs & navigation
+  const otpInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleOtpDigitChange = (index: number, val: string) => {
+    const digitsOnly = val.replace(/\D/g, '');
+    if (!digitsOnly && val !== '') return;
+
+    let currentArr = (otpCode || '').padEnd(6, ' ').split('');
+
+    if (digitsOnly.length > 1) {
+      const pasted = digitsOnly.slice(0, 6).split('');
+      for (let i = 0; i < 6; i++) {
+        currentArr[i] = pasted[i] || '';
+      }
+      const finalStr = currentArr.join('').trim();
+      setOtpCode(finalStr);
+      const nextIdx = Math.min(pasted.length, 5);
+      otpInputRefs.current[nextIdx]?.focus();
+      return;
+    }
+
+    currentArr[index] = digitsOnly.slice(-1);
+    const finalStr = currentArr.join('').trim();
+    setOtpCode(finalStr);
+
+    if (digitsOnly && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      const charAtIndex = (otpCode || '')[index] || '';
+      if (!charAtIndex && index > 0) {
+        otpInputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted) {
+      setOtpCode(pasted);
+      const focusIdx = Math.min(pasted.length, 5);
+      otpInputRefs.current[focusIdx]?.focus();
+    }
+  };
+
   useEffect(() => {
     if (user?.mobile) {
       setMobileNumber(user.mobile);
@@ -533,14 +586,32 @@ export const AlumniSettingsPage: React.FC = () => {
                         </button>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="e.g. 123456"
-                      className="w-full p-2.5 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#F4C542] tracking-widest font-mono text-center text-base font-bold"
-                    />
+                    <div
+                      className="flex items-center justify-between gap-1.5 sm:gap-2.5 py-1"
+                      onPaste={handleOtpPaste}
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((idx) => {
+                        const digit = (otpCode || '')[idx] || '';
+                        return (
+                          <input
+                            key={idx}
+                            ref={(el) => (otpInputRefs.current[idx] = el)}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                            className={`w-10 h-12 sm:w-12 sm:h-14 rounded-xl border-2 text-center text-lg sm:text-xl font-extrabold font-mono focus:outline-none transition-all shadow-xs cursor-pointer ${
+                              digit
+                                ? 'border-amber-500 bg-amber-50/60 text-amber-950 shadow-sm'
+                                : 'border-[#E5E7EB] bg-[#FAFAFA] text-[#111111] focus:border-amber-500 focus:bg-white'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div>
