@@ -2319,7 +2319,7 @@ async def admin_create_alumni(
         "linkedin_url": request.linkedin_url,
         "instagram_url": request.instagram_url,
         "whatsapp_number": request.whatsapp_number,
-        "website_url": request.website_url,
+        "website_url": getattr(request, "website_url", None),
         "profile_photo_url": request.profile_photo_url or f"https://ui-avatars.com/api/?name={request.full_name}&background=F4C542&color=111111",
         "is_volunteer": request.is_volunteer or "NO",
         "willing_to_donate": request.willing_to_donate or "NO",

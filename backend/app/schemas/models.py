@@ -200,6 +200,7 @@ class AdminCreateAlumniRequest(BaseModel):
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[Any] = None
+    website_url: Optional[str] = None
     is_volunteer: Optional[Any] = None
     willing_to_donate: Optional[Any] = None
     roll_no: Optional[Any] = None
