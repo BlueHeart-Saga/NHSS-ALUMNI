@@ -1104,12 +1104,14 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
-  const handleCreateAlumnus = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateAlumnus = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    // Prevent submission if not on the final step (Step 5)
-    if (addFormStep < ADD_FORM_TOTAL_STEPS) {
-      await goToNextAddStep();
+    // Strictly ensure submission only executes when on the final step (Step 5)
+    if (addFormStep !== ADD_FORM_TOTAL_STEPS) {
       return;
     }
 
@@ -2748,13 +2750,12 @@ export const AlumniManagement: React.FC = () => {
           </div>
 
           <form
-            onSubmit={handleCreateAlumnus}
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
                 e.preventDefault();
-                if (addFormStep < ADD_FORM_TOTAL_STEPS) {
-                  goToNextAddStep();
-                }
               }
             }}
             className="space-y-5"
@@ -3548,6 +3549,7 @@ export const AlumniManagement: React.FC = () => {
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 {addFormStep < ADD_FORM_TOTAL_STEPS ? (
                   <Button
+                    key="modal-btn-next"
                     type="button"
                     onClick={goToNextAddStep}
                     className="font-extrabold text-xs px-5 py-2.5 bg-[#111111] hover:bg-slate-800 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -3557,7 +3559,9 @@ export const AlumniManagement: React.FC = () => {
                   </Button>
                 ) : (
                   <Button
-                    type="submit"
+                    key="modal-btn-submit"
+                    type="button"
+                    onClick={handleCreateAlumnus}
                     isLoading={isAdding}
                     className="font-extrabold text-xs px-6 py-2.5 bg-gradient-to-r from-[#111111] via-slate-900 to-amber-900 hover:opacity-95 text-white rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
                   >
