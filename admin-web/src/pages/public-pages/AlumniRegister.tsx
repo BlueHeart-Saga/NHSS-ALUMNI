@@ -436,11 +436,12 @@ export const AlumniRegister: React.FC = () => {
             // They have already completed & submitted registration!
             // Direct them to /alumni to view full portal or track their status!
             const normVerif = String(p.verification_status || '').toUpperCase();
+            const hasValidMob = Boolean(p.mobile && String(p.mobile).trim() !== '' && String(p.mobile).trim().toUpperCase() !== 'N/A');
             const isAlreadySubmitted =
               normVerif === 'APPROVED' ||
               normVerif === 'VERIFIED' ||
               normVerif === 'REJECTED' ||
-              (normVerif === 'PENDING' && (p.registration_submitted === true || p.passing_year)) ||
+              (normVerif === 'PENDING' && p.registration_submitted === true && hasValidMob) ||
               p.status === 'APPROVED' ||
               p.is_verified === true;
 
@@ -538,8 +539,9 @@ export const AlumniRegister: React.FC = () => {
             else if (!hasVolunteerDonation) pendingStep = 5;
             else pendingStep = 6;
 
-            // If all required profile fields are present, auto-redirect directly to the Alumni Portal
-            if (pendingStep === 6 && (p.full_name || p.name) && (p.passing_year || p.mobile) && !location.state?.editMode) {
+            // If all required profile fields are present and registration has been explicitly submitted, auto-redirect directly to the Alumni Portal
+            const hasValidMobProfile = Boolean(p.mobile && String(p.mobile).trim() !== '' && String(p.mobile).trim().toUpperCase() !== 'N/A');
+            if (pendingStep === 6 && (p.full_name || p.name) && p.passing_year && hasValidMobProfile && p.registration_submitted && !location.state?.editMode) {
               navigate('/alumni', { replace: true });
               return;
             }
@@ -644,7 +646,10 @@ export const AlumniRegister: React.FC = () => {
           language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
         );
         if (proceedToLogin) {
-          navigate(`/login?mobile=${cleanMob}`, { state: { mobile: cleanMob } });
+          api.logout(`/login?mobile=${cleanMob}`);
+        } else {
+          setMobile('');
+          setInvalidFields(new Set(['mobile']));
         }
         return;
       }
@@ -659,7 +664,10 @@ export const AlumniRegister: React.FC = () => {
           language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
         );
         if (proceedToLogin) {
-          navigate(`/login?mobile=${cleanMob}`, { state: { mobile: cleanMob } });
+          api.logout(`/login?mobile=${cleanMob}`);
+        } else {
+          setMobile('');
+          setInvalidFields(new Set(['mobile']));
         }
       } else {
         alertService.handleApiError(err, 'Failed to send verification OTP.');
@@ -920,7 +928,26 @@ export const AlumniRegister: React.FC = () => {
       });
       goToStep(3);
     } catch (err: any) {
-      alertService.handleApiError(err, 'Failed to save step details to database.');
+      const errMsg = err?.message || String(err);
+      if (err?.status === 409 || errMsg.includes('ACCOUNT_ALREADY_REGISTERED') || errMsg.toLowerCase().includes('already registered')) {
+        const cleanMob = mobile.replace(/\D/g, '');
+        const proceedToLogin = await alertService.showConfirm(
+          language === 'ta' ? 'ஏற்கனவே பதிவாகியுள்ள கணக்கு' : 'Account Already Registered',
+          language === 'ta'
+            ? `கைபேசி எண் (${cleanMob}) மூலம் ஏற்கனவே ஒரு கணக்கு பதிவாகியுள்ளது. உங்கள் கணக்கில் நேரடியாக உள்நுழைய விரும்புகிறீர்களா?`
+            : `An account with mobile number (${cleanMob}) is already registered in the system. Would you like to log in to your account now?`,
+          language === 'ta' ? 'உள்நுழையச் செல்லவும் →' : 'Proceed to Log In →',
+          language === 'ta' ? 'ரத்துசெய்' : 'Cancel'
+        );
+        if (proceedToLogin) {
+          api.logout(`/login?mobile=${cleanMob}`);
+        } else {
+          setMobile('');
+          setInvalidFields(new Set(['mobile']));
+        }
+      } else {
+        alertService.handleApiError(err, 'Failed to save step details to database.');
+      }
     } finally {
       setLoading(false);
     }

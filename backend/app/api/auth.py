@@ -165,20 +165,28 @@ def calculate_profile_completion_and_resume_step(alumni: Optional[dict], user: O
     Step 5: Professional Details (Employment Status)
     Step 6: Preview / Verification Status / Completed
     """
-    # CRITICAL: If the alumnus or user has already been APPROVED or VERIFIED, or submitted their registration,
-    # their account registration is complete. They must NEVER be redirected to /register.
     alumni_verif = str(alumni.get("verification_status") or "").upper() if alumni else ""
     user_verif = str(user.get("verification_status") or "").upper() if user else ""
     alumni_status = str(alumni.get("status") or "").upper() if alumni else ""
     user_status = str(user.get("status") or user.get("account_status") or "").upper() if user else ""
 
+    has_mob = bool(
+        (user and user.get("mobile") and str(user.get("mobile")).strip() not in ("N/A", "None", "")) or
+        (alumni and alumni.get("mobile") and str(alumni.get("mobile")).strip() not in ("N/A", "None", ""))
+    )
+
     is_verified_or_submitted = (
         alumni_verif in ("APPROVED", "VERIFIED", "REJECTED") or
         user_verif in ("APPROVED", "VERIFIED", "REJECTED") or
         alumni_status in ("APPROVED", "VERIFIED") or
-        (alumni and (alumni.get("is_verified") is True or alumni.get("registration_submitted") is True)) or
-        (user and (user.get("is_verified") is True or user.get("registration_submitted") is True)) or
-        (alumni and alumni_verif == "PENDING" and alumni.get("registration_submitted") is not False and alumni.get("passing_year") is not None)
+        (alumni and alumni.get("is_verified") is True) or
+        (user and user.get("is_verified") is True) or
+        (
+            alumni and 
+            has_mob and 
+            alumni.get("registration_submitted") is True and 
+            alumni.get("passing_year") is not None
+        )
     )
 
     if is_verified_or_submitted:

@@ -882,6 +882,7 @@ async def import_alumni_csv(
     pending_updates = []
     pending_user_updates = []
     pending_inserts = []
+    pending_user_inserts = []
 
     for raw_row in raw_rows:
         total += 1
@@ -1006,6 +1007,24 @@ async def import_alumni_csv(
             new_oid = ObjectId()
             new_doc = _build_alumni_doc(row, school_id, batch_id, new_oid)
             new_doc["verification_notes"] = "Uploaded via roster bulk import"
+
+            user_oid = ObjectId()
+            user_doc = {
+                "_id": user_oid,
+                "school_id": school_id,
+                "full_name": new_doc.get("full_name") or name,
+                "mobile": new_doc.get("mobile") or None,
+                "email": new_doc.get("email") or None,
+                "roles": ["ALUMNI"],
+                "account_status": "PENDING_ACTIVATION",
+                "phone_verified": False,
+                "password": None,
+                "password_hash": None,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc)
+            }
+            new_doc["user_id"] = str(user_oid)
+            pending_user_inserts.append(user_doc)
             pending_inserts.append(new_doc)
 
             # Register in in-memory indexes to prevent intra-file duplicates
@@ -1026,7 +1045,16 @@ async def import_alumni_csv(
             error_details.append({"row": total, "data": dict(raw_row), "reason": err_msg})
             failed += 1
 
-    # 3. Execute bulk inserts in chunks of 500
+    # 3. Execute bulk user inserts in chunks of 500
+    if pending_user_inserts:
+        for i in range(0, len(pending_user_inserts), 500):
+            u_chunk = pending_user_inserts[i:i + 500]
+            try:
+                await db.users.insert_many(u_chunk, ordered=False)
+            except Exception as e:
+                logger.warning(f"User insert warning in roster import: {e}")
+
+    # 4. Execute bulk inserts in chunks of 500
     if pending_inserts:
         for i in range(0, len(pending_inserts), 500):
             chunk = pending_inserts[i:i + 500]
@@ -1040,7 +1068,7 @@ async def import_alumni_csv(
                 logger.error(f"Bulk insert error: {e}")
                 errors.append(f"Bulk insert error: {str(e)}")
 
-    # 4. Execute bulk updates in chunks of 500
+    # 5. Execute bulk updates in chunks of 500
     if pending_updates:
         for i in range(0, len(pending_updates), 500):
             chunk = pending_updates[i:i + 500]
@@ -1054,7 +1082,7 @@ async def import_alumni_csv(
                 logger.error(f"Bulk update error: {e}")
                 errors.append(f"Bulk update error: {str(e)}")
 
-    # 5. Execute user sync updates if any
+    # 6. Execute user sync updates if any
     if pending_user_updates:
         for i in range(0, len(pending_user_updates), 500):
             u_chunk = pending_user_updates[i:i + 500]
@@ -1523,6 +1551,32 @@ async def admin_update_alumni(
     update_fields["updated_at"] = datetime.now(timezone.utc)
 
     await db.alumni.update_one(filter_q, {"$set": update_fields})
+
+    # Keep linked user record in db.users in sync
+    alumni_record = await db.alumni.find_one(filter_q)
+    if alumni_record:
+        user_id = alumni_record.get("user_id")
+        user_sync = {}
+        if "full_name" in update_fields:
+            user_sync["full_name"] = update_fields["full_name"]
+        if "email" in update_fields:
+            user_sync["email"] = update_fields["email"]
+        if "mobile" in update_fields:
+            m_val = update_fields["mobile"]
+            user_sync["mobile"] = normalize_indian_mobile(m_val) if is_valid_indian_mobile(m_val) else m_val
+        if "verification_status" in update_fields:
+            user_sync["verification_status"] = update_fields["verification_status"]
+            if update_fields["verification_status"] == "APPROVED":
+                user_sync["account_status"] = "ACTIVE"
+            elif update_fields["verification_status"] == "SUSPENDED":
+                user_sync["account_status"] = "SUSPENDED"
+        if user_sync and user_id:
+            try:
+                u_oid = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+                await db.users.update_one({"_id": u_oid}, {"$set": {**user_sync, "updated_at": datetime.now(timezone.utc)}})
+            except Exception as exc:
+                logger.warning(f"Failed to sync user record on alumni update: {exc}")
+
     return {"success": True, "message": "Alumni updated successfully"}
 
 @router.delete("/{alumni_id}")
@@ -2250,13 +2304,30 @@ async def admin_create_alumni(
         "created_at": now
     }
 
-    res_alumni = await db.alumni.insert_one(alumni_doc)
-    alumni_id = str(res_alumni.inserted_id)
+    # Upsert alumni doc — check if an alumni record already exists for this user_id or mobile or email
+    alumni_find_q = []
+    if user_id:
+        alumni_find_q.append({"user_id": user_id})
+    if norm_mob:
+        alumni_find_q.append({"mobile": norm_mob})
+    if request.mobile:
+        alumni_find_q.append({"mobile": request.mobile})
+    if email_str:
+        alumni_find_q.append({"email": {"$regex": f"^{re.escape(email_str)}$", "$options": "i"}})
+
+    existing_alumni = await db.alumni.find_one({"$or": alumni_find_q}) if alumni_find_q else None
+    if existing_alumni:
+        alumni_id = str(existing_alumni["_id"])
+        await db.alumni.update_one({"_id": existing_alumni["_id"]}, {"$set": alumni_doc})
+    else:
+        res_alumni = await db.alumni.insert_one(alumni_doc)
+        alumni_id = str(res_alumni.inserted_id)
 
     # Log audit
+    creator_user_id = current_user.get("user_id") or current_user.get("id") or str(current_user.get("_id", ""))
     await db.audit_logs.insert_one({
         "school_id": school_id,
-        "user_id": current_user["user_id"],
+        "user_id": creator_user_id,
         "action": "ALUMNI_CREATED_BY_ADMIN",
         "resource_type": "alumni",
         "resource_id": alumni_id,

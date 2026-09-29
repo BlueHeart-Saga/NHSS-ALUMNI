@@ -861,50 +861,104 @@ export const AlumniManagement: React.FC = () => {
     });
     setAddFormStep(1);
     setEditingAlumnusId(null);
+    setAddFormErrors({});
   };
 
-  const validateAddStep = (_step: number): string[] => {
-    // Basic verification: Full Name and Mobile Number are the only essential requirements
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
+
+  const validateAddStep = (step: number): string[] => {
     const missing: string[] = [];
-    if (!newAlumnus.full_name || !String(newAlumnus.full_name).trim()) {
-      missing.push('Full Name');
+    const errors: Record<string, string> = {};
+
+    if (step === 1) {
+      if (!newAlumnus.full_name || !String(newAlumnus.full_name).trim()) {
+        missing.push('Full Name');
+        errors['full_name'] = 'Full name is required';
+      }
+      if (!newAlumnus.gender || !String(newAlumnus.gender).trim()) {
+        missing.push('Gender');
+        errors['gender'] = 'Gender is required';
+      }
+      if (!newAlumnus.date_of_birth || !String(newAlumnus.date_of_birth).trim()) {
+        missing.push('Date of Birth');
+        errors['date_of_birth'] = 'Date of birth is required';
+      }
+    } else if (step === 2) {
+      const rawMob = String(newAlumnus.mobile || '').replace(/\D/g, '');
+      if (!rawMob || rawMob.length !== 10 || !['6', '7', '8', '9'].includes(rawMob[0])) {
+        missing.push('Valid 10-digit Mobile Number');
+        errors['mobile'] = 'Please enter a valid 10-digit Indian mobile number';
+      }
+      if (!newAlumnus.current_city || !String(newAlumnus.current_city).trim()) {
+        missing.push('Current City');
+        errors['current_city'] = 'Current city is required';
+      }
+    } else if (step === 3) {
+      if (!newAlumnus.passing_year) {
+        missing.push('Passing Year');
+        errors['passing_year'] = 'Passing year is required';
+      }
+      if (!newAlumnus.leaving_class) {
+        missing.push('Leaving Class');
+        errors['leaving_class'] = 'Leaving class is required';
+      }
     }
-    const rawMob = String(newAlumnus.mobile || '').replace(/\D/g, '');
-    if (!rawMob || rawMob.length < 10) {
-      missing.push('Valid 10-digit Mobile Number');
-    }
+
+    setAddFormErrors(errors);
     return missing;
   };
 
-  const goToNextAddStep = () => setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
+  const goToNextAddStep = () => {
+    const missing = validateAddStep(addFormStep);
+    if (missing.length > 0) {
+      alertService.showWarning(
+        'Required Information Missing',
+        `Please complete the following required fields before proceeding: ${missing.join(', ')}`
+      );
+      return;
+    }
+    setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
+  };
 
   const goToPrevAddStep = () => setAddFormStep((s) => Math.max(s - 1, 1));
 
   const handleCreateAlumnus = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const step1Missing = validateAddStep(1);
+    if (step1Missing.length > 0) {
+      setAddFormStep(1);
+      alertService.showWarning(
+        'Required Fields Missing (Step 1: Basic Info)',
+        `Please complete: ${step1Missing.join(', ')}`
+      );
+      return;
+    }
+
+    const step2Missing = validateAddStep(2);
+    if (step2Missing.length > 0) {
+      setAddFormStep(2);
+      alertService.showWarning(
+        'Required Fields Missing (Step 2: Contact & Address)',
+        `Please complete: ${step2Missing.join(', ')}`
+      );
+      return;
+    }
+
+    const step3Missing = validateAddStep(3);
+    if (step3Missing.length > 0) {
+      setAddFormStep(3);
+      alertService.showWarning(
+        'Required Fields Missing (Step 3: School & Batch)',
+        `Please complete: ${step3Missing.join(', ')}`
+      );
+      return;
+    }
+
     const name = (newAlumnus.full_name || '').trim();
     const rawMob = (newAlumnus.mobile || '').trim();
     const digitsOnly = rawMob.replace(/\D/g, '');
     const mob = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
-
-    if (!name) {
-      alertService.showWarning(
-        'Required Field Missing',
-        'Please enter the alumnus Full Name.'
-      );
-      setAddFormStep(1);
-      return;
-    }
-
-    if (!mob || mob.length !== 10) {
-      alertService.showWarning(
-        'Invalid Mobile Number',
-        'Please enter a valid 10-digit mobile number.'
-      );
-      setAddFormStep(1);
-      return;
-    }
 
     setIsAdding(true);
     try {
@@ -936,13 +990,13 @@ export const AlumniManagement: React.FC = () => {
         await api.updateAlumniAdmin(editingAlumnusId, payload);
         alertService.showSuccess(
           t('admin_edit_success_body'),
-          `Changes for ${name} have been saved.`
+          `Changes for ${name} have been saved successfully.`
         );
       } else {
         await api.adminCreateAlumni(payload);
         alertService.showSuccess(
           'Alumni Profile Created',
-          `New alumni profile for ${name} added successfully. You can now send them an account activation invitation.`
+          `New alumni profile and user record for ${name} added successfully. You can now send them an account activation invitation.`
         );
       }
 
@@ -2369,409 +2423,560 @@ export const AlumniManagement: React.FC = () => {
         isOpen={isAddModalOpen}
         onClose={() => { setIsAddModalOpen(false); resetAddForm(); }}
         title={editingAlumnusId ? t('admin_edit_modal_title') : t('admin_add_modal_title')}
+        maxWidth="max-w-4xl"
       >
-        <div className="text-xs font-medium">
+        <div className="text-sm font-medium space-y-5">
 
-          {/* Interactive Category Tab Navigation */}
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
-              <button
-                type="button"
-                onClick={() => setAddFormStep(1)}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
-                  addFormStep === 1 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
-                }`}
-              >
-                1. Basic Info *
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddFormStep(2)}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
-                  addFormStep === 2 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
-                }`}
-              >
-                2. Contact & Address
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddFormStep(3)}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
-                  addFormStep === 3 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
-                }`}
-              >
-                3. School & Batch
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddFormStep(4)}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
-                  addFormStep === 4 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
-                }`}
-              >
-                4. Higher Ed
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddFormStep(5)}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
-                  addFormStep === 5 ? 'bg-[#111111] text-white shadow-2xs' : 'text-gray-600 hover:text-[#111111] hover:bg-white/60'
-                }`}
-              >
-                5. Work & Preferences
-              </button>
+          {/* Reusable Modern Wizard Progress Header */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-amber-50/60 via-[#FFFDF5] to-white border border-[#F4C542]/40 rounded-2xl p-4 sm:p-5 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] border border-[#F4C542]/80 flex items-center justify-center text-[#854D0E] font-extrabold text-sm shadow-2xs shrink-0">
+                  {addFormStep}
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider bg-[#F4C542]/25 text-[#854D0E] border border-[#F4C542]/50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                      <span>{language === 'ta' ? `படி ${addFormStep} / 5` : `Step ${addFormStep} of 5`}</span>
+                    </span>
+                    <span className="text-xs font-semibold text-gray-400">•</span>
+                    <span className="text-xs font-bold text-gray-600">
+                      {addFormStep * 20}% {language === 'ta' ? 'நிறைவு' : 'completed'}
+                    </span>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-bold text-[#111111] mt-0.5">
+                    {addFormStep === 1 && (language === 'ta' ? 'அடிப்படை தகவல்கள் (Basic Info)' : 'Basic Information')}
+                    {addFormStep === 2 && (language === 'ta' ? 'தொடர்பு & முகவரி (Contact & Address)' : 'Contact & Address Details')}
+                    {addFormStep === 3 && (language === 'ta' ? 'பள்ளி & பேட்ச் (School & Batch)' : 'School & Batch Details')}
+                    {addFormStep === 4 && (language === 'ta' ? 'உயர் கல்வி (Higher Education)' : 'Higher Education Details')}
+                    {addFormStep === 5 && (language === 'ta' ? 'பணி & விருப்பங்கள் (Work & Preferences)' : 'Work & Account Preferences')}
+                  </h4>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 font-medium text-right hidden sm:block">
+                {editingAlumnusId
+                  ? (language === 'ta' ? 'முன்னாள் மாணவர் விவரங்களை மாற்றவும்' : 'Update Alumni Record')
+                  : (language === 'ta' ? 'புதிய முன்னாள் மாணவரை சேர்க்கவும்' : 'Add New Alumnus Record')}
+              </div>
+            </div>
+
+            {/* Progress Bar Line */}
+            <div className="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-amber-400 via-amber-500 to-[#111111] h-full transition-all duration-300 rounded-full"
+                style={{ width: `${addFormStep * 20}%` }}
+              />
             </div>
           </div>
 
-          <form onSubmit={handleCreateAlumnus} className="space-y-4">
+          {/* Interactive Category Tab Navigation */}
+          <div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200">
+              {[
+                { step: 1, nameEn: '1. Basic Info *', nameTa: '1. அடிப்படை *' },
+                { step: 2, nameEn: '2. Contact & Address *', nameTa: '2. தொடர்பு *' },
+                { step: 3, nameEn: '3. School & Batch *', nameTa: '3. பள்ளி & பேட்ச் *' },
+                { step: 4, nameEn: '4. Higher Ed', nameTa: '4. உயர் கல்வி' },
+                { step: 5, nameEn: '5. Work & Status', nameTa: '5. பணி & நிலை' },
+              ].map((item) => (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => {
+                    if (item.step < addFormStep) {
+                      setAddFormStep(item.step);
+                    } else if (item.step > addFormStep) {
+                      const missing = validateAddStep(addFormStep);
+                      if (missing.length > 0) {
+                        alertService.showWarning(
+                          'Required Fields Missing',
+                          `Please complete required fields before navigating forward: ${missing.join(', ')}`
+                        );
+                        return;
+                      }
+                      setAddFormStep(item.step);
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer text-center truncate ${
+                    addFormStep === item.step
+                      ? 'bg-[#111111] text-white shadow-md scale-[1.02]'
+                      : item.step < addFormStep
+                      ? 'bg-amber-100/80 text-amber-900 hover:bg-amber-200/80'
+                      : 'text-gray-600 hover:text-[#111111] hover:bg-white/80'
+                  }`}
+                >
+                  {language === 'ta' ? item.nameTa : item.nameEn}
+                </button>
+              ))}
+            </div>
+          </div>
 
+          <form onSubmit={handleCreateAlumnus} className="space-y-5">
+
+            {/* STEP 1: BASIC INFORMATION */}
             {addFormStep === 1 && (
-              <div className="space-y-3 animate-fadeIn">
-                <div>
-                  <label className={addLabelCls}>{t('admin_sheet_full_name')} *</label>
-                  <input
-                    type="text"
-                    value={newAlumnus.full_name || ''}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, full_name: e.target.value })}
-                    placeholder="e.g. S. Ramanathan"
-                    className={addInputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className={addLabelCls}>{t('admin_sheet_name_tamil')}</label>
-                  <input
-                    type="text"
-                    value={newAlumnus.name_ta || ''}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, name_ta: e.target.value })}
-                    placeholder="எ.கா. எஸ். ராமநாதன்"
-                    className={addInputCls + ' font-serif'}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4 animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_gender')} *</label>
-                    <select
-                      value={newAlumnus.gender || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, gender: e.target.value })}
-                      className={addInputCls}
-                    >
-                      <option value="">--</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_full_name')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newAlumnus.full_name || ''}
+                      onChange={(e) => {
+                        setNewAlumnus({ ...newAlumnus, full_name: e.target.value });
+                        if (addFormErrors['full_name']) setAddFormErrors({ ...addFormErrors, full_name: '' });
+                      }}
+                      placeholder="e.g. S. Ramanathan"
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['full_name'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-medium shadow-2xs`}
+                    />
+                    {addFormErrors['full_name'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['full_name']}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_dob')} (DD-MM-YYYY) *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_name_tamil')}
+                    </label>
+                    <input
+                      type="text"
+                      value={newAlumnus.name_ta || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, name_ta: e.target.value })}
+                      placeholder="எ.கா. எஸ். ராமநாதன்"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs font-serif"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_gender')} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newAlumnus.gender || ''}
+                      onChange={(e) => {
+                        setNewAlumnus({ ...newAlumnus, gender: e.target.value });
+                        if (addFormErrors['gender']) setAddFormErrors({ ...addFormErrors, gender: '' });
+                      }}
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['gender'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-semibold shadow-2xs`}
+                    >
+                      <option value="">-- Select Gender --</option>
+                      <option value="Male">Male / ஆண்</option>
+                      <option value="Female">Female / பெண்</option>
+                      <option value="Other">Other / இதர</option>
+                    </select>
+                    {addFormErrors['gender'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['gender']}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_dob')} (DD-MM-YYYY) <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="date"
                       max={new Date().toLocaleDateString('en-CA')}
                       value={newAlumnus.date_of_birth || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, date_of_birth: e.target.value })}
-                      className={addInputCls}
+                      onChange={(e) => {
+                        setNewAlumnus({ ...newAlumnus, date_of_birth: e.target.value });
+                        if (addFormErrors['date_of_birth']) setAddFormErrors({ ...addFormErrors, date_of_birth: '' });
+                      }}
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['date_of_birth'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-semibold shadow-2xs`}
                     />
                     {newAlumnus.date_of_birth && (
-                      <span className="text-[11px] text-[#854D0E] font-semibold block mt-1">
-                        {formatDateDDMMYYYY(newAlumnus.date_of_birth)}
+                      <span className="text-xs text-[#854D0E] font-bold block mt-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/80 w-fit">
+                        📅 {formatDateDDMMYYYY(newAlumnus.date_of_birth)}
                       </span>
+                    )}
+                    {addFormErrors['date_of_birth'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['date_of_birth']}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_blood_group')}
+                    </label>
+                    <select
+                      value={newAlumnus.blood_group || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, blood_group: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-extrabold text-rose-700 shadow-2xs"
+                    >
+                      <option value="">-- Select --</option>
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_father_name')}
+                    </label>
+                    <input
+                      type="text"
+                      value={newAlumnus.father_name || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, father_name: e.target.value })}
+                      placeholder="Father's Name"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_mother_name')}
+                    </label>
+                    <input
+                      type="text"
+                      value={newAlumnus.mother_name || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, mother_name: e.target.value })}
+                      placeholder="Mother's Name"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Profile Photo Section */}
+                <div className="bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 space-y-3">
+                  <label className="block text-xs font-bold text-gray-800">
+                    {t('admin_sheet_profile_photo')}
+                  </label>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    {/* Thumbnail */}
+                    <div
+                      className={`w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0 transition-all ${
+                        addFormPhotoUploading
+                          ? 'opacity-70 cursor-wait'
+                          : 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105 shadow-2xs'
+                      }`}
+                      onClick={async () => {
+                        if (addFormPhotoUploading) return;
+                        const choice = await alertService.showImagePreview(
+                          newAlumnus.profile_photo_url || undefined,
+                          newAlumnus.full_name || 'Profile Photo',
+                          {
+                            canRemove: Boolean(newAlumnus.profile_photo_url),
+                            isPlaceholder: !newAlumnus.profile_photo_url,
+                          }
+                        );
+                        if (choice === 'upload') {
+                          const input = document.getElementById('wizard-photo-input') as HTMLInputElement | null;
+                          input?.click();
+                        } else if (choice === 'remove') {
+                          setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }));
+                        }
+                      }}
+                      title={newAlumnus.profile_photo_url ? 'Click to preview / change photo' : 'Click to upload photo'}
+                    >
+                      {addFormPhotoUploading ? (
+                        <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />
+                      ) : newAlumnus.profile_photo_url ? (
+                        <img
+                          src={newAlumnus.profile_photo_url}
+                          alt="Profile preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-400 p-1 text-center">
+                          <Users className="w-6 h-6" />
+                          <span className="text-[10px] font-semibold mt-1">Upload</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 flex-1 w-full">
+                      <div className="flex items-center gap-2">
+                        <label className={`inline-flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
+                          addFormPhotoUploading
+                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                            : 'bg-white hover:bg-gray-50 text-[#111111] border-gray-300 shadow-2xs cursor-pointer'
+                        }`}>
+                          <Upload className="w-4 h-4 text-amber-600" />
+                          <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={addFormPhotoUploading}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAddFormPhotoUpload(file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+
+                        {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
+                          <button
+                            type="button"
+                            onClick={() => setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))}
+                            className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-rose-200"
+                          >
+                            {t('admin_sheet_remove')}
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        id="wizard-photo-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={addFormPhotoUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAddFormPhotoUpload(file);
+                          e.target.value = '';
+                        }}
+                      />
+
+                      <input
+                        type="text"
+                        value={newAlumnus.profile_photo_url || ''}
+                        onChange={(e) => setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })}
+                        placeholder="Or paste direct image URL (https://...)"
+                        className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent outline-none font-mono text-gray-700 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: CONTACT & ADDRESS */}
+            {addFormStep === 2 && (
+              <div className="space-y-4 animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_country_code')} <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-gray-500">+</span>
+                      <input
+                        type="text"
+                        value={newAlumnus.country_code || '91'}
+                        onChange={(e) => setNewAlumnus({ ...newAlumnus, country_code: e.target.value })}
+                        className="w-full pl-7 pr-3 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold text-center shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_mobile')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={10}
+                      value={newAlumnus.mobile || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setNewAlumnus({ ...newAlumnus, mobile: val });
+                        if (addFormErrors['mobile']) setAddFormErrors({ ...addFormErrors, mobile: '' });
+                      }}
+                      placeholder="e.g. 9876543210"
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['mobile'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-mono font-bold tracking-wider shadow-2xs`}
+                    />
+                    {addFormErrors['mobile'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['mobile']}</span>
+                      </p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_blood_group')}</label>
-                  <select
-                    value={newAlumnus.blood_group || ''}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, blood_group: e.target.value })}
-                    className={addInputCls + ' font-bold text-rose-700'}
-                  >
-                    <option value="">--</option>
-                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_father_name')}</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.father_name || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, father_name: e.target.value })}
-                      className={addInputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_mother_name')}</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.mother_name || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, mother_name: e.target.value })}
-                      className={addInputCls}
-                    />
-                  </div>
-                </div>
-
-                <div>
-  <label className={addLabelCls}>{t('admin_sheet_profile_photo')}</label>
-
-  <div className="flex items-center gap-3 mb-2">
-    {/* Thumbnail — now clickable. Opens the shared lightbox preview. */}
-    <div
-      className={`w-16 h-16 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0 transition-all ${
-        addFormPhotoUploading
-          ? ''
-          : 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105'
-      }`}
-      onClick={async () => {
-        if (addFormPhotoUploading) return;
-
-        const choice = await alertService.showImagePreview(
-          newAlumnus.profile_photo_url || undefined,
-          newAlumnus.full_name || 'Profile Photo',
-          {
-            canRemove: Boolean(newAlumnus.profile_photo_url),
-            isPlaceholder: !newAlumnus.profile_photo_url,
-          }
-        );
-
-        if (choice === 'upload') {
-          const input = document.getElementById('wizard-photo-input') as HTMLInputElement | null;
-          input?.click();
-        } else if (choice === 'remove') {
-          setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }));
-        }
-      }}
-      title={
-        newAlumnus.profile_photo_url
-          ? 'Click to view / change photo'
-          : 'Click to upload photo'
-      }
-    >
-      {addFormPhotoUploading ? (
-        <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
-      ) : newAlumnus.profile_photo_url ? (
-        <img
-          src={newAlumnus.profile_photo_url}
-          alt="Profile preview"
-          className="w-full h-full object-contain p-0.5"
-        />
-      ) : (
-        <Users className="w-6 h-6 text-gray-400" />
-      )}
-    </div>
-
-    {/* Upload / Remove buttons remain visible as a fallback for discoverability */}
-    <div className="flex flex-col gap-2">
-      <label className={`inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all border ${
-        addFormPhotoUploading
-          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-          : 'bg-gray-100 hover:bg-gray-200 text-[#111111] border-gray-200 cursor-pointer'
-      }`}>
-        <Upload className="w-3.5 h-3.5" />
-        <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          disabled={addFormPhotoUploading}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              handleAddFormPhotoUpload(file);
-            }
-            e.target.value = '';
-          }}
-        />
-      </label>
-
-      {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
-        <button
-          type="button"
-          onClick={() =>
-            setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))
-          }
-          className="text-[11px] font-bold text-rose-600 hover:underline text-left cursor-pointer"
-        >
-          {t('admin_sheet_remove')}
-        </button>
-      )}
-    </div>
-  </div>
-
-  {/* Hidden file input used by the lightbox's Upload/Replace action */}
-  <input
-    id="wizard-photo-input"
-    type="file"
-    accept="image/*"
-    className="hidden"
-    disabled={addFormPhotoUploading}
-    onChange={(e) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        handleAddFormPhotoUpload(file);
-      }
-      e.target.value = '';
-    }}
-  />
-
-  {/* URL input stays visible so admin can paste a direct URL manually */}
-  <input
-    type="text"
-    value={newAlumnus.profile_photo_url || ''}
-    onChange={(e) =>
-      setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })
-    }
-    placeholder="https://..."
-    className={addInputCls + ' font-mono'}
-  />
-</div>
-              </div>
-            )}
-
-            {addFormStep === 2 && (
-              <div className="space-y-3 animate-fadeIn">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_country_code')} *</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.country_code || '91'}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, country_code: e.target.value })}
-                      className={addInputCls + ' text-center font-semibold'}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={addLabelCls}>{t('admin_sheet_mobile')} *</label>
-                    <input
-                      type="text"
-                      value={newAlumnus.mobile || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, mobile: e.target.value })}
-                      className={addInputCls + ' font-mono'}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className={addLabelCls}>{t('admin_sheet_email')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_email')}
+                  </label>
                   <input
                     type="email"
                     value={newAlumnus.email || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, email: e.target.value })}
-                    className={addInputCls + ' font-mono'}
+                    placeholder="alumni@example.com"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono shadow-2xs"
                   />
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_address')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_address')}
+                  </label>
                   <textarea
                     rows={2}
                     value={newAlumnus.address || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, address: e.target.value })}
-                    className={addInputCls + ' resize-none font-normal'}
+                    placeholder="Residential address details..."
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-normal resize-none shadow-2xs"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_current_city')} *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_current_city')} <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.current_city || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, current_city: e.target.value })}
-                      className={addInputCls}
+                      onChange={(e) => {
+                        setNewAlumnus({ ...newAlumnus, current_city: e.target.value });
+                        if (addFormErrors['current_city']) setAddFormErrors({ ...addFormErrors, current_city: '' });
+                      }}
+                      placeholder="e.g. Chennai / Tirunelveli"
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['current_city'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-medium shadow-2xs`}
                     />
+                    {addFormErrors['current_city'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['current_city']}</span>
+                      </p>
+                    )}
                   </div>
+
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_current_state')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_current_state')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.current_state || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, current_state: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. Tamil Nadu"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_country')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_country')}
+                  </label>
                   <input
                     type="text"
                     value={newAlumnus.country || 'India'}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, country: e.target.value })}
-                    className={addInputCls}
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                   />
                 </div>
               </div>
             )}
 
+            {/* STEP 3: SCHOOL & BATCH */}
             {addFormStep === 3 && (
-              <div className="space-y-3 animate-fadeIn">
+              <div className="space-y-4 animate-fadeIn">
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_school_name')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_school_name')}
+                  </label>
                   <input
                     type="text"
                     value={newAlumnus.school_name || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, school_name: e.target.value })}
-                    className={addInputCls}
+                    placeholder="School Name"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_joining_year')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_joining_year')}
+                    </label>
                     <select
                       value={newAlumnus.joining_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, joining_year: e.target.value ? Number(e.target.value) : undefined })}
-                      className={addInputCls}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-semibold shadow-2xs"
                     >
-                      <option value="">--</option>
+                      <option value="">-- Select Admission Year --</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_passing_year')} *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_passing_year')} <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={newAlumnus.passing_year ?? ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, passing_year: e.target.value ? Number(e.target.value) : undefined })}
-                      className={addInputCls + ' font-bold text-[#854D0E]'}
+                      onChange={(e) => {
+                        setNewAlumnus({ ...newAlumnus, passing_year: e.target.value ? Number(e.target.value) : undefined });
+                        if (addFormErrors['passing_year']) setAddFormErrors({ ...addFormErrors, passing_year: '' });
+                      }}
+                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                        addFormErrors['passing_year'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-extrabold text-[#854D0E] shadow-2xs`}
                     >
-                      <option value="">--</option>
+                      <option value="">-- Select School Leaving Year --</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
+                    {addFormErrors['passing_year'] && (
+                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{addFormErrors['passing_year']}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_leaving_class')} *</label>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_leaving_class')} <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2 pt-1">
                     {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'].map((cls) => (
                       <button
                         key={cls}
                         type="button"
                         onClick={() => setNewAlumnus({ ...newAlumnus, leaving_class: cls })}
-                        className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${
                           (newAlumnus.leaving_class || '10th') === cls
-                            ? 'bg-[#111111] text-white border-[#111111] shadow-2xs'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            ? 'bg-[#111111] text-white border-[#111111] shadow-md scale-[1.05]'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100 shadow-2xs'
                         }`}
                       >
-                        {cls}
+                        {cls} Standard
                       </button>
                     ))}
                   </div>
+
                   {newAlumnus.passing_year && (
-                    <div className="mt-2.5 p-2 bg-[#FFF7D6] border border-[#F4C542]/70 rounded-xl text-xs text-[#854D0E] font-semibold flex items-center justify-between shadow-2xs">
-                      <span>{language === 'ta' ? 'அலுமினி Batch (10-ஆம் வகுப்பு அடிப்படை):' : 'Alumni Batch (10th Standard Basis):'}</span>
-                      <span className="font-extrabold text-[#111111] text-sm">
+                    <div className="mt-3 p-3 bg-[#FFF7D6] border border-[#F4C542]/80 rounded-2xl text-xs text-[#854D0E] font-semibold flex items-center justify-between shadow-2xs">
+                      <span>{language === 'ta' ? 'அலுமினி Batch (10-ஆம் வகுப்பு அடிப்படை):' : 'Calculated Alumni Batch (10th Std Basis):'}</span>
+                      <span className="font-extrabold text-[#111111] text-sm bg-white px-3 py-1 rounded-xl border border-[#F4C542]">
                         Batch of {(() => {
                           const py = Number(newAlumnus.passing_year);
                           const match = (newAlumnus.leaving_class || '10th').match(/\d+/);
@@ -2784,95 +2989,117 @@ export const AlumniManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_no_higher_ed')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_no_higher_ed')}
+                  </label>
                   <select
                     value={newAlumnus.no_higher_education || 'NO'}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, no_higher_education: e.target.value })}
-                    className={addInputCls + ' font-bold'}
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold shadow-2xs"
                   >
-                    <option value="NO">{t('admin_label_no')}</option>
-                    <option value="YES">{t('admin_label_yes')}</option>
+                    <option value="NO">{t('admin_label_no')} (Pursued Higher Education)</option>
+                    <option value="YES">{t('admin_label_yes')} (Directly Entered Workforce)</option>
                   </select>
                 </div>
               </div>
             )}
 
+            {/* STEP 4: HIGHER EDUCATION */}
             {addFormStep === 4 && (
-              <div className="space-y-3 animate-fadeIn">
+              <div className="space-y-4 animate-fadeIn">
                 <div>
-                  <label className={addLabelCls}>{t('admin_sheet_college_name')}</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_college_name')}
+                  </label>
                   <input
                     type="text"
                     value={newAlumnus.college_name || ''}
                     onChange={(e) => setNewAlumnus({ ...newAlumnus, college_name: e.target.value })}
-                    className={addInputCls}
+                    placeholder="e.g. Anna University / Madras Medical College"
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_degree')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_degree')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.degree || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, degree: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. B.E / B.Tech / B.Sc / MBBS"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_custom_degree')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_custom_degree')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.custom_degree || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, custom_degree: e.target.value })}
-                      className={addInputCls}
+                      placeholder="Custom / Specialized Degree Name"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_department')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_department')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.department || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, department: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. Computer Science / Mechanical"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_college_reg_no')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_college_reg_no')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.college_register_no || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_register_no: e.target.value })}
-                      className={addInputCls + ' font-mono'}
+                      placeholder="College Roll / Register No"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_college_joining_yr')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_college_joining_yr')}
+                    </label>
                     <select
                       value={newAlumnus.college_joining_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_joining_year: e.target.value ? Number(e.target.value) : undefined })}
-                      className={addInputCls}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-semibold shadow-2xs"
                     >
-                      <option value="">--</option>
+                      <option value="">-- Select --</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_college_passing_yr')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_college_passing_yr')}
+                    </label>
                     <select
                       value={newAlumnus.college_passing_year ?? ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, college_passing_year: e.target.value ? Number(e.target.value) : undefined })}
-                      className={addInputCls}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-semibold shadow-2xs"
                     >
-                      <option value="">--</option>
+                      <option value="">-- Select --</option>
                       {availableBatches.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
@@ -2882,124 +3109,152 @@ export const AlumniManagement: React.FC = () => {
               </div>
             )}
 
+            {/* STEP 5: WORK & PREFERENCES */}
             {addFormStep === 5 && (
-              <div className="space-y-3 animate-fadeIn">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4 animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_employment_status')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_employment_status')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.employment_status || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, employment_status: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. Employed / Self-Employed / Entrepreneur"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_company_name')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_company_name')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.company_name || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, company_name: e.target.value })}
-                      className={addInputCls}
+                      placeholder="Organization / Company Name"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_designation')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_designation')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.profession || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, profession: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. Senior Software Engineer / Manager"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_industry')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_industry')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.industry || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, industry: e.target.value })}
-                      className={addInputCls}
+                      placeholder="e.g. Information Technology / Healthcare"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_total_experience')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_total_experience')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.total_experience || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, total_experience: e.target.value })}
-                      className={addInputCls}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_linkedin')}</label>
-                    <input
-                      type="url"
-                      value={newAlumnus.linkedin_url || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, linkedin_url: e.target.value })}
-                      className={addInputCls + ' font-mono text-blue-700'}
+                      placeholder="e.g. 5 Years"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
                     />
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_sheet_instagram')}</label>
-                    <input
-                      type="url"
-                      value={newAlumnus.instagram_url || ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, instagram_url: e.target.value })}
-                      className={addInputCls + ' font-mono text-pink-700'}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={addLabelCls}>{t('admin_sheet_whatsapp')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_whatsapp')}
+                    </label>
                     <input
                       type="text"
                       value={newAlumnus.whatsapp_number || ''}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, whatsapp_number: e.target.value })}
-                      className={addInputCls + ' font-mono text-emerald-800'}
+                      placeholder="WhatsApp Mobile Number"
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono text-emerald-800 font-semibold shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={addLabelCls}>{t('admin_col_volunteer')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_linkedin')}
+                    </label>
+                    <input
+                      type="url"
+                      value={newAlumnus.linkedin_url || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, linkedin_url: e.target.value })}
+                      placeholder="https://linkedin.com/in/..."
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono text-blue-700 shadow-2xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_sheet_instagram')}
+                    </label>
+                    <input
+                      type="url"
+                      value={newAlumnus.instagram_url || ''}
+                      onChange={(e) => setNewAlumnus({ ...newAlumnus, instagram_url: e.target.value })}
+                      placeholder="https://instagram.com/..."
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono text-pink-700 shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-200">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_col_volunteer')}
+                    </label>
                     <select
                       value={newAlumnus.is_volunteer || 'NO'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, is_volunteer: e.target.value })}
-                      className={addInputCls + ' font-bold'}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold shadow-2xs"
                     >
                       <option value="NO">{t('admin_label_no')}</option>
                       <option value="YES">{t('admin_label_yes')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_col_willing_donor')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_col_willing_donor')}
+                    </label>
                     <select
                       value={newAlumnus.willing_to_donate || 'NO'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, willing_to_donate: e.target.value })}
-                      className={addInputCls + ' font-bold'}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold shadow-2xs"
                     >
                       <option value="NO">{t('admin_label_no')}</option>
                       <option value="YES">{t('admin_label_yes')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={addLabelCls}>{t('admin_col_status')}</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      {t('admin_col_status')}
+                    </label>
                     <select
                       value={newAlumnus.verification_status || 'APPROVED'}
                       onChange={(e) => setNewAlumnus({ ...newAlumnus, verification_status: e.target.value as any })}
-                      className={addInputCls + ' font-bold uppercase'}
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-extrabold uppercase shadow-2xs"
                     >
                       <option value="APPROVED">APPROVED</option>
                       <option value="PENDING">PENDING</option>
@@ -3011,31 +3266,44 @@ export const AlumniManagement: React.FC = () => {
               </div>
             )}
 
-            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-              <div className="flex items-center gap-2">
+            {/* MODAL FOOTER BUTTONS — Submit button strictly rendered ONLY on Step 5 */}
+            <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => { setIsAddModalOpen(false); resetAddForm(); }}
+                  className="rounded-xl px-4 py-2 text-xs font-bold"
                 >
                   {t('admin_add_cancel')}
                 </Button>
                 {addFormStep > 1 && (
-                  <Button type="button" variant="secondary" onClick={goToPrevAddStep}>
-                    <ArrowLeft className="w-4 h-4 mr-1" /> {t('admin_add_back')}
+                  <Button type="button" variant="secondary" onClick={goToPrevAddStep} className="rounded-xl px-4 py-2 text-xs font-bold">
+                    <ArrowLeft className="w-4 h-4 mr-1.5" /> {t('admin_add_back')}
                   </Button>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                {addFormStep < ADD_FORM_TOTAL_STEPS && (
-                  <Button type="button" variant="secondary" onClick={goToNextAddStep} className="font-bold">
-                    {t('admin_add_next')} <ArrowRight className="w-4 h-4 ml-1" />
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                {addFormStep < ADD_FORM_TOTAL_STEPS ? (
+                  <Button
+                    type="button"
+                    onClick={goToNextAddStep}
+                    className="font-extrabold text-xs px-5 py-2.5 bg-[#111111] hover:bg-slate-800 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>{t('admin_add_next')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    isLoading={isAdding}
+                    className="font-extrabold text-xs px-6 py-2.5 bg-gradient-to-r from-[#111111] via-slate-900 to-amber-900 hover:opacity-95 text-white rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                    <span>{editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}</span>
                   </Button>
                 )}
-                <Button type="submit" isLoading={isAdding} className="font-bold bg-[#111111] hover:bg-slate-800 text-white shadow-xs">
-                  {editingAlumnusId ? t('admin_edit_submit') : t('admin_add_submit')}
-                </Button>
               </div>
             </div>
           </form>
