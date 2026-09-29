@@ -1107,12 +1107,18 @@ export const AlumniManagement: React.FC = () => {
   const handleCreateAlumnus = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent submission if not on the final step (Step 5)
+    if (addFormStep < ADD_FORM_TOTAL_STEPS) {
+      await goToNextAddStep();
+      return;
+    }
+
     const step1Missing = validateAddStep(1);
     if (step1Missing.length > 0) {
       setAddFormStep(1);
       alertService.showWarning(
-        'Required Fields Missing (Step 1: Basic Info)',
-        `Please complete: ${step1Missing.join(', ')}`
+        language === 'ta' ? 'படி 1: அடிப்படை விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing (Step 1: Basic Info)',
+        `${language === 'ta' ? 'தயவுசெய்து பூர்த்தி செய்யவும்:' : 'Please complete:'} ${step1Missing.join(', ')}`
       );
       return;
     }
@@ -1121,8 +1127,8 @@ export const AlumniManagement: React.FC = () => {
     if (step2Missing.length > 0) {
       setAddFormStep(2);
       alertService.showWarning(
-        'Required Fields Missing (Step 2: Contact & Address)',
-        `Please complete: ${step2Missing.join(', ')}`
+        language === 'ta' ? 'படி 2: தொடர்பு விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing (Step 2: Contact & Address)',
+        `${language === 'ta' ? 'தயவுசெய்து பூர்த்தி செய்யவும்:' : 'Please complete:'} ${step2Missing.join(', ')}`
       );
       return;
     }
@@ -1131,8 +1137,8 @@ export const AlumniManagement: React.FC = () => {
     if (step3Missing.length > 0) {
       setAddFormStep(3);
       alertService.showWarning(
-        'Required Fields Missing (Step 3: School & Batch)',
-        `Please complete: ${step3Missing.join(', ')}`
+        language === 'ta' ? 'படி 3: பள்ளி விவரங்கள் விடுபட்டுள்ளன' : 'Required Fields Missing (Step 3: School & Batch)',
+        `${language === 'ta' ? 'தயவுசெய்து பூர்த்தி செய்யவும்:' : 'Please complete:'} ${step3Missing.join(', ')}`
       );
       return;
     }
@@ -1141,6 +1147,30 @@ export const AlumniManagement: React.FC = () => {
     const rawMob = (newAlumnus.mobile || '').trim();
     const digitsOnly = rawMob.replace(/\D/g, '');
     const mob = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+
+    // SweetAlert Confirmation Popup before creating/updating
+    const confirmTitle = editingAlumnusId
+      ? (language === 'ta' ? 'விவரங்களை மாற்றியமைக்கவா?' : 'Update Alumni Record?')
+      : (language === 'ta' ? 'முன்னாள் மாணவர் சுயவிவரத்தை உருவாக்கவா?' : 'Confirm Create Alumni Profile?');
+
+    const confirmText = editingAlumnusId
+      ? (language === 'ta'
+          ? `"${name}" அவர்களின் சுயவிவர மாற்றங்களைச் சேமிக்க உறுதி செய்கிறீர்களா?`
+          : `Are you sure you want to save changes for "${name}"?`)
+      : (language === 'ta'
+          ? `"${name}" என்ற மாணவருக்கான புதிய சுயவிவரம் மற்றும் பயனர் கணக்கை உருவாக்க உறுதி செய்கிறீர்களா?`
+          : `Are you sure you want to create a new alumni profile and user account for "${name}"?`);
+
+    const confirmBtn = editingAlumnusId
+      ? (language === 'ta' ? 'ஆம், மாற்றியமைக்கவும்' : 'Yes, Update')
+      : (language === 'ta' ? 'ஆம், உருவாக்கவும்' : 'Yes, Create Profile');
+
+    const cancelBtn = language === 'ta' ? 'ரத்துசெய்' : 'Cancel';
+
+    const confirmed = await alertService.showConfirm(confirmTitle, confirmText, confirmBtn, cancelBtn);
+    if (!confirmed) {
+      return;
+    }
 
     setIsAdding(true);
     try {
@@ -1172,14 +1202,18 @@ export const AlumniManagement: React.FC = () => {
       if (editingAlumnusId) {
         await api.updateAlumniAdmin(editingAlumnusId, payload);
         alertService.showSuccess(
-          t('admin_edit_success_body'),
-          `Changes for ${name} have been saved successfully.`
+          language === 'ta' ? 'விவரங்கள் புதுப்பிக்கப்பட்டன' : t('admin_edit_success_body'),
+          language === 'ta'
+            ? `"${name}" அவர்களின் சுயவிவர மாற்றங்கள் வெற்றிகரமாக சேமிக்கப்பட்டன.`
+            : `Changes for ${name} have been saved successfully.`
         );
       } else {
         await api.adminCreateAlumni(payload);
         alertService.showSuccess(
-          'Alumni Profile Created',
-          `New alumni profile and user record for ${name} added successfully. You can now send them an account activation invitation.`
+          language === 'ta' ? 'முன்னாள் மாணவர் சுயவிவரம் உருவாக்கப்பட்டது' : 'Alumni Profile Created',
+          language === 'ta'
+            ? `"${name}" மாணவருக்கான புதிய சுயவிவரம் மற்றும் பயனர் கணக்கு வெற்றிகரமாக உருவாக்கப்பட்டது. நீங்கள் இப்போது அவர்களுக்கு கணக்கு செயல்படுத்தும் அழைப்பை அனுப்பலாம்.`
+            : `New alumni profile and user record for ${name} added successfully. You can now send them an account activation invitation.`
         );
       }
 
@@ -2713,7 +2747,18 @@ export const AlumniManagement: React.FC = () => {
             </div>
           </div>
 
-          <form onSubmit={handleCreateAlumnus} className="space-y-5">
+          <form
+            onSubmit={handleCreateAlumnus}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if (addFormStep < ADD_FORM_TOTAL_STEPS) {
+                  goToNextAddStep();
+                }
+              }
+            }}
+            className="space-y-5"
+          >
 
             {/* STEP 1: BASIC INFORMATION */}
             {addFormStep === 1 && (
