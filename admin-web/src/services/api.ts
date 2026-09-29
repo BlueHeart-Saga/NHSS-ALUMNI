@@ -754,6 +754,19 @@ class ApiClient {
     });
   }
 
+  async checkAlumniDuplicate(mobile?: string, email?: string, excludeId?: string) {
+    const params = new URLSearchParams();
+    if (mobile) params.set('mobile', mobile);
+    if (email) params.set('email', email);
+    if (excludeId) params.set('exclude_id', excludeId);
+    return this.request<{
+      mobile_exists: boolean;
+      mobile_owner?: string | null;
+      email_exists: boolean;
+      email_owner?: string | null;
+    }>(`/alumni/check-duplicate?${params.toString()}`);
+  }
+
   async sendAlumniInvitation(alumniId: string) {
     return this.request<{
       success: boolean;

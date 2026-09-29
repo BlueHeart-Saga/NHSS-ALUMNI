@@ -101,6 +101,43 @@ const normalizeDobForInput = (raw: unknown): string => {
   return ''; // unrecognizable → blank field
 };
 
+interface CountryOption {
+  name: string;
+  code: string;
+  dialCode: string;
+}
+
+const COUNTRIES: CountryOption[] = [
+  { name: 'India', code: 'IN', dialCode: '+91' },
+  { name: 'United States', code: 'US', dialCode: '+1' },
+  { name: 'United Kingdom', code: 'GB', dialCode: '+44' },
+  { name: 'United Arab Emirates', code: 'AE', dialCode: '+971' },
+  { name: 'Singapore', code: 'SG', dialCode: '+65' },
+  { name: 'Australia', code: 'AU', dialCode: '+61' },
+  { name: 'Canada', code: 'CA', dialCode: '+1' },
+  { name: 'Malaysia', code: 'MY', dialCode: '+60' },
+  { name: 'Sri Lanka', code: 'LK', dialCode: '+94' },
+  { name: 'Saudi Arabia', code: 'SA', dialCode: '+966' },
+  { name: 'Qatar', code: 'QA', dialCode: '+974' },
+  { name: 'Oman', code: 'OM', dialCode: '+968' },
+  { name: 'Kuwait', code: 'KW', dialCode: '+965' },
+  { name: 'Bahrain', code: 'BH', dialCode: '+973' },
+  { name: 'Nepal', code: 'NP', dialCode: '+977' },
+  { name: 'Bangladesh', code: 'BD', dialCode: '+880' },
+  { name: 'Germany', code: 'DE', dialCode: '+49' },
+  { name: 'France', code: 'FR', dialCode: '+33' },
+  { name: 'Japan', code: 'JP', dialCode: '+81' },
+  { name: 'China', code: 'CN', dialCode: '+86' },
+  { name: 'New Zealand', code: 'NZ', dialCode: '+64' },
+  { name: 'South Africa', code: 'ZA', dialCode: '+27' },
+  { name: 'Netherlands', code: 'NL', dialCode: '+31' },
+  { name: 'Switzerland', code: 'CH', dialCode: '+41' },
+  { name: 'Italy', code: 'IT', dialCode: '+39' },
+  { name: 'Spain', code: 'ES', dialCode: '+34' },
+  { name: 'Ireland', code: 'IE', dialCode: '+353' },
+  { name: 'Pakistan', code: 'PK', dialCode: '+92' },
+];
+
 export const AlumniManagement: React.FC = () => {
   const { t, language } = useLanguage();
 
@@ -218,6 +255,12 @@ export const AlumniManagement: React.FC = () => {
     }
   };
 
+  // Photo input ref for clean pencil icon trigger
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-fetched school name
+  const [schoolName, setSchoolName] = useState<string>('');
+
   // Add-form photo upload state (for the wizard's Step 1)
   const [addFormPhotoUploading, setAddFormPhotoUploading] = useState(false);
 
@@ -241,7 +284,7 @@ export const AlumniManagement: React.FC = () => {
     mother_name: '',
     profile_photo_url: '',
     mobile: '',
-    country_code: '91',
+    country_code: '+91',
     email: '',
     address: '',
     current_city: '',
@@ -276,6 +319,15 @@ export const AlumniManagement: React.FC = () => {
   useEffect(() => {
     fetchAlumni();
     fetchBatches();
+    api.getPublicStats().then((stats) => {
+      if (stats?.school_name) {
+        setSchoolName(stats.school_name);
+        setNewAlumnus((prev) => ({
+          ...prev,
+          school_name: prev.school_name || stats.school_name,
+        }));
+      }
+    }).catch(() => {});
   }, []);
 
   const fetchBatches = async () => {
@@ -829,14 +881,13 @@ export const AlumniManagement: React.FC = () => {
       mother_name: '',
       profile_photo_url: '',
       mobile: '',
-      country_code: '91',
+      country_code: '+91',
       email: '',
       address: '',
       current_city: '',
       current_state: '',
       country: 'India',
-      school_name: '',
-      joining_year: undefined,
+      school_name: schoolName || 'Natarajan Higher Secondary School',
       passing_year: new Date().getFullYear(),
       leaving_class: '10th',
       no_higher_education: 'NO',
@@ -864,6 +915,34 @@ export const AlumniManagement: React.FC = () => {
     setAddFormErrors({});
   };
 
+  const handleCloseAddModal = async () => {
+    const isDirty = Boolean(
+      (newAlumnus.full_name && newAlumnus.full_name.trim()) ||
+      (newAlumnus.mobile && newAlumnus.mobile.trim()) ||
+      (newAlumnus.email && newAlumnus.email.trim()) ||
+      (newAlumnus.current_city && newAlumnus.current_city.trim()) ||
+      (newAlumnus.address && newAlumnus.address.trim()) ||
+      (newAlumnus.college_name && newAlumnus.college_name.trim()) ||
+      (newAlumnus.company_name && newAlumnus.company_name.trim()) ||
+      newAlumnus.profile_photo_url
+    );
+
+    if (isDirty) {
+      const confirmed = await alertService.showConfirm(
+        language === 'ta' ? 'வெளியேற விரும்புகிறீர்களா?' : 'Discard Changes and Close?',
+        language === 'ta'
+          ? 'படிவத்தில் உள்ளிட்ட தகவல்கள் சேமிக்கப்படாது. நீங்கள் நிச்சயமாக மூட விரும்புகிறீர்களா?'
+          : 'You have entered details in this form. Are you sure you want to close and discard your progress?',
+        language === 'ta' ? 'ஆம், வெளியேறு' : 'Yes, Discard & Close',
+        language === 'ta' ? 'தொடர்ந்து நிரப்பு' : 'Keep Editing'
+      );
+      if (!confirmed) return;
+    }
+
+    setIsAddModalOpen(false);
+    resetAddForm();
+  };
+
   const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
 
   const validateAddStep = (step: number): string[] => {
@@ -872,35 +951,58 @@ export const AlumniManagement: React.FC = () => {
 
     if (step === 1) {
       if (!newAlumnus.full_name || !String(newAlumnus.full_name).trim()) {
-        missing.push('Full Name');
-        errors['full_name'] = 'Full name is required';
+        missing.push(language === 'ta' ? 'முழுப் பெயர் (Full Name)' : 'Full Name');
+        errors['full_name'] = language === 'ta' ? 'முழுப் பெயர் தேவை' : 'Full name is required';
       }
       if (!newAlumnus.gender || !String(newAlumnus.gender).trim()) {
-        missing.push('Gender');
-        errors['gender'] = 'Gender is required';
+        missing.push(language === 'ta' ? 'பாலினம் (Gender)' : 'Gender');
+        errors['gender'] = language === 'ta' ? 'பாலினம் தேர்வு செய்யவும்' : 'Gender is required';
       }
       if (!newAlumnus.date_of_birth || !String(newAlumnus.date_of_birth).trim()) {
-        missing.push('Date of Birth');
-        errors['date_of_birth'] = 'Date of birth is required';
+        missing.push(language === 'ta' ? 'பிறந்த தேதி (Date of Birth)' : 'Date of Birth');
+        errors['date_of_birth'] = language === 'ta' ? 'பிறந்த தேதி தேவை' : 'Date of birth is required';
       }
     } else if (step === 2) {
       const rawMob = String(newAlumnus.mobile || '').replace(/\D/g, '');
-      if (!rawMob || rawMob.length !== 10 || !['6', '7', '8', '9'].includes(rawMob[0])) {
-        missing.push('Valid 10-digit Mobile Number');
-        errors['mobile'] = 'Please enter a valid 10-digit Indian mobile number';
+      const cCode = String(newAlumnus.country_code || '+91').replace(/\s+/g, '');
+      const isIndia = cCode === '+91' || cCode === '91';
+
+      if (isIndia) {
+        if (!rawMob || rawMob.length !== 10 || !['6', '7', '8', '9'].includes(rawMob[0])) {
+          missing.push(language === 'ta' ? 'செல்லுபடியாகும் 10-இலக்க கைபேசி எண்' : 'Valid 10-digit Indian Mobile Number');
+          errors['mobile'] = language === 'ta'
+            ? '6, 7, 8 அல்லது 9 இல் தொடங்கும் 10-இலக்க இந்திய கைபேசி எண்ணை உள்ளிடவும்'
+            : 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9';
+        }
+      } else {
+        if (!rawMob || rawMob.length < 7 || rawMob.length > 15) {
+          missing.push(language === 'ta' ? 'செல்லுபடியாகும் கைபேசி எண்' : 'Valid Mobile Number');
+          errors['mobile'] = language === 'ta'
+            ? '7 முதல் 15 இலக்க கைபேசி எண்ணை உள்ளிடவும்'
+            : 'Please enter a valid phone number (7-15 digits)';
+        }
       }
+
+      if (newAlumnus.email && String(newAlumnus.email).trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(String(newAlumnus.email).trim())) {
+          missing.push(language === 'ta' ? 'சரியான மின்னஞ்சல் முகவரி' : 'Valid Email Address');
+          errors['email'] = language === 'ta' ? 'சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்' : 'Please enter a valid email address';
+        }
+      }
+
       if (!newAlumnus.current_city || !String(newAlumnus.current_city).trim()) {
-        missing.push('Current City');
-        errors['current_city'] = 'Current city is required';
+        missing.push(language === 'ta' ? 'தற்போதைய நகரம் (Current City)' : 'Current City');
+        errors['current_city'] = language === 'ta' ? 'தற்போதைய நகரம் தேவை' : 'Current city is required';
       }
     } else if (step === 3) {
       if (!newAlumnus.passing_year) {
-        missing.push('Passing Year');
-        errors['passing_year'] = 'Passing year is required';
+        missing.push(language === 'ta' ? 'பள்ளி முடித்த ஆண்டு (Passing Year)' : 'Passing Year');
+        errors['passing_year'] = language === 'ta' ? 'பள்ளி முடித்த ஆண்டு தேவை' : 'Passing year is required';
       }
       if (!newAlumnus.leaving_class) {
-        missing.push('Leaving Class');
-        errors['leaving_class'] = 'Leaving class is required';
+        missing.push(language === 'ta' ? 'படித்த வகுப்பு (Leaving Class)' : 'Leaving Class');
+        errors['leaving_class'] = language === 'ta' ? 'படித்த வகுப்பு தேவை' : 'Leaving class is required';
       }
     }
 
@@ -908,19 +1010,99 @@ export const AlumniManagement: React.FC = () => {
     return missing;
   };
 
-  const goToNextAddStep = () => {
+  const goToNextAddStep = async () => {
     const missing = validateAddStep(addFormStep);
     if (missing.length > 0) {
       alertService.showWarning(
-        'Required Information Missing',
-        `Please complete the following required fields before proceeding: ${missing.join(', ')}`
+        language === 'ta' ? 'தேவையான தகவல்கள் விடுபட்டுள்ளன' : 'Required Information Missing',
+        `${language === 'ta' ? 'அடுத்த படிக்குச் செல்வதற்கு முன் பின்வரும் விவரங்களை பூர்த்தி செய்யவும்:' : 'Please complete the following required fields before proceeding:'} ${missing.join(', ')}`
       );
       return;
     }
-    setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
+
+    // Step 2 Extra Validation: Phone format & Duplicate checks for mobile & email
+    if (addFormStep === 2) {
+      const rawMob = String(newAlumnus.mobile || '').replace(/\D/g, '');
+      const cleanEmail = String(newAlumnus.email || '').trim().toLowerCase();
+
+      // 1. Fast local client list duplicate check
+      const localMobileDup = alumniList.find((a) => {
+        if (editingAlumnusId && (a.id === editingAlumnusId || (a as any)._id === editingAlumnusId)) return false;
+        const existingMobDigits = String(a.mobile || '').replace(/\D/g, '');
+        return existingMobDigits.length >= 10 && rawMob.length >= 10 && existingMobDigits.slice(-10) === rawMob.slice(-10);
+      });
+
+      if (localMobileDup) {
+        alertService.showWarning(
+          language === 'ta' ? 'கைபேசி எண் ஏற்கனவே உள்ளது' : 'Mobile Number Already Registered',
+          language === 'ta'
+            ? `இந்த கைபேசி எண் (${newAlumnus.mobile}) ஏற்கனவே "${localMobileDup.full_name}" பெயரில் பதிவு செய்யப்பட்டுள்ளது!`
+            : `This mobile number (${newAlumnus.mobile}) is already registered for alumnus "${localMobileDup.full_name}"!`
+        );
+        return;
+      }
+
+      if (cleanEmail) {
+        const localEmailDup = alumniList.find((a) => {
+          if (editingAlumnusId && (a.id === editingAlumnusId || (a as any)._id === editingAlumnusId)) return false;
+          return a.email && a.email.trim().toLowerCase() === cleanEmail;
+        });
+
+        if (localEmailDup) {
+          alertService.showWarning(
+            language === 'ta' ? 'மின்னஞ்சல் ஏற்கனவே உள்ளது' : 'Email Already Registered',
+            language === 'ta'
+              ? `இந்த மின்னஞ்சல் (${newAlumnus.email}) ஏற்கனவே "${localEmailDup.full_name}" பெயரில் பதிவு செய்யப்பட்டுள்ளது!`
+              : `This email (${newAlumnus.email}) is already registered for alumnus "${localEmailDup.full_name}"!`
+          );
+          return;
+        }
+      }
+
+      // 2. Real-time Backend Duplicate Check against Users & Alumni database
+      try {
+        const dupRes = await api.checkAlumniDuplicate(
+          rawMob,
+          cleanEmail || undefined,
+          editingAlumnusId || undefined
+        );
+        if (dupRes.mobile_exists) {
+          alertService.showWarning(
+            language === 'ta' ? 'கைபேசி எண் ஏற்கனவே உள்ளது' : 'Mobile Number Already Registered',
+            language === 'ta'
+              ? `இந்த கைபேசி எண் (${newAlumnus.mobile}) ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது (${dupRes.mobile_owner || 'முன்னாள் மாணவர் கணக்கு'}).`
+              : `This mobile number (${newAlumnus.mobile}) is already registered in the system (${dupRes.mobile_owner || 'existing user'}).`
+          );
+          return;
+        }
+        if (dupRes.email_exists) {
+          alertService.showWarning(
+            language === 'ta' ? 'மின்னஞ்சல் ஏற்கனவே உள்ளது' : 'Email Already Registered',
+            language === 'ta'
+              ? `இந்த மின்னஞ்சல் (${newAlumnus.email}) ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது (${dupRes.email_owner || 'முன்னாள் மாணவர் கணக்கு'}).`
+              : `This email (${newAlumnus.email}) is already registered in the system (${dupRes.email_owner || 'existing user'}).`
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend duplicate check skipped or offline:', err);
+      }
+    }
+
+    if (addFormStep === 3 && newAlumnus.no_higher_education === 'YES') {
+      setAddFormStep(5);
+    } else {
+      setAddFormStep((s) => Math.min(s + 1, ADD_FORM_TOTAL_STEPS));
+    }
   };
 
-  const goToPrevAddStep = () => setAddFormStep((s) => Math.max(s - 1, 1));
+  const goToPrevAddStep = () => {
+    if (addFormStep === 5 && newAlumnus.no_higher_education === 'YES') {
+      setAddFormStep(3);
+    } else {
+      setAddFormStep((s) => Math.max(s - 1, 1));
+    }
+  };
 
   const handleCreateAlumnus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -966,7 +1148,8 @@ export const AlumniManagement: React.FC = () => {
         ...newAlumnus,
         full_name: name,
         mobile: mob,
-        country_code: newAlumnus.country_code || '91',
+        country_code: (newAlumnus.country_code || '91').replace(/\+/g, ''),
+        school_name: newAlumnus.school_name || schoolName || 'Natarajan Higher Secondary School',
         passing_year: Number(newAlumnus.passing_year) || new Date().getFullYear(),
       };
 
@@ -2421,7 +2604,7 @@ export const AlumniManagement: React.FC = () => {
           ============================================================ */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => { setIsAddModalOpen(false); resetAddForm(); }}
+        onClose={handleCloseAddModal}
         title={editingAlumnusId ? t('admin_edit_modal_title') : t('admin_add_modal_title')}
         maxWidth="max-w-4xl"
       >
@@ -2432,16 +2615,22 @@ export const AlumniManagement: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] border border-[#F4C542]/80 flex items-center justify-center text-[#854D0E] font-extrabold text-sm shadow-2xs shrink-0">
-                  {addFormStep}
+                  {newAlumnus.no_higher_education === 'YES' && addFormStep === 5 ? 4 : addFormStep}
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider bg-[#F4C542]/25 text-[#854D0E] border border-[#F4C542]/50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                      <span>{language === 'ta' ? `படி ${addFormStep} / 5` : `Step ${addFormStep} of 5`}</span>
+                      <span>
+                        {newAlumnus.no_higher_education === 'YES'
+                          ? (language === 'ta' ? `படி ${addFormStep === 5 ? 4 : addFormStep} / 4` : `Step ${addFormStep === 5 ? 4 : addFormStep} of 4`)
+                          : (language === 'ta' ? `படி ${addFormStep} / 5` : `Step ${addFormStep} of 5`)}
+                      </span>
                     </span>
                     <span className="text-xs font-semibold text-gray-400">•</span>
                     <span className="text-xs font-bold text-gray-600">
-                      {addFormStep * 20}% {language === 'ta' ? 'நிறைவு' : 'completed'}
+                      {newAlumnus.no_higher_education === 'YES'
+                        ? (addFormStep === 5 ? 100 : addFormStep * 25)
+                        : (addFormStep * 20)}% {language === 'ta' ? 'நிறைவு' : 'completed'}
                     </span>
                   </div>
                   <h4 className="text-base sm:text-lg font-bold text-[#111111] mt-0.5">
@@ -2465,20 +2654,32 @@ export const AlumniManagement: React.FC = () => {
             <div className="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-gradient-to-r from-amber-400 via-amber-500 to-[#111111] h-full transition-all duration-300 rounded-full"
-                style={{ width: `${addFormStep * 20}%` }}
+                style={{
+                  width: `${
+                    newAlumnus.no_higher_education === 'YES'
+                      ? (addFormStep === 5 ? 100 : addFormStep * 25)
+                      : (addFormStep * 20)
+                  }%`
+                }}
               />
             </div>
           </div>
 
           {/* Interactive Category Tab Navigation */}
           <div>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200">
+            <div className={`grid ${newAlumnus.no_higher_education === 'YES' ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'} gap-1.5 bg-gray-100/90 p-1.5 rounded-2xl border border-gray-200`}>
               {[
                 { step: 1, nameEn: '1. Basic Info *', nameTa: '1. அடிப்படை *' },
                 { step: 2, nameEn: '2. Contact & Address *', nameTa: '2. தொடர்பு *' },
                 { step: 3, nameEn: '3. School & Batch *', nameTa: '3. பள்ளி & பேட்ச் *' },
-                { step: 4, nameEn: '4. Higher Ed', nameTa: '4. உயர் கல்வி' },
-                { step: 5, nameEn: '5. Work & Status', nameTa: '5. பணி & நிலை' },
+                ...(newAlumnus.no_higher_education !== 'YES'
+                  ? [{ step: 4, nameEn: '4. Higher Ed', nameTa: '4. உயர் கல்வி' }]
+                  : []),
+                {
+                  step: 5,
+                  nameEn: `${newAlumnus.no_higher_education === 'YES' ? '4' : '5'}. Work & Status`,
+                  nameTa: `${newAlumnus.no_higher_education === 'YES' ? '4' : '5'}. பணி & நிலை`
+                },
               ].map((item) => (
                 <button
                   key={item.step}
@@ -2658,41 +2859,31 @@ export const AlumniManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Profile Photo Section */}
-                <div className="bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 space-y-3">
-                  <label className="block text-xs font-bold text-gray-800">
-                    {t('admin_sheet_profile_photo')}
-                  </label>
+                {/* Profile Photo Section - Clean Avatar with Pencil Edit Badge (Upload Only) */}
+                <div className="flex flex-col items-center justify-center p-5 bg-gradient-to-b from-amber-50/40 via-white to-gray-50/50 rounded-2xl border border-amber-200/70 space-y-3 shadow-2xs">
+                  <div className="text-center">
+                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                      {t('admin_sheet_profile_photo')}
+                    </label>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                      {language === 'ta' ? 'புகைப்படம் பதிவேற்ற பென்சில் குறியீட்டை அழுத்தவும்' : 'Click pencil icon to upload profile photo'}
+                    </p>
+                  </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    {/* Thumbnail */}
+                  <div className="relative group">
                     <div
-                      className={`w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0 transition-all ${
-                        addFormPhotoUploading
-                          ? 'opacity-70 cursor-wait'
-                          : 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:scale-105 shadow-2xs'
-                      }`}
-                      onClick={async () => {
+                      onClick={() => {
                         if (addFormPhotoUploading) return;
-                        const choice = await alertService.showImagePreview(
-                          newAlumnus.profile_photo_url || undefined,
-                          newAlumnus.full_name || 'Profile Photo',
-                          {
-                            canRemove: Boolean(newAlumnus.profile_photo_url),
-                            isPlaceholder: !newAlumnus.profile_photo_url,
-                          }
-                        );
-                        if (choice === 'upload') {
-                          const input = document.getElementById('wizard-photo-input') as HTMLInputElement | null;
-                          input?.click();
-                        } else if (choice === 'remove') {
-                          setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }));
-                        }
+                        photoInputRef.current?.click();
                       }}
-                      title={newAlumnus.profile_photo_url ? 'Click to preview / change photo' : 'Click to upload photo'}
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white ring-2 ring-amber-400/80 shadow-md bg-white flex items-center justify-center overflow-hidden cursor-pointer relative hover:scale-105 transition-all"
+                      title={language === 'ta' ? 'புகைப்படம் பதிவேற்றவும்' : 'Upload photo'}
                     >
                       {addFormPhotoUploading ? (
-                        <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />
+                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white z-10">
+                          <RefreshCw className="w-6 h-6 animate-spin text-amber-300" />
+                          <span className="text-[10px] font-bold mt-1">Uploading...</span>
+                        </div>
                       ) : newAlumnus.profile_photo_url ? (
                         <img
                           src={newAlumnus.profile_photo_url}
@@ -2700,68 +2891,48 @@ export const AlumniManagement: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-gray-400 p-1 text-center">
-                          <Users className="w-6 h-6" />
-                          <span className="text-[10px] font-semibold mt-1">Upload</span>
+                        <div className="flex flex-col items-center justify-center text-gray-400">
+                          <Users className="w-10 h-10 text-gray-300" />
+                          <span className="text-[10px] font-bold text-gray-400 mt-1">No Photo</span>
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-2 flex-1 w-full">
-                      <div className="flex items-center gap-2">
-                        <label className={`inline-flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-xl transition-all border ${
-                          addFormPhotoUploading
-                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                            : 'bg-white hover:bg-gray-50 text-[#111111] border-gray-300 shadow-2xs cursor-pointer'
-                        }`}>
-                          <Upload className="w-4 h-4 text-amber-600" />
-                          <span>{addFormPhotoUploading ? t('admin_sheet_uploading') : t('admin_sheet_upload')}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={addFormPhotoUploading}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleAddFormPhotoUpload(file);
-                              e.target.value = '';
-                            }}
-                          />
-                        </label>
-
-                        {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
-                          <button
-                            type="button"
-                            onClick={() => setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))}
-                            className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-rose-200"
-                          >
-                            {t('admin_sheet_remove')}
-                          </button>
-                        )}
-                      </div>
-
-                      <input
-                        id="wizard-photo-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={addFormPhotoUploading}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleAddFormPhotoUpload(file);
-                          e.target.value = '';
-                        }}
-                      />
-
-                      <input
-                        type="text"
-                        value={newAlumnus.profile_photo_url || ''}
-                        onChange={(e) => setNewAlumnus({ ...newAlumnus, profile_photo_url: e.target.value })}
-                        placeholder="Or paste direct image URL (https://...)"
-                        className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent outline-none font-mono text-gray-700 shadow-2xs"
-                      />
-                    </div>
+                    {/* Pencil Edit Icon Badge */}
+                    <button
+                      type="button"
+                      disabled={addFormPhotoUploading}
+                      onClick={() => photoInputRef.current?.click()}
+                      className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#111111] hover:bg-amber-600 text-white flex items-center justify-center shadow-lg border-2 border-white cursor-pointer transition-transform hover:scale-110"
+                      title={language === 'ta' ? 'புகைப்படம் பதிவேற்ற / மாற்ற' : 'Upload / Change Photo'}
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
                   </div>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={addFormPhotoUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddFormPhotoUpload(file);
+                      e.target.value = '';
+                    }}
+                  />
+
+                  {newAlumnus.profile_photo_url && !addFormPhotoUploading && (
+                    <button
+                      type="button"
+                      onClick={() => setNewAlumnus((prev) => ({ ...prev, profile_photo_url: '' }))}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer transition-colors"
+                    >
+                      🗑️ {language === 'ta' ? 'புகைப்படத்தை நீக்கு' : 'Remove Photo'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -2774,15 +2945,25 @@ export const AlumniManagement: React.FC = () => {
                     <label className="block text-xs font-bold text-gray-700 mb-1.5">
                       {t('admin_sheet_country_code')} <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-gray-500">+</span>
-                      <input
-                        type="text"
-                        value={newAlumnus.country_code || '91'}
-                        onChange={(e) => setNewAlumnus({ ...newAlumnus, country_code: e.target.value })}
-                        className="w-full pl-7 pr-3 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold text-center shadow-2xs"
-                      />
-                    </div>
+                    <select
+                      value={newAlumnus.country_code || '+91'}
+                      onChange={(e) => {
+                        const dial = e.target.value;
+                        const matched = COUNTRIES.find((c) => c.dialCode === dial);
+                        setNewAlumnus({
+                          ...newAlumnus,
+                          country_code: dial,
+                          country: matched ? matched.name : (newAlumnus.country || 'India'),
+                        });
+                      }}
+                      className="w-full px-3 py-2.5 text-xs font-bold bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none shadow-2xs cursor-pointer truncate"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
+                          {c.dialCode} ({c.name})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="sm:col-span-2">
@@ -2790,15 +2971,15 @@ export const AlumniManagement: React.FC = () => {
                       {t('admin_sheet_mobile')} <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="text"
-                      maxLength={10}
+                      type="tel"
+                      maxLength={15}
                       value={newAlumnus.mobile || ''}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         setNewAlumnus({ ...newAlumnus, mobile: val });
                         if (addFormErrors['mobile']) setAddFormErrors({ ...addFormErrors, mobile: '' });
                       }}
-                      placeholder="e.g. 9876543210"
+                      placeholder={newAlumnus.country_code === '+91' || newAlumnus.country_code === '91' ? 'e.g. 9876543210' : 'Mobile number'}
                       className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
                         addFormErrors['mobile'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
                       } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-mono font-bold tracking-wider shadow-2xs`}
@@ -2819,10 +3000,21 @@ export const AlumniManagement: React.FC = () => {
                   <input
                     type="email"
                     value={newAlumnus.email || ''}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, email: e.target.value })}
+                    onChange={(e) => {
+                      setNewAlumnus({ ...newAlumnus, email: e.target.value });
+                      if (addFormErrors['email']) setAddFormErrors({ ...addFormErrors, email: '' });
+                    }}
                     placeholder="alumni@example.com"
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-mono shadow-2xs"
+                    className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                      addFormErrors['email'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                    } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-mono shadow-2xs`}
                   />
+                  {addFormErrors['email'] && (
+                    <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{addFormErrors['email']}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -2879,14 +3071,27 @@ export const AlumniManagement: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    {t('admin_sheet_country')}
+                    {t('admin_sheet_country')} ({language === 'ta' ? 'நாடு / இருப்பிடம்' : 'Location Country'})
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={newAlumnus.country || 'India'}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, country: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
-                  />
+                    onChange={(e) => {
+                      const cName = e.target.value;
+                      const matched = COUNTRIES.find((c) => c.name === cName);
+                      setNewAlumnus({
+                        ...newAlumnus,
+                        country: cName,
+                        country_code: matched ? matched.dialCode : (newAlumnus.country_code || '+91'),
+                      });
+                    }}
+                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-semibold shadow-2xs cursor-pointer"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name} ({c.dialCode})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
@@ -2895,61 +3100,48 @@ export const AlumniManagement: React.FC = () => {
             {addFormStep === 3 && (
               <div className="space-y-4 animate-fadeIn">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    {t('admin_sheet_school_name')}
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-gray-700">
+                      {t('admin_sheet_school_name')}
+                    </label>
+                    <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      🔒 {language === 'ta' ? 'தானாக பெறப்பட்டது (Read-only)' : 'Auto-fetched (Read-only)'}
+                    </span>
+                  </div>
                   <input
                     type="text"
-                    value={newAlumnus.school_name || ''}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, school_name: e.target.value })}
-                    placeholder="School Name"
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-medium shadow-2xs"
+                    readOnly
+                    disabled
+                    value={newAlumnus.school_name || schoolName || 'Natarajan Higher Secondary School'}
+                    className="w-full px-3.5 py-2.5 text-sm bg-gray-100 text-gray-700 border border-gray-200 rounded-xl outline-none font-medium cursor-not-allowed select-none shadow-2xs"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                      {t('admin_sheet_joining_year')}
-                    </label>
-                    <select
-                      value={newAlumnus.joining_year ?? ''}
-                      onChange={(e) => setNewAlumnus({ ...newAlumnus, joining_year: e.target.value ? Number(e.target.value) : undefined })}
-                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-semibold shadow-2xs"
-                    >
-                      <option value="">-- Select Admission Year --</option>
-                      {availableBatches.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                      {t('admin_sheet_passing_year')} <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={newAlumnus.passing_year ?? ''}
-                      onChange={(e) => {
-                        setNewAlumnus({ ...newAlumnus, passing_year: e.target.value ? Number(e.target.value) : undefined });
-                        if (addFormErrors['passing_year']) setAddFormErrors({ ...addFormErrors, passing_year: '' });
-                      }}
-                      className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
-                        addFormErrors['passing_year'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
-                      } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-extrabold text-[#854D0E] shadow-2xs`}
-                    >
-                      <option value="">-- Select School Leaving Year --</option>
-                      {availableBatches.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                    {addFormErrors['passing_year'] && (
-                      <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{addFormErrors['passing_year']}</span>
-                      </p>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    {t('admin_sheet_passing_year')} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={newAlumnus.passing_year ?? ''}
+                    onChange={(e) => {
+                      setNewAlumnus({ ...newAlumnus, passing_year: e.target.value ? Number(e.target.value) : undefined });
+                      if (addFormErrors['passing_year']) setAddFormErrors({ ...addFormErrors, passing_year: '' });
+                    }}
+                    className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                      addFormErrors['passing_year'] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#111111]'
+                    } rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none font-extrabold text-[#854D0E] shadow-2xs`}
+                  >
+                    <option value="">-- Select School Leaving Year --</option>
+                    {availableBatches.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                  {addFormErrors['passing_year'] && (
+                    <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{addFormErrors['passing_year']}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -2988,18 +3180,42 @@ export const AlumniManagement: React.FC = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    {t('admin_sheet_no_higher_ed')}
+                {/* Higher Education Selector - Yes shows Step 4, No hides Step 4 */}
+                <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+                  <label className="block text-xs font-bold text-gray-800">
+                    {language === 'ta' ? 'உயர் கல்வி பயின்றவரா? (Pursued Higher Studies?)' : 'Pursued Higher Education?'}
                   </label>
-                  <select
-                    value={newAlumnus.no_higher_education || 'NO'}
-                    onChange={(e) => setNewAlumnus({ ...newAlumnus, no_higher_education: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all outline-none font-bold shadow-2xs"
-                  >
-                    <option value="NO">{t('admin_label_no')} (Pursued Higher Education)</option>
-                    <option value="YES">{t('admin_label_yes')} (Directly Entered Workforce)</option>
-                  </select>
+                  <p className="text-xs text-gray-500 font-medium">
+                    {language === 'ta'
+                      ? 'ஆம் எனில் உயர் கல்வி விவரங்கள் (படி 4) தோன்றும். இல்லை எனில் நேரடியாக பணி விவரங்களுக்கு செல்லும்.'
+                      : 'Selecting "Yes" shows Step 4 (Higher Education). Selecting "No" skips directly to Step 5.'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setNewAlumnus({ ...newAlumnus, no_higher_education: 'NO' })}
+                      className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                        newAlumnus.no_higher_education !== 'YES'
+                          ? 'bg-[#111111] text-white border-[#111111] shadow-md'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 shadow-2xs'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>{language === 'ta' ? 'ஆம் / Yes (பயின்றார்)' : 'Yes (Pursued Higher Ed)'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewAlumnus({ ...newAlumnus, no_higher_education: 'YES' })}
+                      className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                        newAlumnus.no_higher_education === 'YES'
+                          ? 'bg-[#111111] text-white border-[#111111] shadow-md'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 shadow-2xs'
+                      }`}
+                    >
+                      <X className="w-4 h-4 text-rose-400" />
+                      <span>{language === 'ta' ? 'இல்லை / No (பயிலவில்லை)' : 'No (Direct to Work)'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -3272,7 +3488,7 @@ export const AlumniManagement: React.FC = () => {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => { setIsAddModalOpen(false); resetAddForm(); }}
+                  onClick={handleCloseAddModal}
                   className="rounded-xl px-4 py-2 text-xs font-bold"
                 >
                   {t('admin_add_cancel')}

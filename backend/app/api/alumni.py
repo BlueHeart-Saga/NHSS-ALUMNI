@@ -434,7 +434,6 @@ CSV_HEADER_ALIASES = {
     "profession": ["designation", "profession", "designation / position", "position", "occupation", "job title", "title"],
     "industry": ["industry", "sector"],
     "total_experience": ["total experience", "total_experience", "experience", "experience_years"],
-    "skills": ["skills", "skills & expertise", "skills and expertise"],
     "linkedin_url": ["linkedin url", "linkedin_url", "linkedin"],
     "instagram_url": ["instagram url", "instagram_url", "instagram"],
     "whatsapp_number": ["whatsapp number", "whatsapp_number", "whatsapp"],
@@ -543,7 +542,6 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
         "profession":           "profession",
         "industry":             "industry",
         "total_experience":     "total_experience",
-        "skills":               "skills",
         "linkedin_url":         "linkedin_url",
         "instagram_url":        "instagram_url",
         "whatsapp_number":      "whatsapp_number",
@@ -581,10 +579,6 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
         if isinstance(existing_val, (int, float)) and isinstance(new_val, (int, float)):
             if existing_val == new_val:
                 continue
-        elif db_field == "skills":
-            existing_skills_str = ", ".join(existing_val) if isinstance(existing_val, list) else str(existing_val or "")
-            if existing_skills_str.strip() == str(new_val).strip():
-                continue
         else:
             if str(existing_val).strip() == str(new_val).strip():
                 continue
@@ -615,9 +609,6 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
             updates["position"] = new_val
         elif db_field == "total_experience":
             updates["experience_years"] = new_val
-        elif db_field == "skills":
-            if isinstance(new_val, str):
-                updates["skills"] = [s.strip() for s in new_val.split(",") if s.strip()]
 
     if batch_id is not None and existing_doc.get("batch_id") != batch_id:
         updates["batch_id"] = batch_id
@@ -625,7 +616,7 @@ def _compute_field_updates(csv_row: dict, existing_doc: dict, batch_id) -> dict:
     return updates
 
 def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dict:
-    """Build a complete alumni document containing all 44 fields for CSV creation."""
+    """Build a complete alumni document containing all fields for CSV creation."""
     name = (row.get("name") or "").strip()
     batch_year_raw = (row.get("batch_year") or "").strip()
     try:
@@ -640,9 +631,6 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
             return int(float(val))
         except (ValueError, TypeError):
             return None
-
-    skills_raw = (row.get("skills") or "").strip()
-    skills_list = [s.strip() for s in skills_raw.split(",") if s.strip()] if skills_raw else []
 
     name_ta = (row.get("name_ta") or "").strip()
     dob = (row.get("date_of_birth") or "").strip()
@@ -710,7 +698,6 @@ def _build_alumni_doc(row: dict, school_id: str, batch_id, oid: ObjectId) -> dic
         "industry": (row.get("industry") or "").strip(),
         "total_experience": exp,
         "experience_years": exp,
-        "skills": skills_list,
         "linkedin_url": (row.get("linkedin_url") or "").strip(),
         "instagram_url": (row.get("instagram_url") or "").strip(),
         "whatsapp_number": (row.get("whatsapp_number") or "").strip(),
@@ -1127,11 +1114,55 @@ async def export_import_errors_csv(
             item.get("reason", "")
         ])
 
-    return Response(
-        content=output.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=csv_import_errors.csv"}
-    )
+@router.get("/check-duplicate")
+async def check_alumni_duplicate(
+    mobile: Optional[str] = Query(None),
+    email: Optional[str] = Query(None),
+    exclude_id: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Check if a mobile number or email already exists in users or alumni records."""
+    db = get_db()
+    mobile_exists = False
+    email_exists = False
+    mobile_owner = None
+    email_owner = None
+
+    if mobile and str(mobile).strip():
+        m_filter = build_mobile_query_filter(str(mobile).strip())
+        if m_filter:
+            m_query = {"$or": m_filter}
+            user_doc = await db.users.find_one(m_query)
+            if user_doc and (not exclude_id or str(user_doc.get("_id")) != exclude_id):
+                mobile_exists = True
+                mobile_owner = user_doc.get("full_name") or user_doc.get("mobile")
+
+            if not mobile_exists:
+                alumni_doc = await db.alumni.find_one(m_query)
+                if alumni_doc and (not exclude_id or (str(alumni_doc.get("_id")) != exclude_id and str(alumni_doc.get("user_id")) != exclude_id)):
+                    mobile_exists = True
+                    mobile_owner = alumni_doc.get("full_name") or alumni_doc.get("mobile")
+
+    if email and str(email).strip():
+        e_clean = str(email).lower().strip()
+        e_filter = {"email": {"$regex": f"^{re.escape(e_clean)}$", "$options": "i"}}
+        user_doc = await db.users.find_one(e_filter)
+        if user_doc and (not exclude_id or str(user_doc.get("_id")) != exclude_id):
+            email_exists = True
+            email_owner = user_doc.get("full_name") or user_doc.get("email")
+
+        if not email_exists:
+            alumni_doc = await db.alumni.find_one(e_filter)
+            if alumni_doc and (not exclude_id or (str(alumni_doc.get("_id")) != exclude_id and str(alumni_doc.get("user_id")) != exclude_id)):
+                email_exists = True
+                email_owner = alumni_doc.get("full_name") or alumni_doc.get("email")
+
+    return {
+        "mobile_exists": mobile_exists,
+        "mobile_owner": mobile_owner,
+        "email_exists": email_exists,
+        "email_owner": email_owner
+    }
 
 @router.get("/directory", response_model=List[UserProfileResponse])
 async def search_directory(
@@ -1215,15 +1246,6 @@ async def search_directory(
 
     res = []
     for a in alumni_list:
-        try:
-            skills_val = a.get("skills")
-            if isinstance(skills_val, str):
-                skills_list = [s.strip() for s in skills_val.split(",") if s.strip()]
-            elif isinstance(skills_val, list):
-                skills_list = skills_val
-            else:
-                skills_list = []
-
             mobile_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
             email_raw = a.get("email") or ""
             is_self = str(a.get("user_id", "")) == str(current_user.get("user_id", "")) if a.get("user_id") and current_user.get("user_id") else False
@@ -1284,7 +1306,6 @@ async def search_directory(
                 industry=a.get("industry"),
                 experience_years=a.get("experience_years"),
                 total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
-                skills=skills_list,
                 linkedin_url=a.get("linkedin_url"),
                 instagram_url=a.get("instagram_url"),
                 whatsapp_number=str(a.get("whatsapp_number") or mobile_raw or ""),
@@ -1433,7 +1454,6 @@ class AdminUpdateAlumniRequest(BaseModel):
     industry: Optional[str] = None
     experience_years: Optional[Any] = None
     total_experience: Optional[Any] = None
-    skills: Optional[Any] = None
     linkedin_url: Optional[str] = None
     instagram_url: Optional[str] = None
     whatsapp_number: Optional[Any] = None
@@ -2295,7 +2315,6 @@ async def admin_create_alumni(
         "industry": request.industry,
         "experience_years": request.experience_years,
         "total_experience": request.total_experience,
-        "skills": request.skills if isinstance(request.skills, list) else [],
         "linkedin_url": request.linkedin_url,
         "instagram_url": request.instagram_url,
         "whatsapp_number": request.whatsapp_number,
