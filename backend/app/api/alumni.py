@@ -1246,6 +1246,7 @@ async def search_directory(
 
     res = []
     for a in alumni_list:
+        try:
             mobile_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
             email_raw = a.get("email") or ""
             is_self = str(a.get("user_id", "")) == str(current_user.get("user_id", "")) if a.get("user_id") and current_user.get("user_id") else False
