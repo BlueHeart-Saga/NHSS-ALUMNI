@@ -3095,26 +3095,32 @@ export const AlumniRegister: React.FC = () => {
                     <label htmlFor="agreeTerms" className="text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed cursor-pointer select-none">
                       {language === 'ta' ? (
                         <>
-                          இந்த பதிவு படிவத்தில் வழங்கப்பட்டுள்ள அனைத்து தகவல்களும் சரியானவை என்பதை உறுதிப்படுத்துகிறேன். முன்னாள் மாணவர்கள்{' '}
+                          நான் வழங்கிய தகவல்கள் அனைத்தும் சரியானவை என உறுதி கூறுகிறேன். முன்னாள் மாணவர் சங்கத்தின்{' '}
                           <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
-                            சங்க விதிகளுக்கும்
+                            விதிமுறைகளுக்கும்
                           </Link>{' '}
                           மற்றும்{' '}
                           <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
                             தனியுரிமைக் கொள்கைக்கும்
                           </Link>{' '}
                           உடன்படுகிறேன்.
+                          <span className="mt-1.5 block text-xs font-normal text-gray-500 leading-normal">
+                            உங்கள் தகவல்கள் உறுப்பினர் பதிவு மற்றும் தொடர்புக்காக மட்டுமே பயன்படுத்தப்படும்; விளம்பரத்திற்கோ அல்லது மூன்றாம் தரப்பினருக்கோ பகிரப்படாது.
+                          </span>
                         </>
                       ) : (
                         <>
-                          I confirm that all information provided in this registration form is accurate. I agree to the Alumni{' '}
+                          I confirm that all information provided is accurate. I agree to the Alumni Association{' '}
                           <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
-                            Terms of Association
+                            Terms & Conditions
                           </Link>{' '}
                           and{' '}
                           <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#854D0E] underline hover:text-[#111111]" onClick={(e) => e.stopPropagation()}>
-                            Privacy Guidelines
+                            Privacy Policy
                           </Link>.
+                          <span className="mt-1.5 block text-xs font-normal text-gray-500 leading-normal">
+                            Your information will strictly be used for registration and official communications. It will never be shared or used for commercial purposes.
+                          </span>
                         </>
                       )}
                     </label>
