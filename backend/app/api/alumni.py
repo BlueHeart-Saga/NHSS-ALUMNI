@@ -1215,88 +1215,98 @@ async def search_directory(
 
     res = []
     for a in alumni_list:
-        skills_val = a.get("skills")
-        if isinstance(skills_val, str):
-            skills_list = [s.strip() for s in skills_val.split(",") if s.strip()]
-        elif isinstance(skills_val, list):
-            skills_list = skills_val
-        else:
-            skills_list = []
+        try:
+            skills_val = a.get("skills")
+            if isinstance(skills_val, str):
+                skills_list = [s.strip() for s in skills_val.split(",") if s.strip()]
+            elif isinstance(skills_val, list):
+                skills_list = skills_val
+            else:
+                skills_list = []
 
-        mobile_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
-        email_raw = a.get("email") or ""
-        is_self = str(a.get("user_id", "")) == str(current_user.get("user_id", "")) if a.get("user_id") and current_user.get("user_id") else False
-        show_contact = is_admin or is_self or a.get("email_visible") or a.get("phone_visible") or a.get("directory_visible", True)
+            mobile_raw = a.get("mobile") or a.get("phone") or a.get("whatsapp_number") or ""
+            email_raw = a.get("email") or ""
+            is_self = str(a.get("user_id", "")) == str(current_user.get("user_id", "")) if a.get("user_id") and current_user.get("user_id") else False
+            show_contact = is_admin or is_self or a.get("email_visible") or a.get("phone_visible") or a.get("directory_visible", True)
 
-        res.append(UserProfileResponse(
-            id=str(a["_id"]),
-            user_id=str(a.get("user_id", "")),
-            school_id=str(a.get("school_id") or school_id or ""),
-            full_name=a.get("full_name") or a.get("name") or "Alumnus",
-            name_ta=a.get("name_ta") or a.get("full_name_ta"),
-            full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
-            mobile=mobile_raw if show_contact else "***",
-            country_code=a.get("country_code") or "91",
-            gender=a.get("gender"),
-            date_of_birth=a.get("date_of_birth") or a.get("dob"),
-            dob=a.get("dob") or a.get("date_of_birth"),
-            blood_group=a.get("blood_group"),
-            father_name=a.get("father_name"),
-            mother_name=a.get("mother_name"),
-            address=a.get("address"),
-            current_city=a.get("current_city") or a.get("city"),
-            city=a.get("city") or a.get("current_city"),
-            state=a.get("state") or a.get("current_state"),
-            current_state=a.get("current_state") or a.get("state"),
-            country=a.get("country") or "India",
-            school_name=a.get("school_name"),
-            joining_year=a.get("joining_year") or a.get("admission_year"),
-            admission_year=a.get("admission_year") or a.get("joining_year"),
-            passing_year=int(a["passing_year"]) if a.get("passing_year") and str(a["passing_year"]).isdigit() else (a.get("passing_year") or 2010),
-            leaving_class=str(a["leaving_class"]) if a.get("leaving_class") is not None else None,
-            roll_no=str(a.get("roll_no")) if a.get("roll_no") is not None else None,
-            section=str(a["section"]) if a.get("section") is not None else None,
-            no_higher_education=(
-                "YES" if a.get("no_higher_education") in [True, "YES", "yes", "true", "True"]
-                else ("NO" if a.get("no_higher_education") in [False, "NO", "no", "false", "False"]
-                else (str(a.get("no_higher_education")) if a.get("no_higher_education") is not None else "NO"))
-            ),
-            college_name=a.get("college_name") or a.get("institution_name"),
-            institution_name=a.get("institution_name") or a.get("college_name"),
-            degree=a.get("degree") or a.get("other_degree") or a.get("custom_degree"),
-            custom_degree=a.get("custom_degree") or a.get("other_degree") or a.get("degree"),
-            department=a.get("department") or a.get("stream"),
-            stream=a.get("stream") or a.get("department"),
-            college_register_no=str(a["college_register_no"]) if a.get("college_register_no") is not None else None,
-            college_joining_year=a.get("college_joining_year"),
-            college_passing_year=a.get("college_passing_year"),
-            employment_status=a.get("employment_status"),
-            company=a.get("company") or a.get("company_name"),
-            company_name=a.get("company_name") or a.get("company"),
-            profession=a.get("profession") or a.get("designation") or a.get("position"),
-            designation=a.get("designation") or a.get("profession") or a.get("position"),
-            position=a.get("position") or a.get("profession") or a.get("designation"),
-            industry=a.get("industry"),
-            experience_years=a.get("experience_years"),
-            total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
-            skills=skills_list,
-            linkedin_url=a.get("linkedin_url"),
-            instagram_url=a.get("instagram_url"),
-            whatsapp_number=str(a.get("whatsapp_number") or mobile_raw or ""),
-            website_url=a.get("website_url"),
-            profile_photo_url=a.get("profile_photo_url") or a.get("avatar"),
-            is_volunteer="YES" if a.get("is_volunteer") in [True, "YES", "yes", "true", "True"] else "NO",
-            willing_to_donate="YES" if a.get("willing_to_donate") in [True, "YES", "yes", "true", "True"] else "NO",
-            verification_status=a.get("verification_status", "APPROVED"),
-            account_status=a.get("account_status", "ACTIVE"),
-            invitation_status=a.get("invitation_status"),
-            phone_verified=a.get("phone_verified", False),
-            roles=a.get("roles", ["ALUMNI"]),
-            email=email_raw if show_contact else "***",
-            batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
-            email_visible=a.get("email_visible", False),
-            created_at=a.get("created_at", datetime.now(timezone.utc))
-        ))
+            doc_id = str(a.get("_id") or a.get("id") or "")
+            if not doc_id:
+                continue
+
+            res.append(UserProfileResponse(
+                id=doc_id,
+                user_id=str(a.get("user_id", "")),
+                school_id=str(a.get("school_id") or school_id or ""),
+                full_name=a.get("full_name") or a.get("name") or "Alumnus",
+                name_ta=a.get("name_ta") or a.get("full_name_ta"),
+                full_name_ta=a.get("full_name_ta") or a.get("name_ta"),
+                mobile=mobile_raw if show_contact else "***",
+                country_code=a.get("country_code") or "91",
+                gender=a.get("gender"),
+                date_of_birth=a.get("date_of_birth") or a.get("dob"),
+                dob=a.get("dob") or a.get("date_of_birth"),
+                blood_group=a.get("blood_group"),
+                father_name=a.get("father_name"),
+                mother_name=a.get("mother_name"),
+                address=a.get("address"),
+                current_city=a.get("current_city") or a.get("city"),
+                city=a.get("city") or a.get("current_city"),
+                state=a.get("state") or a.get("current_state"),
+                current_state=a.get("current_state") or a.get("state"),
+                country=a.get("country") or "India",
+                school_name=a.get("school_name"),
+                joining_year=a.get("joining_year") or a.get("admission_year"),
+                admission_year=a.get("admission_year") or a.get("joining_year"),
+                passing_year=int(a["passing_year"]) if a.get("passing_year") and str(a["passing_year"]).isdigit() else (a.get("passing_year") or 2010),
+                leaving_class=str(a["leaving_class"]) if a.get("leaving_class") is not None else None,
+                roll_no=str(a.get("roll_no")) if a.get("roll_no") is not None else None,
+                section=str(a["section"]) if a.get("section") is not None else None,
+                no_higher_education=(
+                    "YES" if a.get("no_higher_education") in [True, "YES", "yes", "true", "True"]
+                    else ("NO" if a.get("no_higher_education") in [False, "NO", "no", "false", "False"]
+                    else (str(a.get("no_higher_education")) if a.get("no_higher_education") is not None else "NO"))
+                ),
+                college_name=a.get("college_name") or a.get("institution_name"),
+                institution_name=a.get("institution_name") or a.get("college_name"),
+                degree=a.get("degree") or a.get("other_degree") or a.get("custom_degree"),
+                custom_degree=a.get("custom_degree") or a.get("other_degree") or a.get("degree"),
+                department=a.get("department") or a.get("stream"),
+                stream=a.get("stream") or a.get("department"),
+                college_register_no=str(a["college_register_no"]) if a.get("college_register_no") is not None else None,
+                college_joining_year=a.get("college_joining_year"),
+                college_passing_year=a.get("college_passing_year"),
+                employment_status=a.get("employment_status"),
+                company=a.get("company") or a.get("company_name"),
+                company_name=a.get("company_name") or a.get("company"),
+                profession=a.get("profession") or a.get("designation") or a.get("position"),
+                designation=a.get("designation") or a.get("profession") or a.get("position"),
+                position=a.get("position") or a.get("profession") or a.get("designation"),
+                industry=a.get("industry"),
+                experience_years=a.get("experience_years"),
+                total_experience=a.get("total_experience") or (str(a.get("experience_years")) if a.get("experience_years") is not None else None),
+                skills=skills_list,
+                linkedin_url=a.get("linkedin_url"),
+                instagram_url=a.get("instagram_url"),
+                whatsapp_number=str(a.get("whatsapp_number") or mobile_raw or ""),
+                website_url=a.get("website_url"),
+                profile_photo_url=a.get("profile_photo_url") or a.get("avatar"),
+                is_volunteer="YES" if a.get("is_volunteer") in [True, "YES", "yes", "true", "True"] else "NO",
+                willing_to_donate="YES" if a.get("willing_to_donate") in [True, "YES", "yes", "true", "True"] else "NO",
+                verification_status=a.get("verification_status", "APPROVED"),
+                account_status=a.get("account_status", "ACTIVE"),
+                invitation_status=a.get("invitation_status"),
+                phone_verified=a.get("phone_verified", False),
+                roles=a.get("roles", ["ALUMNI"]),
+                email=email_raw if show_contact else "***",
+                batch_id=str(a["batch_id"]) if a.get("batch_id") else None,
+                email_visible=a.get("email_visible", False),
+                created_at=a.get("created_at", datetime.now(timezone.utc))
+            ))
+        except Exception as field_err:
+            logger.error(
+                f"[alumni.directory] failed to serialize alumni _id={a.get('_id')} error={field_err}",
+                exc_info=True,
+            )
     return res
 
 @router.put("/profile", response_model=UserProfileResponse)
