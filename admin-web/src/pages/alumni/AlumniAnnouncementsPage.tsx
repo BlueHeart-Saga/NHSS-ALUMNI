@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bell,
   FileText,
@@ -73,6 +73,7 @@ const CATEGORY_MAP: Record<string, { labelEn: string; labelTa: string; icon: any
 
 export const AlumniAnnouncementsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { language } = useLanguage();
 
   // Selected tab
@@ -113,6 +114,39 @@ export const AlumniAnnouncementsPage: React.FC = () => {
 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
+
+  // Handle URL search parameters for direct deep linking
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'MEETING_MINUTES') {
+      setActiveTab('MEETING_MINUTES');
+    } else if (tabParam === 'AUDIT') {
+      setActiveTab('AUDIT');
+    } else if (tabParam === 'CONTRIBUTIONS') {
+      setActiveTab('CONTRIBUTIONS');
+    } else if (tabParam === 'SPONSORS') {
+      setActiveTab('SPONSORS');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const newsId = searchParams.get('newsId');
+    if (newsId && announcements.length > 0) {
+      const found = announcements.find(a => a.id === newsId);
+      if (found) setSelectedNews(found);
+    }
+  }, [searchParams, announcements]);
+
+  useEffect(() => {
+    const meetingId = searchParams.get('meetingId');
+    if (meetingId && meetingMinutes.length > 0) {
+      const found = meetingMinutes.find(m => m.id === meetingId);
+      if (found) {
+        setActiveTab('MEETING_MINUTES');
+        setSelectedMeetingDoc(found);
+      }
+    }
+  }, [searchParams, meetingMinutes]);
 
   // 1. Fetch Announcements
   useEffect(() => {

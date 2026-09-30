@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, Calendar, MapPin, Users } from 'lucide-react';
 import { Hero } from './components/Hero';
 import { CommunityStats } from './components/CommunityStats';
@@ -22,6 +22,7 @@ import { formatDateDDMMYYYY } from '../../../utils/dateUtils';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { language } = useLanguage();
 
   // Public Backend Data State
@@ -56,6 +57,14 @@ export const HomePage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
   const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
+
+  useEffect(() => {
+    const newsId = searchParams.get('newsId');
+    if (newsId && announcements.length > 0) {
+      const found = announcements.find(a => a.id === newsId);
+      if (found) setSelectedNews(found);
+    }
+  }, [searchParams, announcements]);
 
   // Alumni Web Login OTP Form
   const [mobile, setMobile] = useState('');

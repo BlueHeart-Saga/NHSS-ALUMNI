@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ClipboardList, Calendar, Clock, Video, FileText, ArrowRight,
   Sparkles, Eye, Download, Search, CheckCircle2, ChevronDown, ChevronUp,
@@ -35,6 +36,7 @@ const formatFileSize = (bytes?: number): string => {
 };
 
 export const MeetingMinutesSection: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { language } = useLanguage();
   const [items, setItems] = useState<MeetingMinute[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,17 @@ export const MeetingMinutesSection: React.FC = () => {
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    const meetingId = searchParams.get('meetingId');
+    if (meetingId && items.length > 0) {
+      const found = items.find(m => m.id === meetingId);
+      if (found) {
+        setSelectedMeeting(found);
+        setIsDocumentModalOpen(true);
+      }
+    }
+  }, [searchParams, items]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
