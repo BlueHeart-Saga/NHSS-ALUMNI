@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   ClipboardList, Calendar, Clock, Video, FileText, ArrowRight,
   Sparkles, Eye, Download, Search, CheckCircle2, ChevronDown, ChevronUp,
@@ -292,14 +292,22 @@ export const MeetingMinutesSection: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <Link
+                        to={`/meeting-minutes/${m.id}`}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs rounded-xl shadow-2xs transition-all cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 text-[#F4C542]" />
+                        {language === 'ta' ? 'தனப் பக்கத்தில் திற' : 'Open Page View'}
+                      </Link>
+
                       <button
                         type="button"
                         onClick={() => handleOpenDocumentModal(m)}
                         className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-extrabold text-xs rounded-xl shadow-2xs transition-all cursor-pointer"
                       >
                         <Maximize2 className="w-4 h-4 text-[#111111]" />
-                        {language === 'ta' ? 'முழுத் திரை அறிக்கை பார்வையிடுக' : 'Open Full Screen Cover View'}
+                        {language === 'ta' ? 'முழுத் திரை அறிக்கை' : 'Full Screen Modal'}
                       </button>
 
                       {m.pdf_url && (

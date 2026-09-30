@@ -7,6 +7,9 @@ import { PublicSponsorsPage } from '../pages/public-pages/PublicSponsorsPage';
 // Layouts
 import { PublicLayout } from '../layouts/PublicLayout';
 
+import { NewsDetailPage } from '../pages/public-pages/NewsDetailPage';
+import { MeetingMinuteDetailPage } from '../pages/public-pages/Audit/MeetingMinuteDetailPage';
+
 // Public Pages (Eagerly Loaded for Immediate First Paint)
 import { HomePage } from '../pages/public-pages/HomePage';
 import { PublicAbout } from '../pages/public-pages/PublicAbout';
@@ -94,8 +97,12 @@ export const AppRoutes: React.FC = () => {
         <Route path="batches" element={<PublicBatches />} />
         <Route path="events" element={<PublicEvents />} />
         <Route path="memories" element={<PublicMemories />} />
+        <Route path="news/:id" element={<NewsDetailPage />} />
+        <Route path="announcements/:id" element={<NewsDetailPage />} />
+        <Route path="meeting-minutes/:id" element={<MeetingMinuteDetailPage />} />
         <Route path="audit" element={<AuditListPage />} />
         <Route path="audit/:id" element={<AuditDetailPage />} />
+        <Route path="audit/meeting-minutes/:id" element={<MeetingMinuteDetailPage />} />
         <Route path="contributors" element={<PublicContributorsPage />} />
         <Route path="sponsors" element={<PublicSponsorsPage />} />
         <Route path="contact" element={<PublicContact />} />

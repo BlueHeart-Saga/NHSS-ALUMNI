@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Calendar, ArrowRight, Newspaper, Clock, FileText, Megaphone,
   PartyPopper, BookOpen, Award, Eye, Download, CheckCircle2, X,
@@ -262,14 +263,17 @@ export const SchoolNews: React.FC<SchoolNewsProps> = ({ announcements, loading, 
 
                       {/* Footer Button */}
                       <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => onSelectNews(item)}
+                        <Link
+                          to={`/news/${item.id}`}
+                          onClick={(e) => {
+                            // If parent provided custom handler that sets modal, allow default link or call onSelectNews
+                            onSelectNews(item);
+                          }}
                           className="inline-flex items-center space-x-2 text-xs font-bold text-[#111111] group-hover:text-[#854D0E] uppercase tracking-wider cursor-pointer transition-colors"
                         >
                           <span>{language === 'ta' ? 'முழு விவரம் படிக்க' : 'Read Full Announcement'}</span>
                           <ArrowRight className="w-4 h-4 text-[#854D0E] group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        </Link>
 
                         {item.pdf_url && (
                           <a
