@@ -18,21 +18,32 @@ import {
   Info,
   CheckCircle2,
   Eye,
+  ClipboardList,
+  Megaphone,
+  PartyPopper,
+  BookOpen,
+  Image as ImageIcon,
+  Paperclip,
+  Clock,
+  Video,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { Modal } from '../../components/Modal';
 import { LoadingState } from '../../components/EmptyState';
+import { NewsDetailModal } from '../../components/NewsDetailModal';
+import { MeetingDocumentModal } from '../../components/MeetingDocumentModal';
 import type {
   Announcement,
   AuditStatementListSummary,
   AuditStatementDetail,
   TopContributor,
   Sponsor,
+  MeetingMinute,
 } from '../../types';
 
-type TabType = 'ANNOUNCEMENTS' | 'AUDIT' | 'CONTRIBUTIONS' | 'SPONSORS';
+type TabType = 'ANNOUNCEMENTS' | 'MEETING_MINUTES' | 'AUDIT' | 'CONTRIBUTIONS' | 'SPONSORS';
 
 /** Compute current Indian financial year string (e.g. "2025 - 2026") */
 const currentIndianFY = (): string => {
@@ -51,6 +62,15 @@ const formatINR = (amount: number): string => {
   }).format(amount);
 };
 
+const CATEGORY_MAP: Record<string, { labelEn: string; labelTa: string; icon: any; color: string }> = {
+  GENERAL: { labelEn: 'Notice', labelTa: 'அறிவிப்பு', icon: Megaphone, color: 'bg-amber-100 text-amber-900 border-amber-300' },
+  CIRCULAR: { labelEn: 'Circular', labelTa: 'சுற்றறிக்கை', icon: FileText, color: 'bg-blue-100 text-blue-900 border-blue-300' },
+  EVENT_NOTICE: { labelEn: 'Event Notice', labelTa: 'நிகழ்வு', icon: Calendar, color: 'bg-purple-100 text-purple-900 border-purple-300' },
+  CELEBRATION: { labelEn: 'Celebration', labelTa: 'விழா / கொண்டாட்டம்', icon: PartyPopper, color: 'bg-rose-100 text-rose-900 border-rose-300' },
+  ACADEMIC: { labelEn: 'Academic', labelTa: 'கல்வி / தேர்வு', icon: BookOpen, color: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+  ACHIEVEMENT: { labelEn: 'Achievement', labelTa: 'சாதனை', icon: Award, color: 'bg-orange-100 text-orange-900 border-orange-300' },
+};
+
 export const AlumniAnnouncementsPage: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -63,11 +83,15 @@ export const AlumniAnnouncementsPage: React.FC = () => {
 
   // Search queries
   const [announcementSearch, setAnnouncementSearch] = useState('');
+  const [meetingSearch, setMeetingSearch] = useState('');
   const [auditSearch, setAuditSearch] = useState('');
   const [contributorSearch, setContributorSearch] = useState('');
   const [sponsorSearch, setSponsorSearch] = useState('');
 
   // Modals state
+  const [selectedNews, setSelectedNews] = useState<Announcement | null>(null);
+  const [selectedMeetingDoc, setSelectedMeetingDoc] = useState<MeetingMinute | null>(null);
+
   const [selectedAuditSummary, setSelectedAuditSummary] = useState<AuditStatementListSummary | null>(null);
   const [selectedAuditDetail, setSelectedAuditDetail] = useState<AuditStatementDetail | null>(null);
   const [loadingAuditDetail, setLoadingAuditDetail] = useState(false);
@@ -77,6 +101,9 @@ export const AlumniAnnouncementsPage: React.FC = () => {
   // Data states & loading
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+
+  const [meetingMinutes, setMeetingMinutes] = useState<MeetingMinute[]>([]);
+  const [loadingMeetingMinutes, setLoadingMeetingMinutes] = useState(true);
 
   const [auditStatements, setAuditStatements] = useState<AuditStatementListSummary[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
@@ -98,7 +125,18 @@ export const AlumniAnnouncementsPage: React.FC = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // 2. Fetch Audit Statements
+  // 2. Fetch Meeting Minutes
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingMeetingMinutes(true);
+    api.getPublicMeetingMinutes()
+      .then(res => { if (isMounted) setMeetingMinutes(res || []); })
+      .catch(console.error)
+      .finally(() => { if (isMounted) setLoadingMeetingMinutes(false); });
+    return () => { isMounted = false; };
+  }, []);
+
+  // 3. Fetch Audit Statements
   useEffect(() => {
     let isMounted = true;
     setLoadingAudit(true);
@@ -109,7 +147,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // 3. Fetch Top Contributors
+  // 4. Fetch Top Contributors
   useEffect(() => {
     let isMounted = true;
     setLoadingContributors(true);
@@ -120,7 +158,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [financialYear]);
 
-  // 4. Fetch Sponsors
+  // 5. Fetch Sponsors
   useEffect(() => {
     let isMounted = true;
     setLoadingSponsors(true);
@@ -164,9 +202,27 @@ export const AlumniAnnouncementsPage: React.FC = () => {
     if (!announcementSearch.trim()) return announcements;
     const q = announcementSearch.toLowerCase();
     return announcements.filter(
-      a => a.title.toLowerCase().includes(q) || a.content.toLowerCase().includes(q)
+      a =>
+        a.title.toLowerCase().includes(q) ||
+        (a.title_ta && a.title_ta.toLowerCase().includes(q)) ||
+        a.content.toLowerCase().includes(q) ||
+        (a.content_ta && a.content_ta.toLowerCase().includes(q))
     );
   }, [announcements, announcementSearch]);
+
+  // Filtered meeting minutes
+  const filteredMeetingMinutes = useMemo(() => {
+    if (!meetingSearch.trim()) return meetingMinutes;
+    const q = meetingSearch.toLowerCase();
+    return meetingMinutes.filter(
+      m =>
+        m.title.toLowerCase().includes(q) ||
+        (m.title_ta && m.title_ta.toLowerCase().includes(q)) ||
+        (m.notes && m.notes.toLowerCase().includes(q)) ||
+        (m.notes_ta && m.notes_ta.toLowerCase().includes(q)) ||
+        (m.meeting_type && m.meeting_type.toLowerCase().includes(q))
+    );
+  }, [meetingMinutes, meetingSearch]);
 
   // Filtered audits
   const filteredAudits = useMemo(() => {
@@ -226,18 +282,18 @@ export const AlumniAnnouncementsPage: React.FC = () => {
               <span>
                 {language === 'ta'
                   ? 'அதிகாரப்பூர்வ தகவல்கள் & நிதி வெளிப்படைத்தன்மை'
-                  : 'Official Updates & Financial Transparency'}
+                  : 'Official Updates & Governance Portal'}
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
               {language === 'ta'
-                ? 'அறிவிப்புகள், ஆடிட் & நிதி அறிக்கைகள்'
-                : 'Announcements, Audit & Financial Reports'}
+                ? 'அறிவிப்புகள், கூட்டத் தீர்மானங்கள் & ஆடிட் அறிக்கைகள்'
+                : 'Announcements, Meeting Minutes & Financial Audit'}
             </h1>
             <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">
               {language === 'ta'
-                ? 'பள்ளி அறிவிப்புகள், தணிக்கை அறிக்கைகள், முன்னாள் மாணவர்களின் பங்களிப்புகள் மற்றும் ஆதரவாளர்களின் முழுமையான விவரங்கள்.'
-                : 'Stay updated with official school notices, verified statutory audit reports, alumni contributions, and sponsor details.'}
+                ? 'பள்ளி அறிவிப்புகள், சங்கம் கூட்ட தீர்மானங்கள், தணிக்கை அறிக்கைகள், முன்னாள் மாணவர்களின் பங்களிப்புகள் மற்றும் ஆதரவாளர்களின் முழுமையான விவரங்கள்.'
+                : 'Stay updated with official school circulars, executive meeting resolutions, statutory audit reports, alumni donor leaderboard, and sponsor details.'}
             </p>
           </div>
 
@@ -269,6 +325,24 @@ export const AlumniAnnouncementsPage: React.FC = () => {
           {announcements.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 text-amber-900 ml-1">
               {announcements.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('MEETING_MINUTES')}
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'MEETING_MINUTES'
+              ? 'bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/50 shadow-xs'
+              : 'text-[#4B5563] hover:bg-[#FAFAFA] hover:text-[#111111]'
+          }`}
+        >
+          <ClipboardList className="w-4 h-4 shrink-0 text-[#854D0E]" />
+          <span>{language === 'ta' ? 'கூட்டத் தீர்மானங்கள் (Minutes)' : 'Meeting Minutes & Resolutions'}</span>
+          {meetingMinutes.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F4C542] text-[#111111] ml-1">
+              {meetingMinutes.length}
             </span>
           )}
         </button>
@@ -323,8 +397,6 @@ export const AlumniAnnouncementsPage: React.FC = () => {
         </button>
       </div>
 
-
-
       {/* =========================================================================
        * TAB 1: ANNOUNCEMENTS & NOTICES
        * ========================================================================= */}
@@ -337,8 +409,8 @@ export const AlumniAnnouncementsPage: React.FC = () => {
               </h2>
               <p className="text-xs text-[#6B7280]">
                 {language === 'ta'
-                  ? 'பள்ளி நிர்வாகம் மற்றும் அலுமினி சங்கத்தின் அதிகாரப்பூர்வ அறிவிப்புகள்'
-                  : 'Official notices, events, and circulars from school administration'}
+                  ? 'பள்ளி நிர்வாகம் மற்றும் அலுமினி சங்கத்தின் அதிகாரப்பூர்வ அறிவிப்புகள் & சுற்றறிக்கைகள்'
+                  : 'Official notices, circulars, and event announcements with PDF attachments'}
               </p>
             </div>
 
@@ -348,7 +420,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
                 type="text"
                 value={announcementSearch}
                 onChange={e => setAnnouncementSearch(e.target.value)}
-                placeholder={language === 'ta' ? 'தேடுக...' : 'Search announcements...'}
+                placeholder={language === 'ta' ? 'அறிவிப்புகள் தேடுக...' : 'Search announcements...'}
                 className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl text-xs focus:outline-none focus:border-amber-500 font-medium"
               />
             </div>
@@ -357,28 +429,124 @@ export const AlumniAnnouncementsPage: React.FC = () => {
           {loadingAnnouncements ? (
             <LoadingState />
           ) : filteredAnnouncements.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
-              {filteredAnnouncements.map(ann => (
-                <div
-                  key={ann.id}
-                  className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-xs hover:border-amber-300 transition-all space-y-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] pb-3">
-                    <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 tracking-wide uppercase">
-                      {ann.target || (language === 'ta' ? 'பள்ளி அறிவிப்பு' : 'SCHOOL ANNOUNCEMENT')}
-                    </span>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{formatDateDDMMYYYY(ann.created_at)}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredAnnouncements.map(ann => {
+                const cat = CATEGORY_MAP[ann.category || 'GENERAL'] || CATEGORY_MAP.GENERAL;
+                const CatIcon = cat.icon;
+                const displayTitle = language === 'ta' && ann.title_ta ? ann.title_ta : ann.title;
+                const displayContent = language === 'ta' && ann.content_ta ? ann.content_ta : ann.content;
+
+                return (
+                  <div
+                    key={ann.id}
+                    className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-xs hover:border-amber-300 transition-all space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full border tracking-wide uppercase flex items-center gap-1 ${cat.color}`}>
+                            <CatIcon className="w-3 h-3" />
+                            <span>{language === 'ta' ? cat.labelTa : cat.labelEn}</span>
+                          </span>
+                          {ann.target && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 uppercase">
+                              {ann.target}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{formatDateDDMMYYYY(ann.created_at)}</span>
+                        </div>
+                      </div>
+
+                      {/* Poster Image Preview if available */}
+                      {ann.poster_url && (
+                        <div
+                          onClick={() => setSelectedNews(ann)}
+                          className="relative h-44 rounded-xl overflow-hidden bg-black/90 cursor-pointer group border border-gray-200"
+                        >
+                          <img
+                            src={ann.poster_url}
+                            alt={displayTitle}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
+                            <span className="text-white text-xs font-bold flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-lg backdrop-blur-xs border border-white/20">
+                              <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{language === 'ta' ? 'சுவரொட்டியைப் பார்' : 'View Poster'}</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <h3
+                        onClick={() => setSelectedNews(ann)}
+                        className="font-extrabold text-base text-[#111111] leading-snug hover:text-amber-800 transition-colors cursor-pointer"
+                      >
+                        {displayTitle}
+                      </h3>
+
+                      <p className="text-xs sm:text-sm text-[#374151] leading-relaxed line-clamp-3 whitespace-pre-wrap">
+                        {displayContent}
+                      </p>
+
+                      {/* PDF Attached Banner/Chip */}
+                      {ann.pdf_url && (
+                        <div className="bg-[#FFFDF2] border border-[#F4C542]/60 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="p-2 bg-[#F4C542] text-[#111111] rounded-lg shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-[#111111] truncate">
+                                {ann.pdf_file_name || (language === 'ta' ? 'சுற்றறிக்கை PDF சான்று' : 'Official Circular PDF')}
+                              </p>
+                              <p className="text-[10px] text-gray-500 font-semibold">
+                                {ann.pdf_file_size ? `${(ann.pdf_file_size / (1024 * 1024)).toFixed(2)} MB · ` : ''}
+                                {language === 'ta' ? 'அதிகாரப்பூர்வ ஆவணம்' : 'Official Document'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedNews(ann)}
+                            className="px-3 py-1.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{language === 'ta' ? 'PDF பார்' : 'View PDF'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedNews(ann)}
+                        className="px-4 py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>{language === 'ta' ? 'முழு விவரம் & PDF' : 'View Details & PDF'}</span>
+                      </button>
+
+                      {ann.pdf_url && (
+                        <a
+                          href={ann.pdf_url}
+                          download={ann.pdf_file_name || 'Announcement.pdf'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border border-gray-300"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#854D0E]" />
+                          <span className="hidden sm:inline">{language === 'ta' ? 'பதிவிறக்கு' : 'Download PDF'}</span>
+                        </a>
+                      )}
                     </div>
                   </div>
-
-                  <h3 className="font-bold text-base text-[#111111] leading-snug">{ann.title}</h3>
-                  <p className="text-xs sm:text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-                    {ann.content}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-[#E5E7EB]">
@@ -394,7 +562,159 @@ export const AlumniAnnouncementsPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-       * TAB 2: AUDIT & FINANCIAL STATEMENTS
+       * TAB 2: MEETING MINUTES & RESOLUTIONS
+       * ========================================================================= */}
+      {activeTab === 'MEETING_MINUTES' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#E5E7EB]">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[#111111] flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-[#854D0E]" />
+                <span>
+                  {language === 'ta'
+                    ? 'நிர்வாகிகள் கூட்ட தீர்மானங்கள் (Minutes of Meeting)'
+                    : 'Association Meeting Minutes & Resolutions'}
+                </span>
+              </h2>
+              <p className="text-xs text-[#6B7280]">
+                {language === 'ta'
+                  ? 'அலுமினி சங்கம் நிறைவேற்றிய அதிகாரப்பூர்வ தீர்மானங்கள் மற்றும் கூட்ட அறிக்கைகள்'
+                  : 'Official executive committee meeting minutes, passed resolutions, and governance notes.'}
+              </p>
+            </div>
+
+            <div className="relative min-w-[240px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={meetingSearch}
+                onChange={e => setMeetingSearch(e.target.value)}
+                placeholder={language === 'ta' ? 'தீர்மானங்கள் தேடுக...' : 'Search meeting minutes...'}
+                className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] border border-[#E5E7EB] rounded-xl text-xs focus:outline-none focus:border-amber-500 font-medium"
+              />
+            </div>
+          </div>
+
+          {loadingMeetingMinutes ? (
+            <LoadingState />
+          ) : filteredMeetingMinutes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredMeetingMinutes.map((meeting) => {
+                const displayTitle = language === 'ta' && meeting.title_ta ? meeting.title_ta : meeting.title;
+                const notesText = language === 'ta' && meeting.notes_ta ? meeting.notes_ta : meeting.notes || '';
+                const previewText = notesText.split('\n').slice(0, 3).join('\n');
+
+                return (
+                  <div
+                    key={meeting.id}
+                    className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-xs hover:border-amber-300 transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] pb-3">
+                        <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 tracking-wide uppercase flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-amber-600" />
+                          <span>{language === 'ta' ? 'நிர்வாகிகள் கூட்டம்' : 'OFFICIAL RESOLUTION'}</span>
+                        </span>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-amber-800" />
+                          <span>{formatDateDDMMYYYY(meeting.meeting_date)}</span>
+                          {meeting.meeting_time && (
+                            <span className="text-gray-400">· {meeting.meeting_time}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <h3
+                        onClick={() => setSelectedMeetingDoc(meeting)}
+                        className="font-extrabold text-base text-[#111111] leading-snug hover:text-amber-800 transition-colors cursor-pointer"
+                      >
+                        {displayTitle}
+                      </h3>
+
+                      {meeting.meeting_type && (
+                        <span className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-700">
+                          {meeting.meeting_type}
+                        </span>
+                      )}
+
+                      {previewText && (
+                        <p className="text-xs text-[#4B5563] leading-relaxed line-clamp-3 whitespace-pre-wrap bg-[#FAFAFA] p-3 rounded-xl border border-[#E5E7EB]">
+                          {previewText}
+                        </p>
+                      )}
+
+                      {/* PDF Attached Banner */}
+                      {meeting.pdf_url && (
+                        <div className="bg-[#FFFDF2] border border-[#F4C542]/60 rounded-xl p-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-2 bg-[#F4C542] text-[#111111] rounded-lg shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-[#111111] truncate">
+                                {meeting.pdf_file_name || (language === 'ta' ? 'கூட்ட தீர்மானங்கள் PDF' : 'Meeting Resolution PDF')}
+                              </p>
+                              <p className="text-[10px] text-gray-500">
+                                {meeting.pdf_file_size ? `${(meeting.pdf_file_size / (1024 * 1024)).toFixed(2)} MB · ` : ''}
+                                Signed Document
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMeetingDoc(meeting)}
+                            className="px-3 py-1.5 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{language === 'ta' ? 'PDF பார்' : 'View PDF'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMeetingDoc(meeting)}
+                        className="px-4 py-2 bg-[#111111] hover:bg-black text-[#F4C542] font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>{language === 'ta' ? 'ஆவணம் & PDF பார்' : 'View Resolution & PDF'}</span>
+                      </button>
+
+                      {meeting.pdf_url && (
+                        <a
+                          href={meeting.pdf_url}
+                          download={meeting.pdf_file_name || 'Meeting_Minutes.pdf'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-[#111111] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border border-gray-300"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#854D0E]" />
+                          <span className="hidden sm:inline">{language === 'ta' ? 'பதிவிறக்கு' : 'Download PDF'}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-[#E5E7EB]">
+              <ClipboardList className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-[#6B7280]">
+                {language === 'ta'
+                  ? 'கூட்டத் தீர்மானங்கள் எதுவும் கிடைக்கவில்லை.'
+                  : 'No meeting minutes or resolutions found.'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================================
+       * TAB 3: AUDIT & FINANCIAL STATEMENTS
        * ========================================================================= */}
       {activeTab === 'AUDIT' && (
         <div className="space-y-6">
@@ -561,7 +881,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-       * TAB 3: ALUMNI CONTRIBUTIONS
+       * TAB 4: ALUMNI CONTRIBUTIONS
        * ========================================================================= */}
       {activeTab === 'CONTRIBUTIONS' && (
         <div className="space-y-6">
@@ -682,7 +1002,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-       * TAB 4: SPONSORS & PARTNERS
+       * TAB 5: SPONSORS & PARTNERS
        * ========================================================================= */}
       {activeTab === 'SPONSORS' && (
         <div className="space-y-6">
@@ -800,6 +1120,24 @@ export const AlumniAnnouncementsPage: React.FC = () => {
       )}
 
       {/* =========================================================================
+       * MODAL: NEWS & ANNOUNCEMENT DETAIL + PDF VIEWER COVER MODE
+       * ========================================================================= */}
+      <NewsDetailModal
+        isOpen={Boolean(selectedNews)}
+        onClose={() => setSelectedNews(null)}
+        news={selectedNews}
+      />
+
+      {/* =========================================================================
+       * MODAL: MEETING MINUTES & RESOLUTIONS DOCUMENT COVER MODE
+       * ========================================================================= */}
+      <MeetingDocumentModal
+        isOpen={Boolean(selectedMeetingDoc)}
+        onClose={() => setSelectedMeetingDoc(null)}
+        meeting={selectedMeetingDoc}
+      />
+
+      {/* =========================================================================
        * MODAL: AUDIT STATEMENT DETAIL + PDF VIEWER
        * ========================================================================= */}
       <Modal
@@ -817,7 +1155,7 @@ export const AlumniAnnouncementsPage: React.FC = () => {
                   <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
                     FY {selectedAuditSummary.financial_year}
                   </span>
-                  <span className="text-xs text-gray-500 font-medium">
+                  <span className="text-xs text-[#6B7280] font-medium">
                     {formatDateDDMMYYYY(selectedAuditSummary.period_start)} to {formatDateDDMMYYYY(selectedAuditSummary.period_end)}
                   </span>
                 </div>
