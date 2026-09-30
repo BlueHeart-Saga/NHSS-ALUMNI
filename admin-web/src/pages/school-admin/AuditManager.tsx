@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, FileText, Edit3, Trash2, Upload, CheckCircle2,
-  ClipboardList, ChevronLeft, ChevronRight,
+  ClipboardList, ChevronLeft, ChevronRight, Eye, X, Download
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { LoadingState, EmptyState } from '../../components/EmptyState';
+import { PdfViewerModal } from '../../components/PdfViewerModal';
+import { MeetingDocumentModal } from '../../components/MeetingDocumentModal';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { useLanguage } from '../../context/LanguageContext';
@@ -103,7 +105,25 @@ export const AuditManager: React.FC = () => {
   const [meetingModalOpen, setMeetingModalOpen] = useState(false);
   const [meetingSaving, setMeetingSaving] = useState(false);
   const [uploadingMeetingPdf, setUploadingMeetingPdf] = useState(false);
+  const [isDraggingMeetingPdf, setIsDraggingMeetingPdf] = useState(false);
   const [meetingForm, setMeetingForm] = useState<MeetingFormState>(EMPTY_MEETING_FORM);
+
+  // Meeting Document Modal state
+  const [selectedMeetingDoc, setSelectedMeetingDoc] = useState<MeetingMinute | null>(null);
+  const [isMeetingDocModalOpen, setIsMeetingDocModalOpen] = useState(false);
+
+  // Reusable PDF View Modal state
+  const [adminPdfModal, setAdminPdfModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+    fileName?: string;
+  }>({
+    isOpen: false,
+    url: '',
+    title: '',
+    fileName: '',
+  });
 
   const load = async () => {
     try {
@@ -274,11 +294,13 @@ export const AuditManager: React.FC = () => {
     setMeetingModalOpen(true);
   };
 
-  const handleMeetingPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processMeetingPdfFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       alertService.showError('Invalid File', 'Only PDF files are accepted.');
+      return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      alertService.showError('File Too Large', 'PDF size must be less than 30MB.');
       return;
     }
     try {
@@ -290,13 +312,34 @@ export const AuditManager: React.FC = () => {
         pdf_file_name: res.file_name,
         pdf_file_size: res.file_size,
       }));
-      alertService.showSuccess('PDF Uploaded', 'The PDF has been attached to this meeting record.');
+      alertService.showSuccess('PDF Uploaded', 'The PDF document has been attached to this meeting record.');
     } catch (err) {
       alertService.handleApiError(err, 'Failed to upload PDF');
     } finally {
       setUploadingMeetingPdf(false);
-      if (e.target) e.target.value = '';
     }
+  };
+
+  const handleMeetingPdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processMeetingPdfFile(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleMeetingPdfDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingMeetingPdf(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processMeetingPdfFile(file);
+  };
+
+  const handleRemoveMeetingPdf = () => {
+    setMeetingForm((prev) => ({
+      ...prev,
+      pdf_url: '',
+      pdf_file_name: '',
+      pdf_file_size: 0,
+    }));
   };
 
   const handleMeetingSave = async () => {
@@ -410,6 +453,22 @@ export const AuditManager: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex items-center space-x-1.5 shrink-0">
+                    {item.pdf_url && (
+                      <button
+                        onClick={() =>
+                          setAdminPdfModal({
+                            isOpen: true,
+                            url: item.pdf_url!,
+                            title: item.title,
+                            fileName: item.pdf_file_name,
+                          })
+                        }
+                        className="p-2 text-[#854D0E] hover:bg-[#FFF7D6] rounded-xl transition-colors"
+                        title="View PDF"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => openEditAudit(item)}
                       className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
@@ -528,6 +587,12 @@ export const AuditManager: React.FC = () => {
                     >
                       {item.is_published ? 'Published' : 'Draft'}
                     </span>
+                    {item.pdf_url && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-200 flex items-center gap-1">
+                        <FileText className="w-3 h-3 text-blue-600" />
+                        PDF Attached
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-[#6B7280] mt-0.5">
                     {formatDateDDMMYYYY(item.meeting_date)}
@@ -542,17 +607,16 @@ export const AuditManager: React.FC = () => {
                   )}
                 </div>
                 <div className="flex items-center space-x-1.5 shrink-0">
-                  {item.pdf_url && (
-                    <a
-                      href={item.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 text-[#854D0E] hover:bg-[#FFF7D6] rounded-xl transition-colors"
-                      title="View PDF"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </a>
-                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedMeetingDoc(item);
+                      setIsMeetingDocModalOpen(true);
+                    }}
+                    className="p-2 text-[#854D0E] hover:bg-[#FFF7D6] rounded-xl transition-colors cursor-pointer"
+                    title="View Official Document / PDF"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => openEditMeeting(item)}
                     className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
@@ -654,9 +718,11 @@ export const AuditManager: React.FC = () => {
                     <p className="text-xs font-semibold text-[#111111] truncate">
                       {auditForm.pdf_file_name || t('admin_audit_pdf_attached')}
                     </p>
-                    <p className="text-[10px] text-gray-500">
-                      {(auditForm.pdf_file_size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
+                    {auditForm.pdf_file_size > 0 && (
+                      <p className="text-[10px] text-gray-500">
+                        {(auditForm.pdf_file_size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    )}
                   </div>
                 </div>
                 <label className="cursor-pointer text-xs font-bold text-blue-600 hover:underline shrink-0 ml-2">
@@ -722,6 +788,7 @@ export const AuditManager: React.FC = () => {
           />
           <Input
             label="Meeting Title (Tamil)"
+            placeholder="எ.கா. NHSS முன்னாள் மாணவர் சங்க நிர்வாகிகளின் முதல் கூட்டம்"
             value={meetingForm.title_ta}
             onChange={(e) => setMeetingForm({ ...meetingForm, title_ta: e.target.value })}
           />
@@ -748,49 +815,107 @@ export const AuditManager: React.FC = () => {
             />
             <Input
               label="Meeting Type / Mode"
-              placeholder="e.g. Online Meeting"
+              placeholder="e.g. Online Meeting / In-person"
               value={meetingForm.meeting_type}
               onChange={(e) => setMeetingForm({ ...meetingForm, meeting_type: e.target.value })}
             />
           </div>
 
-          {/* PDF attachment — optional, no auto-extraction */}
+          {/* Enhanced PDF attachment section */}
           <div className="bg-[#FFFDF5] border border-amber-200 rounded-2xl p-4 space-y-3">
-            <label className="block text-xs font-bold text-[#111111]">
-              Meeting Minutes PDF (optional attachment)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-[#111111]">
+                Meeting Minutes PDF (optional attachment)
+              </label>
+              {meetingForm.pdf_url && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  PDF Attached
+                </span>
+              )}
+            </div>
+
             {meetingForm.pdf_url ? (
-              <div className="flex items-center justify-between bg-white border border-emerald-200 rounded-xl p-3">
-                <div className="flex items-center space-x-2 min-w-0">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="bg-white border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-[#111111] truncate">
-                      {meetingForm.pdf_file_name || 'PDF attached'}
+                      {meetingForm.pdf_file_name || 'Meeting_Minutes.pdf'}
                     </p>
-                    <p className="text-[10px] text-gray-500">
-                      {(meetingForm.pdf_file_size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
+                    {meetingForm.pdf_file_size > 0 && (
+                      <p className="text-[10px] text-gray-500">
+                        {(meetingForm.pdf_file_size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    )}
                   </div>
                 </div>
-                <label className="cursor-pointer text-xs font-bold text-blue-600 hover:underline shrink-0 ml-2">
-                  Replace
-                  <input type="file" accept="application/pdf" className="hidden" onChange={handleMeetingPdfUpload} />
-                </label>
+
+                <div className="flex items-center space-x-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAdminPdfModal({
+                        isOpen: true,
+                        url: meetingForm.pdf_url,
+                        title: meetingForm.title || 'Meeting Minutes PDF',
+                        fileName: meetingForm.pdf_file_name,
+                      })
+                    }
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="View PDF"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+
+                  <label className="cursor-pointer p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-bold" title="Replace PDF">
+                    <Upload className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handleMeetingPdfInputChange}
+                      disabled={uploadingMeetingPdf}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleRemoveMeetingPdf}
+                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove PDF"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-[#F4C542] hover:bg-[#FFFDF5] transition-colors">
+              <label
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingMeetingPdf(true);
+                }}
+                onDragLeave={() => setIsDraggingMeetingPdf(false)}
+                onDrop={handleMeetingPdfDrop}
+                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all ${
+                  isDraggingMeetingPdf
+                    ? 'border-[#F4C542] bg-[#FFF7D6]'
+                    : 'border-gray-300 hover:border-[#F4C542] hover:bg-[#FFFDF5]'
+                }`}
+              >
                 <Upload className="w-6 h-6 text-[#854D0E] mb-2" />
                 <span className="text-xs font-semibold text-[#111111]">
-                  {uploadingMeetingPdf ? 'Uploading…' : 'Upload PDF (optional)'}
+                  {uploadingMeetingPdf ? 'Uploading PDF...' : 'Drag & Drop PDF or click to browse'}
                 </span>
                 <span className="text-[10px] text-gray-500 mt-0.5">
-                  PDF only, up to 30MB · Stored as an attachment for public viewing
+                  PDF format only, up to 30MB · Stored as official attachment
                 </span>
                 <input
                   type="file"
                   accept="application/pdf"
                   className="hidden"
-                  onChange={handleMeetingPdfUpload}
+                  onChange={handleMeetingPdfInputChange}
                   disabled={uploadingMeetingPdf}
                 />
               </label>
@@ -802,7 +927,7 @@ export const AuditManager: React.FC = () => {
               Meeting Notes / Resolutions *
             </label>
             <textarea
-              rows={14}
+              rows={12}
               value={meetingForm.notes}
               onChange={(e) => setMeetingForm({ ...meetingForm, notes: e.target.value })}
               placeholder="Type or paste the meeting resolutions here. One resolution per line. Tamil text is supported."
@@ -854,6 +979,22 @@ export const AuditManager: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* PDF View Modal for Admin */}
+      <PdfViewerModal
+        isOpen={adminPdfModal.isOpen}
+        onClose={() => setAdminPdfModal((prev) => ({ ...prev, isOpen: false }))}
+        title={adminPdfModal.title}
+        pdfUrl={adminPdfModal.url}
+        fileName={adminPdfModal.fileName}
+      />
+
+      {/* Meeting Document & Resolutions Cover Modal for Admin */}
+      <MeetingDocumentModal
+        isOpen={isMeetingDocModalOpen}
+        onClose={() => setIsMeetingDocModalOpen(false)}
+        meeting={selectedMeetingDoc}
+      />
     </div>
   );
 };

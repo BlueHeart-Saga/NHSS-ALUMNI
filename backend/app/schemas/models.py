@@ -733,6 +733,9 @@ class CreateAnnouncementRequest(BaseModel):
     content: str
     content_ta: Optional[str] = None
     poster_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
 
 class UpdateAnnouncementRequest(BaseModel):
     target: Optional[str] = None
@@ -743,6 +746,9 @@ class UpdateAnnouncementRequest(BaseModel):
     content: Optional[str] = None
     content_ta: Optional[str] = None
     poster_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
 
 class AnnouncementResponse(BaseModel):
     id: str
@@ -755,6 +761,9 @@ class AnnouncementResponse(BaseModel):
     content: str
     content_ta: Optional[str] = None
     poster_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    pdf_file_name: Optional[str] = None
+    pdf_file_size: Optional[int] = None
     created_by_name: str
     created_at: datetime
     updated_at: Optional[datetime] = None

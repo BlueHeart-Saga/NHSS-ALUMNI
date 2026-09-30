@@ -446,6 +446,9 @@ async def get_public_announcements(response: Response):
             "content": a.get("content", ""),
             "content_ta": a.get("content_ta"),
             "poster_url": a.get("poster_url"),
+            "pdf_url": a.get("pdf_url"),
+            "pdf_file_name": a.get("pdf_file_name"),
+            "pdf_file_size": a.get("pdf_file_size"),
             "category": a.get("category", "GENERAL"),
             "created_at": str(a.get("created_at"))
         })

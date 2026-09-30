@@ -927,6 +927,30 @@ class ApiClient {
     });
   }
 
+  async uploadAnnouncementPdf(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/announcements/upload-pdf`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'PDF upload failed' }));
+      throw new Error(err.detail || 'PDF upload failed');
+    }
+    return res.json() as Promise<{
+      success: boolean;
+      pdf_url: string;
+      file_name: string;
+      file_size: number;
+    }>;
+  }
+
   // Memories & Photos Management
   async getMemories(status?: string, media_type?: string, album_name?: string, search?: string) {
     const params = new URLSearchParams();

@@ -345,6 +345,9 @@ export interface Announcement {
   content: string;
   content_ta?: string;
   poster_url?: string;
+  pdf_url?: string;
+  pdf_file_name?: string;
+  pdf_file_size?: number;
   created_by_name: string;
   created_at: string;
   updated_at?: string;

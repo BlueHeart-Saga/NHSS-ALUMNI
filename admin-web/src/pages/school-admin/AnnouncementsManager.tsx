@@ -13,13 +13,21 @@ import {
   FileText, 
   Award, 
   BookOpen, 
-  PartyPopper
+  PartyPopper,
+  Upload,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  Sparkles,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input, Select } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { LoadingState, EmptyState } from '../../components/EmptyState';
 import { ImageUploadAndEdit } from '../../components/ImageUploadAndEdit';
+import { PdfViewerModal } from '../../components/PdfViewerModal';
 import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Announcement, Batch } from '../../types';
@@ -27,7 +35,6 @@ import { formatDateDDMMYYYY } from '../../utils/dateUtils';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Category config with translation keys for labels.
-// Icons and badge colors remain unchanged.
 export const ANNOUNCEMENT_CATEGORIES = [
   { id: 'GENERAL', labelKey: 'admin_announcements_cat_general', icon: Megaphone, color: 'bg-amber-100 text-amber-900 border-amber-300' },
   { id: 'CIRCULAR', labelKey: 'admin_announcements_cat_circular', icon: FileText, color: 'bg-blue-100 text-blue-900 border-blue-300' },
@@ -61,10 +68,41 @@ export const AnnouncementsManager: React.FC = () => {
   const [content, setContent] = useState('');
   const [contentTa, setContentTa] = useState('');
   const [posterUrl, setPosterUrl] = useState('');
+  
+  // PDF Attachment Form state
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfFileSize, setPdfFileSize] = useState(0);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [isDraggingPdf, setIsDraggingPdf] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
 
-  // Poster preview modal state
-  const [previewPosterUrl, setPreviewPosterUrl] = useState<string | null>(null);
+  // Premium Poster Image Lightbox state
+  const [previewPoster, setPreviewPoster] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+    isFullScreen?: boolean;
+  }>({
+    isOpen: false,
+    url: '',
+    title: '',
+    isFullScreen: false,
+  });
+
+  // PDF Viewer Modal state
+  const [pdfModal, setPdfModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+    fileName?: string;
+  }>({
+    isOpen: false,
+    url: '',
+    title: '',
+    fileName: '',
+  });
 
   // Active language tab in compose modal ('en' or 'ta')
   const [activeLangTab, setActiveLangTab] = useState<'en' | 'ta'>('en');
@@ -72,6 +110,29 @@ export const AnnouncementsManager: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Escape key handler & scroll lock for image lightbox
+  useEffect(() => {
+    if (!previewPoster.isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewPoster.isFullScreen) {
+          setPreviewPoster((prev) => ({ ...prev, isFullScreen: false }));
+        } else {
+          setPreviewPoster((prev) => ({ ...prev, isOpen: false }));
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [previewPoster.isOpen, previewPoster.isFullScreen]);
 
   const loadData = async () => {
     try {
@@ -100,6 +161,9 @@ export const AnnouncementsManager: React.FC = () => {
     setContent('');
     setContentTa('');
     setPosterUrl('');
+    setPdfUrl('');
+    setPdfFileName('');
+    setPdfFileSize(0);
     setActiveLangTab('en');
     setIsModalOpen(true);
   };
@@ -114,8 +178,54 @@ export const AnnouncementsManager: React.FC = () => {
     setContent(item.content || '');
     setContentTa(item.content_ta || '');
     setPosterUrl(item.poster_url || '');
+    setPdfUrl(item.pdf_url || '');
+    setPdfFileName(item.pdf_file_name || '');
+    setPdfFileSize(item.pdf_file_size || 0);
     setActiveLangTab('en');
     setIsModalOpen(true);
+  };
+
+  const processPdfFile = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alertService.showError('Invalid File', 'Only PDF files are accepted.');
+      return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      alertService.showError('File Too Large', 'PDF size must be less than 30MB.');
+      return;
+    }
+
+    try {
+      setUploadingPdf(true);
+      const res = await api.uploadAnnouncementPdf(file);
+      setPdfUrl(res.pdf_url);
+      setPdfFileName(res.file_name);
+      setPdfFileSize(res.file_size);
+      alertService.showSuccess('PDF Uploaded', 'PDF document attached successfully.');
+    } catch (err) {
+      alertService.handleApiError(err, 'Failed to upload PDF');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handlePdfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processPdfFile(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handlePdfDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingPdf(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processPdfFile(file);
+  };
+
+  const handleRemovePdf = () => {
+    setPdfUrl('');
+    setPdfFileName('');
+    setPdfFileSize(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,6 +256,9 @@ export const AnnouncementsManager: React.FC = () => {
         content: content.trim() || contentTa.trim(),
         content_ta: contentTa.trim() || undefined,
         poster_url: posterUrl || undefined,
+        pdf_url: pdfUrl || undefined,
+        pdf_file_name: pdfFileName || undefined,
+        pdf_file_size: pdfFileSize || undefined,
       };
 
       if (editingItem) {
@@ -314,21 +427,27 @@ export const AnnouncementsManager: React.FC = () => {
               >
                 {/* Poster Flyer Banner (If present) */}
                 {item.poster_url ? (
-                  <div className="relative aspect-video bg-gray-900 overflow-hidden cursor-pointer group/poster">
+                  <div className="relative aspect-video bg-gray-900 overflow-hidden cursor-pointer group/poster border-b border-gray-100">
                     <img 
                       src={item.poster_url} 
                       alt={item.title} 
-                      className="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-500"
                     />
                     
-                    {/* Hover Actions Overlay */}
+                    {/* Premium Hover Actions Overlay */}
                     <div 
-                      onClick={() => setPreviewPosterUrl(item.poster_url!)}
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center space-x-2 text-white backdrop-blur-[2px] cursor-pointer"
+                      onClick={() =>
+                        setPreviewPoster({
+                          isOpen: true,
+                          url: item.poster_url!,
+                          title: item.title,
+                        })
+                      }
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center space-x-2 text-white backdrop-blur-[2px] cursor-pointer"
                     >
-                      <span className="px-3.5 py-1.5 bg-black/70 hover:bg-black rounded-xl text-xs font-semibold flex items-center space-x-1.5 border border-white/20 shadow-md">
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{t('admin_announcements_view_full_poster')}</span>
+                      <span className="px-4 py-2 bg-black/80 hover:bg-black rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-white/20 shadow-xl transition-all active:scale-95">
+                        <Eye className="w-4 h-4 text-[#F4C542]" />
+                        <span>View Poster Image</span>
                       </span>
                     </div>
                   </div>
@@ -338,7 +457,14 @@ export const AnnouncementsManager: React.FC = () => {
                       <CatIcon className="w-6 h-6 stroke-[1.8]" />
                       <span className="text-xs font-bold">{t(catMeta.labelKey)}</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-amber-700/80">{t('admin_announcements_no_poster')}</span>
+                    {item.pdf_url ? (
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5 text-blue-700" />
+                        PDF Attached
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-amber-700/80">{t('admin_announcements_no_poster')}</span>
+                    )}
                   </div>
                 )}
 
@@ -355,6 +481,13 @@ export const AnnouncementsManager: React.FC = () => {
                       <span className="text-[10px] font-semibold bg-[#FFF7D6] text-[#854D0E] border border-[#F4C542]/60 px-2 py-0.5 rounded-full">
                         {item.target === 'SCHOOL' ? t('admin_announcements_badge_school_wide') : t('admin_announcements_badge_batch')}
                       </span>
+
+                      {item.pdf_url && (
+                        <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-blue-600" />
+                          PDF Document
+                        </span>
+                      )}
                     </div>
 
                     {/* Titles: English & Tamil */}
@@ -378,6 +511,33 @@ export const AnnouncementsManager: React.FC = () => {
                     )}
                   </div>
 
+                  {/* PDF Attachment Action Chip */}
+                  {item.pdf_url && (
+                    <div className="bg-[#FFFDF5] border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <FileText className="w-4 h-4 text-[#854D0E] shrink-0" />
+                        <span className="text-xs font-semibold text-[#111111] truncate">
+                          {item.pdf_file_name || 'Official_Circular.pdf'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPdfModal({
+                            isOpen: true,
+                            url: item.pdf_url!,
+                            title: item.title,
+                            fileName: item.pdf_file_name,
+                          })
+                        }
+                        className="px-3 py-1 bg-[#F4C542] hover:bg-[#E0B030] text-[#111111] font-extrabold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs active:scale-95"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View PDF
+                      </button>
+                    </div>
+                  )}
+
                   {/* Metadata Footer */}
                   <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between text-[11px] text-[#9CA3AF]">
                     <div className="flex flex-col">
@@ -389,14 +549,37 @@ export const AnnouncementsManager: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="flex items-center space-x-1">
+                      {item.pdf_url && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPdfModal({
+                              isOpen: true,
+                              url: item.pdf_url!,
+                              title: item.title,
+                              fileName: item.pdf_file_name,
+                            })
+                          }
+                          title="View PDF Document"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                      )}
                       {item.poster_url && (
                         <button
                           type="button"
-                          onClick={() => setPreviewPosterUrl(item.poster_url!)}
+                          onClick={() =>
+                            setPreviewPoster({
+                              isOpen: true,
+                              url: item.poster_url!,
+                              title: item.title,
+                            })
+                          }
                           title={t('admin_announcements_view_full_poster')}
                           className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Eye className="w-4 h-4" />
+                          <ImageIcon className="w-4 h-4" />
                         </button>
                       )}
                       <button
@@ -476,7 +659,10 @@ export const AnnouncementsManager: React.FC = () => {
           )}
 
           {/* 2. Interactive Image Upload & Editor Component */}
-          <div className="bg-[#FFFDF5] border border-amber-200/80 rounded-2xl p-4">
+          <div className="bg-[#FFFDF5] border border-amber-200/80 rounded-2xl p-4 space-y-2">
+            <span className="text-xs font-bold text-[#111111] block mb-1">
+              1. Image Flyer / Cover Poster (Optional Image)
+            </span>
             <ImageUploadAndEdit
               label={t('admin_announcements_form_poster_label')}
               sublabel={t('admin_announcements_form_poster_sublabel')}
@@ -486,7 +672,108 @@ export const AnnouncementsManager: React.FC = () => {
             />
           </div>
 
-          {/* 3. Bilingual Tabs for English & Tamil Details */}
+          {/* 3. Interactive PDF Upload Component */}
+          <div className="bg-[#FFFDF5] border border-amber-200/80 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#111111]">
+                2. Official PDF Document Attachment (Optional PDF)
+              </span>
+              {pdfUrl && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  PDF Attached
+                </span>
+              )}
+            </div>
+
+            {pdfUrl ? (
+              <div className="bg-white border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#111111] truncate">
+                      {pdfFileName || 'Official_Document.pdf'}
+                    </p>
+                    {pdfFileSize > 0 && (
+                      <p className="text-[10px] text-gray-500">
+                        {(pdfFileSize / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPdfModal({
+                        isOpen: true,
+                        url: pdfUrl,
+                        title: title || 'Announcement PDF',
+                        fileName: pdfFileName,
+                      })
+                    }
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="View PDF"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+
+                  <label className="cursor-pointer p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-bold" title="Replace PDF">
+                    <Upload className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handlePdfInputChange}
+                      disabled={uploadingPdf}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleRemovePdf}
+                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove PDF"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingPdf(true);
+                }}
+                onDragLeave={() => setIsDraggingPdf(false)}
+                onDrop={handlePdfDrop}
+                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-5 cursor-pointer transition-all ${
+                  isDraggingPdf
+                    ? 'border-[#F4C542] bg-[#FFF7D6]'
+                    : 'border-gray-300 hover:border-[#F4C542] hover:bg-[#FFFDF5]'
+                }`}
+              >
+                <Upload className="w-5 h-5 text-[#854D0E] mb-1.5" />
+                <span className="text-xs font-semibold text-[#111111]">
+                  {uploadingPdf ? 'Uploading PDF...' : 'Drag & Drop PDF or click to browse'}
+                </span>
+                <span className="text-[10px] text-gray-500 mt-0.5">
+                  PDF format only, up to 30MB · Attach official circulars or event guides
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handlePdfInputChange}
+                  disabled={uploadingPdf}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* 4. Bilingual Tabs for English & Tamil Details */}
           <div>
             <div className="flex border-b border-gray-200 mb-3">
               <button
@@ -579,24 +866,127 @@ export const AnnouncementsManager: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Full-Screen Poster Preview Lightbox Modal */}
-      {previewPosterUrl && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button
-              onClick={() => setPreviewPosterUrl(null)}
-              className="absolute -top-10 right-0 text-white hover:text-amber-400 p-2 rounded-full cursor-pointer"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={previewPosterUrl}
-              alt="Poster Fullscreen"
-              className="max-h-[85vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl border border-white/20"
-            />
+      {/* Premium Full-Screen Image Lightbox Modal */}
+      {previewPoster.isOpen && (
+        <div
+          onClick={() => setPreviewPoster((prev) => ({ ...prev, isOpen: false }))}
+          className={`fixed inset-0 z-[100] flex items-center justify-center transition-all duration-300 ${
+            previewPoster.isFullScreen
+              ? 'p-0 bg-black'
+              : 'p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md'
+          } animate-fadeIn`}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`bg-[#111827] text-white flex flex-col overflow-hidden transition-all duration-300 ${
+              previewPoster.isFullScreen
+                ? 'w-screen h-screen rounded-none border-0'
+                : 'w-full max-w-5xl rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-800 max-h-[92vh]'
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="px-3 sm:px-5 py-3 bg-[#1F2937] border-b border-gray-800 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-md">
+              <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
+                <div className="p-2 sm:p-2.5 bg-[#F4C542] rounded-xl text-[#111111] shrink-0 shadow-xs">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate leading-tight">
+                      {previewPoster.title || 'Announcement Image Poster'}
+                    </h3>
+                    <span className="hidden md:inline-flex items-center gap-1 bg-amber-500/20 text-[#F4C542] border border-amber-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <Sparkles className="w-3 h-3" /> High Res Poster
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                    Click backdrop or press Esc to close
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+                {/* Full Screen Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewPoster((prev) => ({ ...prev, isFullScreen: !prev.isFullScreen }))
+                  }
+                  className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white rounded-xl transition-all text-xs font-semibold flex items-center gap-1.5 border border-gray-700/80 cursor-pointer active:scale-95"
+                  title={previewPoster.isFullScreen ? 'Exit Full Screen' : 'Full Screen View'}
+                >
+                  {previewPoster.isFullScreen ? (
+                    <>
+                      <Minimize2 className="w-4 h-4 text-[#F4C542]" />
+                      <span className="hidden lg:inline">Exit Full Screen</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-4 h-4 text-[#F4C542]" />
+                      <span className="hidden lg:inline">Full Screen</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Download Button */}
+                <a
+                  href={previewPoster.url}
+                  download="Announcement_Poster.jpg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white rounded-xl transition-all text-xs font-semibold flex items-center gap-1.5 border border-gray-700/80 active:scale-95"
+                  title="Download Image"
+                >
+                  <Download className="w-4 h-4 text-[#F4C542]" />
+                  <span className="hidden sm:inline">Download</span>
+                </a>
+
+                {/* Open in New Tab Button */}
+                <a
+                  href={previewPoster.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white rounded-xl transition-all text-xs font-semibold flex items-center gap-1.5 border border-gray-700/80 active:scale-95"
+                  title="Open Image in New Tab"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">Open Tab</span>
+                </a>
+
+                {/* Premium Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewPoster((prev) => ({ ...prev, isOpen: false }))}
+                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-95 border border-red-500/30 ml-1"
+                  title="Close Modal (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Poster Image Canvas Frame */}
+            <div className="flex-1 bg-[#0B0F17] relative overflow-auto flex items-center justify-center p-4 sm:p-6 min-h-[400px]">
+              <div className="relative p-1 rounded-2xl bg-gradient-to-b from-[#F4C542]/30 via-gray-800/50 to-transparent shadow-2xl max-w-full max-h-full">
+                <img
+                  src={previewPoster.url}
+                  alt={previewPoster.title}
+                  className="max-h-[80vh] w-auto max-w-full rounded-xl object-contain shadow-2xl border border-gray-800"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Reusable Embedded PDF Viewer Modal with Full Screen Cover Mode */}
+      <PdfViewerModal
+        isOpen={pdfModal.isOpen}
+        onClose={() => setPdfModal((prev) => ({ ...prev, isOpen: false }))}
+        title={pdfModal.title}
+        pdfUrl={pdfModal.url}
+        fileName={pdfModal.fileName}
+      />
     </div>
   );
 };
