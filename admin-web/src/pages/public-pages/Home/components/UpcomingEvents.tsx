@@ -454,8 +454,8 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                 </div>
               </div>
 
-              {/* REAL AUTO-GENERATED QR CODE BARCODE SECTION */}
-              <div className="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-3xl border-2 border-[#F4C542] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
+              {/* REAL AUTO-GENERATED QR CODE BARCODE SECTION - COMMENTED OUT */}
+              {/* <div className="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-3xl border-2 border-[#F4C542] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
                 <div className="space-y-2 text-center sm:text-left flex-1">
                   <div className="inline-flex items-center space-x-2 text-xs font-bold text-[#F4C542] bg-[#F4C542]/20 px-3 py-1 rounded-full uppercase tracking-wider border border-[#F4C542]/40">
                     <QrCode className="w-3.5 h-3.5" />
@@ -471,7 +471,6 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                   </p>
                 </div>
 
-                {/* Auto-Generated Scannable QR Code Image with Loading Fallback */}
                 <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-[#F4C542] shrink-0 relative min-w-[130px] min-h-[130px] flex flex-col items-center justify-center">
                   {!qrLoaded && (
                     <div className="absolute inset-0 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
@@ -492,7 +491,7 @@ export const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events, loading,
                     SCAN QR
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* FOOTER ACTIONS */}
