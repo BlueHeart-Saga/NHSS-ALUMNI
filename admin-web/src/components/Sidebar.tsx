@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { label: t('admin_batches'), path: '/school-admin/batches', icon: GraduationCap },
     { label: t('admin_events'), path: '/school-admin/events', icon: Calendar },
     { label: t('admin_school_events'), path: '/school-admin/school-events', icon: Sparkles },
-    { label: 'Programmes / திட்டங்கள்', path: '/school-admin/programmes', icon: BookOpen },
+    { label: t('admin_programmes'), path: '/school-admin/programmes', icon: BookOpen },
     { label: t('admin_announcements'), path: '/school-admin/announcements', icon: Megaphone },
     { label: t('admin_memories'), path: '/school-admin/memories', icon: ImageIcon },
     { label: t('admin_feedback'), path: '/school-admin/feedback', icon: MessageSquareQuote },

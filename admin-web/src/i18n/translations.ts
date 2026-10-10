@@ -1989,6 +1989,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // Programmes Management
     nav_programmes: "For Students",
+    admin_programmes: "Programmes Management",
     programmes_title: "NHSS Alumni Programmes",
     explore_programmes: "Explore Programmes",
     my_programmes: "My Programmes & History",
@@ -3988,6 +3989,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // Programmes Management
     nav_programmes: "மாணவர்களுக்காக",
+    admin_programmes: "சிறப்புத் திட்டங்கள்",
     programmes_title: "NHSS முன்னாள் மாணவர் சிறப்புத் திட்டங்கள்",
     explore_programmes: "சிறப்புத் திட்டங்களைக் கண்டறிக",
     my_programmes: "எனது பதிவுகள் & வரலாறு",
