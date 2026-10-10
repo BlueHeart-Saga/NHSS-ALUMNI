@@ -1974,7 +1974,14 @@ export const AlumniRegister: React.FC = () => {
                       <div className="relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center shrink-0 shadow-xs">
                         <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gray-50">
                           {profilePhotoUrl ? (
-                            <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+                            <img
+                              src={profilePhotoUrl}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || 'Alumni')}&background=F4C542&color=111111`;
+                              }}
+                            />
                           ) : (
                             <User className="w-10 h-10 text-gray-400" />
                           )}

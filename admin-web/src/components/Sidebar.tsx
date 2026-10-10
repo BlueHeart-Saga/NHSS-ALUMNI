@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserCheck, GraduationCap, Calendar, Sparkles,
   Megaphone, Image as ImageIcon, BarChart3, Settings, LogOut, Award, Trophy,
-  MessageSquareQuote, FileText, HandCoins, HandHeart, Landmark, ChevronDown
+  MessageSquareQuote, FileText, HandCoins, HandHeart, Landmark, ChevronDown, BookOpen
 } from 'lucide-react';
 import { SchoolProfile } from '../types';
 import { api } from '../services/api';
@@ -37,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { label: t('admin_batches'), path: '/school-admin/batches', icon: GraduationCap },
     { label: t('admin_events'), path: '/school-admin/events', icon: Calendar },
     { label: t('admin_school_events'), path: '/school-admin/school-events', icon: Sparkles },
+    { label: 'Programmes / திட்டங்கள்', path: '/school-admin/programmes', icon: BookOpen },
     { label: t('admin_announcements'), path: '/school-admin/announcements', icon: Megaphone },
     { label: t('admin_memories'), path: '/school-admin/memories', icon: ImageIcon },
     { label: t('admin_feedback'), path: '/school-admin/feedback', icon: MessageSquareQuote },

@@ -681,3 +681,77 @@ export interface MeetingMinute {
   updated_at?: string;
 }
 
+// =============================================================================
+// PROGRAMMES MANAGEMENT MODULE
+// =============================================================================
+export interface FamilyMember {
+  name: string;
+  relationship: 'SPOUSE' | 'SON' | 'DAUGHTER' | 'PARENT' | 'SIBLING' | 'OTHER';
+  age?: number;
+  gender?: string;
+  notes?: string;
+}
+
+export interface Programme {
+  id: string;
+  school_id?: string;
+  title: string;
+  title_ta?: string;
+  slug: string;
+  description: string;
+  description_ta?: string;
+  category: string;
+  image_url?: string;
+  mode: 'ONLINE' | 'IN_PERSON' | 'HYBRID';
+  venue?: string;
+  online_link?: string;
+  schedule_text?: string;
+  start_date?: string;
+  end_date?: string;
+  registration_deadline?: string;
+  capacity_limit?: number;
+  allow_family: boolean;
+  allowed_family_types?: string[];
+  visibility: 'PUBLIC' | 'UNLISTED' | 'INVITATION_ONLY';
+  is_featured: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'COMPLETED' | 'ARCHIVED';
+  total_registrations?: number;
+  is_registered?: boolean;
+  user_registration?: ProgrammeRegistration;
+  invite_token?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProgrammeRegistration {
+  id: string;
+  programme_id: string;
+  user_id: string;
+  alumni_id?: string;
+  registration_status: 'REGISTERED' | 'APPROVED' | 'WAITLISTED' | 'CANCELLED';
+  primary_participant: {
+    full_name: string;
+    email: string;
+    mobile: string;
+    batch_year?: number;
+  };
+  family_members: FamilyMember[];
+  total_participants_count: number;
+  notes?: string;
+  registered_at: string;
+  programme?: Programme;
+}
+
+export interface ProgrammeInvite {
+  id: string;
+  programme_id: string;
+  token: string;
+  created_by: string;
+  max_uses?: number;
+  use_count: number;
+  expires_at?: string;
+  is_revoked: boolean;
+  created_at: string;
+}
+
+

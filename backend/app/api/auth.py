@@ -330,7 +330,11 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     google_email = userinfo.get("email", "").strip().lower()
     google_name = userinfo.get("name", "").strip()
     google_sub = userinfo.get("id") or userinfo.get("sub")
-    # Note: Google profile picture URL is explicitly NOT gathered or assigned to user profile
+    google_picture = userinfo.get("picture", "").strip() or userinfo.get("avatar", "").strip()
+    if google_picture and "=s96-c" in google_picture:
+        google_picture = google_picture.replace("=s96-c", "=s256-c")
+    fallback_avatar = f"https://ui-avatars.com/api/?name={urllib.parse.quote(google_name or 'User')}&background=F4C542&color=111111"
+    effective_photo = google_picture if google_picture else fallback_avatar
 
     if not google_email:
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=Google account did not provide an email address")
@@ -345,6 +349,8 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "google_id": google_sub,
             "full_name": user.get("full_name") or google_name,
         }
+        if google_picture and (not user.get("profile_photo_url") or "ui-avatars.com" in str(user.get("profile_photo_url", ""))):
+            user_update["profile_photo_url"] = google_picture
         await db.users.update_one(
             {"_id": user["_id"]},
             {"$set": user_update}
@@ -357,6 +363,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "email": google_email,
             "full_name": google_name,
             "google_id": google_sub,
+            "profile_photo_url": effective_photo,
             "roles": ["ALUMNI"],
             "is_active": True,
             "created_at": datetime.now(timezone.utc)
@@ -364,7 +371,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
         res = await db.users.insert_one(new_user)
         user_id = str(res.inserted_id)
 
-    # Pre-fill draft alumni profile with Google details (using default avatar, avoiding Google profile photo)
+    # Pre-fill draft alumni profile with Google details & profile photo
     alumni = await db.alumni.find_one({"user_id": user_id})
     now = datetime.now(timezone.utc)
     if not alumni:
@@ -373,7 +380,7 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
             "school_id": school_id,
             "full_name": google_name,
             "email": google_email,
-            "profile_photo_url": f"https://ui-avatars.com/api/?name={urllib.parse.quote(google_name)}&background=F4C542&color=111111",
+            "profile_photo_url": effective_photo,
             "verification_status": "DRAFT",
             "registration_submitted": False,
             "created_at": now
@@ -386,9 +393,13 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
         alumni = await db.alumni.find_one({"user_id": user_id})
     else:
         update_fields = {}
-        if not alumni.get("full_name") and google_name: update_fields["full_name"] = google_name
+        if not alumni.get("full_name") and google_name:
+            update_fields["full_name"] = google_name
+        if google_picture and (not alumni.get("profile_photo_url") or "ui-avatars.com" in str(alumni.get("profile_photo_url", ""))):
+            update_fields["profile_photo_url"] = google_picture
         if update_fields:
             await db.alumni.update_one({"user_id": user_id}, {"$set": update_fields})
+            alumni = await db.alumni.find_one({"user_id": user_id})
 
     roles = user.get("roles", ["ALUMNI"]) if user else ["ALUMNI"]
     verification_status = alumni.get("verification_status") if alumni else None
@@ -406,8 +417,9 @@ async def google_callback(code: str = Query(None), error: str = Query(None)):
     }
     access_token = create_access_token(token_data)
 
-    # Step 6: Redirect to Frontend Callback Handler with auto-fill parameters (photo parameter left empty to prevent setting Google photo)
-    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo=&registration_required={str(registration_required).lower()}&resume_step={resume_step}&has_mobile={str(has_mobile).lower()}"
+    # Step 6: Redirect to Frontend Callback Handler with auto-fill parameters including profile photo
+    current_photo = alumni.get("profile_photo_url") if alumni else effective_photo
+    target_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}&email={urllib.parse.quote(google_email)}&name={urllib.parse.quote(google_name)}&photo={urllib.parse.quote(current_photo or effective_photo)}&registration_required={str(registration_required).lower()}&resume_step={resume_step}&has_mobile={str(has_mobile).lower()}"
     return RedirectResponse(url=target_url)
 
 @router.post("/send-otp", response_model=SendOTPResponse)

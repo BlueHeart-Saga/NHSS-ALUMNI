@@ -12,7 +12,7 @@ from app.core.database import connect_to_mongo, close_mongo_connection, get_db
 from app.core.logging import setup_logging
 
 # Routers
-from app.api import auth, school, batches, alumni, events, attendance, checkins, announcements, memories, reports, developer, public, association, rank_holders, school_events, files, documents, community, mentorship, feedback, audit, contributions, sponsors, notifications, meeting_minutes
+from app.api import auth, school, batches, alumni, events, attendance, checkins, announcements, memories, reports, developer, public, association, rank_holders, school_events, files, documents, community, mentorship, feedback, audit, contributions, sponsors, notifications, meeting_minutes, programmes
 
 setup_logging()
 logger = logging.getLogger("app.main")
@@ -160,6 +160,7 @@ api_v1.include_router(contributions.router)
 api_v1.include_router(sponsors.router)
 api_v1.include_router(notifications.router)
 api_v1.include_router(meeting_minutes.router)
+api_v1.include_router(programmes.router)
 app.mount("/api/v1", api_v1)
 
 @app.get("/")

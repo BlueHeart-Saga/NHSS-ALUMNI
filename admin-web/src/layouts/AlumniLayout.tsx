@@ -5,7 +5,7 @@ import {
   Calendar, Bell, Camera, Award, Settings, LogOut, Menu, X, Search,
   ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Clock, ShieldAlert,
   AlertTriangle, AlertCircle, RefreshCw, Mail, MessageSquareQuote,
-  HandHeart, History
+  HandHeart, History, BookOpen
 } from 'lucide-react';
 import { api } from '../services/api';
 import { alertService } from '../services/alertService';
@@ -649,10 +649,13 @@ export const AlumniLayout: React.FC = () => {
           {/* User Profile avatar */}
           <div className="flex items-center space-x-2.5 sm:space-x-3 pl-2 sm:pl-3 border-l border-[#E5E7EB]">
             <img
-              src={user?.profile_photo_url || `https://ui-avatars.com/api/?name=${user?.full_name || 'Alumni'}&background=111111&color=ffffff`}
+              src={user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Alumni')}&background=111111&color=ffffff`}
               alt="Avatar"
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-[#E5E7EB] cursor-pointer shrink-0"
               onClick={() => navigate('/alumni/profile')}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Alumni')}&background=111111&color=ffffff`;
+              }}
             />
             <div className="hidden sm:block text-left cursor-pointer min-w-0" onClick={() => navigate('/alumni/profile')}>
               <p className="font-bold text-xs text-[#111111] truncate max-w-[120px]">{user?.full_name || 'Alumni'}</p>
@@ -707,6 +710,10 @@ export const AlumniLayout: React.FC = () => {
             <NavLink to="/alumni/events" className={navItemClass} title={t('alumni_nav_events')}>
               <Calendar className="w-4 h-4 shrink-0" />
               {!sidebarCollapsed && <span className="truncate">{t('alumni_nav_events')}</span>}
+            </NavLink>
+            <NavLink to="/alumni/programmes" className={navItemClass} title={language === 'ta' ? 'மாணவர்களுக்காக' : 'For Students'}>
+              <BookOpen className="w-4 h-4 shrink-0 text-[#854D0E]" />
+              {!sidebarCollapsed && <span className="truncate">{language === 'ta' ? 'மாணவர்களுக்காக' : 'For Students'}</span>}
             </NavLink>
             <NavLink to="/alumni/announcements" className={navItemClass} title={t('alumni_nav_announcements')}>
               <Bell className="w-4 h-4 shrink-0" />

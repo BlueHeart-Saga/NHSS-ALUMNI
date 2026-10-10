@@ -74,6 +74,19 @@ const SchoolEventsManager = lazy(() => import('../pages/school-admin/SchoolEvent
 const AuditManager = lazy(() => import('../pages/school-admin/AuditManager').then(m => ({ default: m.AuditManager })));
 const ContributionManager = lazy(() => import('../pages/school-admin/ContributionManager').then(m => ({ default: m.ContributionManager })));
 const SponsorManager = lazy(() => import('../pages/school-admin/SponsorManager').then(m => ({ default: m.SponsorManager })));
+// Programmes Management Module Pages (Lazy)
+const PublicProgrammesPage = lazy(() => import('../pages/public-pages/PublicProgrammesPage').then(m => ({ default: m.PublicProgrammesPage })));
+const PublicProgrammeDetailPage = lazy(() => import('../pages/public-pages/PublicProgrammeDetailPage').then(m => ({ default: m.PublicProgrammeDetailPage })));
+const ProgrammeInviteLanding = lazy(() => import('../pages/public-pages/ProgrammeInviteLanding').then(m => ({ default: m.ProgrammeInviteLanding })));
+
+const AlumniProgrammesPage = lazy(() => import('../pages/alumni/AlumniProgrammesPage').then(m => ({ default: m.AlumniProgrammesPage })));
+const AlumniProgrammeDetail = lazy(() => import('../pages/alumni/AlumniProgrammeDetail').then(m => ({ default: m.AlumniProgrammeDetail })));
+const AlumniMyProgrammesPage = lazy(() => import('../pages/alumni/AlumniMyProgrammesPage').then(m => ({ default: m.AlumniMyProgrammesPage })));
+
+const ProgrammesList = lazy(() => import('../pages/school-admin/ProgrammesList').then(m => ({ default: m.ProgrammesList })));
+const CreateEditProgramme = lazy(() => import('../pages/school-admin/CreateEditProgramme').then(m => ({ default: m.CreateEditProgramme })));
+const ProgrammeRegistrations = lazy(() => import('../pages/school-admin/ProgrammeRegistrations').then(m => ({ default: m.ProgrammeRegistrations })));
+
 // Developer Pages (Lazy)
 const DeveloperPortal = lazy(() => import('../pages/developer/DeveloperPortal').then(m => ({ default: m.DeveloperPortal })));
 
@@ -103,6 +116,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="audit" element={<AuditListPage />} />
         <Route path="audit/:id" element={<AuditDetailPage />} />
         <Route path="audit/meeting-minutes/:id" element={<MeetingMinuteDetailPage />} />
+        <Route path="programmes" element={<PublicProgrammesPage />} />
+        <Route path="programmes/:slug" element={<PublicProgrammeDetailPage />} />
+        <Route path="programme-invite/:token" element={<ProgrammeInviteLanding />} />
         <Route path="contributors" element={<PublicContributorsPage />} />
         <Route path="sponsors" element={<PublicSponsorsPage />} />
         <Route path="contact" element={<PublicContact />} />
@@ -148,6 +164,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="support" element={<AlumniSupportSchool />} />
         <Route path="support/contribute" element={<AlumniContribute />} />
         <Route path="support/contributions" element={<AlumniMyContributions />} />
+        <Route path="programmes" element={<AlumniProgrammesPage />} />
+        <Route path="programmes/:slug" element={<AlumniProgrammeDetail />} />
+        <Route path="my-programmes" element={<AlumniMyProgrammesPage />} />
       </Route>
 
       {/* 3. SCHOOL ADMIN ROUTES */}
@@ -164,6 +183,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="events/:eventId" element={<EventDetails />} />
         <Route path="events/:eventId/attendance" element={<AttendanceRoster />} />
         <Route path="school-events" element={<SchoolEventsManager />} />
+        <Route path="programmes" element={<ProgrammesList />} />
+        <Route path="programmes/create" element={<CreateEditProgramme />} />
+        <Route path="programmes/:id/edit" element={<CreateEditProgramme />} />
+        <Route path="programmes/:id/registrations" element={<ProgrammeRegistrations />} />
         <Route path="announcements" element={<AnnouncementsManager />} />
         <Route path="memories" element={<MemoriesModeration />} />
         <Route path="feedback" element={<FeedbackManagement />} />

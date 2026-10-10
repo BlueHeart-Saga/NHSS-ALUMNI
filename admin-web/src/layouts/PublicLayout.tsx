@@ -52,6 +52,7 @@ export const PublicLayout: React.FC = () => {
     { label: t('nav_school_profile'), path: '/school' },
     { label: t('nav_batches'), path: '/batches' },
     { label: t('nav_events'), path: '/events' },
+    { label: t('nav_programmes'), path: '/programmes' },
     { label: t('nav_memories'), path: '/memories' },
     { label: t('nav_audit'), path: '/audit' },
     { label: t('nav_contact'), path: '/contact' }

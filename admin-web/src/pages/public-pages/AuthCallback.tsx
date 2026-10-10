@@ -190,8 +190,11 @@ export const AuthCallback: React.FC = () => {
           <div className="flex items-center gap-3 p-3 bg-[#FAFAFA] border border-[#E5E7EB] rounded-2xl">
             <img
               src={authDetails.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(authDetails.name || 'User')}&background=F4C542&color=111111`}
-              alt={authDetails.name}
+              alt={authDetails.name || 'User'}
               className="w-12 h-12 rounded-full border border-[#E5E7EB] object-cover shrink-0 shadow-xs"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authDetails.name || 'User')}&background=F4C542&color=111111`;
+              }}
             />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-[#111111] truncate">{authDetails.name || 'Google User'}</div>

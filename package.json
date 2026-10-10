@@ -4,6 +4,8 @@
   "private": true,
   "description": "School Alumni Management and Batch Get-Together Platform",
   "scripts": {
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:admin\"",
+    "dev:all": "concurrently \"npm:dev:backend\" \"npm:dev:admin\" \"npm:dev:mobile\"",
     "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
     "dev:admin": "cd admin-web && npm run dev",
     "dev:mobile": "cd mobile-app && npm run dev",

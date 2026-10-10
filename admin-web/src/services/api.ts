@@ -1686,6 +1686,123 @@ class ApiClient {
       file_size: number;
     }>;
   }
+
+  // ===========================================================================
+  // PROGRAMMES MANAGEMENT API MODULE
+  // ===========================================================================
+  async getPublicProgrammes(isFeatured?: boolean) {
+    const q = isFeatured !== undefined ? `?is_featured=${isFeatured}` : '';
+    return this.request<import('../types').Programme[]>(`/programmes/public${q}`);
+  }
+
+  async getPublicProgrammeDetail(slugOrId: string) {
+    return this.request<import('../types').Programme>(`/programmes/public/${slugOrId}`);
+  }
+
+  async resolveProgrammeInvite(token: string) {
+    return this.request<import('../types').Programme>(`/programmes/invite/${token}`);
+  }
+
+  async getAlumniProgrammes() {
+    return this.request<import('../types').Programme[]>('/programmes/alumni');
+  }
+
+  async getAlumniProgrammeDetail(slugOrId: string) {
+    return this.request<import('../types').Programme>(`/programmes/alumni/${slugOrId}`);
+  }
+
+  async registerForProgramme(programmeId: string, data: { notes?: string; family_members: import('../types').FamilyMember[] }, inviteToken?: string) {
+    const q = inviteToken ? `?invite_token=${encodeURIComponent(inviteToken)}` : '';
+    return this.request<import('../types').ProgrammeRegistration>(`/programmes/${programmeId}/register${q}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyProgrammeRegistrations() {
+    return this.request<import('../types').ProgrammeRegistration[]>('/programmes/my-registrations');
+  }
+
+  async cancelProgrammeRegistration(registrationId: string) {
+    return this.request<{ message: string }>(`/programmes/my-registrations/${registrationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Admin Programme Endpoints
+  async getAdminProgrammes(statusFilter?: string) {
+    const q = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : '';
+    return this.request<import('../types').Programme[]>(`/programmes/admin${q}`);
+  }
+
+  async createAdminProgramme(data: Partial<import('../types').Programme>) {
+    return this.request<import('../types').Programme>('/programmes/admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadProgrammeImage(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_BASE}/programmes/upload-image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Image upload failed' }));
+      throw new Error(err.detail || 'Image upload failed');
+    }
+    return res.json() as Promise<{ image_url: string; thumb_url: string }>;
+  }
+
+  async getAdminProgrammeDetail(id: string) {
+    return this.request<import('../types').Programme>(`/programmes/admin/${id}`);
+  }
+
+  async updateAdminProgramme(id: string, data: Partial<import('../types').Programme>) {
+    return this.request<import('../types').Programme>(`/programmes/admin/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminProgramme(id: string) {
+    return this.request<{ message: string }>(`/programmes/admin/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createProgrammeInvite(programmeId: string, data: { max_uses?: number; expires_at?: string }) {
+    return this.request<import('../types').ProgrammeInvite>(`/programmes/admin/${programmeId}/invites`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listProgrammeInvites(programmeId: string) {
+    return this.request<import('../types').ProgrammeInvite[]>(`/programmes/admin/${programmeId}/invites`);
+  }
+
+  async revokeProgrammeInvite(inviteId: string) {
+    return this.request<{ message: string }>(`/programmes/admin/invites/${inviteId}/revoke`, {
+      method: 'POST',
+    });
+  }
+
+  async getAdminProgrammeRegistrations(programmeId: string) {
+    return this.request<import('../types').ProgrammeRegistration[]>(`/programmes/admin/${programmeId}/registrations`);
+  }
+
+  getAdminProgrammeExportUrl(programmeId: string) {
+    return `${API_BASE}/programmes/admin/${programmeId}/export-registrations`;
+  }
 }
 
 export const api = new ApiClient();

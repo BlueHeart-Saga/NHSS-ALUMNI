@@ -1985,7 +1985,22 @@ export const translations: Record<Language, Record<string, string>> = {
     contribution_purpose_infrastructure: "Infrastructure",
     contribution_purpose_event: "Events & Programs",
     contribution_purpose_other: "Other",
-    admin_meeting_minutes_title: "கூட்ட நடவடிக்கைகள்"
+    admin_meeting_minutes_title: "கூட்ட நடவடிக்கைகள்",
+
+    // Programmes Management
+    nav_programmes: "For Students",
+    programmes_title: "NHSS Alumni Programmes",
+    explore_programmes: "Explore Programmes",
+    my_programmes: "My Programmes & History",
+    featured_programmes_title: "FEATURED NHSS PROGRAMMES",
+    register_programme: "Register for Programme",
+    register_family_members: "Register Family Members",
+    programme_details: "Programme Details",
+    programme_schedule: "Programme Schedule",
+    programme_mode: "Programme Mode",
+    programme_eligibility: "Eligibility & Audience",
+    programme_invitation_link: "Invitation Link",
+    registered_family_count: "Registered Family Members"
   },
   ta: {
     // Navbar & Common
@@ -3970,5 +3985,20 @@ export const translations: Record<Language, Record<string, string>> = {
     contribution_purpose_event: "நிகழ்வுகள் & திட்டங்கள்",
     contribution_purpose_other: "மற்றவை",
     admin_meeting_minutes_title: "கூட்ட நடவடிக்கைகள்",
+
+    // Programmes Management
+    nav_programmes: "மாணவர்களுக்காக",
+    programmes_title: "NHSS முன்னாள் மாணவர் சிறப்புத் திட்டங்கள்",
+    explore_programmes: "சிறப்புத் திட்டங்களைக் கண்டறிக",
+    my_programmes: "எனது பதிவுகள் & வரலாறு",
+    featured_programmes_title: "NHSS முன்னாள் மாணவர் சிறப்புத் திட்டங்கள்",
+    register_programme: "திட்டத்தில் பதிவு செய்க",
+    register_family_members: "குடும்ப உறுப்பினர்களைப் பதிவு செய்க",
+    programme_details: "திட்ட விவரங்கள்",
+    programme_schedule: "திட்ட அட்டவணை",
+    programme_mode: "திட்ட முறை",
+    programme_eligibility: "தகுதி & பங்கேற்பாளர்கள்",
+    programme_invitation_link: "அழைப்பு இணைப்பு",
+    registered_family_count: "பதிவுசெய்த குடும்ப உறுப்பினர்கள்"
   }
 };

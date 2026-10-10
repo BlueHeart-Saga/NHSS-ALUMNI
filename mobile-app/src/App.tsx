@@ -1454,7 +1454,14 @@ export const App: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-[#FFF7D6] border border-[#F4C542] overflow-hidden flex items-center justify-center font-bold text-amber-900">
                     {userProfile?.profile_photo_url ? (
-                      <img src={userProfile.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={userProfile.profile_photo_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.full_name || 'Alumni')}&background=F4C542&color=111111`;
+                        }}
+                      />
                     ) : (
                       userProfile?.full_name?.[0] || 'A'
                     )}
@@ -1757,7 +1764,14 @@ export const App: React.FC = () => {
                     <div className="flex items-start space-x-3">
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#F4C542] bg-[#FFF7D6] flex items-center justify-center shrink-0">
                         {a.profile_photo_url ? (
-                          <img src={a.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={a.profile_photo_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || 'Alumni')}&background=F4C542&color=111111`;
+                            }}
+                          />
                         ) : (
                           <User className="w-6 h-6 text-[#854D0E]" />
                         )}
@@ -1841,7 +1855,18 @@ export const App: React.FC = () => {
                   <div key={a.id || a.mobile} className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs flex items-center justify-between">
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="w-10 h-10 rounded-full overflow-hidden border border-[#E5E7EB] bg-[#FFF7D6] flex items-center justify-center shrink-0">
-                        {a.profile_photo_url ? <img src={a.profile_photo_url} alt="" className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-[#854D0E]" />}
+                        {a.profile_photo_url ? (
+                          <img
+                            src={a.profile_photo_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || 'Alumni')}&background=F4C542&color=111111`;
+                            }}
+                          />
+                        ) : (
+                          <User className="w-5 h-5 text-[#854D0E]" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-bold text-xs text-[#111111] truncate">{a.full_name}</h4>

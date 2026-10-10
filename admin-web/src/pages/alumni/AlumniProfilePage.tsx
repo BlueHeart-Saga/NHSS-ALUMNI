@@ -405,7 +405,14 @@ export const AlumniProfilePage: React.FC = () => {
             <div className="relative group shrink-0">
               <div className="w-24 h-24 rounded-full bg-[#FFF7D6] border-4 border-[#F4C542] overflow-hidden flex items-center justify-center shadow-md relative">
                 {profileForm.profile_photo_url ? (
-                  <img src={profileForm.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
+                  <img
+                    src={profileForm.profile_photo_url}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.full_name || 'Alumni')}&background=F4C542&color=111111`;
+                    }}
+                  />
                 ) : (
                   <User className="w-12 h-12 text-[#854D0E]" />
                 )}

@@ -10,6 +10,7 @@ import { MemoriesPreview } from './components/MemoriesPreview';
 import { SchoolNews } from './components/SchoolNews';
 import { SchoolAchieversSection } from './components/SchoolAchieversSection';
 import { AlumniAssociationSection } from '../components/AlumniAssociationSection';
+import { FeaturedProgrammesSection } from './components/FeaturedProgrammesSection';
 // import { JoinCTA } from './components/JoinCTA';
 
 import { Modal } from '../../../components/Modal';
@@ -194,6 +195,9 @@ export const HomePage: React.FC = () => {
         onViewAllClick={() => navigate('/memories')}
         onSelectMemory={(memory) => setSelectedMemory(memory)}
       />
+
+      {/* 6.5 FEATURED SPECIAL PROGRAMMES */}
+      <FeaturedProgrammesSection />
 
       {/* 7. FROM OUR SCHOOL (News & Announcements) */}
       <SchoolNews
