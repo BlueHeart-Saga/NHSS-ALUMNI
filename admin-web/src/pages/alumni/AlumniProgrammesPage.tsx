@@ -4,10 +4,12 @@ import { api } from '../../services/api';
 import { alertService } from '../../services/alertService';
 import { Programme } from '../../types';
 import { Button } from '../../components/Button';
+import { useLanguage } from '../../context/LanguageContext';
 import { Sparkles, Calendar, Users, MapPin, Globe, CheckCircle2, ArrowRight, UserPlus, Clock } from 'lucide-react';
 
 export const AlumniProgrammesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,15 +101,17 @@ export const AlumniProgrammesPage: React.FC = () => {
                 <div className="p-5 space-y-3">
                   <div>
                     <h3 className="font-extrabold text-base text-[#111111] line-clamp-1 group-hover:text-amber-700 transition-colors">
-                      {prog.title}
+                      {language === 'ta' ? (prog.title_ta || prog.title) : prog.title}
                     </h3>
-                    {prog.title_ta && (
-                      <p className="text-xs font-semibold text-[#854D0E] line-clamp-1">{prog.title_ta}</p>
+                    {((language === 'ta' && prog.title_ta && prog.title) || (language !== 'ta' && prog.title_ta)) && (
+                      <p className="text-xs font-semibold text-[#854D0E] line-clamp-1">
+                        {language === 'ta' ? prog.title : prog.title_ta}
+                      </p>
                     )}
                   </div>
 
                   <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                    {prog.description}
+                    {language === 'ta' ? (prog.description_ta || prog.description) : prog.description}
                   </p>
 
                   <div className="space-y-1.5 text-xs text-gray-500 pt-2 border-t border-gray-100">

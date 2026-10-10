@@ -122,15 +122,17 @@ export const PublicProgrammesPage: React.FC = () => {
                 <div className="p-6 space-y-3">
                   <div>
                     <h3 className="font-extrabold text-lg text-[#111111] line-clamp-2 group-hover:text-amber-700 transition-colors">
-                      {prog.title}
+                      {language === 'ta' ? (prog.title_ta || prog.title) : prog.title}
                     </h3>
-                    {prog.title_ta && (
-                      <p className="text-xs font-semibold text-[#854D0E] line-clamp-1 mt-0.5">{prog.title_ta}</p>
+                    {((language === 'ta' && prog.title_ta && prog.title) || (language !== 'ta' && prog.title_ta)) && (
+                      <p className="text-xs font-semibold text-[#854D0E] line-clamp-1 mt-0.5">
+                        {language === 'ta' ? prog.title : prog.title_ta}
+                      </p>
                     )}
                   </div>
 
                   <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">
-                    {prog.description}
+                    {language === 'ta' ? (prog.description_ta || prog.description) : prog.description}
                   </p>
 
                   <div className="pt-2 border-t border-gray-100 space-y-1.5 text-xs text-gray-500">

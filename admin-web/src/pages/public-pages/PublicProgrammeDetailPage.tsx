@@ -82,15 +82,19 @@ export const PublicProgrammeDetailPage: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{programme.title}</h1>
-          {programme.title_ta && (
-            <p className="text-sm sm:text-base font-semibold text-amber-100">{programme.title_ta}</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+            {language === 'ta' ? (programme.title_ta || programme.title) : programme.title}
+          </h1>
+          {((language === 'ta' && programme.title_ta && programme.title) || (language !== 'ta' && programme.title_ta)) && (
+            <p className="text-sm sm:text-base font-semibold text-amber-100">
+              {language === 'ta' ? programme.title : programme.title_ta}
+            </p>
           )}
 
           <div className="pt-2 flex flex-wrap gap-4 text-xs sm:text-sm font-semibold text-amber-100">
             <span className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#F4C542]" />
-              <span>{programme.schedule_text || 'Schedule To Be Announced'}</span>
+              <span>{programme.schedule_text || (language === 'ta' ? 'அட்டவணை பின்னர் அறிவிக்கப்படும்' : 'Schedule To Be Announced')}</span>
             </span>
 
             {programme.venue && (
@@ -107,14 +111,23 @@ export const PublicProgrammeDetailPage: React.FC = () => {
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E5E7EB] shadow-2xs space-y-6">
         <div>
           <h3 className="font-extrabold text-sm text-[#111111] uppercase tracking-wider border-b border-gray-100 pb-3 mb-3">
-            About this Special Programme
+            {language === 'ta' ? 'சிறப்புத் திட்ட விவரங்கள்' : 'About this Special Programme'}
           </h3>
           <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {programme.description}
+            {language === 'ta' ? (programme.description_ta || programme.description) : programme.description}
           </p>
         </div>
 
-        {programme.description_ta && (
+        {language === 'ta' && programme.description_ta && programme.description && (
+          <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200/70 space-y-1">
+            <h4 className="font-bold text-xs text-[#854D0E]">English Description:</h4>
+            <p className="text-xs sm:text-sm text-amber-950 leading-relaxed whitespace-pre-line">
+              {programme.description}
+            </p>
+          </div>
+        )}
+
+        {language !== 'ta' && programme.description_ta && (
           <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200/70 space-y-1">
             <h4 className="font-bold text-xs text-[#854D0E]">திட்ட விளக்கம் (தமிழில்):</h4>
             <p className="text-xs sm:text-sm text-amber-950 leading-relaxed whitespace-pre-line">
